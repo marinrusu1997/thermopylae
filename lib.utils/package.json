@@ -1,0 +1,64 @@
+{
+  "name": "lib.utils",
+  "description": "Utility functions and shared constants",
+  "keywords": [
+    "utils",
+    "shared",
+    "constants"
+  ],
+  "version": "1.0.0",
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC",
+  "main": "dist/lib/index.js",
+  "typings": "dist/lib/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc; rm -rf dist/test",
+    "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+    "test": "mocha",
+    "coverage": "nyc mocha",
+    "coverage:show": "http-server coverage/",
+    "clear": "rm -rf .nyc_output build coverage dist",
+    "clear:all": "npm run clear; rm -rf node_modules package-lock.json"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint"
+    ]
+  },
+  "engines": {
+    "node": "13.2.0"
+  },
+  "dependencies": {
+    "@marin/lib.error": "file:../lib.error",
+    "argon2": "^0.25.1",
+    "lodash.clone": "^4.5.0",
+    "lodash.clonedeep": "^4.5.0",
+    "otplib": "^11.0.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.5",
+    "@types/lodash.clone": "^4.5.6",
+    "@types/lodash.clonedeep": "^4.5.6",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.12.12",
+    "@types/otplib": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.8.0",
+    "@typescript-eslint/parser": "^2.8.0",
+    "chai": "^4.2.0",
+    "eslint": "^6.7.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-prettier": "^3.1.1",
+    "esm": "^3.2.25",
+    "mocha": "^6.2.2",
+    "nyc": "^14.1.1",
+    "prettier": "^1.19.1",
+    "save-dev": "0.0.1-security",
+    "ts-node": "^8.5.2",
+    "typescript": "^3.7.2"
+  }
+}

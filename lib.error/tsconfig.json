@@ -1,0 +1,12 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "sourceMap": true,
+        "declaration": false,
+        "moduleResolution": "node",
+        "target": "esnext",
+        "lib": [
+            "esnext"
+        ]
+    }
+}

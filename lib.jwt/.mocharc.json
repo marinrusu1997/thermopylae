@@ -1,0 +1,11 @@
+{
+  "exit": true,
+  "color": true,
+  "recursive": true,
+  "watch": true,
+  "timeout": "5s",
+  "require": "esm",
+  "spec": [
+    "test/**/*.spec.js"
+  ]
+}

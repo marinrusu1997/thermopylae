@@ -1,0 +1,36 @@
+{
+    "name": "@marin/lib.sms",
+    "version": "1.0.0",
+    "description": "Lib for SMS",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "main": "lib/index.js",
+    "scripts": {
+        "lint": "eslint --fix lib/ test/",
+        "test": "mocha -r esm",
+        "coverage": "nyc mocha",
+        "build": "eslint lib/ test/ && npm run test",
+        "coverage:show": "http-server coverage/",
+        "clean": "rm -rf .nyc_output coverage",
+        "clean:all": "rm -rf .nyc_output coverage node_modules package-lock.json"
+    },
+    "type": "module",
+    "devDependencies": {
+        "chai": "^4.2.0",
+        "chai-arrays": "^2.0.0",
+        "chai-as-promised": "^7.1.1",
+        "eslint": "^6.6.0",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-config-prettier": "^6.4.0",
+        "eslint-plugin-import": "^2.18.2",
+        "eslint-plugin-prettier": "^3.1.1",
+        "esm": "^3.2.25",
+        "mocha": "^6.2.2",
+        "nyc": "^14.1.1",
+        "prettier": "^1.18.2"
+    },
+    "dependencies": {
+        "@marin/lib.error": "file:../lib.error",
+        "@marin/lib.utils": "file:../lib.utils",
+        "twilio": "^3.36.0"
+    }
+}

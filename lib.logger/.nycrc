@@ -1,0 +1,17 @@
+{
+    "all": true,
+    "include": [
+        "lib/**/*.js"
+    ],
+    "reporter": [
+        "html",
+        "text",
+        "text-summary"
+    ],
+    "require": [
+        "esm"
+    ],
+    "check-coverage": false,
+    "cache": true,
+    "instrument": true
+}
