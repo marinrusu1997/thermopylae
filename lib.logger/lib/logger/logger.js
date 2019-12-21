@@ -1,4 +1,4 @@
-import { createLogger } from 'winston';
+import winston, { createLogger } from 'winston';
 import { TransportsManager } from '../transports/transports-manager';
 import { ConsoleLogsManager } from '../transports/consolelogs-manager';
 import { FileLogsManager } from '../transports/filelogs-manager';
@@ -48,6 +48,7 @@ class Logger {
 		if (!logger) {
 			const transports = privateThis.transports.for(system);
 			logger = createLogger({
+				levels: winston.config.syslog.levels,
 				format: this.formatting.formatterFor(system),
 				transports,
 				exceptionHandlers: transports,

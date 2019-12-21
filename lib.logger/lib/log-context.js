@@ -1,5 +1,13 @@
-import { ErrorCodes, ErrorMessages, LOG_CTX_COMPONENTS, generateToken } from '@marin/lib.utils';
+import { errors, token } from '@marin/lib.utils';
 import { createException } from './error';
+
+const LOG_CTX_COMPONENTS = {
+	ACTION: 'action',
+	SUB_ACTION: 'sub_action',
+	RESOURCE: 'resource',
+	VARIABLES: 'variables',
+	STATUS: 'status'
+};
 
 const storage = new WeakMap();
 /**
@@ -7,16 +15,17 @@ const storage = new WeakMap();
  *
  * @param {Object} _this This of the class
  * @return {{
- *     ctx
+ *     ctx: object | null
  * }}
  */
 const internal = _this => {
 	return storage.get(_this);
 };
 
-let /** @type {string} */ ctxToken;
+// this is used in order to limit access to some member functions
+let /** @type {string} */ globalContextToken;
 (async () => {
-	ctxToken = (await generateToken(10)).plain;
+	globalContextToken = (await token.generateToken(10)).plain;
 })();
 
 class LogContext {
@@ -29,15 +38,15 @@ class LogContext {
 	/**
 	 * Private getter
 	 *
-	 * @param {string} token
+	 * @param {string} contextToken
 	 */
-	getContext(token) {
-		if (token !== ctxToken) {
-			throw createException(ErrorCodes.INCORRECT_TOKEN, ErrorMessages.INCORRECT_TOKEN);
+	getContext(contextToken) {
+		if (contextToken !== globalContextToken) {
+			throw createException(errors.ErrorCodes.ILLEGAL_ARGUMENT, 'Context token is not valid');
 		}
 		const { ctx } = internal(this);
 		if (!ctx) {
-			throw createException(ErrorCodes.NOT_INITIALIZED, ErrorMessages.NOT_INITIALIZED);
+			throw createException(errors.ErrorCodes.NOT_INITIALIZED, errors.ErrorMessages.NOT_INITIALIZED);
 		}
 		return ctx;
 	}
@@ -46,11 +55,11 @@ class LogContext {
 	 * Private setter for the context
 	 *
 	 * @param {object}	ctx
-	 * @param {string}	token
+	 * @param {string}	contextToken
 	 */
-	setContext(ctx, token) {
-		if (token !== ctxToken) {
-			throw createException(ErrorCodes.INCORRECT_TOKEN, ErrorMessages.INCORRECT_TOKEN);
+	setContext(ctx, contextToken) {
+		if (contextToken !== globalContextToken) {
+			throw createException(errors.ErrorCodes.ILLEGAL_ARGUMENT, 'Context token is not valid');
 		}
 		internal(this).ctx = ctx;
 	}
@@ -76,12 +85,12 @@ class LogContext {
 			}
 		}
 		const logContext = new LogContext();
-		logContext.setContext(ctx, ctxToken);
+		logContext.setContext(ctx, globalContextToken);
 		return logContext;
 	}
 
 	toString() {
-		const ctx = this.getContext(ctxToken);
+		const ctx = this.getContext(globalContextToken);
 		const /** @type {Array<string>} */ contextParts = [];
 		const /** @type {Array<string>} */ contextKeys = Object.keys(ctx);
 		let /** @type {string} */ key;
@@ -98,21 +107,21 @@ class LogContext {
 	 * @returns {string}
 	 */
 	action() {
-		return this.getContext(ctxToken)[LOG_CTX_COMPONENTS.ACTION];
+		return this.getContext(globalContextToken)[LOG_CTX_COMPONENTS.ACTION];
 	}
 
 	/**
 	 * @returns {string}
 	 */
 	resource() {
-		return this.getContext(ctxToken)[LOG_CTX_COMPONENTS.RESOURCE];
+		return this.getContext(globalContextToken)[LOG_CTX_COMPONENTS.RESOURCE];
 	}
 
 	/**
 	 * @returns {object}
 	 */
 	variables() {
-		const ctx = this.getContext(ctxToken);
+		const ctx = this.getContext(globalContextToken);
 		if (typeof ctx[LOG_CTX_COMPONENTS.VARIABLES] === 'string') {
 			ctx[LOG_CTX_COMPONENTS.VARIABLES] = JSON.parse(ctx[LOG_CTX_COMPONENTS.VARIABLES]);
 		}
@@ -123,9 +132,9 @@ class LogContext {
 	 * @returns {string}
 	 */
 	status() {
-		return this.getContext(ctxToken)[LOG_CTX_COMPONENTS.STATUS];
+		return this.getContext(globalContextToken)[LOG_CTX_COMPONENTS.STATUS];
 	}
 }
 
 // eslint-disable-next-line import/prefer-default-export
-export { LogContext };
+export { LogContext, LOG_CTX_COMPONENTS };

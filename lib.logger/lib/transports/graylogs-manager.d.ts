@@ -22,7 +22,7 @@ declare class GrayLogsManager implements IAbstractLogsTransportManager {
     * @param   endpoint    Options based on which transport will be created
     * @api public
     */
-   register(input: string, endpoint: GrayLogsManager.IGraylogServer);
+   register(input: string, endpoint: GrayLogsManager.IGraylogServer): void;
 
    /**
     * Defines a recipe for system, which instructs the manager
@@ -37,7 +37,7 @@ declare class GrayLogsManager implements IAbstractLogsTransportManager {
     * @param recipe     Subsystem recipe
     * @api public
     */
-   recipeFor(system: string, recipe: GrayLogsManager.IRecipe);
+   recipeFor(system: string, recipe: GrayLogsManager.IRecipe): void;
 
    /**
     * When no inputs configured, it means graylog transport is not used.

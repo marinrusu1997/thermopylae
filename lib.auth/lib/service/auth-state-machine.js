@@ -1,20 +1,18 @@
 import { Machine, State, interpret } from 'xstate';
-import {
-	clone,
-	cloneDeep,
-	ErrorCodes,
-	ErrorMessages,
-	generateToken,
-	AutoFillCache,
-	MethodInvoker,
-	makeHTTPSRequest
-} from '@marin/lib.utils';
+import { misc, errors, token, method, http } from '@marin/lib.utils';
+import { getDefaultMemCache } from '@marin/lib.memcache';
 import { createException } from '../error';
 import { PasswordsManager } from './passwords-manager';
 import { logger } from '../logger';
 import { sendTOTPviaSMS } from '../utils/sms';
 import { sendNotificationMFAFailedEmail } from '../utils/email';
 import { AUTH_STEP } from '../enums';
+
+const { ErrorCodes, ErrorMessages } = errors;
+const { makeHTTPSRequest } = http;
+const { MethodInvoker } = method;
+const { clone, cloneDeep } = misc;
+const { generateToken } = token;
 
 /** States of the authentication process */
 const STATES = {
@@ -38,8 +36,8 @@ const EVENT_TYPE = {
 };
 
 /** Resources which are cached between invoking actions of state machine */
-const CACHED_RESOURCES = {
-	ACCOUNT: 'ACCOUNT'
+const CACHED_RESOURCES_TTL = {
+	ACCOUNT: 120 // 120 seconds = 2 minutes
 };
 
 /**
@@ -54,8 +52,8 @@ const CACHED_RESOURCES = {
 /** @type { EntitiesUsedByAuthStateMachine } */
 let entitiesG;
 
-const ENTITIES_RETRIEVERS_GENERATORS = {
-	[CACHED_RESOURCES.ACCOUNT]: username => () => entitiesG.account.read(username)
+const RESOURCE_RETRIEVERS = {
+	ACCOUNT: username => entitiesG.account.read(username)
 };
 
 /**
@@ -98,42 +96,26 @@ let managersG;
 /** @type {TTLUsedByAuthStateMachine} */
 let ttlG;
 
-/** FIXME there needs to be implemented a dedicated cache with ttl into separate typescript module */
-/** TODO test damn memory leaks for fuck sake after each operation */
 /**
- * @type {Map<string, Map<string, AutoFillCache>>}
+ * @type {MemCache<string, IAccount>}
  */
-const cachedResources = new Map();
+const cachedResources = getDefaultMemCache();
 
 /**
  * @param {string} authSessionId
- * @param {string} resourceName
  * @param {string} resourceId
- * @param {function} [resourceRetriever]
+ * @param {number} resourceTTL
+ * @param {function} resourceRetriever
  *
- * @return {Promise<Optional<any>>}
+ * @return {Promise<any>}
  */
-async function getMyCachedResource(authSessionId, resourceName, resourceId, resourceRetriever) {
-	let stateMachineResources = cachedResources.get(authSessionId);
-	if (!stateMachineResources) {
-		stateMachineResources = new Map();
-		cachedResources.set(authSessionId, stateMachineResources);
+async function getCachedResource(authSessionId, resourceId, resourceTTL, resourceRetriever) {
+	let /** @type {any} */ resource = cachedResources.get(authSessionId);
+	if (!resource) {
+		resource = await resourceRetriever(resourceId);
+		cachedResources.set(resourceId, resource, resourceTTL);
 	}
-	let resourceCache = stateMachineResources.get(resourceName);
-	if (!resourceCache) {
-		resourceCache = new AutoFillCache(
-			resourceRetriever || ENTITIES_RETRIEVERS_GENERATORS[resourceName](resourceId),
-			logger
-		);
-	}
-	return resourceCache.get();
-}
-
-/**
- * @param {string} authSessionId
- */
-function clearMyCachedResources(authSessionId) {
-	cachedResources.delete(authSessionId);
+	return resource;
 }
 
 /**
@@ -250,7 +232,9 @@ const FSMOptions = {
 			if (username !== usernameForWhichAuthSessionWasCreated) {
 				// eslint-disable-next-line no-param-reassign
 				context.requestWasValid = false;
-				event.reject(createException(ErrorCodes.INVALID_USERNAME, ErrorMessages.INVALID_USERNAME));
+				event.reject(
+					createException(ErrorCodes.INVALID_ARGUMENT, 'Username differs from the one session was created')
+				);
 			} else if (ip !== ipFromWhereAuthSessionWasCreated) {
 				// eslint-disable-next-line no-param-reassign
 				context.requestWasValid = false;
@@ -261,10 +245,11 @@ const FSMOptions = {
 			const { usernameForWhichAuthSessionWasCreated, recaptchaRequired } = context;
 			const { authSessionId, password, PIN } = event.payload;
 			const usedCredentialForAuth = password || PIN;
-			const accountOptional = await getMyCachedResource(
+			const accountOptional = await getCachedResource(
 				authSessionId,
-				CACHED_RESOURCES.ACCOUNT,
-				usernameForWhichAuthSessionWasCreated
+				usernameForWhichAuthSessionWasCreated,
+				CACHED_RESOURCES_TTL.ACCOUNT,
+				RESOURCE_RETRIEVERS.ACCOUNT
 			);
 			accountOptional.ifPresentOrElse(
 				async account => {
@@ -302,15 +287,15 @@ const FSMOptions = {
 			// eslint-disable-next-line no-param-reassign
 			context.multiFactorToken = secretsG.totpManager.generate();
 
-			const accountOptional = await getMyCachedResource(
+			const accountOptional = await getCachedResource(
 				authSessionId,
-				CACHED_RESOURCES.ACCOUNT,
-				usernameForWhichAuthSessionWasCreated
+				usernameForWhichAuthSessionWasCreated,
+				CACHED_RESOURCES_TTL.ACCOUNT,
+				RESOURCE_RETRIEVERS.ACCOUNT
 			);
 			accountOptional.ifPresentOrElse(
 				account => {
 					const methodInvoker = new MethodInvoker(async () => {
-						clearMyCachedResources(authSessionId);
 						await sendTOTPviaSMS(account.telephone, context.multiFactorToken);
 						await event.stateMachineRef.saveState();
 						event.resolve({ nextStep: AUTH_STEP.MFA });
@@ -329,10 +314,11 @@ const FSMOptions = {
 			if (secretsG.totpManager.check(TOTP, logger, multiFactorToken)) {
 				event.stateMachineRef.selfDispatch(event, { type: EVENT_TYPE.AUTH_PASSED });
 			} else {
-				const accountOptional = await getMyCachedResource(
+				const accountOptional = await getCachedResource(
 					authSessionId,
-					CACHED_RESOURCES.ACCOUNT,
-					usernameForWhichAuthSessionWasCreated
+					usernameForWhichAuthSessionWasCreated,
+					CACHED_RESOURCES_TTL.ACCOUNT,
+					RESOURCE_RETRIEVERS.ACCOUNT
 				);
 				accountOptional.ifPresentOrElse(
 					account => {
@@ -364,10 +350,11 @@ const FSMOptions = {
 				}
 
 				const recaptchaIsCorrect =
-					(await makeHTTPSRequest({
-						hostname: 'google.com',
-						path: `/recaptcha/api/siteverify?secret=${secretsG.recaptcha}&response=${recaptcha}&remoteip=${IP}`
-					})).success === true;
+					(
+						await makeHTTPSRequest('https://google.com', {
+							path: `/recaptcha/api/siteverify?secret=${secretsG.recaptcha}&response=${recaptcha}&remoteip=${IP}`
+						})
+					).success === true;
 
 				if (!recaptchaIsCorrect) {
 					// eslint-disable-next-line no-param-reassign
@@ -405,10 +392,11 @@ const FSMOptions = {
 				}
 
 				if (failedAuthAttempts.counter >= thresholdsG.failedAuthAttempts) {
-					const accountOptional = await getMyCachedResource(
+					const accountOptional = await getCachedResource(
 						authSessionId,
-						CACHED_RESOURCES.ACCOUNT,
-						usernameForWhichAuthSessionWasCreated
+						usernameForWhichAuthSessionWasCreated,
+						CACHED_RESOURCES_TTL.ACCOUNT,
+						RESOURCE_RETRIEVERS.ACCOUNT
 					);
 					if (!accountOptional.isPresent()) {
 						event.reject(new Error('Account not found'));
@@ -446,8 +434,6 @@ const FSMOptions = {
 		createNewSession: async (context, event) => {
 			const { authSessionId } = event.payload;
 			// create session
-			// clear cached resources
-			clearMyCachedResources(authSessionId);
 			// remove auth session
 			await entitiesG.authSession.delete(authSessionId);
 			// pass credentials

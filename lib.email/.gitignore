@@ -64,4 +64,6 @@ Thumbs.db
 .Spotlight*
 .Trashes
 
-	
+# Environment
+.env
+

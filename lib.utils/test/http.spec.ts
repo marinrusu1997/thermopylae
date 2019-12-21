@@ -119,7 +119,7 @@ describe('http spec', () => {
 	});
 
 	it('makes GET secure request', async () => {
-		const resp = await makeHTTPSRequest('https://jsonplaceholder.typicode.com/todos/1', { method: 'GET' });
+		const resp = await makeHTTPSRequest('https://jsonplaceholder.typicode.com', { method: 'GET', path: '/todos/1' });
 		const expectedJSON: object = {
 			userId: 1,
 			id: 1,

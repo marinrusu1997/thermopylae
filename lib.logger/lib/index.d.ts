@@ -1,6 +1,7 @@
-import { Logger } from "./logger/logger";
+import { Logger, WinstonLogger } from "./logger/logger";
 
 declare const LoggerInstance: Logger;
 
-export * from './log-context';
 export default LoggerInstance;
+export * from './log-context';
+export { WinstonLogger };

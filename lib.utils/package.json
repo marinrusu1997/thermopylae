@@ -1,5 +1,5 @@
 {
-  "name": "lib.utils",
+  "name": "@marin/lib.utils",
   "description": "Utility functions and shared constants",
   "keywords": [
     "utils",

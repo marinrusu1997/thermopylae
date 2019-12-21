@@ -39,4 +39,4 @@ declare class Logger {
 }
 
 export default Logger;
-export { Logger };
+export { Logger, WinstonLogger };

@@ -1,16 +1,1 @@
-{
-    "include": [
-        "lib/**/*.js"
-    ],
-    "reporter": [
-        "html",
-        "text",
-        "text-summary"
-    ],
-    "require": [
-        "esm"
-    ],
-    "check-coverage": false,
-    "cache": true,
-    "instrument": true
-}
+{"all":true,"include":["lib"],"extension":[".ts"],"reporter":["html","text","text-summary"]}

@@ -1,36 +1,62 @@
 {
-    "name": "@marin/lib.email",
-    "version": "1.0.0",
-    "description": "Email functionality lib",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "main": "lib/index.js",
-    "scripts": {
-        "lint": "eslint --fix lib/ test/",
-        "test": "mocha -r esm",
-        "coverage": "nyc mocha",
-        "build": "eslint lib/ test/ && npm run test",
-        "coverage:show": "http-server coverage/",
-        "clean": "rm -rf .nyc_output coverage",
-        "clean:all": "rm -rf .nyc_output coverage node_modules package-lock.json"
-    },
-    "type": "module",
-    "devDependencies": {
-        "chai": "^4.2.0",
-        "chai-arrays": "^2.0.0",
-        "chai-as-promised": "^7.1.1",
-        "eslint": "^6.5.1",
-        "eslint-config-airbnb-base": "^14.0.0",
-        "eslint-config-prettier": "^6.4.0",
-        "eslint-plugin-import": "^2.18.2",
-        "eslint-plugin-prettier": "^3.1.1",
-        "esm": "^3.2.25",
-        "mocha": "^6.2.2",
-        "nyc": "^14.1.1",
-        "prettier": "^1.18.2"
-    },
-    "dependencies": {
-        "@marin/lib.error": "git+ssh://git@github.com/marinrusu1997/lib.error.git",
-        "@marin/lib.utils": "file:../lib.utils",
-        "nodemailer": "^6.3.1"
-    }
+  "name": "@marin/lib.email",
+  "description": "Email lib",
+  "keywords": [
+    "email",
+    "ts",
+    "node"
+  ],
+  "version": "1.0.0",
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC",
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc; rm -rf dist/test",
+    "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+    "test": "mocha",
+    "coverage": "nyc mocha",
+    "coverage:show": "http-server coverage/",
+    "clear": "rm -rf .nyc_output build coverage dist",
+    "clear:all": "npm run clear; rm -rf node_modules package-lock.json"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint"
+    ]
+  },
+  "engines": {
+    "node": "13.2.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.5",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.12.14",
+    "@types/nodemailer": "^6.2.2",
+    "@typescript-eslint/eslint-plugin": "^2.9.0",
+    "@typescript-eslint/parser": "^2.9.0",
+    "chai": "^4.2.0",
+    "dotenv": "^8.2.0",
+    "eslint": "^6.7.1",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-prettier": "^3.1.1",
+    "esm": "^3.2.25",
+    "googleapis": "^45.0.0",
+    "mocha": "^6.2.2",
+    "nyc": "^14.1.1",
+    "prettier": "^1.19.1",
+    "ts-node": "^8.5.2",
+    "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "@marin/lib.error": "file:../lib.error",
+    "@marin/lib.logger": "file:../lib.logger",
+    "@marin/lib.utils": "file:../lib.utils",
+    "nodemailer": "^6.3.1"
+  }
 }

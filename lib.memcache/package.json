@@ -1,5 +1,5 @@
 {
-  "name": "@marin/memcache",
+  "name": "@marin/lib.memcache",
   "description": "Memory cache",
   "keywords": [
     "events",

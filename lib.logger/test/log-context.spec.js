@@ -1,7 +1,6 @@
 import { describe, it } from 'mocha';
-import { LOG_CTX_COMPONENTS } from '@marin/lib.utils';
 import { chai } from './chai';
-import { LogContext } from '../lib/log-context';
+import { LogContext, LOG_CTX_COMPONENTS } from '../lib/log-context';
 
 const { expect } = chai;
 

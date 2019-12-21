@@ -1,12 +1,37 @@
 {
-    "compileOnSave": false,
-    "compilerOptions": {
-        "sourceMap": true,
-        "declaration": false,
-        "moduleResolution": "node",
-        "target": "esnext",
-        "lib": [
-            "esnext"
-        ]
-    }
+  "compilerOptions": {
+    "incremental": true,
+    "target": "esnext",
+    "module": "esnext",
+    "allowJs": true,
+    "declaration": true,
+    "outDir": "./dist",
+    "composite": true,
+    "tsBuildInfoFile": "./build/tsbuildinfo",
+    "removeComments": false,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "lib/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
 }

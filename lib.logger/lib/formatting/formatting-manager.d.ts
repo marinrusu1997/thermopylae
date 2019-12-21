@@ -31,7 +31,7 @@ declare class FormattingManager {
     *
     * @param   name  Formatter name
     */
-   remove(name: string);
+   remove(name: string): void;
 
    /**
     * Specifies a custom recipe which instructs in which order formatters needs to be combined.
