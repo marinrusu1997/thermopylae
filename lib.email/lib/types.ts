@@ -17,7 +17,7 @@ interface SMTPEnvelope {
 	bcc?: string | Array<string>;
 }
 
-interface SentMessageInfo {
+export interface SentMessageInfo {
 	messageId: string;
 	accepted: Array<string>;
 	rejected: Array<string>;
@@ -28,22 +28,28 @@ interface SentMessageInfo {
 	envelope: SMTPEnvelope;
 }
 
-type EmailTransportOptions =
-	SMTPTransport | SMTPTransport.Options | string |
-	SMTPPool | SMTPPool.Options |
-	SendmailTransport | SendmailTransport.Options |
-	StreamTransport | StreamTransport.Options |
-	JSONTransport | JSONTransport.Options |
-	SESTransport | SESTransport.Options |
-	Transport | TransportOptions;
+export type EmailTransportOptions =
+	| SMTPTransport
+	| SMTPTransport.Options
+	| string
+	| SMTPPool
+	| SMTPPool.Options
+	| SendmailTransport
+	| SendmailTransport.Options
+	| StreamTransport
+	| StreamTransport.Options
+	| JSONTransport
+	| JSONTransport.Options
+	| SESTransport
+	| SESTransport.Options
+	| Transport
+	| TransportOptions;
 
-type EmailTransportDefaults =
-	SMTPTransport.Options |
-	SMTPPool.Options |
-	SendmailTransport.Options |
-	StreamTransport.Options |
-	JSONTransport.Options |
-	SESTransport.Options |
-	TransportOptions;
-
-export { SentMessageInfo, EmailTransportOptions, EmailTransportDefaults };
+export type EmailTransportDefaults =
+	| SMTPTransport.Options
+	| SMTPPool.Options
+	| SendmailTransport.Options
+	| StreamTransport.Options
+	| JSONTransport.Options
+	| SESTransport.Options
+	| TransportOptions;

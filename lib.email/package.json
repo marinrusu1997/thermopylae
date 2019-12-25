@@ -9,19 +9,14 @@
   "version": "1.0.0",
   "author": "Rusu Marin <dimarusu2000@gmail.com>",
   "license": "ISC",
-  "main": "dist/lib/index.js",
-  "types": "dist/lib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/**/*"
   ],
   "scripts": {
-    "build": "tsc; rm -rf dist/test",
     "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
-    "test": "mocha",
-    "coverage": "nyc mocha",
-    "coverage:show": "http-server coverage/",
-    "clear": "rm -rf .nyc_output build coverage dist",
-    "clear:all": "npm run clear; rm -rf node_modules package-lock.json"
+    "coverage": "nyc mocha"
   },
   "lint-staged": {
     "*.ts": [
@@ -31,32 +26,33 @@
   "engines": {
     "node": "13.2.0"
   },
-  "devDependencies": {
-    "@types/chai": "^4.2.5",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.14",
-    "@types/nodemailer": "^6.2.2",
-    "@typescript-eslint/eslint-plugin": "^2.9.0",
-    "@typescript-eslint/parser": "^2.9.0",
-    "chai": "^4.2.0",
-    "dotenv": "^8.2.0",
-    "eslint": "^6.7.1",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-config-prettier": "^6.7.0",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-prettier": "^3.1.1",
-    "esm": "^3.2.25",
-    "googleapis": "^45.0.0",
-    "mocha": "^6.2.2",
-    "nyc": "^14.1.1",
-    "prettier": "^1.19.1",
-    "ts-node": "^8.5.2",
-    "typescript": "^3.7.2"
-  },
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
     "@marin/lib.logger": "file:../lib.logger",
+    "@marin/lib.module-builder": "file:../lib.module-builder",
     "@marin/lib.utils": "file:../lib.utils",
-    "nodemailer": "^6.3.1"
+    "nodemailer": "6"
+  },
+  "devDependencies": {
+    "@types/chai": "4",
+    "@types/mocha": "5",
+    "@types/node": "12",
+    "@types/nodemailer": "6",
+    "@typescript-eslint/eslint-plugin": "2",
+    "@typescript-eslint/parser": "2",
+    "chai": "4",
+    "dotenv": "8",
+    "eslint": "6",
+    "eslint-config-airbnb-base": "14",
+    "eslint-config-prettier": "6",
+    "eslint-plugin-import": "2",
+    "eslint-plugin-prettier": "3",
+    "esm": "3",
+    "googleapis": "45",
+    "mocha": "6",
+    "nyc": "14",
+    "prettier": "1",
+    "ts-node": "8",
+    "typescript": "3"
   }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "@marin/lib.module-builder",
+  "version": "1.0.0",
+  "description": "Builder for libs",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "del": "5",
+    "npm-run": "5"
+  }
+}
