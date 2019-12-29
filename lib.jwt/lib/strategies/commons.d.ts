@@ -30,7 +30,7 @@ declare function resolveBasicOptions(opts: IBasicJWTAuthenticatorOpts): IBasicJW
  * @param msg     Custom message associated with the error
  * @param logger  Logger instance
  */
-declare function tryToLogError(err: Error, msg: string,logger?: Logger);
+declare function tryToLogError(err: Error, msg: string,logger?: Logger): void;
 
 /** Logger used by authenticators */
 interface Logger {

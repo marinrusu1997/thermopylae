@@ -110,7 +110,7 @@ function makeHTTPRequest(url: string | URL, params: http.RequestOptions, postDat
  * @param {https.RequestOptions}	params  	Request options
  * @param {PostData}				[postData]	Data which needs to be sent in the request body
  *
- * @returns {Promise<string| object>}
+ * @returns {Promise<string|object>}
  */
 function makeHTTPSRequest(url: string | URL, params: https.RequestOptions, postData?: PostData): Promise<string | any> {
 	return makeRequest(url, https.request, params, postData);

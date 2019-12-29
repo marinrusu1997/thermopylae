@@ -96,6 +96,10 @@ class JWTBlacklist {
 		}
 	}
 
+	get allTtl() {
+		return internal(this).allTTL;
+	}
+
 	async defineAudiences(audiences) {
 		const { underlyingStorage } = internal(this);
 		if (!underlyingStorage) {

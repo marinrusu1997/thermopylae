@@ -19,6 +19,11 @@ declare class JWTBlacklist {
    init: (storage: IAbstractStorage, allTTL?: number) => Promise<void>;
 
    /**
+    * Returns tll for @all roles (if configured).
+    */
+   allTtl: () => number | undefined;
+
+   /**
     * Defines multiple audiences in parallel
     * This is a bulk create operation
     * Use this when underlying storage needs static defined audiences with their TTL

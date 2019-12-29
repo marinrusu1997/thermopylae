@@ -29,7 +29,6 @@
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
     "@marin/lib.logger": "file:../lib.logger",
-    "@marin/lib.module-builder": "file:../lib.module-builder",
     "@marin/lib.utils": "file:../lib.utils",
     "nodemailer": "6"
   },
@@ -40,6 +39,7 @@
     "@types/nodemailer": "6",
     "@typescript-eslint/eslint-plugin": "2",
     "@typescript-eslint/parser": "2",
+    "@marin/lib.module-builder": "file:../lib.module-builder",
     "chai": "4",
     "dotenv": "8",
     "eslint": "6",

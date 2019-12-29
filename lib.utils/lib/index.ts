@@ -6,5 +6,6 @@ import * as method from './method-invoker';
 import * as misc from './misc';
 import * as token from './token';
 import * as totp from './totp';
+import * as generics from './generics';
 
-export { chrono, enums, errors, http, method, misc, token, totp };
+export { chrono, enums, errors, http, method, misc, token, totp, generics };

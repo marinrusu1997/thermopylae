@@ -3,6 +3,7 @@ import { describe, it, before, after } from 'mocha';
 import { google } from 'googleapis';
 import { config as dotEnvConfig } from 'dotenv';
 import Logger from '@marin/lib.logger';
+import fs from 'fs';
 import { getDefaultInstance } from '../lib';
 
 const { OAuth2 } = google.auth;
@@ -95,6 +96,28 @@ describe('test', () => {
 				subject: 'Node.js Email with Secure OAuth Text & HTML Content',
 				text: 'text',
 				html: '<b>html</b>'
+			},
+			true
+		);
+		expect(sentEmailInfo.response.substr(0, 12)).to.be.equal('250 2.0.0 OK');
+	});
+
+	it('sends email with attachments', async () => {
+		// see http://nodemailer.com/message/attachments/
+		const address = 'zcinofares9e@4security.ru';
+		const user = process.env.USER_EMAIL;
+		const sentEmailInfo = await Email.send(
+			{
+				from: user,
+				to: [address],
+				subject: 'Node.js Email with attachments',
+				html: '<b>html</b>',
+				attachments: [
+					{
+						filename: 'lorem-ipsum.txt',
+						content: fs.createReadStream('test/assets/attachment.txt')
+					}
+				]
 			},
 			true
 		);

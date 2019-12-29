@@ -16,23 +16,23 @@
     "dependencies": {
         "@marin/lib.error": "file:../lib.error",
         "@marin/lib.utils": "file:../lib.utils",
-        "winston": "^3.2.1",
-        "winston-daily-rotate-file": "^4.1.0",
-        "winston-graylog2": "^2.1.2"
+        "winston": "3",
+        "winston-daily-rotate-file": "4",
+        "winston-graylog2": "2"
     },
     "devDependencies": {
-        "chai": "^4.2.0",
-        "chai-arrays": "^2.0.0",
-        "chai-date-string": "^0.1.0",
-        "eslint": "^6.4.0",
-        "eslint-config-airbnb-base": "^14.0.0",
-        "eslint-config-prettier": "^6.3.0",
-        "eslint-plugin-import": "^2.18.2",
-        "eslint-plugin-prettier": "^3.1.0",
-        "esm": "^3.2.25",
-        "mocha": "^6.2.0",
-        "nyc": "^14.1.1",
-        "prettier": "^1.18.2"
+        "chai": "4",
+        "chai-arrays": "2",
+        "chai-date-string": "0",
+        "eslint": "6",
+        "eslint-config-airbnb-base": "14",
+        "eslint-config-prettier": "6",
+        "eslint-plugin-import": "2",
+        "eslint-plugin-prettier": "3",
+        "esm": "3",
+        "mocha": "6",
+        "nyc": "14",
+        "prettier": "1"
     },
     "type": "module"
 }
