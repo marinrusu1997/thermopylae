@@ -1,5 +1,6 @@
-export interface UserSession {
+export interface ActiveUserSession {
 	id: number;
+	accountId: string;
 	// https://security.stackexchange.com/questions/170388/do-i-need-csrf-token-if-im-using-bearer-jwt
 }
 

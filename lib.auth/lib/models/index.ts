@@ -1,9 +1,9 @@
-import { BasicCredentials, Id } from '../types';
+import { BasicCredentials } from '../types';
 
 export interface Account extends BasicCredentials {
 	id?: string;
 	salt: string;
-	role: string;
+	role?: string;
 	email: string;
 	mobile: string;
 	activated: boolean;
@@ -13,15 +13,15 @@ export interface Account extends BasicCredentials {
 
 export interface AccessPoint {
 	id: number;
-	accountId: Id;
+	accountId: string;
 	ip: string;
 	device: string;
 	location: string;
 }
 
 export interface FailedAuthAttempts {
-	id?: number;
-	accountId: Id;
+	id?: string;
+	accountId: string;
 	timestamp: number;
 	devices: string;
 	ips: string;

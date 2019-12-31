@@ -21,8 +21,10 @@
         "no-await-in-loop": "warn",
         "lines-between-class-members": "off",
         "class-methods-use-this": "warn",
+        "no-underscore-dangle": "warn",
+        "@typescript-eslint/ban-ts-ignore": "warn",
         "@typescript-eslint/no-use-before-define": "warn",
-        "@typescript-eslint/no-namespace": "off",
+        "@typescript-eslint/no-namespace": "warn",
         "import/extensions": [
             "error",
             "ignorePackages",

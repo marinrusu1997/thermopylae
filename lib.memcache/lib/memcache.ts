@@ -63,6 +63,24 @@ class MemCache<Key = string, Value = any> {
 	}
 
 	/**
+	 * Replaces the content stored under specified key, without modifying its ttl timer.
+	 * If you want to update the value with updating also the timer,
+	 * you have to delete the item, then add it again.
+	 *
+	 * @param key
+	 * @param value
+	 *
+	 * @return {boolean} success only when key found in cache, and then replaced it content. if key not found returns false
+	 */
+	public replace(key: Key, value: Value): boolean {
+		if (this.cache.get(key)) {
+			this.cache.set(key, value);
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Retrieves one entry
 	 * @param key
 	 */

@@ -5,7 +5,7 @@
         "module": "esnext",
         "allowJs": true,
         "declaration": true,
-        "rootDir": "lib",
+        "rootDir": ".",
         "outDir": "dist",
         "composite": true,
         "tsBuildInfoFile": "./build/tsbuildinfo",
@@ -29,7 +29,7 @@
     },
     "include": [
         "lib/**/*.ts",
-        "test"
+        "test/**/*.ts"
     ],
     "exclude": [
         "node_modules",

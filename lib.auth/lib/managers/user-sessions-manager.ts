@@ -5,7 +5,7 @@ import geo from 'geoip-lite';
 import { AccessPointEntity, ActiveUserSessionEntity } from '../models/entities';
 import { Account } from '../models';
 import { Id, ScheduleDeletionUserSession } from '../types';
-import { UserSession } from '../models/sessions';
+import { ActiveUserSession } from '../models/sessions';
 import { createException, ErrorCodes } from '../error';
 
 class UserSessionsManager {
@@ -34,7 +34,7 @@ class UserSessionsManager {
 
 	public async create(account: Account, ip: string, device: string): Promise<string> {
 		const iat = new Date().getTime();
-		const ttl = this.jwtRolesTtl ? this.jwtRolesTtl.get(account.role) : this.jwt.blacklist().allTtl();
+		const ttl = this.jwtRolesTtl && account.role ? this.jwtRolesTtl.get(account.role) : this.jwt.blacklist().allTtl();
 		if (!ttl) {
 			throw createException(ErrorCodes.INVALID_CONFIG, `TTL for role ${account.role} not present, and jwt blacklist not configured with @all ttl`);
 		}
@@ -61,7 +61,7 @@ class UserSessionsManager {
 		return jwt;
 	}
 
-	public read(accountId: Id): Promise<Array<UserSession>> {
+	public read(accountId: Id): Promise<Array<ActiveUserSession>> {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 
@@ -74,7 +74,7 @@ class UserSessionsManager {
 	}
 
 	public deleteAll(account: Account): Promise<number> {
-		const ttl = this.jwtRolesTtl ? this.jwtRolesTtl.get(account.role) : undefined;
+		const ttl = this.jwtRolesTtl && account.role ? this.jwtRolesTtl.get(account.role) : undefined;
 		return this.jwt
 			.blacklist()
 			.purge(String(account.id), account.role, ttl)
