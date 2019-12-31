@@ -40,9 +40,10 @@ class MemCache<Key = string, Value = any> {
 
 	/**
 	 * Sets one item
-	 * @param key
-	 * @param value
-	 * @param ttl
+	 *
+	 * @param key		Key
+	 * @param value		Value
+	 * @param ttl 		Time to live in seconds
 	 */
 	public set(key: Key, value: Value, ttl?: number): void {
 		value = this.config.useClones ? misc.cloneDeep(value) : value;
@@ -55,8 +56,8 @@ class MemCache<Key = string, Value = any> {
 	}
 
 	/**
-	 * Stores multiple items
-	 * @param items
+	 * Stores multiple items. Time to live must be in seconds.
+	 * @param 	items
 	 */
 	public mset(items: Array<CacheableItem<Key, Value>>): void {
 		items.forEach(item => this.set(item.key, item.value, item.ttl));

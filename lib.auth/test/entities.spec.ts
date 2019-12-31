@@ -10,7 +10,7 @@ describe('entities', () => {
 			salt: 'salt',
 			role: 'admin',
 			email: 'email',
-			mobile: 'mobile',
+			telephone: 'mobile',
 			activated: false,
 			locked: false,
 			mfa: false

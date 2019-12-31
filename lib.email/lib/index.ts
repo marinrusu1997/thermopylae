@@ -12,4 +12,5 @@ function getDefaultInstance(): Email {
 	return defaultInstance;
 }
 
-export { Email, getDefaultInstance };
+export * from './email';
+export { getDefaultInstance };

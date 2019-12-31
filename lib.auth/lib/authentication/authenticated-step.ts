@@ -4,16 +4,16 @@ import { AuthStep, AuthStepOutput } from './auth-step';
 import { AuthNetworkInput } from '../types';
 import { Account } from '../models';
 import { AccessPointEntity } from '../models/entities';
-import { sendNotificationAuthFromDifferentDevice } from '../utils/email';
+import { sendNotificationAuthFromDifferentDevice, NotificationAuthFromDiffDeviceTemplate } from '../utils/email';
 import { UserSessionsManager } from '../managers/user-sessions-manager';
 
 class AuthenticatedStep implements AuthStep {
 	private readonly mailer: Email;
-	private readonly authFromDiffDeviceTemplate: Function;
+	private readonly authFromDiffDeviceTemplate: NotificationAuthFromDiffDeviceTemplate;
 	private readonly accessPointEntity: AccessPointEntity;
 	private readonly userSessionsManager: UserSessionsManager;
 
-	constructor(mailer: Email, authFromDiffDeviceTemplate: Function, accessPointEntity: AccessPointEntity, userSessionsManager: UserSessionsManager) {
+	constructor(mailer: Email, authFromDiffDeviceTemplate: NotificationAuthFromDiffDeviceTemplate, accessPointEntity: AccessPointEntity, userSessionsManager: UserSessionsManager) {
 		this.mailer = mailer;
 		this.authFromDiffDeviceTemplate = authFromDiffDeviceTemplate;
 		this.accessPointEntity = accessPointEntity;

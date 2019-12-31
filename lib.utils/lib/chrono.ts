@@ -18,4 +18,22 @@ function nowInSeconds(): number {
 	return Math.floor(new Date().getTime() / 1000);
 }
 
-export { nowInSeconds, sleep };
+/**
+ * Returns JS Date from seconds timestamp
+ *
+ * @param {number}	seconds
+ */
+function dateFromSeconds(seconds: number): Date {
+	return new Date(seconds * 1000);
+}
+
+/**
+ * Converts minutes to seconds.
+ *
+ * @param minutes
+ */
+function minutesToSeconds(minutes: number): number {
+	return minutes * 60;
+}
+
+export { nowInSeconds, sleep, dateFromSeconds, minutesToSeconds };

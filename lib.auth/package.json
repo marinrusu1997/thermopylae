@@ -13,12 +13,7 @@
         "dist/**/*"
     ],
     "scripts": {
-        "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
-        "test": "mocha",
-        "coverage": "nyc mocha",
-        "coverage:show": "http-server coverage/",
-        "clear": "rm -rf .nyc_output build coverage dist",
-        "clear:all": "npm run clean; rm -rf node_modules package-lock.json"
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix"
     },
     "lint-staged": {
         "*.ts": [

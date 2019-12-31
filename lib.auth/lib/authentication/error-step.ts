@@ -80,10 +80,7 @@ class ErrorStep implements AuthStep {
 			);
 			await Promise.all(promises);
 
-			throw createException(
-				ErrorCodes.ACCOUNT_WAS_LOCKED,
-				`Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}).`
-			);
+			throw createException(ErrorCodes.ACCOUNT_WAS_LOCKED, `Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}).`);
 		}
 
 		if (failedAuthAttemptSession.counter >= this.recaptchaThreshold) {

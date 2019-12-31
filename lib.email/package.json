@@ -15,7 +15,7 @@
     "dist/**/*"
   ],
   "scripts": {
-    "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+    "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
     "coverage": "nyc mocha"
   },
   "lint-staged": {

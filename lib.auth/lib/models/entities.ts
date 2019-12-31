@@ -1,10 +1,11 @@
 import { AccessPoint, Account, FailedAuthAttempts } from './index';
-import { AuthSession, FailedAuthAttemptSession, ActiveUserSession } from './sessions';
+import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession } from './sessions';
 
 export interface AccountEntity {
 	create(account: Account): Promise<Account>;
 	read(username: string): Promise<Account | null>;
 	readById(id: string): Promise<Account | null>;
+	delete(id: string): Promise<void>;
 	activate(id: string): Promise<void>;
 	lock(id: string): Promise<void>;
 	requireMfa(id: string, required: boolean): Promise<void>;
@@ -39,4 +40,10 @@ export interface FailedAuthAttemptSessionEntity {
 	update(username: string, session: FailedAuthAttemptSession): Promise<void>;
 	read(username: string): Promise<FailedAuthAttemptSession | null>;
 	delete(username: string): Promise<void>;
+}
+
+export interface ActivateAccountSessionEntity {
+	create(token: string, session: ActivateAccountSession, ttl: number): Promise<void>;
+	read(token: string): Promise<ActivateAccountSession | null>;
+	delete(token: string): Promise<void>;
 }

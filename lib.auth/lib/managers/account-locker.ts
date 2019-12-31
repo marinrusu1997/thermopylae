@@ -3,20 +3,20 @@ import { Email } from '@marin/lib.email';
 import { Account } from '../models';
 import { UserSessionsManager } from './user-sessions-manager';
 import { logger } from '../logger';
-import { sendNotificationAccountLockedToAdminEmail, sendNotificationAccountLockedToUserEmail } from '../utils/email';
+import { sendNotificationAccountLockedToAdminEmail, sendNotificationAccountLockedToUserEmail, NotificationAccountLockedTemplate } from '../utils/email';
 
 class AccountLocker {
 	private readonly userSessionsManager: UserSessionsManager;
 	private readonly mailer: Email;
-	private readonly template: Function;
+	private readonly template: NotificationAccountLockedTemplate;
 
-	constructor(userSessionsManager: UserSessionsManager, mailer: Email, template: Function) {
+	constructor(userSessionsManager: UserSessionsManager, mailer: Email, template: NotificationAccountLockedTemplate) {
 		this.userSessionsManager = userSessionsManager;
 		this.mailer = mailer;
 		this.template = template;
 	}
 
-	public prepareLocking(account: Account, adminEmail: string, cause?: string): Promise<void> {
+	public prepareLocking(account: Account, adminEmail: string, cause: string): Promise<void> {
 		return sendNotificationAccountLockedToAdminEmail(this.mailer, adminEmail, account.id!, cause)
 			.then(() => {
 				sendNotificationAccountLockedToUserEmail(this.template, this.mailer, account.email, cause);

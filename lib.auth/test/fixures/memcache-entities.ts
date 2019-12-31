@@ -1,16 +1,21 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
-import { AuthSessionEntity, FailedAuthAttemptSessionEntity } from '../../lib/models/entities';
+import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity } from '../../lib/models/entities';
 import { AuthSession, FailedAuthAttemptSession } from '../../lib/models/sessions';
 
 const memcache = getDefaultMemCache();
 
 const AuthSessionEntityMemCache: AuthSessionEntity = {
+	/**
+	 * @param username
+	 * @param deviceId
+	 * @param ttl 		Time to live in minutes
+	 */
 	create: (username, deviceId, ttl) => {
 		const key = `auths:${username}:${deviceId}`;
 		const session: AuthSession = {
 			recaptchaRequired: false
 		};
-		memcache.set(key, session, ttl);
+		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve(session);
 	},
 	read: (username, deviceId) => {
@@ -35,9 +40,14 @@ const AuthSessionEntityMemCache: AuthSessionEntity = {
 };
 
 const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
+	/**
+	 * @param username
+	 * @param session
+	 * @param ttl		Time to live in minutes
+	 */
 	create: (username, session, ttl) => {
 		const key = `faas:${username}`;
-		memcache.set(key, session, ttl);
+		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve();
 	},
 	read: username => {
@@ -61,4 +71,22 @@ const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
 	}
 };
 
-export { AuthSessionEntityMemCache, FailedAuthAttemptSessionEntityMemCache };
+const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
+	create: (token, session, ttl) => {
+		const key = `actacc:${token}`;
+		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
+		return Promise.resolve();
+	},
+	read: token => {
+		const key = `actacc:${token}`;
+		const session = memcache.get(key);
+		return Promise.resolve(session || null);
+	},
+	delete: token => {
+		const key = `actacc:${token}`;
+		memcache.del(key);
+		return Promise.resolve();
+	}
+};
+
+export { AuthSessionEntityMemCache, FailedAuthAttemptSessionEntityMemCache, ActivateAccountSessionEntityMemCache };

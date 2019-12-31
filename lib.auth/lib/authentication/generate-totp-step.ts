@@ -6,18 +6,22 @@ import { AuthNetworkInput } from '../types';
 import { Account } from '../models';
 import { AUTH_STEP } from '../enums';
 
+type TotpSmsTemplate = (totpToken: string) => string;
+
 class GenerateTotpStep implements AuthStep {
 	private readonly smsSender: SMS;
 	private readonly totpManager: totp.Totp;
+	private readonly template: TotpSmsTemplate;
 
-	constructor(totpManager: totp.Totp, smsSender: SMS) {
-		this.totpManager = totpManager;
+	constructor(totpManager: totp.Totp, smsSender: SMS, template: TotpSmsTemplate) {
 		this.smsSender = smsSender;
+		this.totpManager = totpManager;
+		this.template = template;
 	}
 
 	async process(_networkInput: AuthNetworkInput, account: Account): Promise<AuthStepOutput> {
 		const totpToken = this.totpManager.generate();
-		await this.smsSender.send(account.mobile, `Complete Multi Factor Authentication with this code: \n ${totpToken}`);
+		await this.smsSender.send(account.telephone, this.template(totpToken));
 		return { done: AUTH_STEP.TOTP };
 	}
 }

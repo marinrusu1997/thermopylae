@@ -10,13 +10,18 @@ function stageTsConfig(done) {
     }
 
     const config = JSON.parse(content);
-    const testIndex = config.include.indexOf("test/**/*.ts");
-    if (!testIndex) {
-      done(new Error(("test directory not found in include files")));
+    if (!config.include.includes("lib/**/*.ts")) {
+        config.include.push('lib/**/*.ts');
     }
 
-    config.include.splice(testIndex, 1);
+    const testIndex = config.include.indexOf("test/**/*.ts");
+    if (testIndex !== -1) {
+        config.include.splice(testIndex, 1);
+    }
+
     config.compilerOptions.rootDir = 'lib';
+    config.compilerOptions.target = 'esnext';
+    config.compilerOptions.module = 'esnext';
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
   });
@@ -41,7 +46,7 @@ function unStageTsConfig(done) {
     }
 
     const config = JSON.parse(content);
-    config.include.push("test/**/*.ts");
+    config.include = ["lib/**/*.ts", "test/**/*.ts"];
     config.compilerOptions.rootDir = '.';
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);

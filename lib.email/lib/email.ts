@@ -54,4 +54,4 @@ class Email {
 	}
 }
 
-export { Email };
+export { Email, EmailTransportOptions, EmailTransportDefaults, SendMailOptions, SentMessageInfo };

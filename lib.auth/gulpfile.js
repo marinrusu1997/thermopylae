@@ -1,4 +1,3 @@
-
 "use strict";
 
 const build = require('@marin/lib.module-builder/lib/build');
@@ -14,7 +13,5 @@ module.exports = {
   purge: clean.purge,
 
   coverage: coverage.coverageFactory('TS', gulp),
-  coverageShow: coverage.coverageShow,
-  restoreTestConfig: coverage.restoreTestConfig,
-  cleanTranspiledTests: coverage.cleanTranspiledTests
+  coverageShow: coverage.coverageShow
 };

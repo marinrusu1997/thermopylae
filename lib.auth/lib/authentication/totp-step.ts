@@ -6,14 +6,14 @@ import { AuthNetworkInput } from '../types';
 import { Account } from '../models';
 import { logger } from '../logger';
 import { AUTH_STEP } from '../enums';
-import { sendNotificationMFAFailed } from '../utils/email';
+import { sendNotificationMFAFailed, NotificationMFAFailedTemplate } from '../utils/email';
 
 class TotpStep implements AuthStep {
 	private readonly totpManager: totp.Totp;
 	private readonly mailer: Email;
-	private readonly template: Function;
+	private readonly template: NotificationMFAFailedTemplate;
 
-	constructor(totpManager: totp.Totp, mailer: Email, template: Function) {
+	constructor(totpManager: totp.Totp, mailer: Email, template: NotificationMFAFailedTemplate) {
 		this.totpManager = totpManager;
 		this.mailer = mailer;
 		this.template = template;

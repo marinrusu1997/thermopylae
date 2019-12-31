@@ -1,15 +1,15 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt/lib';
-import { enums } from '@marin/lib.utils';
+import { enums, chrono } from '@marin/lib.utils';
 import geo from 'geoip-lite';
 import { AccessPointEntity, ActiveUserSessionEntity } from '../models/entities';
 import { Account } from '../models';
-import { Id, ScheduleDeletionUserSession } from '../types';
 import { ActiveUserSession } from '../models/sessions';
 import { createException, ErrorCodes } from '../error';
+import { ScheduleActiveUserSessionDeletion } from '../models/schedulers';
 
 class UserSessionsManager {
-	private readonly scheduleDeletion: ScheduleDeletionUserSession;
+	private readonly scheduleDeletion: ScheduleActiveUserSessionDeletion;
 	private readonly issuer: string;
 	private readonly jwt: Jwt;
 	private readonly jwtRolesTtl?: Map<string, number>;
@@ -17,7 +17,7 @@ class UserSessionsManager {
 	private readonly accessPointEntity: AccessPointEntity;
 
 	constructor(
-		scheduleDeletion: ScheduleDeletionUserSession,
+		scheduleDeletion: ScheduleActiveUserSessionDeletion,
 		issuer: string,
 		jwt: Jwt,
 		jwtRolesTtl: Map<string, number>,
@@ -33,8 +33,8 @@ class UserSessionsManager {
 	}
 
 	public async create(account: Account, ip: string, device: string): Promise<string> {
-		const iat = new Date().getTime();
-		const ttl = this.jwtRolesTtl && account.role ? this.jwtRolesTtl.get(account.role) : this.jwt.blacklist().allTtl();
+		const iat = chrono.nowInSeconds();
+		const ttl = this.jwtRolesTtl && account.role ? this.jwtRolesTtl.get(account.role) : this.jwt.blacklist().allTtl(); // seconds
 		if (!ttl) {
 			throw createException(ErrorCodes.INVALID_CONFIG, `TTL for role ${account.role} not present, and jwt blacklist not configured with @all ttl`);
 		}
@@ -53,19 +53,19 @@ class UserSessionsManager {
 		const location = geo.lookup(ip);
 		await Promise.all([
 			this.accessPointEntity.create({ id: iat, accountId: account.id!, ip, device, location: JSON.stringify(location) }),
-			this.activeUserSessionEntity.create({ id: iat })
+			this.activeUserSessionEntity.create({ id: iat, accountId: account.id! })
 		]);
 
-		this.scheduleDeletion(iat, iat + ttl);
+		this.scheduleDeletion(iat, chrono.dateFromSeconds(iat + ttl));
 
 		return jwt;
 	}
 
-	public read(accountId: Id): Promise<Array<ActiveUserSession>> {
+	public read(accountId: string): Promise<Array<ActiveUserSession>> {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 
-	public delete(payload: IIssuedJWTPayload): Promise<number> {
+	public delete(payload: IIssuedJWTPayload): Promise<void> {
 		const ttl = this.jwtRolesTtl && payload.aud ? this.jwtRolesTtl.get(payload.aud) : undefined;
 		return this.jwt
 			.blacklist()

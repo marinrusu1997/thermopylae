@@ -14,3 +14,8 @@ export interface FailedAuthAttemptSession {
 	device: Array<string>;
 	counter: number;
 }
+
+export interface ActivateAccountSession {
+	taskId: string; // delete unactivated account task id
+	accountId: string;
+}

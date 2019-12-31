@@ -15,4 +15,8 @@ export interface AuthNetworkInput {
 	recaptcha?: string;
 }
 
-export type ScheduleDeletionUserSession = (sessionId: number, whenToDelete: number) => void;
+export interface BasicRegistrationInfo extends BasicCredentials {
+	email: string;
+	telephone: string;
+	role?: string;
+}

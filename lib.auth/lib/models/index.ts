@@ -5,7 +5,7 @@ export interface Account extends BasicCredentials {
 	salt: string;
 	role?: string;
 	email: string;
-	mobile: string;
+	telephone: string;
 	activated: boolean;
 	locked: boolean;
 	mfa: boolean;

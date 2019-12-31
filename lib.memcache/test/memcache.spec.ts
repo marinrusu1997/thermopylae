@@ -50,6 +50,16 @@ describe('MemCache spec', () => {
 		}, 1000);
 	});
 
+	it("does not remove items which don't have tll (i.e ttl provided as 0)", done => {
+		const memCache = new MemCache();
+		memCache.set('key', 'value', 0);
+		expect(memCache.get('key')).to.be.eq('value'); // get right after setting
+		setTimeout(() => {
+			expect(memCache.get('key')).to.be.eq('value');
+			done();
+		}, 1000); // get after 1 sec
+	});
+
 	it('returns multiple items', () => {
 		const memCache = new MemCache();
 		const items = [
