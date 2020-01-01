@@ -43,6 +43,10 @@ const validateSecret = secret => {
 	throw new JsonWebTokenError('Invalid secret type');
 };
 
+function isEmptyObject(obj) {
+	return Object.entries(obj).length === 0 && obj.constructor === Object;
+}
+
 /**
  * Gets the secret for sign/verify opts from stored one into local state
  *
@@ -59,22 +63,27 @@ const getSecret = (secret, keyType, options) => {
 		return secret;
 	}
 	/** Testing for RSA/ECDSA key */
-	if (!options) {
+	if (!options || isEmptyObject(options)) {
 		throw new JsonWebTokenError('Options are needed when using RSA/ECDSA key pair');
 	}
 	return secret[keyType];
 };
 
 /**
- * Gets the options needed for sign/verify operations
+ * Gets the options needed for sign/verify operations.
+ * Will build an options object which contains default provided options,
+ * which can be overwritten by custom provided options.
  *
- * @param {SignOptions | VerifyOptions}   custom    Custom provided options on operation invocation
- * @param {ISignVerifyOpts | undefined}   defaullt  Default options specified at instance initialization
- * @param {string}                        opType    Type of the operation (sign/verify)
+ * @param {SignOptions | VerifyOptions}   custom    			Custom provided options on operation invocation
+ * @param {ISignVerifyOpts | undefined}   defaultOptions  Default options specified at instance initialization
+ * @param {string}                        opType    			Type of the operation (sign/verify)
  * @returns {SignOptions | VerifyOptions |undefined}   Options for operation invocation
  * @api private
  */
-const getOptions = (custom, defaullt, opType) => custom || (defaullt ? defaullt[opType] : undefined);
+const getOptions = (custom, defaultOptions, opType) => ({
+	...(defaultOptions ? defaultOptions[opType] : undefined),
+	...custom
+});
 
 /**
  * Verify token signature and decodes it if valid

@@ -1,5 +1,5 @@
 import { SMS } from '@marin/lib.sms';
-import { createException, ErrorCodes } from '../../lib/error';
+import { createException, ErrorCodes } from '../../../lib/error';
 
 class SmsMock extends SMS {
 	private outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
@@ -37,4 +37,4 @@ class SmsMock extends SMS {
 }
 
 const instance = new SmsMock();
-export default instance;
+export { instance as SmsMockInstance, SmsMock };

@@ -52,7 +52,7 @@ class GrayLogsManager {
 		if (!endpoint) {
 			throw new Error(`Graylog2 endpoint for input ${recipe.input} not configured`);
 		}
-		recipes.delete(system);
+		recipes.delete(system); // transport for specific system can be obtained only once, so clean memory, be kind :)
 		return new WinstonGraylog2({
 			name: `graylog-${system}`,
 			level: recipe.level,

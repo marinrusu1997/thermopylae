@@ -1,4 +1,4 @@
-import { before, after } from 'mocha';
+import { before, after, afterEach } from 'mocha';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/models/entities';
@@ -24,9 +24,9 @@ const AccountSchema = new mongoose.Schema({
 	username: { type: String, required: true },
 	password: { type: String, required: true },
 	salt: { type: String },
-	role: { type: String },
+	role: { type: String, required: false },
 	email: { type: String, required: true },
-	mobile: { type: String, required: true },
+	telephone: { type: String, required: true },
 	activated: { type: Boolean, required: true },
 	locked: { type: Boolean, required: true },
 	mfa: { type: Boolean, required: true }
@@ -43,7 +43,7 @@ const AccountEntityMongo: AccountEntity = {
 		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema)
 			.find({ username })
 			.exec();
-		if (!accountModel) {
+		if (!accountModel.length) {
 			return null;
 		}
 		if (accountModel.length > 1) {
@@ -62,7 +62,7 @@ const AccountEntityMongo: AccountEntity = {
 			// @ts-ignore
 			email: accountModel[0].email,
 			// @ts-ignore
-			mobile: accountModel[0].mobile,
+			telephone: accountModel[0].telephone,
 			// @ts-ignore
 			activated: accountModel[0].activated,
 			// @ts-ignore
@@ -91,7 +91,7 @@ const AccountEntityMongo: AccountEntity = {
 			// @ts-ignore
 			email: accountModel.email,
 			// @ts-ignore
-			mobile: accountModel.mobile,
+			telephone: accountModel.telephone,
 			// @ts-ignore
 			activated: accountModel.activated,
 			// @ts-ignore
@@ -111,7 +111,16 @@ const AccountEntityMongo: AccountEntity = {
 	requireMfa: (_id, required) =>
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { mfa: required })
+			.exec(),
+	delete: _id =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.deleteOne({ _id })
 			.exec()
+			.then(result => {
+				if (!result.ok || result.deletedCount !== 1) {
+					throw new Error(`Failed to delete account with id ${_id}`);
+				}
+			})
 };
 
 /* Failed Auth Attempts */
@@ -247,7 +256,7 @@ function clearMongoDatabase(): Promise<any[]> {
 	const deletePromises: Array<Promise<any>> = [];
 
 	for (let i = 0; i < collectionNames.length; i += 1) {
-		deletePromises.push(mongoose.connection.collections[collectionNames[i]].deleteMany({ $where: '1=1' }));
+		deletePromises.push(mongoose.connection.collections[collectionNames[i]].deleteMany({}));
 	}
 
 	return Promise.all(deletePromises);
@@ -256,5 +265,6 @@ function clearMongoDatabase(): Promise<any[]> {
 // trigger global hooks at the first import in test suite files
 before(() => connectToMongoServer());
 after(() => closeMongoDatabase());
+afterEach(() => clearMongoDatabase());
 
-export { clearMongoDatabase, AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };
+export { AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };

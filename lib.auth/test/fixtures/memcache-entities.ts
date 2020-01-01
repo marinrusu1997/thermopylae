@@ -1,4 +1,5 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
+import { afterEach } from 'mocha';
 import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity } from '../../lib/models/entities';
 import { AuthSession, FailedAuthAttemptSession } from '../../lib/models/sessions';
 
@@ -88,5 +89,8 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 		return Promise.resolve();
 	}
 };
+
+// trigger automatic clean up after each test (will be done at the first import)
+afterEach(() => memcache.clear());
 
 export { AuthSessionEntityMemCache, FailedAuthAttemptSessionEntityMemCache, ActivateAccountSessionEntityMemCache };

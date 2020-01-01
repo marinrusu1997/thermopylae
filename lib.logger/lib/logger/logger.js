@@ -15,8 +15,7 @@ const storage = new WeakMap();
  *     console: ConsoleLogsManager,
  *     file: FileLogsManager,
  *     graylog2: GrayLogsManager,
- *     transports: TransportsManager,
- *     loggers: Map<string, WinstonLogger>
+ *     transports: TransportsManager
  * }}
  */
 const internal = _this => {
@@ -37,27 +36,21 @@ class Logger {
 		this.graylog2 = new GrayLogsManager();
 		privateThis.transports = new TransportsManager();
 		privateThis.transports.register(this.console, this.file, this.graylog2);
-		privateThis.loggers = new Map();
 	}
 
 	for(system) {
 		const privateThis = internal(this);
 
-		let logger = privateThis.loggers.get(system);
+		const transports = privateThis.transports.for(system);
+		const logger = createLogger({
+			levels: winston.config.syslog.levels,
+			format: this.formatting.formatterFor(system),
+			transports,
+			exceptionHandlers: transports,
+			exitOnError: true
+		});
 
-		if (!logger) {
-			const transports = privateThis.transports.for(system);
-			logger = createLogger({
-				levels: winston.config.syslog.levels,
-				format: this.formatting.formatterFor(system),
-				transports,
-				exceptionHandlers: transports,
-				exitOnError: true
-			});
-
-			Object.freeze(logger);
-			privateThis.loggers.set(system, logger);
-		}
+		Object.freeze(logger);
 
 		return logger;
 	}

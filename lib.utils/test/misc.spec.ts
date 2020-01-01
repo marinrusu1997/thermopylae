@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { chai } from './chai';
-import { removeItemFromArray } from '../lib/misc';
+import { isEmptyObject, removeItemFromArray } from '../lib/misc';
 
 const { assert, expect } = chai;
 
@@ -15,5 +15,11 @@ describe('misc spec', () => {
 		const arr = ['str1', 'str2'];
 		assert(!removeItemFromArray('str0', arr));
 		expect(arr.length).to.be.equal(2);
+	});
+
+	it('checks correctly that an object is empty', () => {
+		expect(isEmptyObject({})).to.be.eq(true);
+		expect(isEmptyObject({ key: 'val' })).to.be.eq(false);
+		expect(isEmptyObject(new Date())).to.be.eq(false);
 	});
 });

@@ -10,7 +10,6 @@ import { ScheduleActiveUserSessionDeletion } from '../models/schedulers';
 
 class UserSessionsManager {
 	private readonly scheduleDeletion: ScheduleActiveUserSessionDeletion;
-	private readonly issuer: string;
 	private readonly jwt: Jwt;
 	private readonly jwtRolesTtl?: Map<string, number>;
 	private readonly activeUserSessionEntity: ActiveUserSessionEntity;
@@ -18,14 +17,12 @@ class UserSessionsManager {
 
 	constructor(
 		scheduleDeletion: ScheduleActiveUserSessionDeletion,
-		issuer: string,
 		jwt: Jwt,
 		jwtRolesTtl: Map<string, number>,
 		activeUserSessionEntity: ActiveUserSessionEntity,
 		accessPointEntity: AccessPointEntity
 	) {
 		this.scheduleDeletion = scheduleDeletion;
-		this.issuer = issuer;
 		this.jwt = jwt;
 		this.jwtRolesTtl = jwtRolesTtl;
 		this.activeUserSessionEntity = activeUserSessionEntity;
@@ -42,7 +39,6 @@ class UserSessionsManager {
 			{
 				sub: account.id!,
 				aud: account.role,
-				iss: this.issuer,
 				type: enums.AUTH_TOKEN_TYPE.BASIC
 			},
 			{

@@ -23,7 +23,7 @@ class PasswordsManager {
 		const prefix = hash.substr(0, 5);
 		const suffix = hash.substr(5);
 
-		const response = await http.makeHTTPSRequest('api.pwnedpasswords.com', { path: `/range/${prefix}` });
+		const response = await http.makeHTTPSRequest('https://api.pwnedpasswords.com', { path: `/range/${prefix}` });
 		const breachedPasswords = response.split('\n');
 
 		for (let i = 0; i < breachedPasswords.length; i += 1) {

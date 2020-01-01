@@ -36,4 +36,5 @@ declare namespace SMS {
    }
 }
 
+export default SMS;
 export { SMS };

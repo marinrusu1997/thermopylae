@@ -1,25 +1,29 @@
-import { describe, it } from 'mocha';
+import { describe, it, before } from 'mocha';
 import { Exception } from '@marin/lib.error';
+import { config as loadConfigFromDotEnv } from 'dotenv';
 import { chai } from './chai';
 import { SMS } from '../lib/sms';
 
 const { expect } = chai;
 
 describe('SMS spec', () => {
+	let config;
+	before(() => {
+		const dotEnv = loadConfigFromDotEnv();
+		if (dotEnv.error) {
+			throw dotEnv.error;
+		}
+		config = {
+			accountSid: process.env.ACCOUNT_SID,
+			authToken: process.env.AUTH_TOKEN,
+			fromNumber: '+12564108937'
+		};
+	});
+
 	it('throws when already initialized', () => {
 		const instance = new SMS();
-		instance.init({
-			accountSid: 'AC392dc5f5462c1032dec7b8e40cb286ee',
-			authToken: 'ed2bd9c6f9331139ba1a22c4a059a0fd',
-			fromNumber: '+12564108937'
-		});
-		expect(() =>
-			instance.init({
-				accountSid: 'AC392dc5f5462c1032dec7b8e40cb286ee',
-				authToken: 'ed2bd9c6f9331139ba1a22c4a059a0fd',
-				fromNumber: '+12564108937'
-			})
-		).to.throw(Exception, 'SMS system already intialized');
+		instance.init(config);
+		expect(() => instance.init(config)).to.throw(Exception, 'SMS system already intialized');
 	});
 
 	it('throws when sending sms and not initialized', async () => {
@@ -31,11 +35,7 @@ describe('SMS spec', () => {
 
 	it('sends sms', async () => {
 		const instance = new SMS();
-		instance.init({
-			accountSid: 'AC392dc5f5462c1032dec7b8e40cb286ee',
-			authToken: 'ed2bd9c6f9331139ba1a22c4a059a0fd',
-			fromNumber: '+12564108937'
-		});
+		instance.init(config);
 		const id = await instance.send('+40771241038', 'Test');
 		expect(id).to.not.equal(undefined);
 	});

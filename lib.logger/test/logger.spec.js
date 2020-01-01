@@ -17,25 +17,15 @@ describe('Logger spec', () => {
 		expect(() => new Logger().for('realsys')).to.throw('No transports for realsys');
 	});
 
-	it('creates logger for system, then caches it', () => {
+	it('creates logger for system, then does not cache it, but delegates this responsibility to the module which uses it', () => {
 		const logger = new Logger();
 		logger.graylog2.register('input', { host: 'fake', port: 1 });
 		logger.graylog2.recipeFor('realsys', { level: 'fake', input: 'input' });
-		let begin;
-		let end;
-
-		begin = new Date();
 		const loggerFirst = logger.for('realsys');
-		end = new Date();
-		const durationFirst = end - begin;
+		logger.graylog2.recipeFor('realsys', { level: 'fake', input: 'input' }); // register again, first get removed it
+		const loggerSecond = logger.for('realsys');
 
-		begin = new Date();
-		const loggerCached = logger.for('realsys');
-		end = new Date();
-		const durationCached = end - begin;
-
-		expect(durationFirst > durationCached).to.be.equal(true);
-		expect(loggerFirst).to.be.deep.equal(loggerCached);
+		expect(loggerFirst).to.not.be.deep.equal(loggerSecond);
 	});
 
 	it("can't alter created logger object", () => {

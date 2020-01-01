@@ -1,4 +1,4 @@
-import { SYSTEMS } from '@marin/lib.utils';
+import { enums } from '@marin/lib.utils';
 import { Exception } from '@marin/lib.error';
 
 /**
@@ -11,7 +11,7 @@ import { Exception } from '@marin/lib.error';
  * @returns {Exception}
  */
 function createException(code, message, data) {
-	return new Exception(SYSTEMS.SMS, code, message, data);
+	return new Exception(enums.SYSTEMS.SMS, code, message, data);
 }
 
 // eslint-disable-next-line import/prefer-default-export

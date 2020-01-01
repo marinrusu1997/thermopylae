@@ -49,7 +49,6 @@ class AuthService {
 		this.totpManager = new totp.Totp({ ttl: this.config.ttl.totp, secret: this.config.secrets.totp });
 		this.userSessionsManager = new UserSessionsManager(
 			this.config.schedulers.deleteActiveUserSession,
-			this.config.jwt.issuer,
 			this.config.jwt.instance,
 			this.config.jwt.rolesTtl,
 			this.config.entities.activeUserSession,
@@ -224,7 +223,6 @@ class AuthService {
 interface Options {
 	jwt: {
 		instance: Jwt;
-		issuer: string;
 		rolesTtl: Map<string, number>; // role -> seconds
 	};
 	entities: {
@@ -235,6 +233,24 @@ interface Options {
 		failedAuthAttemptsSession: FailedAuthAttemptSessionEntity;
 		failedAuthAttempts: FailedAuthAttemptsEntity;
 		activateAccountSession: ActivateAccountSessionEntity;
+	};
+	'side-channels': {
+		email: Email;
+		sms: SMS;
+	};
+	templates: {
+		totpTokenSms: (totp: string) => string;
+		multiFactorAuthFailed: (data: { ip: string; device: string }) => string;
+		accountLocked: (data: { cause: string }) => string;
+		authFromDiffDevice: (data: { ip: string; device: string }) => string;
+		activateAccount: (data: { token: string }) => string;
+	};
+	schedulers: {
+		deleteActiveUserSession: ScheduleActiveUserSessionDeletion;
+		account: {
+			deleteUnactivated: ScheduleUnactivatedAccountDeletion;
+			cancelDelete: CancelScheduledUnactivatedAccountDeletion;
+		};
 	};
 	ttl: {
 		authSession: number; // minutes
@@ -256,26 +272,8 @@ interface Options {
 		totp: string;
 		recaptcha: string;
 	};
-	templates: {
-		totpTokenSms: (totp: string) => string;
-		multiFactorAuthFailed: (data: { ip: string; device: string }) => string;
-		accountLocked: (data: { cause: string }) => string;
-		authFromDiffDevice: (data: { ip: string; device: string }) => string;
-		activateAccount: (data: { token: string }) => string;
-	};
 	contacts: {
 		adminEmail: string;
-	};
-	'side-channels': {
-		email: Email;
-		sms: SMS;
-	};
-	schedulers: {
-		deleteActiveUserSession: ScheduleActiveUserSessionDeletion;
-		account: {
-			deleteUnactivated: ScheduleUnactivatedAccountDeletion;
-			cancelDelete: CancelScheduledUnactivatedAccountDeletion;
-		};
 	};
 }
 

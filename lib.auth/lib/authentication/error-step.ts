@@ -4,7 +4,7 @@ import { Account } from '../models';
 import { AuthSession } from '../models/sessions';
 import { AccountEntity, FailedAuthAttemptsEntity, FailedAuthAttemptSessionEntity } from '../models/entities';
 import { AccountLocker } from '../managers/account-locker';
-import { logger } from '../logger';
+import { getLogger } from '../logger';
 import { createException, ErrorCodes } from '../error';
 import { AUTH_STEP } from '../enums';
 
@@ -71,12 +71,12 @@ class ErrorStep implements AuthStep {
 						ips: failedAuthAttemptSession.ip.join(','),
 						devices: failedAuthAttemptSession.device.join(',')
 					})
-					.catch(error => logger.warn(`Failed to persist failed auth attempts for account ${account.id}`, error))
+					.catch(error => getLogger().warn(`Failed to persist failed auth attempts for account ${account.id}`, error))
 			);
 			promises.push(
 				this.failedAuthAttemptSessionEntity
 					.delete(account.username)
-					.catch(error => logger.warn(`Failed to delete failed auth attempts session for account ${account.id}`, error))
+					.catch(error => getLogger().warn(`Failed to delete failed auth attempts session for account ${account.id}`, error))
 			);
 			await Promise.all(promises);
 

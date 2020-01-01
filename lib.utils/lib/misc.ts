@@ -17,4 +17,8 @@ function removeItemFromArray(item: boolean | number | string, array: Array<boole
 	return false;
 }
 
-export { clone, cloneDeep, removeItemFromArray };
+function isEmptyObject(obj: object): boolean {
+	return Object.entries(obj).length === 0 && obj.constructor === Object;
+}
+
+export { clone, cloneDeep, removeItemFromArray, isEmptyObject };

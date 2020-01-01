@@ -1,8 +1,8 @@
 import { Email, SentMessageInfo, SendMailOptions } from '@marin/lib.email';
-import { createException, ErrorCodes } from '../../lib/error';
+import { createException, ErrorCodes } from '../../../lib/error';
 
 class EmailMock extends Email {
-	private outbox: Map<string, Array<SendMailOptions>> = new Map<string, SendMailOptions>();
+	private outbox: Map<string, Array<SendMailOptions>> = new Map<string, Array<SendMailOptions>>();
 	private failEmailDelivery = false;
 
 	async send(message: SendMailOptions): Promise<SentMessageInfo> {
@@ -10,12 +10,13 @@ class EmailMock extends Email {
 			throw createException(ErrorCodes.NOT_DELIVERED, 'Email client was configured to fail mail delivery');
 		}
 
-		const emails = this.outbox.get(message.to);
+		const emails = this.outbox.get(message.to as string);
 		if (!emails) {
-			this.outbox.set(message.to, [message]);
+			this.outbox.set(message.to as string, [message]);
 		} else {
 			emails.push(message);
 		}
+		// @ts-ignore
 		return {};
 	}
 
@@ -37,4 +38,4 @@ class EmailMock extends Email {
 }
 
 const instance = new EmailMock();
-export default instance;
+export { instance as EmailMockInstance, EmailMock };

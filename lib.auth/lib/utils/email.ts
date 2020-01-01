@@ -2,7 +2,7 @@
 import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SentMessageInfo } from '@marin/lib.email/dist/types';
-import { logger } from '../logger';
+import { getLogger } from '../logger';
 import { Id } from '../types';
 
 declare type NotificationMFAFailedTemplate = (data: { ip: string; device: string }) => string;
@@ -20,7 +20,7 @@ function sendNotificationMFAFailed(template: NotificationMFAFailedTemplate, mail
 			},
 			true
 		)
-		.catch((error: Error) => logger.error(`Failed to deliver mfa failed notification to ${email}`, error));
+		.catch((error: Error) => getLogger().error(`Failed to deliver mfa failed notification to ${email}`, error));
 }
 
 function sendNotificationAccountLockedToUserEmail(template: NotificationAccountLockedTemplate, mailer: Email, email: string, cause: string): void {
@@ -33,7 +33,7 @@ function sendNotificationAccountLockedToUserEmail(template: NotificationAccountL
 			},
 			true
 		)
-		.catch((error: Error) => logger.error(`Failed to deliver mfa failed notification to ${email}`, error));
+		.catch((error: Error) => getLogger().error(`Failed to deliver mfa failed notification to ${email}`, error));
 }
 
 function sendNotificationAccountLockedToAdminEmail(mailer: Email, email: string, accountId: Id, cause: string): Promise<SentMessageInfo> {
@@ -50,7 +50,7 @@ function sendNotificationAuthFromDifferentDevice(template: NotificationAuthFromD
 			},
 			true
 		)
-		.catch((error: Error) => logger.error(`Failed to deliver auth from different device notification to ${email}`, error));
+		.catch((error: Error) => getLogger().error(`Failed to deliver auth from different device notification to ${email}`, error));
 }
 
 function sendActivateAccountLinkToUserEmail(template: ActivateAccountTemplate, mailer: Email, email: string, token: string): Promise<SentMessageInfo> {

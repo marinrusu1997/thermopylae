@@ -1,6 +1,12 @@
 import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
 import { enums } from '@marin/lib.utils';
 
-const logger: WinstonLogger = LoggerInstance.for(enums.SERVICES.AUTH);
+let logger: WinstonLogger | undefined;
+function getLogger(): WinstonLogger {
+	if (!logger) {
+		logger = LoggerInstance.for(enums.SERVICES.AUTH);
+	}
+	return logger;
+}
 
-export { logger };
+export { getLogger };

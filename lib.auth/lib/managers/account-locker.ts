@@ -2,7 +2,7 @@
 import { Email } from '@marin/lib.email';
 import { Account } from '../models';
 import { UserSessionsManager } from './user-sessions-manager';
-import { logger } from '../logger';
+import { getLogger } from '../logger';
 import { sendNotificationAccountLockedToAdminEmail, sendNotificationAccountLockedToUserEmail, NotificationAccountLockedTemplate } from '../utils/email';
 
 class AccountLocker {
@@ -23,11 +23,11 @@ class AccountLocker {
 			})
 			.then(() => {
 				this.userSessionsManager.deleteAll(account).catch((error: Error) => {
-					logger.warn(`Failed to logout from all devices of the user ${account.username}`, error);
+					getLogger().warn(`Failed to logout from all devices of the user ${account.username}`, error);
 				});
 			})
 			.catch((error: Error) => {
-				logger.error(`Failed to deliver account locked email to admin ${adminEmail}`, error);
+				getLogger().error(`Failed to deliver account locked email to admin ${adminEmail}`, error);
 			});
 	}
 }

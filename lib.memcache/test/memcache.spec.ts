@@ -187,26 +187,26 @@ describe('MemCache spec', () => {
 		});
 	});
 
-	it('fires flush event when cache was flushed', done => {
+	it('fires clear event when cache was cleared', done => {
 		const memCache = new MemCache();
 		const KEY = 'key';
 		const VALUE = 'value';
 		const TTL = 1;
 		memCache.set(KEY, VALUE, TTL);
-		memCache.on('flush', () => {
+		memCache.on('clear', () => {
 			done();
 		});
-		memCache.flush();
+		memCache.clear();
 	});
 
-	it('clears internal cache and gc tracked items on flush', done => {
+	it('clears internal cache and gc tracked items on clear', done => {
 		const memCache = new MemCache();
 		const KEY = 'key';
 		const VALUE = 'value';
 		const TTL = 1;
 		memCache.on('expired', () => done()); // should be emitted only once
 		memCache.set(KEY, VALUE, TTL);
-		memCache.flush(); // after this expired should not be emitted
+		memCache.clear(); // after this expired should not be emitted
 		expect(memCache.get(KEY)).to.be.equal(undefined);
 		memCache.set(KEY, VALUE, TTL); // now it will be emitted
 	});

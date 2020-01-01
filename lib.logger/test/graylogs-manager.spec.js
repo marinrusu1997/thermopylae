@@ -6,7 +6,10 @@ import { GrayLogsManager } from '../lib/transports/graylogs-manager';
 
 describe('Graylogs manager spec', () => {
 	const { expect } = chai;
-	const inputsEndpoints = [{ host: '127.0.0.1', port: 12201 }, { host: '127.0.0.1', port: 12202 }];
+	const inputsEndpoints = [
+		{ host: '127.0.0.1', port: 12201 },
+		{ host: '127.0.0.1', port: 12202 }
+	];
 
 	it('registers inputs and provides transports for them', async () => {
 		const graylog = new GrayLogsManager();

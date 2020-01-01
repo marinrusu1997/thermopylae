@@ -1,5 +1,5 @@
 import twilio from 'twilio';
-import { ErrorCodes } from '@marin/lib.utils';
+import { errors } from '@marin/lib.utils';
 import { createException } from './error';
 
 const storage = new WeakMap();
@@ -26,7 +26,7 @@ class SMS {
 	init(opts) {
 		const privateThis = internal(this);
 		if (privateThis.client) {
-			throw createException(ErrorCodes.ALREADY_INITIALIZED, 'SMS system already intialized');
+			throw createException(errors.ErrorCodes.ALREADY_INITIALIZED, 'SMS system already intialized');
 		}
 		privateThis.from = opts.fromNumber;
 		privateThis.client = twilio(opts.accountSid, opts.authToken);
@@ -35,11 +35,11 @@ class SMS {
 	async send(to, body) {
 		const { client, from } = internal(this);
 		if (!client) {
-			throw createException(ErrorCodes.NOT_INITIALIZED, 'SMS system is not intialized');
+			throw createException(errors.ErrorCodes.NOT_INITIALIZED, 'SMS system is not intialized');
 		}
 		const /** @type {MessageInstance} */ message = await client.messages.create({ from, to, body });
 		if (message.errorCode) {
-			throw createException(ErrorCodes.NOT_DELIVERED, message.errorMessage, message);
+			throw createException(errors.ErrorCodes.NOT_DELIVERED, message.errorMessage, message);
 		}
 		return message.sid;
 	}

@@ -147,10 +147,10 @@ class MemCache<Key = string, Value = any> {
 	/**
 	 * Flush all entries from cache (i.e clears the cache)
 	 */
-	public flush(): void {
+	public clear(): void {
 		this.cache.clear();
 		this.gc.stop();
-		this.events.emit('flush');
+		this.events.emit('clear');
 	}
 
 	/**
@@ -202,7 +202,7 @@ interface CacheableItem<Key = string, Value = any> {
 	ttl?: number;
 }
 
-type EventType = 'set' | 'del' | 'expired' | 'flush';
+type EventType = 'set' | 'del' | 'expired' | 'clear';
 type Listener<Key, Value> = (key?: Key, value?: Value) => void;
 
 function fillWithDefaults(opts?: Options): Config {
