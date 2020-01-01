@@ -14,6 +14,7 @@
     ],
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",

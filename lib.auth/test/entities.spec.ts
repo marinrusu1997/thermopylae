@@ -47,14 +47,14 @@ describe('entities', () => {
 		});
 		const attempts = await FailedAuthAttemptsEntityMongo.readRange('1', now - 5000, now - 900);
 		expect(attempts.length).to.be.equal(2);
-		expect(attempts[0].id).to.be.deep.eq(attempt2Id);
-		expect(attempts[1].id).to.be.deep.eq(attempt3Id);
+		expect(attempts[0].id).to.be.oneOf([attempt2Id, attempt3Id]);
+		expect(attempts[1].id).to.be.oneOf([attempt2Id, attempt3Id]);
 	});
 
 	it('access point', async () => {
 		const now = new Date().getTime();
 		await AccessPointEntityMongo.create({ id: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location: 'Maldive' });
-		await AccessPointEntityMongo.create({ id: now, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location: 'Maldive' });
+		await AccessPointEntityMongo.create({ id: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location: 'Maldive' });
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('1', 'Android S9')).to.be.equal(true);
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('1', 'Android A5')).to.be.equal(false);
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('2', 'Android A5')).to.be.equal(true);
@@ -71,7 +71,7 @@ describe('entities', () => {
 		await AccessPointEntityMongo.create({ id: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location: 'Maldive' });
 		await AccessPointEntityMongo.create({ id: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location: 'Maldive' });
 		// user 2 is not active, but has a previous access point
-		await AccessPointEntityMongo.create({ id: now, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location: 'Maldive' });
+		await AccessPointEntityMongo.create({ id: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location: 'Maldive' });
 
 		// read active sessions of user 1 ...
 		let activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');

@@ -15,6 +15,11 @@ class PasswordsManager {
 	}
 
 	public async validateStrengthness(password: string): Promise<void> {
+		const result = owasp.test(password);
+		if (!result.strong) {
+			throw createException(ErrorCodes.WEAK_PASSWORD, result.errors.join('.\n'));
+		}
+
 		const hash = crypto
 			.createHash('sha1')
 			.update(password, 'utf8')
@@ -29,13 +34,8 @@ class PasswordsManager {
 		for (let i = 0; i < breachedPasswords.length; i += 1) {
 			const [entry, howOften] = breachedPasswords[i].split(':');
 			if (entry === suffix && Number(howOften) >= this.breachThreshold) {
-				throw createException(ErrorCodes.INVALID_ARGUMENT, 'Your password has been breached before. We strongly recommend you to choose another one');
+				throw createException(ErrorCodes.WEAK_PASSWORD, 'Your password has been breached before. We strongly recommend you to choose another one.');
 			}
-		}
-
-		const result = owasp.test(password);
-		if (!result.strong) {
-			throw createException(ErrorCodes.INVALID_ARGUMENT, result.errors.join('.\n'));
 		}
 	}
 

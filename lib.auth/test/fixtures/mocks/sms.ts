@@ -2,7 +2,7 @@ import { SMS } from '@marin/lib.sms';
 import { createException, ErrorCodes } from '../../../lib/error';
 
 class SmsMock extends SMS {
-	private outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
+	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
 	private deliveryFails = false;
 
 	async send(to: string, body: string): Promise<string> {
@@ -19,7 +19,7 @@ class SmsMock extends SMS {
 		return '';
 	}
 
-	failDelivery(flag: boolean) {
+	deliveryWillFail(flag: boolean) {
 		this.deliveryFails = flag;
 	}
 
@@ -31,8 +31,9 @@ class SmsMock extends SMS {
 		this.outbox.delete(userTelephone);
 	}
 
-	clearOutbox(): void {
+	reset(): void {
 		this.outbox.clear();
+		this.deliveryFails = true;
 	}
 }
 

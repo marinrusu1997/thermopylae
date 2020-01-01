@@ -35,6 +35,7 @@ import { sendActivateAccountLinkToUserEmail } from './utils/email';
 import { ActiveUserSession } from './models/sessions';
 import { AccessPoint, FailedAuthAttempts } from './models';
 import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './models/schedulers';
+import { getLogger } from './logger';
 
 class AuthService {
 	private readonly config: Options;
@@ -118,13 +119,16 @@ class AuthService {
 	/**
 	 * @access public
 	 */
-	public async register(registrationInfo: BasicRegistrationInfo, options: Partial<RegistrationOptions>): Promise<void> {
-		options.useMultiFactorAuth = options.useMultiFactorAuth || false;
-		options.isActivated = options.isActivated || false;
+	public async register(registrationInfo: BasicRegistrationInfo, options?: Partial<RegistrationOptions>): Promise<void> {
+		options = options || {};
+		options.useMultiFactorAuth = (options && options.useMultiFactorAuth) || false;
+		options.isActivated = (options && options.isActivated) || false;
+
 		const account = await this.config.entities.account.read(registrationInfo.username);
 		if (account) {
-			throw createException(ErrorCodes.ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already`);
+			throw createException(ErrorCodes.ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already.`);
 		}
+
 		await this.passwordsManager.validateStrengthness(registrationInfo.password);
 		const salt = await token.generateToken(this.config.sizes.salt);
 		const passwordHash = await PasswordsManager.hash(registrationInfo.password, salt.plain, this.config.secrets.pepper);
@@ -139,10 +143,13 @@ class AuthService {
 			activated: options.isActivated,
 			mfa: options.useMultiFactorAuth
 		});
+
 		if (!options.isActivated) {
+			let activateToken: any;
 			let deleteAccountTaskId;
+			let activateAccountSessionWasCreated = false;
 			try {
-				const activateToken = await token.generateToken(this.config.sizes.token);
+				activateToken = await token.generateToken(this.config.sizes.token);
 				deleteAccountTaskId = await this.config.schedulers.account.deleteUnactivated(
 					registeredAccount.id!,
 					chrono.dateFromSeconds(nowInSeconds() + chrono.minutesToSeconds(this.config.ttl.activateAccountSession))
@@ -152,12 +159,16 @@ class AuthService {
 					{ accountId: registeredAccount.id!, taskId: deleteAccountTaskId },
 					this.config.ttl.activateAccountSession
 				);
+				activateAccountSessionWasCreated = true;
 				await sendActivateAccountLinkToUserEmail(this.config.templates.activateAccount, this.config['side-channels'].email, registeredAccount.email, activateToken.plain);
 			} catch (e) {
-				await this.config.entities.account.delete(registeredAccount.id!);
 				if (deleteAccountTaskId) {
 					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
-					await this.config.schedulers.account.cancelDelete(deleteAccountTaskId);
+					await this.config.schedulers.account.cancelDelete(deleteAccountTaskId); // task cancelling is not allowed to throw
+				}
+				await this.config.entities.account.delete(registeredAccount.id!);
+				if (activateAccountSessionWasCreated) {
+					await this.config.entities.activateAccountSession.delete(activateToken.plain);
 				}
 				throw e;
 			}
@@ -175,7 +186,9 @@ class AuthService {
 		await Promise.all([
 			this.config.entities.account.activate(session.accountId),
 			this.config.schedulers.account.cancelDelete(session.taskId),
-			this.config.entities.activateAccountSession.delete(activateAccountToken)
+			this.config.entities.activateAccountSession
+				.delete(activateAccountToken)
+				.catch(err => getLogger().error(`Failed to delete activate account session with id ${activateAccountToken} for account with id ${session.accountId}`, err))
 		]);
 	}
 

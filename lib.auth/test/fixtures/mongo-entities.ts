@@ -1,9 +1,11 @@
-import { before, after, afterEach } from 'mocha';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/models/entities';
 
 const mongod = new MongoMemoryServer();
+
+// see https://stackoverflow.com/questions/51960171/node63208-deprecationwarning-collection-ensureindex-is-deprecated-use-creat
+mongoose.set('useCreateIndex', true);
 
 // see https://stackoverflow.com/questions/39035634/mocha-watch-and-mongoose-models
 function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mongoose.Document> {
@@ -21,9 +23,9 @@ const Models = {
 
 /* Account */
 const AccountSchema = new mongoose.Schema({
-	username: { type: String, required: true },
-	password: { type: String, required: true },
-	salt: { type: String },
+	username: { type: String, required: true, unique: true },
+	password: { type: String, required: true, unique: true },
+	salt: { type: String, unique: true },
 	role: { type: String, required: false },
 	email: { type: String, required: true },
 	telephone: { type: String, required: true },
@@ -112,21 +114,22 @@ const AccountEntityMongo: AccountEntity = {
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { mfa: required })
 			.exec(),
-	delete: _id =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
+	delete: _id => {
+		return getMongoModel(Models.ACCOUNT, AccountSchema)
 			.deleteOne({ _id })
 			.exec()
 			.then(result => {
 				if (!result.ok || result.deletedCount !== 1) {
-					throw new Error(`Failed to delete account with id ${_id}`);
+					throw new Error(`Failed to delete account with id ${_id}. Cause: ${JSON.stringify(result)}`);
 				}
-			})
+			});
+	}
 };
 
 /* Failed Auth Attempts */
 const FailedAuthAttemptSchema = new mongoose.Schema({
 	accountId: { type: String, required: true },
-	timestamp: { type: Number, required: true },
+	timestamp: { type: Number, required: true, unique: true },
 	devices: { type: String, required: true },
 	ips: { type: String, required: true }
 });
@@ -154,11 +157,12 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 			ips: doc.ips
 		}));
 	}
-}; // FIXME it would be nice if this can be stored in ES
+};
 
 /* Access Point */
+// FIXME it would be nice if this can be stored in ES
 const AccessPointSchema = new mongoose.Schema({
-	id: { type: Number, required: true },
+	id: { type: Number, required: true, unique: true },
 	accountId: { type: String, required: true },
 	ip: { type: String, required: true },
 	device: { type: String, required: true },
@@ -177,7 +181,7 @@ const AccessPointEntityMongo: AccessPointEntity = {
 
 /* Active User Session */
 const ActiveUserSessionSchema = new mongoose.Schema({
-	id: { type: Number, required: true },
+	id: { type: Number, required: true, unique: true },
 	accountId: { type: String, required: true }
 });
 const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
@@ -262,9 +266,4 @@ function clearMongoDatabase(): Promise<any[]> {
 	return Promise.all(deletePromises);
 }
 
-// trigger global hooks at the first import in test suite files
-before(() => connectToMongoServer());
-after(() => closeMongoDatabase());
-afterEach(() => clearMongoDatabase());
-
-export { AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };
+export { connectToMongoServer, clearMongoDatabase, closeMongoDatabase, AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };

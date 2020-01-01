@@ -187,7 +187,7 @@ describe('Formatting manager spec', () => {
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
 		expect(loggedInfo[Symbol.for(message)]).to.equal(
-			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}: ${err.stack}`
+			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}: \t${err.message}\n${err.stack}`
 		);
 	});
 

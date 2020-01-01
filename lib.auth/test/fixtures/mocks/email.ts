@@ -2,7 +2,7 @@ import { Email, SentMessageInfo, SendMailOptions } from '@marin/lib.email';
 import { createException, ErrorCodes } from '../../../lib/error';
 
 class EmailMock extends Email {
-	private outbox: Map<string, Array<SendMailOptions>> = new Map<string, Array<SendMailOptions>>();
+	private readonly outbox: Map<string, Array<SendMailOptions>> = new Map<string, Array<SendMailOptions>>();
 	private failEmailDelivery = false;
 
 	async send(message: SendMailOptions): Promise<SentMessageInfo> {
@@ -28,11 +28,12 @@ class EmailMock extends Email {
 		this.outbox.delete(userEmail);
 	}
 
-	clearOutbox(): void {
+	reset(): void {
 		this.outbox.clear();
+		this.failEmailDelivery = false;
 	}
 
-	emailDeliveryIsFailing(flag: boolean) {
+	deliveryWillFail(flag: boolean) {
 		this.failEmailDelivery = flag;
 	}
 }

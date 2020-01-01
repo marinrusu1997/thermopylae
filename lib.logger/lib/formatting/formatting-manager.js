@@ -39,7 +39,7 @@ function defineFormatters(formatters) {
 	formatters.set(
 		'printf',
 		printf(({ level, message, label, timestamp, stack }) => {
-			return `${timestamp} [${label}] ${level}: ${stack || message}`;
+			return `${timestamp} [${label}] ${level}: ${message || ''}${stack ? `\n${stack}` : ''}`;
 		})
 	);
 	formatters.set('json', json({ space: 4 }));

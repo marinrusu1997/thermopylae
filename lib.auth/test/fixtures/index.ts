@@ -1,11 +1,31 @@
 import LoggerInstance from '@marin/lib.logger';
+import { after, afterEach, before } from 'mocha';
+import FormattingManager from '@marin/lib.logger/lib/formatting/formatting-manager';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
-import { AccessPointEntityMongo, AccountEntityMongo, ActiveUserSessionEntityMongo, FailedAuthAttemptsEntityMongo } from './mongo-entities';
-import { ActivateAccountSessionEntityMemCache, AuthSessionEntityMemCache, FailedAuthAttemptSessionEntityMemCache } from './memcache-entities';
+import {
+	AccessPointEntityMongo,
+	AccountEntityMongo,
+	ActiveUserSessionEntityMongo,
+	FailedAuthAttemptsEntityMongo,
+	clearMongoDatabase,
+	closeMongoDatabase,
+	connectToMongoServer
+} from './mongo-entities';
+import memcache, {
+	ActivateAccountSessionEntityMemCache,
+	AuthSessionEntityMemCache,
+	clearOperationFailuresForSessions,
+	FailedAuthAttemptSessionEntityMemCache
+} from './memcache-entities';
 import { EmailMockInstance } from './mocks/email';
 import { SmsMockInstance } from './mocks/sms';
 import { AccountLockedTemplate, ActivateAccountTemplate, AuthFromDiffDeviceTemplate, MultiFactorAuthFailedTemplate, TotpTokenSmsTemplate } from './templates';
-import { CancelScheduledUnactivatedAccountDeletionFromMongo, ScheduleActiveUserSessionDeletionFromMongo, ScheduleUnactivatedAccountDeletionFromMongo } from './schedulers';
+import {
+	CancelScheduledUnactivatedAccountDeletionFromMongo,
+	clearOperationFailuresForSchedulers,
+	ScheduleActiveUserSessionDeletionFromMongo,
+	ScheduleUnactivatedAccountDeletionFromMongo
+} from './schedulers';
 
 const basicAuthServiceConfig = {
 	jwt: {
@@ -55,5 +75,21 @@ const basicAuthServiceConfig = {
 
 // since this config will be imported from all tests, it's the right place to put some initializations
 LoggerInstance.console.setConfig({ level: 'debug' });
+LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
+
+// trigger automatic clean up after each test (will be done at the first import)
+afterEach(() =>
+	clearMongoDatabase().then(() => {
+		memcache.clear();
+		EmailMockInstance.reset();
+		SmsMockInstance.reset();
+		clearOperationFailuresForSessions();
+		clearOperationFailuresForSchedulers();
+	})
+);
+
+// trigger global hooks at the first import in test suite files
+before(() => connectToMongoServer());
+after(() => closeMongoDatabase());
 
 export default basicAuthServiceConfig;

@@ -1,9 +1,14 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
-import { afterEach } from 'mocha';
 import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity } from '../../lib/models/entities';
 import { AuthSession, FailedAuthAttemptSession } from '../../lib/models/sessions';
 
 const memcache = getDefaultMemCache();
+
+enum SESSIONS_OP {
+	ACTIVATE_ACCOUNT_SESSION_CREATE,
+	ACTIVATE_ACCOUNT_SESSION_DELETE
+}
+const failures = new Map<SESSIONS_OP, boolean>();
 
 const AuthSessionEntityMemCache: AuthSessionEntity = {
 	/**
@@ -73,7 +78,16 @@ const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
 };
 
 const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
+	/**
+	 * @param token
+	 * @param session
+	 * @param ttl		Time to live in minutes
+	 */
 	create: (token, session, ttl) => {
+		if (failures.get(SESSIONS_OP.ACTIVATE_ACCOUNT_SESSION_CREATE)) {
+			throw new Error('Creation of activate account session was configured to fail.');
+		}
+
 		const key = `actacc:${token}`;
 		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve();
@@ -83,14 +97,35 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 		const session = memcache.get(key);
 		return Promise.resolve(session || null);
 	},
-	delete: token => {
+	delete: async token => {
+		if (failures.get(SESSIONS_OP.ACTIVATE_ACCOUNT_SESSION_DELETE)) {
+			throw new Error('Deletion of activate account session was configured to fail.');
+		}
+
 		const key = `actacc:${token}`;
 		memcache.del(key);
-		return Promise.resolve();
 	}
 };
 
-// trigger automatic clean up after each test (will be done at the first import)
-afterEach(() => memcache.clear());
+function hasAnySessions(): boolean {
+	return memcache.keys().length !== 0;
+}
 
-export { AuthSessionEntityMemCache, FailedAuthAttemptSessionEntityMemCache, ActivateAccountSessionEntityMemCache };
+function failureWillBeGeneratedForSessionOperation(op: SESSIONS_OP, willFail = true) {
+	failures.set(op, willFail);
+}
+
+function clearOperationFailuresForSessions() {
+	failures.clear();
+}
+
+export default memcache;
+export {
+	AuthSessionEntityMemCache,
+	FailedAuthAttemptSessionEntityMemCache,
+	ActivateAccountSessionEntityMemCache,
+	hasAnySessions,
+	failureWillBeGeneratedForSessionOperation,
+	clearOperationFailuresForSessions,
+	SESSIONS_OP
+};
