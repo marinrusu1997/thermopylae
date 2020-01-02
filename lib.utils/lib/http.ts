@@ -40,12 +40,7 @@ function parseBody(body: string, contentType?: string): any {
  *
  * @returns {Promise<string| object>}
  */
-function makeRequest(
-	url: string | URL,
-	request: HTTPRequest | HTTPSRequest,
-	params: http.RequestOptions | https.RequestOptions,
-	postData?: PostData
-): Promise<string | any> {
+function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, params: http.RequestOptions | https.RequestOptions, postData?: PostData): Promise<string | any> {
 	return new Promise((resolve, reject) => {
 		// eslint-disable-next-line consistent-return
 		const req = request(url, params, (res: http.IncomingMessage): void => {

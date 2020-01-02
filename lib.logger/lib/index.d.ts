@@ -1,7 +1,8 @@
 import { Logger, WinstonLogger } from "./logger/logger";
+import { FormattingManager } from './formatting/formatting-manager';
 
 declare const LoggerInstance: Logger;
 
 export default LoggerInstance;
 export * from './log-context';
-export { WinstonLogger };
+export { WinstonLogger, FormattingManager };

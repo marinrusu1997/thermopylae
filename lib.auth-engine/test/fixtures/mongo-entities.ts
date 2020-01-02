@@ -1,0 +1,294 @@
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/models/entities';
+
+const mongod = new MongoMemoryServer();
+
+// see https://stackoverflow.com/questions/51960171/node63208-deprecationwarning-collection-ensureindex-is-deprecated-use-creat
+mongoose.set('useCreateIndex', true);
+
+// see https://stackoverflow.com/questions/39035634/mocha-watch-and-mongoose-models
+function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mongoose.Document> {
+	return mongoose.models[name] // Check if the model exists
+		? mongoose.model(name) // If true, only retrieve it
+		: mongoose.model(name, schema); // If false, define it
+}
+
+const Models = {
+	ACCOUNT: 'account',
+	FAILED_AUTH_ATTEMPT: 'failed_auth_attempt',
+	ACCESS_POINT: 'access_point',
+	ACTIVE_USER_SESSION: 'active_user_session'
+};
+
+/* Account */
+const AccountSchema = new mongoose.Schema({
+	username: { type: String, required: true, unique: true },
+	password: { type: String, required: true, unique: true },
+	salt: { type: String, unique: true },
+	role: { type: String, required: false },
+	email: { type: String, required: true },
+	telephone: { type: String, required: true },
+	activated: { type: Boolean, required: true },
+	locked: { type: Boolean, required: true },
+	mfa: { type: Boolean, required: true }
+});
+const AccountEntityMongo: AccountEntity = {
+	create: async account => {
+		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).create(account);
+		return {
+			...account,
+			id: String(accountModel._id)
+		};
+	},
+	read: async username => {
+		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema)
+			.find({ username })
+			.exec();
+		if (!accountModel.length) {
+			return null;
+		}
+		if (accountModel.length > 1) {
+			throw new Error(`Expected 1 account to be found for username ${username}`);
+		}
+		return {
+			id: String(accountModel[0]._id),
+			// @ts-ignore
+			username: accountModel[0].username,
+			// @ts-ignore
+			password: accountModel[0].password,
+			// @ts-ignore
+			salt: accountModel[0].salt,
+			// @ts-ignore
+			role: accountModel[0].role,
+			// @ts-ignore
+			email: accountModel[0].email,
+			// @ts-ignore
+			telephone: accountModel[0].telephone,
+			// @ts-ignore
+			activated: accountModel[0].activated,
+			// @ts-ignore
+			locked: accountModel[0].locked,
+			// @ts-ignore
+			mfa: accountModel[0].mfa
+		};
+	},
+	readById: async id => {
+		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema)
+			.findById(id)
+			.exec();
+		if (!accountModel) {
+			return null;
+		}
+		return {
+			id: String(accountModel._id),
+			// @ts-ignore
+			username: accountModel.username,
+			// @ts-ignore
+			password: accountModel.password,
+			// @ts-ignore
+			salt: accountModel.salt,
+			// @ts-ignore
+			role: accountModel.role,
+			// @ts-ignore
+			email: accountModel.email,
+			// @ts-ignore
+			telephone: accountModel.telephone,
+			// @ts-ignore
+			activated: accountModel.activated,
+			// @ts-ignore
+			locked: accountModel.locked,
+			// @ts-ignore
+			mfa: accountModel.mfa
+		};
+	},
+	activate: _id =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.updateOne({ _id }, { activated: true })
+			.exec(),
+	lock: _id =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.updateOne({ _id }, { locked: true })
+			.exec(),
+	requireMfa: (_id, required) =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.updateOne({ _id }, { mfa: required })
+			.exec(),
+	delete: _id => {
+		return getMongoModel(Models.ACCOUNT, AccountSchema)
+			.deleteOne({ _id })
+			.exec()
+			.then(result => {
+				if (!result.ok || result.deletedCount !== 1) {
+					throw new Error(`Failed to delete account with id ${_id}. Cause: ${JSON.stringify(result)}`);
+				}
+			});
+	}
+};
+
+/* Failed Auth Attempts */
+const FailedAuthAttemptSchema = new mongoose.Schema({
+	accountId: { type: String, required: true },
+	timestamp: { type: Number, required: true, unique: true },
+	devices: { type: String, required: true },
+	ips: { type: String, required: true }
+});
+const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
+	create: attempts =>
+		getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
+			.create(attempts)
+			.then(doc => String(doc._id)),
+	readRange: async (accountId, startingFrom, endingTo) => {
+		const docs = await getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
+			.find({ accountId })
+			.where('timestamp')
+			.gte(startingFrom)
+			.lt(endingTo)
+			.exec();
+		return docs.map(doc => ({
+			id: String(doc._id),
+			// @ts-ignore
+			accountId: doc.accountId,
+			// @ts-ignore
+			timestamp: doc.timestamp,
+			// @ts-ignore
+			devices: doc.devices,
+			// @ts-ignore
+			ips: doc.ips
+		}));
+	}
+};
+
+/* Access Point */
+// FIXME it would be nice if this can be stored in ES
+const AccessPointSchema = new mongoose.Schema({
+	id: { type: Number, required: true, unique: true },
+	accountId: { type: String, required: true },
+	ip: { type: String, required: true },
+	device: { type: String, required: true },
+	location: {
+		countryCode: { type: String, required: true },
+		regionCode: { type: String, required: true },
+		city: { type: String, required: true },
+		timeZone: { type: String, required: true },
+		postalCode: { type: String },
+		latitude: { type: Number, required: true },
+		longitude: { type: Number, required: true }
+	}
+});
+const AccessPointEntityMongo: AccessPointEntity = {
+	create: async accessPoint => {
+		await getMongoModel(Models.ACCESS_POINT, AccessPointSchema).create(accessPoint);
+	},
+	authBeforeFromThisDevice: (accountId, device) =>
+		getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
+			.find({ accountId, device })
+			.exec()
+			.then(docs => docs.length !== 0)
+};
+
+/* Active User Session */
+const ActiveUserSessionSchema = new mongoose.Schema({
+	id: { type: Number, required: true, unique: true },
+	accountId: { type: String, required: true }
+});
+const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
+	create: async session => {
+		await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).create(session);
+	},
+	readAll: async accountId => {
+		const sessionsDocs = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
+			.find({ accountId })
+			.exec();
+		if (sessionsDocs.length === 0) {
+			return [];
+		}
+		const sessionIds = sessionsDocs.map(session => session.id);
+		const accessPointsDocs = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
+			.find({ id: { $in: sessionIds }, accountId })
+			.exec();
+		return accessPointsDocs.map(accessPointDoc => {
+			return {
+				id: accessPointDoc.id,
+				// @ts-ignore
+				accountId: accessPointDoc.accountId,
+				// @ts-ignore
+				ip: accessPointDoc.ip,
+				// @ts-ignore
+				device: accessPointDoc.device,
+				// @ts-ignore
+				location: {
+					// @ts-ignore
+					countryCode: accessPointDoc.location.countryCode,
+					// @ts-ignore
+					regionCode: accessPointDoc.location.regionCode,
+					// @ts-ignore
+					city: accessPointDoc.location.city,
+					// @ts-ignore
+					timeZone: accessPointDoc.location.timeZone,
+					// @ts-ignore
+					postalCode: accessPointDoc.location.postalCode,
+					// @ts-ignore
+					latitude: accessPointDoc.location.latitude,
+					// @ts-ignore
+					longitude: accessPointDoc.location.longitude
+				}
+			};
+		});
+	},
+	delete: async id => {
+		await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
+			.deleteOne({ id })
+			.exec();
+	},
+	deleteAll: async accountId => {
+		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({ accountId });
+		if (!bulkDelete.ok) {
+			throw new Error('Failed to delete all sessions');
+		}
+		return bulkDelete.deletedCount!;
+	}
+};
+
+/**
+ * Connect to the in-memory database.
+ */
+function connectToMongoServer(): Promise<mongoose.Mongoose> {
+	return mongod.getConnectionString().then(uri => {
+		const mongooseOpts: mongoose.ConnectionOptions = {
+			useNewUrlParser: true,
+			useUnifiedTopology: true
+		};
+		return mongoose.connect(uri, mongooseOpts);
+	});
+}
+
+/**
+ * Drop database, close the connection and stop mongod.
+ */
+function closeMongoDatabase(): Promise<boolean> {
+	return mongoose.connection
+		.dropDatabase()
+		.then(() => {
+			return mongoose.connection.close();
+		})
+		.then(() => {
+			return mongod.stop();
+		});
+}
+
+/**
+ * Remove all the data for all db collections.
+ */
+function clearMongoDatabase(): Promise<any[]> {
+	const collectionNames = Object.keys(mongoose.connection.collections);
+	const deletePromises: Array<Promise<any>> = [];
+
+	for (let i = 0; i < collectionNames.length; i += 1) {
+		deletePromises.push(mongoose.connection.collections[collectionNames[i]].deleteMany({}));
+	}
+
+	return Promise.all(deletePromises);
+}
+
+export { connectToMongoServer, clearMongoDatabase, closeMongoDatabase, AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };

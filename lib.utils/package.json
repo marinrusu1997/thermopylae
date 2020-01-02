@@ -6,22 +6,22 @@
     "shared",
     "constants"
   ],
-  "version": "1.0.0",
+  "version": "0.0.1-beta",
   "author": "Rusu Marin <dimarusu2000@gmail.com>",
   "license": "ISC",
-  "main": "dist/lib/index.js",
-  "typings": "dist/lib/index.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "files": [
     "dist/**/*"
   ],
   "scripts": {
-    "build": "tsc; rm -rf dist/test",
-    "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
-    "test": "mocha",
-    "coverage": "nyc mocha",
-    "coverage:show": "http-server coverage/",
-    "clear": "rm -rf .nyc_output build coverage dist",
-    "clear:all": "npm run clear; rm -rf node_modules package-lock.json"
+    "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+    "build": "gulp build",
+    "test": "gulp test",
+    "coverage": "gulp coverage",
+    "coverage:show": "gulp coverageShow",
+    "clean": "gulp clean",
+    "purge": "gulp purge"
   },
   "lint-staged": {
     "*.ts": [
@@ -29,7 +29,7 @@
     ]
   },
   "engines": {
-    "node": "13.2.0"
+    "node": ">=12.8.0"
   },
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
@@ -39,6 +39,7 @@
     "otplib": "^11.0.1"
   },
   "devDependencies": {
+    "@marin/lib.module-builder": "file:../lib.module-builder",
     "@types/chai": "^4.2.5",
     "@types/lodash.clone": "^4.5.6",
     "@types/lodash.clonedeep": "^4.5.6",

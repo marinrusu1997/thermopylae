@@ -21,7 +21,7 @@ declare class JWTBlacklist {
    /**
     * Returns tll for @all roles (if configured).
     */
-   allTtl: () => number | undefined;
+   get allTtl(): number | undefined;
 
    /**
     * Defines multiple audiences in parallel

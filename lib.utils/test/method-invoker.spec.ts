@@ -6,10 +6,10 @@ const { expect } = chai;
 
 describe('method invoker spec', () => {
 	it('invokes function whith provided this argument', () => {
-		const func = function(this: any): number {
+		function func(this: any): number {
 			// eslint-disable-next-line no-unused-expressions
 			return this.a + this.b;
-		};
+		}
 		const thisObj = { a: 1, b: 1 };
 		const sum = new MethodInvoker(func).thisArg(thisObj).safeInvokeSync();
 		expect(sum).to.be.equal(2);

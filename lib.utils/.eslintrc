@@ -28,30 +28,25 @@
   },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 2018,
+    "ecmaVersion": 2019,
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": "tsconfig.json"
   },
   "settings": {
     "import/extensions": [
       ".js",
-      ".jsx",
-      ".ts",
-      ".tsx"
+      ".ts"
     ],
     "import/parsers": {
       "@typescript-eslint/parser": [
-        ".ts",
-        ".tsx"
+        ".ts"
       ]
     },
     "import/resolver": {
       "node": {
         "extensions": [
           ".js",
-          ".jsx",
-          ".ts",
-          ".tsx"
+          ".ts"
         ]
       }
     }
