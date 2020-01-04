@@ -5,6 +5,7 @@ import { AuthStep, AuthStepOutput } from './auth-step';
 import { AuthNetworkInput } from '../types';
 import { Account } from '../models';
 import { AUTH_STEP } from '../enums';
+import { AuthSession } from '../models/sessions';
 
 type TotpSmsTemplate = (totpToken: string) => string;
 
@@ -19,8 +20,9 @@ class GenerateTotpStep implements AuthStep {
 		this.template = template;
 	}
 
-	async process(_networkInput: AuthNetworkInput, account: Account): Promise<AuthStepOutput> {
+	async process(_networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
 		const totpToken = this.totpManager.generate();
+		session.mfaToken = totpToken; // save token for later verification
 		await this.smsSender.send(account.telephone, this.template(totpToken));
 		return { done: { nextStep: AUTH_STEP.TOTP } }; // partial successful authentication
 	}

@@ -1,4 +1,4 @@
-import { totp, token, chrono } from '@marin/lib.utils';
+import { chrono, token, totp } from '@marin/lib.utils';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SMS } from '@marin/lib.sms';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -35,6 +35,7 @@ import { ActiveUserSession } from './models/sessions';
 import { AccessPoint, FailedAuthAttempts } from './models';
 import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './models/schedulers';
 import { getLogger } from './logger';
+import { PubKeyStep, PubKeyValidator } from './authentication/pub-key-step';
 
 class AuthenticationEngine {
 	private readonly config: InternalUsageOptions;
@@ -85,6 +86,9 @@ class AuthenticationEngine {
 				this.config.entities.failedAuthAttemptsSession
 			)
 		);
+		if (this.config.validators.pubKey) {
+			this.authOrchestrator.register(AUTH_STEP.PUBKEY, new PubKeyStep(this.config.validators.pubKey));
+		}
 	}
 
 	/**
@@ -98,12 +102,13 @@ class AuthenticationEngine {
 		}
 
 		if (account.locked) {
-			throw createException(ErrorCodes.CHECKING_FAILED, `Account ${account.username} is locked.`);
+			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account ${account.username} is locked.`);
 		}
 		if (!account.activated) {
 			throw createException(ErrorCodes.CHECKING_FAILED, `Account ${account.username} is not activated.`);
 		}
 
+		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
 		let authSession = await this.config.entities.authSession.read(data.username, data.device);
 		if (!authSession) {
 			authSession = await this.config.entities.authSession.create(data.username, data.device, this.config.ttl.authSession);
@@ -147,7 +152,8 @@ class AuthenticationEngine {
 			role: registrationInfo.role,
 			locked: false,
 			activated: options.isActivated,
-			mfa: options.useMultiFactorAuth
+			mfa: options.useMultiFactorAuth,
+			pubKey: registrationInfo.pubKey
 		});
 
 		if (!options.isActivated) {
@@ -225,7 +231,7 @@ class AuthenticationEngine {
 	 * @access private
 	 */
 	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>> {
-		return this.config.entities.activeUserSession.readAll(accountId);
+		return this.userSessionsManager.read(accountId);
 	}
 
 	/**
@@ -288,6 +294,7 @@ interface AuthEngineOptions {
 	};
 	validators: {
 		recaptcha: RecaptchaValidator;
+		pubKey?: PubKeyValidator;
 	};
 	ttl?: TTLOptions;
 	thresholds?: ThresholdsOptions;
@@ -316,7 +323,7 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 		jwt: options.jwt,
 		entities: options.entities,
 		ttl: {
-			authSession: options.ttl.authSession || 5, // minutes
+			authSession: options.ttl.authSession || 2, // minutes, this needs to be as short as possible
 			failedAuthAttemptsSession: options.ttl.failedAuthAttemptsSession || 5, // minutes,
 			activateAccountSession: options.ttl.activateAccountSession || 60, // minutes
 			totp: options.ttl.totp || 30 // seconds

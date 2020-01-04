@@ -28,7 +28,7 @@ import {
 import { getLogger } from '../../lib/logger';
 import { recaptchaValidator } from './validators';
 
-const basicAuthServiceConfig = {
+const basicAuthEngineConfig = {
 	jwt: {
 		instance: defaultJwtInstance,
 		rolesTtl: rolesTtlMap
@@ -77,7 +77,7 @@ const basicAuthServiceConfig = {
 };
 
 // since this config will be imported from all tests, it's the right place to put some initializations
-LoggerInstance.console.setConfig({ level: 'debug' }); // emerg is to supress error logs generatted by the engine
+LoggerInstance.console.setConfig({ level: 'emerg' }); // emerg is to supress error logs generatted by the engine
 LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
 
 // trigger automatic clean up after each test (will be done at the first import)
@@ -97,4 +97,4 @@ afterEach(() =>
 before(() => connectToMongoServer());
 after(() => closeMongoDatabase());
 
-export default basicAuthServiceConfig;
+export default basicAuthEngineConfig;

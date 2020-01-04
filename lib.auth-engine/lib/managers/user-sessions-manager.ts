@@ -6,6 +6,7 @@ import { ActiveUserSession } from '../models/sessions';
 import { createException, ErrorCodes } from '../error';
 import { ScheduleActiveUserSessionDeletion } from '../models/schedulers';
 import { BasicLocation } from '../types';
+import { AccessPoint } from '../models';
 
 class UserSessionsManager {
 	private readonly scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion;
@@ -45,14 +46,14 @@ class UserSessionsManager {
 			}
 		);
 
-		await Promise.all([this.accessPointEntity.create({ id: iat, accountId, ip, device, location }), this.activeUserSessionEntity.create({ id: iat, accountId })]);
+		await Promise.all([this.accessPointEntity.create({ timestamp: iat, accountId, ip, device, location }), this.activeUserSessionEntity.create({ timestamp: iat, accountId })]);
 
-		this.scheduleActiveUserSessionDeletion(iat, chrono.dateFromSeconds(iat + ttl));
+		this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromSeconds(iat + ttl));
 
 		return jwt;
 	}
 
-	public read(accountId: string): Promise<Array<ActiveUserSession>> {
+	public read(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>> {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 
@@ -61,7 +62,7 @@ class UserSessionsManager {
 		return this.jwt
 			.blacklist()
 			.revoke(payload, ttl)
-			.then(() => this.activeUserSessionEntity.delete(payload.iat));
+			.then(() => this.activeUserSessionEntity.delete(payload.sub, payload.iat));
 	}
 
 	public deleteAll(accountId: string, accountRole?: string): Promise<number> {

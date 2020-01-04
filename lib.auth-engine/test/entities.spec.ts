@@ -23,7 +23,8 @@ describe('entities', () => {
 			telephone: 'mobile',
 			activated: false,
 			locked: false,
-			mfa: false
+			mfa: false,
+			pubKey: 'does not matter now this key, just testing that account works'
 		});
 		expect(await AccountEntityMongo.readById(account.id!)).to.be.deep.equal(account);
 		expect(await AccountEntityMongo.read(account.username)).to.be.deep.equal(account);
@@ -40,20 +41,20 @@ describe('entities', () => {
 		await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now,
-			devices: 'device1',
-			ips: '127.0.0.1'
+			devices: new Set<string>(['device1']),
+			ips: new Set<string>(['127.0.0.1'])
 		});
 		const attempt2Id = await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now - 1000,
-			devices: 'device1',
-			ips: '127.0.0.1'
+			devices: new Set<string>(['device1']),
+			ips: new Set<string>(['127.0.0.1'])
 		});
 		const attempt3Id = await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now - 5000,
-			devices: 'device1',
-			ips: '127.0.0.1'
+			devices: new Set<string>(['device1']),
+			ips: new Set<string>(['127.0.0.1'])
 		});
 		const attempts = await FailedAuthAttemptsEntityMongo.readRange('1', now - 5000, now - 900);
 		expect(attempts.length).to.be.equal(2);
@@ -63,8 +64,8 @@ describe('entities', () => {
 
 	it('access point', async () => {
 		const now = new Date().getTime();
-		await AccessPointEntityMongo.create({ id: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AccessPointEntityMongo.create({ id: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
+		await AccessPointEntityMongo.create({ timestamp: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AccessPointEntityMongo.create({ timestamp: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('1', 'Android S9')).to.be.equal(true);
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('1', 'Android A5')).to.be.equal(false);
 		expect(await AccessPointEntityMongo.authBeforeFromThisDevice('2', 'Android A5')).to.be.equal(true);
@@ -73,15 +74,15 @@ describe('entities', () => {
 	it('active user session', async () => {
 		const now = new Date().getTime();
 		// user 1 has 3 active sessions ...
-		await ActiveUserSessionEntityMongo.create({ id: now, accountId: '1' });
-		await ActiveUserSessionEntityMongo.create({ id: now + 10, accountId: '1' });
-		await ActiveUserSessionEntityMongo.create({ id: now + 20, accountId: '1' });
+		await ActiveUserSessionEntityMongo.create({ timestamp: now, accountId: '1' });
+		await ActiveUserSessionEntityMongo.create({ timestamp: now + 10, accountId: '1' });
+		await ActiveUserSessionEntityMongo.create({ timestamp: now + 20, accountId: '1' });
 		// ... and their corresponding access points
-		await AccessPointEntityMongo.create({ id: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AccessPointEntityMongo.create({ id: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AccessPointEntityMongo.create({ id: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AccessPointEntityMongo.create({ timestamp: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AccessPointEntityMongo.create({ timestamp: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AccessPointEntityMongo.create({ timestamp: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
 		// user 2 is not active, but has a previous access point
-		await AccessPointEntityMongo.create({ id: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
+		await AccessPointEntityMongo.create({ timestamp: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
 
 		// read active sessions of user 1 ...
 		let activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');
@@ -92,7 +93,7 @@ describe('entities', () => {
 		expect(activeUserConnectionsUser2.length).to.be.equal(0);
 
 		// delete one active session of user 1
-		await ActiveUserSessionEntityMongo.delete(now);
+		await ActiveUserSessionEntityMongo.delete('1', now);
 		activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');
 		expect(activeSessionsUser1.length).to.be.equal(2);
 

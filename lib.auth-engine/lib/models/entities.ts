@@ -24,7 +24,7 @@ export interface AccessPointEntity {
 export interface ActiveUserSessionEntity {
 	create(session: ActiveUserSession): Promise<void>;
 	readAll(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>>;
-	delete(id: number): Promise<void>;
+	delete(accountId: string, timestamp: number): Promise<void>;
 	deleteAll(accountId: string): Promise<number>;
 }
 

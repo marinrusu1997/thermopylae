@@ -9,10 +9,11 @@ export interface Account extends BasicCredentials {
 	activated: boolean;
 	locked: boolean;
 	mfa: boolean;
+	pubKey?: string | Buffer;
 }
 
 export interface AccessPoint {
-	id: number;
+	timestamp: number;
 	accountId: string;
 	ip: string;
 	device: string;
@@ -23,6 +24,6 @@ export interface FailedAuthAttempts {
 	id?: string;
 	accountId: string;
 	timestamp: number;
-	devices: string;
-	ips: string;
+	devices: Set<string>;
+	ips: Set<string>;
 }

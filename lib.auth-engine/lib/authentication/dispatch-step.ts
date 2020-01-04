@@ -5,7 +5,9 @@ import { AuthNetworkInput } from '../types';
 
 class DispatchStep implements AuthStep {
 	async process(networkInput: AuthNetworkInput): Promise<AuthStepOutput> {
-		// skip secret step if totp is present in network payload
+		if (networkInput.signature) {
+			return { nextStep: AUTH_STEP.PUBKEY };
+		}
 		if (networkInput.totp) {
 			// safe, because totp is verified with server secret and is very short living (<= 30s)
 			return { nextStep: AUTH_STEP.TOTP };

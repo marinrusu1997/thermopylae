@@ -36,7 +36,7 @@ class AuthenticatedStep implements AuthStep {
 		// reset failed auth attempts on successful authentication (in detached mode)
 		this.failedAuthAttemptSessionEntity
 			.delete(account.username)
-			.catch(e => getLogger().error(`Failed to delete failed auth attempts session for account id ${account.id!}`, e));
+			.catch(e => getLogger().error(`Failed to delete failed auth attempts session for account id ${account.id!}. `, e));
 
 		return { done: { token: await this.userSessionsManager.create(networkInput.ip, networkInput.device, networkInput.location, account.id!, account.role) } };
 	}

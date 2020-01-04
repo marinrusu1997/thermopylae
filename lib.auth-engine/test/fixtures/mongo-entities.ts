@@ -31,7 +31,8 @@ const AccountSchema = new mongoose.Schema({
 	telephone: { type: String, required: true },
 	activated: { type: Boolean, required: true },
 	locked: { type: Boolean, required: true },
-	mfa: { type: Boolean, required: true }
+	mfa: { type: Boolean, required: true },
+	pubKey: { type: String, required: false }
 });
 const AccountEntityMongo: AccountEntity = {
 	create: async account => {
@@ -70,7 +71,9 @@ const AccountEntityMongo: AccountEntity = {
 			// @ts-ignore
 			locked: accountModel[0].locked,
 			// @ts-ignore
-			mfa: accountModel[0].mfa
+			mfa: accountModel[0].mfa,
+			// @ts-ignore
+			pubKey: accountModel[0].pubKey
 		};
 	},
 	readById: async id => {
@@ -99,7 +102,9 @@ const AccountEntityMongo: AccountEntity = {
 			// @ts-ignore
 			locked: accountModel.locked,
 			// @ts-ignore
-			mfa: accountModel.mfa
+			mfa: accountModel.mfa,
+			// @ts-ignore
+			pubKey: accountModel.pubKey
 		};
 	},
 	activate: _id =>
@@ -130,21 +135,37 @@ const AccountEntityMongo: AccountEntity = {
 const FailedAuthAttemptSchema = new mongoose.Schema({
 	accountId: { type: String, required: true },
 	timestamp: { type: Number, required: true, unique: true },
-	devices: { type: String, required: true },
-	ips: { type: String, required: true }
+	devices: [String],
+	ips: [String]
 });
 const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
-	create: attempts =>
-		getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
+	create: attempts => {
+		// @ts-ignore
+		attempts.ips = Array.from(attempts.ips);
+		// @ts-ignore
+		attempts.devices = Array.from(attempts.devices);
+
+		return getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
 			.create(attempts)
-			.then(doc => String(doc._id)),
+			.then(doc => String(doc._id));
+	},
 	readRange: async (accountId, startingFrom, endingTo) => {
-		const docs = await getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
-			.find({ accountId })
-			.where('timestamp')
-			.gte(startingFrom)
-			.lt(endingTo)
-			.exec();
+		if (startingFrom && endingTo && endingTo < startingFrom) {
+			throw new Error('Invalid range. Ending lower that starting');
+		}
+
+		const documentQuery = getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema).find({ accountId });
+		if (startingFrom || endingTo) {
+			documentQuery.where('timestamp');
+			if (startingFrom) {
+				documentQuery.gte(startingFrom);
+			}
+			if (endingTo) {
+				documentQuery.lt(endingTo);
+			}
+		}
+
+		const docs = await documentQuery.exec();
 		return docs.map(doc => ({
 			id: String(doc._id),
 			// @ts-ignore
@@ -152,9 +173,9 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 			// @ts-ignore
 			timestamp: doc.timestamp,
 			// @ts-ignore
-			devices: doc.devices,
+			devices: new Set<string>(doc.devices),
 			// @ts-ignore
-			ips: doc.ips
+			ips: new Set<string>(doc.ips)
 		}));
 	}
 };
@@ -162,7 +183,7 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 /* Access Point */
 // FIXME it would be nice if this can be stored in ES
 const AccessPointSchema = new mongoose.Schema({
-	id: { type: Number, required: true, unique: true },
+	timestamp: { type: Number, required: true },
 	accountId: { type: String, required: true },
 	ip: { type: String, required: true },
 	device: { type: String, required: true },
@@ -189,7 +210,7 @@ const AccessPointEntityMongo: AccessPointEntity = {
 
 /* Active User Session */
 const ActiveUserSessionSchema = new mongoose.Schema({
-	id: { type: Number, required: true, unique: true },
+	timestamp: { type: Number, required: true },
 	accountId: { type: String, required: true }
 });
 const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
@@ -203,13 +224,15 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 		if (sessionsDocs.length === 0) {
 			return [];
 		}
-		const sessionIds = sessionsDocs.map(session => session.id);
+		// @ts-ignore
+		const sessionTimestamps = sessionsDocs.map(session => session.timestamp);
 		const accessPointsDocs = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
-			.find({ id: { $in: sessionIds }, accountId })
+			.find({ timestamp: { $in: sessionTimestamps }, accountId })
 			.exec();
 		return accessPointsDocs.map(accessPointDoc => {
 			return {
-				id: accessPointDoc.id,
+				// @ts-ignore
+				timestamp: accessPointDoc.timestamp,
 				// @ts-ignore
 				accountId: accessPointDoc.accountId,
 				// @ts-ignore
@@ -236,9 +259,9 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			};
 		});
 	},
-	delete: async id => {
+	delete: async (accountId, timestamp) => {
 		await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
-			.deleteOne({ id })
+			.deleteOne({ timestamp, accountId })
 			.exec();
 	},
 	deleteAll: async accountId => {

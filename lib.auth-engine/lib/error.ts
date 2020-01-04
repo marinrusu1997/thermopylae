@@ -3,7 +3,7 @@ import { errors, enums } from '@marin/lib.utils';
 
 const ErrorCodes = {
 	...errors.ErrorCodes,
-	ACCOUNT_WAS_LOCKED: 'ACCOUNT_WAS_LOCKED',
+	ACCOUNT_IS_LOCKED: 'ACCOUNT_IS_LOCKED',
 	WEAK_PASSWORD: 'WEAK_PASSWORD'
 };
 const { ErrorMessages } = errors;

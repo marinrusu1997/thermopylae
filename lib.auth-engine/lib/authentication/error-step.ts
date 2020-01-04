@@ -61,15 +61,15 @@ class ErrorStep implements AuthStep {
 					.create({
 						accountId: account.id!,
 						timestamp: now,
-						ips: failedAuthAttemptSession.ip.join(','),
-						devices: failedAuthAttemptSession.device.join(',')
+						ips: new Set<string>(failedAuthAttemptSession.ip),
+						devices: new Set<string>(failedAuthAttemptSession.device)
 					})
-					.catch(error => getLogger().warn(`Failed to persist failed auth attempts for account ${account.id}`, error))
+					.catch(error => getLogger().error(`Failed to persist failed auth attempts for account ${account.id}`, error))
 			);
 			promises.push(
 				this.failedAuthAttemptSessionEntity
 					.delete(account.username)
-					.catch(error => getLogger().warn(`Failed to delete failed auth attempts session for account ${account.id}`, error))
+					.catch(error => getLogger().error(`Failed to delete failed auth attempts session for account ${account.id}`, error))
 			);
 			await Promise.all(promises);
 
@@ -77,7 +77,7 @@ class ErrorStep implements AuthStep {
 				done: {
 					error: {
 						hard: createException(
-							ErrorCodes.ACCOUNT_WAS_LOCKED,
+							ErrorCodes.ACCOUNT_IS_LOCKED,
 							`Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}).`
 						)
 					}

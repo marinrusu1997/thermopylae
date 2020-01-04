@@ -6,7 +6,8 @@ import { AuthNetworkInput } from '../types';
 import { Account } from '../models';
 import { getLogger } from '../logger';
 import { AUTH_STEP } from '../enums';
-import { sendNotificationMFAFailed, NotificationMFAFailedTemplate } from '../utils/email';
+import { NotificationMFAFailedTemplate, sendNotificationMFAFailed } from '../utils/email';
+import { AuthSession } from '../models/sessions';
 
 class TotpStep implements AuthStep {
 	private readonly totpManager: totp.Totp;
@@ -19,9 +20,14 @@ class TotpStep implements AuthStep {
 		this.template = template;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account): Promise<AuthStepOutput> {
-		// totp is present, due to check in dispatcher
-		if (!this.totpManager.check(networkInput.totp!, undefined, getLogger())) {
+	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+		if (!session.mfaToken) {
+			// received invalid token or someone is trying to use same token twice -> treat as error
+			return { nextStep: AUTH_STEP.ERROR };
+		}
+
+		// after check is successful totp along with session will be deleted, thus preventing replay attacks
+		if (!this.totpManager.check(networkInput.totp!, session.mfaToken, getLogger())) {
 			sendNotificationMFAFailed(this.template, this.mailer, account.email, networkInput.ip, networkInput.device);
 			return { nextStep: AUTH_STEP.ERROR };
 		}

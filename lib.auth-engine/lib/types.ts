@@ -9,6 +9,7 @@ export interface BasicRegistrationInfo extends BasicCredentials {
 	email: string;
 	telephone: string;
 	role?: string;
+	pubKey?: string | Buffer;
 }
 
 export interface BasicLocation {
@@ -29,4 +30,9 @@ export interface AuthNetworkInput {
 	location: BasicLocation;
 	totp?: string;
 	recaptcha?: string;
+	signature?: {
+		nonce: string | Buffer;
+		signAlgorithm: string;
+		encoding: string;
+	};
 }

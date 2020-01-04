@@ -13,12 +13,12 @@ const failures = new Map<number, boolean>();
 const timeouts = new Map<number, Timeout>();
 let counter = 0;
 
-const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDeletion = (sessionId, whenToDelete) => {
+const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDeletion = (accountId, sessionTimestamp, whenToDelete) => {
 	if (failures.get(SCHEDULING_OP.DELETE_ACTIVE_USER_SESSION)) {
 		throw new Error('Scheduling delete active user session was configured to fail');
 	}
 
-	setTimeout(() => ActiveUserSessionEntityMongo.delete(sessionId), whenToDelete.getTime() - new Date().getTime());
+	setTimeout(() => ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp), whenToDelete.getTime() - new Date().getTime());
 };
 
 const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDeletion = (accountId, whenToDelete) => {
