@@ -7,6 +7,7 @@ export interface ActiveUserSession {
 export interface AuthSession {
 	recaptchaRequired: boolean;
 	mfaToken?: string; // preventing replay attacks
+	challengeResponseNonce?: string; // preventing replay attacks
 }
 
 export interface FailedAuthAttemptSession {

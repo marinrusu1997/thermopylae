@@ -5,8 +5,12 @@ import { AuthNetworkInput } from '../types';
 
 class DispatchStep implements AuthStep {
 	async process(networkInput: AuthNetworkInput): Promise<AuthStepOutput> {
-		if (networkInput.signature) {
-			return { nextStep: AUTH_STEP.PUBKEY };
+		// generate challenge has the highest priority, needs to be used before checking response
+		if (networkInput.generateChallenge) {
+			return { nextStep: AUTH_STEP.GENERATE_CHALLENGE };
+		}
+		if (networkInput.responseForChallenge) {
+			return { nextStep: AUTH_STEP.CHALLENGE_RESPONSE };
 		}
 		if (networkInput.totp) {
 			// safe, because totp is verified with server secret and is very short living (<= 30s)
@@ -15,6 +19,8 @@ class DispatchStep implements AuthStep {
 		if (networkInput.password) {
 			return { nextStep: AUTH_STEP.SECRET };
 		}
+		// password is always required, so theoretically this should never happen
+		/* istanbul ignore next */
 		throw createException(ErrorCodes.INVALID_ARGUMENT, "Can't resolve next step", networkInput);
 	}
 }

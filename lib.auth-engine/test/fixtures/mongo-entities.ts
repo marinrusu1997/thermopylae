@@ -14,6 +14,12 @@ function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mo
 		: mongoose.model(name, schema); // If false, define it
 }
 
+enum ENTITIES_OP {
+	FAILED_AUTH_ATTEMPTS_CREATE,
+	ACTIVE_USER_SESSION_DELETE_ALL
+}
+const failures = new Map<ENTITIES_OP, boolean>();
+
 const Models = {
 	ACCOUNT: 'account',
 	FAILED_AUTH_ATTEMPT: 'failed_auth_attempt',
@@ -140,6 +146,10 @@ const FailedAuthAttemptSchema = new mongoose.Schema({
 });
 const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 	create: attempts => {
+		if (failures.get(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE)) {
+			return new Promise((_resolve, reject) => reject(new Error('Creation of failed auth attempts was configured to fail.')));
+		}
+
 		// @ts-ignore
 		attempts.ips = Array.from(attempts.ips);
 		// @ts-ignore
@@ -265,6 +275,10 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			.exec();
 	},
 	deleteAll: async accountId => {
+		if (failures.get(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL)) {
+			throw new Error('Deleting of all active user sessions was configured to fail.');
+		}
+
 		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({ accountId });
 		if (!bulkDelete.ok) {
 			throw new Error('Failed to delete all sessions');
@@ -314,4 +328,23 @@ function clearMongoDatabase(): Promise<any[]> {
 	return Promise.all(deletePromises);
 }
 
-export { connectToMongoServer, clearMongoDatabase, closeMongoDatabase, AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo };
+function failureWillBeGeneratedForEntityOperation(op: ENTITIES_OP, willFail = true): void {
+	failures.set(op, willFail);
+}
+
+function clearOperationFailuresForEntities(): void {
+	failures.clear();
+}
+
+export {
+	ENTITIES_OP,
+	AccountEntityMongo,
+	FailedAuthAttemptsEntityMongo,
+	AccessPointEntityMongo,
+	ActiveUserSessionEntityMongo,
+	connectToMongoServer,
+	clearMongoDatabase,
+	closeMongoDatabase,
+	failureWillBeGeneratedForEntityOperation,
+	clearOperationFailuresForEntities
+};

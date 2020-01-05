@@ -1,3 +1,5 @@
+import { HexBase64Latin1Encoding } from 'crypto';
+
 export type Id = number | string;
 
 export interface BasicCredentials {
@@ -30,9 +32,10 @@ export interface AuthNetworkInput {
 	location: BasicLocation;
 	totp?: string;
 	recaptcha?: string;
-	signature?: {
-		nonce: string | Buffer;
+	generateChallenge?: boolean;
+	responseForChallenge?: {
+		signature: string | Buffer;
 		signAlgorithm: string;
-		encoding: string;
+		signEncoding: HexBase64Latin1Encoding;
 	};
 }

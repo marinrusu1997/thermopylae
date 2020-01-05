@@ -26,6 +26,7 @@ class AuthOrchestrator {
 			} else if (output.done) {
 				return output.done;
 			} else {
+				/* istanbul ignore next */
 				throw createException(ErrorCodes.INVALID_OUTPUT, 'Expected done or next step');
 			}
 		}

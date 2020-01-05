@@ -32,7 +32,7 @@ class AccountLocker {
 			})
 			.then(() => {
 				return this.userSessionsManager.deleteAll(account.id!, account.role).catch((error: Error) => {
-					getLogger().warn(`Failed to logout from all devices of the user ${account.username}`, error);
+					getLogger().error(`Failed to logout from all devices of the user ${account.username}`, error);
 				}) as Promise<void>;
 			});
 	}

@@ -18,9 +18,9 @@ class UserSessionsManager {
 	constructor(
 		scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion,
 		jwt: Jwt,
-		jwtRolesTtl: Map<string, number>,
 		activeUserSessionEntity: ActiveUserSessionEntity,
-		accessPointEntity: AccessPointEntity
+		accessPointEntity: AccessPointEntity,
+		jwtRolesTtl?: Map<string, number>
 	) {
 		this.scheduleActiveUserSessionDeletion = scheduleActiveUserSessionDeletion;
 		this.jwt = jwt;

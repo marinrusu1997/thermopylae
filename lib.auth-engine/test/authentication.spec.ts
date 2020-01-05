@@ -2,7 +2,10 @@ import { describe, it } from 'mocha';
 import { assert, expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { hostname } from 'os';
+import { createSign } from 'crypto';
 import { chrono, enums } from '@marin/lib.utils';
+// @ts-ignore
+import keypair from 'keypair';
 import { AuthenticationEngine } from '../lib/core';
 import { ErrorCodes } from '../lib/error';
 import { AuthNetworkInput } from '../lib/types';
@@ -10,8 +13,13 @@ import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AUTH_STEP } from '../lib/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import basicAuthEngineConfig from './fixtures';
+import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
+import { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
+import { EmailMockInstance } from './fixtures/mocks/email';
 
 describe('Authenticate spec', () => {
+	const keyPair = keypair();
+
 	const AuthenticationEngineConfig = {
 		...basicAuthEngineConfig,
 		ttl: {
@@ -32,7 +40,8 @@ describe('Authenticate spec', () => {
 		password: 'auirg7q85y1298huwityh289',
 		email: 'user@product.com',
 		telephone: '+568425666',
-		role: ACCOUNT_ROLES.USER
+		role: ACCOUNT_ROLES.USER,
+		pubKey: keyPair.public
 	};
 
 	const validNetworkInput: AuthNetworkInput = {
@@ -50,6 +59,12 @@ describe('Authenticate spec', () => {
 			longitude: -118.41380310058594
 		}
 	};
+
+	function signChallengeNonce(nonce: string): string {
+		return createSign('RSA-SHA512')
+			.update(nonce)
+			.sign(keyPair.private, 'base64');
+	}
 
 	it('fails to authenticate non existing accounts', () => {
 		const networkInput = { username: 'non-existing-account' };
@@ -155,6 +170,21 @@ describe('Authenticate spec', () => {
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.SECRET);
 	});
 
+	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can lock account on threshold", async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+
+		// activate recaptcha
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+		}
+
+		// provide no recaptcha when it's required
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: undefined });
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+	});
+
 	it('failed auth attempts are shared between auth sessions', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
@@ -193,6 +223,27 @@ describe('Authenticate spec', () => {
 		expect(status.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+	});
+
+	it('locks account on failed auth attempts threshold, even if sending notification email and logging user out from all devices failed', async () => {
+		EmailMockInstance.deliveryWillFail(true);
+		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL);
+
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+		}
+
+		try {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput });
+			assert(false, 'User was authenticated even if his account is locked');
+		} catch (e) {
+			if (!(e instanceof Exception)) {
+				throw e;
+			}
+			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+		}
 	});
 
 	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa not required)", async () => {
@@ -253,6 +304,16 @@ describe('Authenticate spec', () => {
 		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl.get(defaultRegistrationInfo.role)! * 1000);
 		activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(0);
+	});
+
+	it('authenticates the user, issues token using expiration from jwt instance when roles ttl map is not provided', async () => {
+		const config = { ...AuthenticationEngineConfig };
+		// @ts-ignore
+		config.jwt.rolesTtl = undefined;
+		const AuthEngine = new AuthenticationEngine(config);
+		await AuthEngine.register(defaultRegistrationInfo, { isActivated: true });
+		const authStatus = await AuthEngine.authenticate(validNetworkInput);
+		expect(authStatus.token).to.not.be.eq(undefined);
 	});
 
 	it('authenticates user after soft error occurred in secret step, expect failed auth session to be cleared', async () => {
@@ -435,4 +496,48 @@ describe('Authenticate spec', () => {
 		expect(failedAuthAttempts[0].devices.has(validNetworkInput.device)).to.be.eq(true);
 		expect(failedAuthAttempts[0].ips.has(validNetworkInput.ip)).to.be.eq(true);
 	});
+
+	it('locks account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
+		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE);
+		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE);
+
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+		}
+
+		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
+		expect(failedAuthAttempts.length).to.be.eq(0);
+
+		try {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput });
+			assert(false, "User was authenticated, even if it's account is locked");
+		} catch (e) {
+			if (!(e instanceof Exception)) {
+				throw e;
+			}
+			expect(e)
+				.to.be.instanceOf(Exception)
+				.and.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+		}
+	});
+
+	it('authenticates the user using challenge response authentication method', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.token).to.not.be.eq(undefined);
+
+		const signature = signChallengeNonce(authStatus.token!);
+		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' } });
+		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+
+		// session was deletion, prevent replay attacks with already emitted nonce
+		expect(await AuthenticationEngineConfig.entities.authSession.read(defaultRegistrationInfo.username, validNetworkInput.device)).to.be.eq(null);
+	});
+
+	// FIXME add failure tests for CRAM
 });

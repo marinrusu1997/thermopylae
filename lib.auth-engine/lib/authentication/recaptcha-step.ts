@@ -1,7 +1,6 @@
 import { AuthStep, AuthStepOutput } from './auth-step';
 import { AuthSession } from '../models/sessions';
 import { AuthNetworkInput } from '../types';
-import { createException, ErrorCodes } from '../error';
 import { AUTH_STEP } from '../enums';
 import { Account } from '../models';
 
@@ -16,7 +15,7 @@ class RecaptchaStep implements AuthStep {
 
 	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
 		if (!networkInput.recaptcha) {
-			throw createException(ErrorCodes.ARGUMENT_REQUIRED, 'Recaptcha is required', networkInput);
+			return { nextStep: AUTH_STEP.ERROR };
 		}
 
 		if (!(await this.recaptchaValidator(networkInput.recaptcha, networkInput.ip))) {

@@ -6,7 +6,8 @@ const memcache = getDefaultMemCache();
 
 enum SESSIONS_OP {
 	ACTIVATE_ACCOUNT_SESSION_CREATE,
-	ACTIVATE_ACCOUNT_SESSION_DELETE
+	ACTIVATE_ACCOUNT_SESSION_DELETE,
+	FAILED_AUTH_ATTEMPTS_SESSION_DELETE
 }
 const failures = new Map<SESSIONS_OP, boolean>();
 
@@ -70,6 +71,9 @@ const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
 	},
 	delete: username => {
 		return new Promise((resolve, reject) => {
+			if (failures.get(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE)) {
+				return reject(new Error('Delete of failed auth attempts session was configured to fail.'));
+			}
 			const key = `faas:${username}`;
 			if (!memcache.del(key)) {
 				return reject(new Error('Failed to delete failed auth attempts session'));

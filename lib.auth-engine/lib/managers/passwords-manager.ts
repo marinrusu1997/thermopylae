@@ -1,11 +1,8 @@
-import { http } from '@marin/lib.utils';
-import { promisify } from 'util';
+import { http, token } from '@marin/lib.utils';
 import owasp from 'owasp-password-strength-test';
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import { createException, ErrorCodes } from '../error';
-
-const randomBytes = promisify(crypto.randomBytes);
 
 class PasswordsManager {
 	private readonly breachThreshold: number;
@@ -34,13 +31,15 @@ class PasswordsManager {
 		for (let i = 0; i < breachedPasswords.length; i += 1) {
 			const [entry, howOften] = breachedPasswords[i].split(':');
 			if (entry === suffix && Number(howOften) >= this.breachThreshold) {
+				// after owasp test chances that chosen password was breached before are very low
+				/* istanbul ignore next */
 				throw createException(ErrorCodes.WEAK_PASSWORD, 'Your password has been breached before. We strongly recommend you to choose another one.');
 			}
 		}
 	}
 
 	public static generateSalt(size: number): Promise<string> {
-		return randomBytes(size).then((bytes: Buffer) => bytes.toString('hex'));
+		return token.generateToken(size).then(tokens => tokens.plain);
 	}
 
 	public static hash(password: string, salt: string, pepper: string): Promise<string> {

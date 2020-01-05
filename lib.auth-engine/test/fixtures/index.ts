@@ -8,7 +8,8 @@ import {
 	FailedAuthAttemptsEntityMongo,
 	clearMongoDatabase,
 	closeMongoDatabase,
-	connectToMongoServer
+	connectToMongoServer,
+	clearOperationFailuresForEntities
 } from './mongo-entities';
 import memcache, {
 	ActivateAccountSessionEntityMemCache,
@@ -26,7 +27,7 @@ import {
 	ScheduleUnactivatedAccountDeletionFromMongo
 } from './schedulers';
 import { getLogger } from '../../lib/logger';
-import { recaptchaValidator } from './validators';
+import { challengeResponseValidator, recaptchaValidator } from './validators';
 
 const basicAuthEngineConfig = {
 	jwt: {
@@ -61,7 +62,8 @@ const basicAuthEngineConfig = {
 		deleteActiveUserSession: ScheduleActiveUserSessionDeletionFromMongo
 	},
 	validators: {
-		recaptcha: recaptchaValidator
+		recaptcha: recaptchaValidator,
+		challengeResponse: challengeResponseValidator
 	},
 	secrets: {
 		pepper: 'pepper',
@@ -77,7 +79,7 @@ const basicAuthEngineConfig = {
 };
 
 // since this config will be imported from all tests, it's the right place to put some initializations
-LoggerInstance.console.setConfig({ level: 'emerg' }); // emerg is to supress error logs generatted by the engine
+LoggerInstance.console.setConfig({ level: 'debug' }); // emerg is to supress error logs generatted by the engine
 LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
 
 // trigger automatic clean up after each test (will be done at the first import)
@@ -87,6 +89,7 @@ afterEach(() =>
 			memcache.clear();
 			EmailMockInstance.reset();
 			SmsMockInstance.reset();
+			clearOperationFailuresForEntities();
 			clearOperationFailuresForSessions();
 			cleanUpSchedulers();
 		})

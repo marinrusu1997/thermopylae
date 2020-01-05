@@ -47,6 +47,7 @@ class ErrorStep implements AuthStep {
 			failedAuthAttemptSession.device.push(networkInput.device);
 			failedAuthAttemptSession.counter += 1;
 
+			/* istanbul ignore else */
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsThreshold) {
 				// update only in case it will not be deleted later by reached threshold
 				await this.failedAuthAttemptSessionEntity.update(networkInput.username, failedAuthAttemptSession);
@@ -91,7 +92,7 @@ class ErrorStep implements AuthStep {
 			session.recaptchaRequired = true;
 			return {
 				done: {
-					nextStep: AUTH_STEP.RECAPTCHA,
+					nextStep: AUTH_STEP.RECAPTCHA, // when intercepted, this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
 					error: { soft: createException(ErrorCodes.INVALID_ARGUMENT, errorMessage) }
 				}
 			};

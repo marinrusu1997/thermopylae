@@ -18,7 +18,7 @@ class SecretStep implements AuthStep {
 		}
 
 		if (session.recaptchaRequired) {
-			return { nextStep: AUTH_STEP.RECAPTCHA }; // this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
+			return { nextStep: AUTH_STEP.RECAPTCHA };
 		}
 
 		if (account.mfa) {

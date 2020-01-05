@@ -35,7 +35,8 @@ import { ActiveUserSession } from './models/sessions';
 import { AccessPoint, FailedAuthAttempts } from './models';
 import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './models/schedulers';
 import { getLogger } from './logger';
-import { PubKeyStep, PubKeyValidator } from './authentication/pub-key-step';
+import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/challenge-response-step';
+import { GenerateChallengeStep } from './authentication/generate-challenge-step';
 
 class AuthenticationEngine {
 	private readonly config: InternalUsageOptions;
@@ -51,9 +52,9 @@ class AuthenticationEngine {
 		this.userSessionsManager = new UserSessionsManager(
 			this.config.schedulers.deleteActiveUserSession,
 			this.config.jwt.instance,
-			this.config.jwt.rolesTtl,
 			this.config.entities.activeUserSession,
-			this.config.entities.accessPoint
+			this.config.entities.accessPoint,
+			this.config.jwt.rolesTtl
 		);
 		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach);
 		this.accountLocker = new AccountLocker(this.config.entities.account, this.userSessionsManager, this.config['side-channels'].email, this.config.templates.accountLocked);
@@ -86,8 +87,9 @@ class AuthenticationEngine {
 				this.config.entities.failedAuthAttemptsSession
 			)
 		);
-		if (this.config.validators.pubKey) {
-			this.authOrchestrator.register(AUTH_STEP.PUBKEY, new PubKeyStep(this.config.validators.pubKey));
+		if (this.config.validators.challengeResponse) {
+			this.authOrchestrator.register(AUTH_STEP.GENERATE_CHALLENGE, new GenerateChallengeStep(this.config.sizes.token));
+			this.authOrchestrator.register(AUTH_STEP.CHALLENGE_RESPONSE, new ChallengeResponseStep(this.config.validators.challengeResponse));
 		}
 	}
 
@@ -141,12 +143,12 @@ class AuthenticationEngine {
 		}
 
 		await this.passwordsManager.validateStrengthness(registrationInfo.password);
-		const salt = await token.generateToken(this.config.sizes.salt);
-		const passwordHash = await PasswordsManager.hash(registrationInfo.password, salt.plain, this.config.secrets.pepper);
+		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
+		const passwordHash = await PasswordsManager.hash(registrationInfo.password, salt, this.config.secrets.pepper);
 		const registeredAccount = await this.config.entities.account.create({
 			username: registrationInfo.username,
 			password: passwordHash,
-			salt: salt.plain,
+			salt,
 			telephone: registrationInfo.telephone,
 			email: registrationInfo.email,
 			role: registrationInfo.role,
@@ -263,7 +265,7 @@ interface SizesOptions {
 interface AuthEngineOptions {
 	jwt: {
 		instance: Jwt;
-		rolesTtl: Map<string, number>; // role -> seconds
+		rolesTtl?: Map<string, number>; // role -> seconds
 	};
 	entities: {
 		account: AccountEntity;
@@ -294,7 +296,7 @@ interface AuthEngineOptions {
 	};
 	validators: {
 		recaptcha: RecaptchaValidator;
-		pubKey?: PubKeyValidator;
+		challengeResponse?: ChallengeResponseValidator;
 	};
 	ttl?: TTLOptions;
 	thresholds?: ThresholdsOptions;
