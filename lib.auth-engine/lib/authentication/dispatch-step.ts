@@ -17,7 +17,7 @@ class DispatchStep implements AuthStep {
 			return { nextStep: AUTH_STEP.TOTP };
 		}
 		if (networkInput.password) {
-			return { nextStep: AUTH_STEP.SECRET };
+			return { nextStep: AUTH_STEP.PASSWORD };
 		}
 		// password is always required, so theoretically this should never happen
 		/* istanbul ignore next */

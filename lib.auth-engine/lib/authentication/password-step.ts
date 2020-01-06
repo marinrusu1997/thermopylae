@@ -5,7 +5,7 @@ import { AUTH_STEP } from '../enums';
 import { AuthSession } from '../models/sessions';
 import { AuthNetworkInput } from '../types';
 
-class SecretStep implements AuthStep {
+class PasswordStep implements AuthStep {
 	private readonly pepper: string;
 
 	constructor(pepper: string) {
@@ -29,4 +29,4 @@ class SecretStep implements AuthStep {
 	}
 }
 
-export { SecretStep };
+export { PasswordStep };

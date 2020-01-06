@@ -19,5 +19,5 @@ export interface AuthStepOutput {
 }
 
 export interface AuthStep {
-	process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput>;
+	process(networkInput: AuthNetworkInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput>;
 }

@@ -270,9 +270,13 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 		});
 	},
 	delete: async (accountId, timestamp) => {
-		await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
+		const deleteStatus = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
 			.deleteOne({ timestamp, accountId })
 			.exec();
+
+		if (!deleteStatus.ok || deleteStatus.deletedCount !== 1) {
+			throw new Error(`Deleting one delete active session for account ${accountId} with timestamp ${timestamp} failed.`);
+		}
 	},
 	deleteAll: async accountId => {
 		if (failures.get(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL)) {

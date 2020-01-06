@@ -21,7 +21,7 @@ import { createException, ErrorCodes } from './error';
 import { AuthOrchestrator } from './authentication/auth-orchestrator';
 import { AUTH_STEP } from './enums';
 import { DispatchStep } from './authentication/dispatch-step';
-import { SecretStep } from './authentication/secret-step';
+import { PasswordStep } from './authentication/password-step';
 import { TotpStep } from './authentication/totp-step';
 import { GenerateTotpStep } from './authentication/generate-totp-step';
 import { RecaptchaStep, RecaptchaValidator } from './authentication/recaptcha-step';
@@ -61,7 +61,7 @@ class AuthenticationEngine {
 
 		this.authOrchestrator = new AuthOrchestrator();
 		this.authOrchestrator.register(AUTH_STEP.DISPATCH, new DispatchStep());
-		this.authOrchestrator.register(AUTH_STEP.SECRET, new SecretStep(this.config.secrets.pepper));
+		this.authOrchestrator.register(AUTH_STEP.PASSWORD, new PasswordStep(this.config.secrets.pepper));
 		this.authOrchestrator.register(AUTH_STEP.GENERATE_TOTP, new GenerateTotpStep(this.totpManager, this.config['side-channels'].sms, this.config.templates.totpTokenSms));
 		this.authOrchestrator.register(AUTH_STEP.TOTP, new TotpStep(this.totpManager, this.config['side-channels'].email, this.config.templates.multiFactorAuthFailed));
 		this.authOrchestrator.register(AUTH_STEP.RECAPTCHA, new RecaptchaStep(this.config.validators.recaptcha));
@@ -218,14 +218,14 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public logout(payload: IIssuedJWTPayload): Promise<void> {
+	public async logout(payload: IIssuedJWTPayload): Promise<void> {
 		return this.userSessionsManager.delete(payload);
 	}
 
 	/**
 	 * @access private
 	 */
-	public logoutFromAllDevices(payload: IIssuedJWTPayload): Promise<number> {
+	public logoutFromAllDevices(payload: { sub: string, aud?: string }): Promise<number> {
 		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
 	}
 

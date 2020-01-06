@@ -18,7 +18,8 @@ import { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtur
 import { EmailMockInstance } from './fixtures/mocks/email';
 
 describe('Authenticate spec', () => {
-	const keyPair = keypair();
+	const primaryKeyPair = keypair();
+	const secondaryKeyPair = keypair();
 
 	const AuthenticationEngineConfig = {
 		...basicAuthEngineConfig,
@@ -41,7 +42,7 @@ describe('Authenticate spec', () => {
 		email: 'user@product.com',
 		telephone: '+568425666',
 		role: ACCOUNT_ROLES.USER,
-		pubKey: keyPair.public
+		pubKey: primaryKeyPair.public
 	};
 
 	const validNetworkInput: AuthNetworkInput = {
@@ -60,10 +61,10 @@ describe('Authenticate spec', () => {
 		}
 	};
 
-	function signChallengeNonce(nonce: string): string {
+	function signChallengeNonce(nonce: string, privateKey?: string): string {
 		return createSign('RSA-SHA512')
 			.update(nonce)
-			.sign(keyPair.private, 'base64');
+			.sign(privateKey || primaryKeyPair.private, 'base64');
 	}
 
 	it('fails to authenticate non existing accounts', () => {
@@ -124,7 +125,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
 
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.SECRET);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
 			.and.to.have.property('code', ErrorCodes.INVALID_ARGUMENT);
@@ -134,6 +135,78 @@ describe('Authenticate spec', () => {
 
 		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
 		expect(authSession).to.be.eq(null);
+	});
+
+	it('fails to authenticate user when challenge response nonce not found in session (i.e. never generated or generated but deleted)', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		const signatureOfTokenWhichWasNeverIssued = signChallengeNonce('token-which-was-never-issued');
+		let authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature: signatureOfTokenWhichWasNeverIssued, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
+		expect(authStatus.error!.soft)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+
+		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.token).to.not.be.eq(undefined);
+
+		const signatureOfValidToken = signChallengeNonce(authStatus.token!);
+		authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
+		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+
+		// prevent replay attack
+		authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
+		expect(authStatus.error!.soft)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+	});
+
+	it('fails to authenticate user when challenge nonce is signed with invalid private key', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.token).to.not.be.eq(undefined);
+
+		const signature = signChallengeNonce(authStatus.token!, secondaryKeyPair.private);
+		authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
+		expect(authStatus.error!.soft)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+	});
+
+	it('fails to authenticate user when invalid challenge nonce is signed with valid private key (unlikely to happen in real scenario)', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.token).to.not.be.eq(undefined);
+
+		const signature = signChallengeNonce('invalid token');
+		authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
+		expect(authStatus.error!.soft)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
 	it("doesn't allow to bypass multi factor step, if not providing totp token", async () => {
@@ -167,7 +240,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.SECRET);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 	});
 
 	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can lock account on threshold", async () => {
@@ -201,7 +274,7 @@ describe('Authenticate spec', () => {
 			expect(status.error!.soft)
 				.to.be.instanceOf(Exception)
 				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
-			expect(status.nextStep).to.be.eq(AUTH_STEP.SECRET);
+			expect(status.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 			numberOfAuthAttempts += 1;
 		}
 
@@ -238,6 +311,31 @@ describe('Authenticate spec', () => {
 		try {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput });
 			assert(false, 'User was authenticated even if his account is locked');
+		} catch (e) {
+			if (!(e instanceof Exception)) {
+				throw e;
+			}
+			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+		}
+	});
+
+	it('locks the user account when providing invalid response to challenge', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		for (let i = 1; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+			const authStatus = await AuthEngineInstance.authenticate({
+				...validNetworkInput,
+				responseForChallenge: { signature: 'invalid signature', signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+			});
+			expect(authStatus.error!.soft)
+				.to.be.instanceOf(Exception)
+				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		}
+
+		try {
+			await AuthEngineInstance.authenticate({ ...validNetworkInput }); // using secret step
 		} catch (e) {
 			if (!(e instanceof Exception)) {
 				throw e;
@@ -343,7 +441,7 @@ describe('Authenticate spec', () => {
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
 		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp: 'invalid' });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.SECRET);
+		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(authStatus.error!.soft).to.not.be.eq(undefined);
 
 		// second time will work, also needs to reset failed auth attempts
@@ -538,6 +636,4 @@ describe('Authenticate spec', () => {
 		// session was deletion, prevent replay attacks with already emitted nonce
 		expect(await AuthenticationEngineConfig.entities.authSession.read(defaultRegistrationInfo.username, validNetworkInput.device)).to.be.eq(null);
 	});
-
-	// FIXME add failure tests for CRAM
 });

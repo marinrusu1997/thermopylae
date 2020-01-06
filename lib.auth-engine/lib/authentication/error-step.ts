@@ -35,7 +35,7 @@ class ErrorStep implements AuthStep {
 		this.accountLocker = accountLocker;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
 		const now = new Date().getTime();
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(networkInput.username);
 		if (!failedAuthAttemptSession) {
@@ -90,9 +90,11 @@ class ErrorStep implements AuthStep {
 
 		if (failedAuthAttemptSession.counter >= this.recaptchaThreshold) {
 			session.recaptchaRequired = true;
+			// when intercepted, this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
 			return {
 				done: {
-					nextStep: AUTH_STEP.RECAPTCHA, // when intercepted, this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
+					// ternary is needed in order to inform client that it's time to use captcha
+					nextStep: prevStepName === AUTH_STEP.PASSWORD ? AUTH_STEP.RECAPTCHA : prevStepName,
 					error: { soft: createException(ErrorCodes.INVALID_ARGUMENT, errorMessage) }
 				}
 			};
@@ -100,7 +102,7 @@ class ErrorStep implements AuthStep {
 
 		return {
 			done: {
-				nextStep: AUTH_STEP.SECRET,
+				nextStep: prevStepName,
 				error: { soft: createException(ErrorCodes.INVALID_ARGUMENT, errorMessage) }
 			}
 		};

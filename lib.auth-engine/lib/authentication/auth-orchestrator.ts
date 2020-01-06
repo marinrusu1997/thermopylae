@@ -6,11 +6,11 @@ import { AUTH_STEP } from '../enums';
 import { AuthSession } from '../models/sessions';
 
 class AuthOrchestrator {
-	private readonly startStep: AUTH_STEP;
+	private readonly startStepName: AUTH_STEP;
 	private readonly steps: Map<AUTH_STEP, AuthStep> = new Map<AUTH_STEP, AuthStep>();
 
-	constructor(startStep: AUTH_STEP = AUTH_STEP.DISPATCH) {
-		this.startStep = startStep;
+	constructor(startStepName: AUTH_STEP = AUTH_STEP.DISPATCH) {
+		this.startStepName = startStepName;
 	}
 
 	public register(name: AUTH_STEP, step: AuthStep): void {
@@ -18,11 +18,15 @@ class AuthOrchestrator {
 	}
 
 	public async authenticate(data: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStatus> {
-		let currentStep = this.steps.get(this.startStep);
+		let currentStepName = this.startStepName;
+		let prevStepName = AUTH_STEP.UNKNOWN;
+		let currentStep = this.steps.get(currentStepName);
 		while (true) {
-			const output = await currentStep!.process(data, account, session);
-			if (output.nextStep && !output.done) {
-				currentStep = this.steps.get(output.nextStep);
+			const output = await currentStep!.process(data, account, session, prevStepName);
+			prevStepName = currentStepName;
+			currentStepName = output.nextStep!;
+			if (currentStepName && !output.done) {
+				currentStep = this.steps.get(currentStepName);
 			} else if (output.done) {
 				return output.done;
 			} else {
