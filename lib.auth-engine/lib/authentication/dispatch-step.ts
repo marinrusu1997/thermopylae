@@ -1,10 +1,10 @@
 import { AuthStep, AuthStepOutput } from './auth-step';
 import { createException, ErrorCodes } from '../error';
 import { AUTH_STEP } from '../enums';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 
 class DispatchStep implements AuthStep {
-	async process(networkInput: AuthNetworkInput): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput): Promise<AuthStepOutput> {
 		// generate challenge has the highest priority, needs to be used before checking response
 		if (networkInput.generateChallenge) {
 			return { nextStep: AUTH_STEP.GENERATE_CHALLENGE };

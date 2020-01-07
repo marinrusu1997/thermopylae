@@ -24,7 +24,7 @@ export interface BasicLocation {
 	postalCode?: string;
 }
 
-export interface AuthNetworkInput {
+export interface AuthInput {
 	username: string;
 	password: string;
 	ip: string;
@@ -38,4 +38,10 @@ export interface AuthNetworkInput {
 		signAlgorithm: string;
 		signEncoding: HexBase64Latin1Encoding;
 	};
+}
+
+export interface ChangePasswordInput {
+	accountId: string;
+	oldPassword: string;
+	newPassword: string;
 }

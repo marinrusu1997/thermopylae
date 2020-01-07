@@ -6,7 +6,7 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthNetworkInput, BasicRegistrationInfo } from './types';
+import { AuthInput, BasicRegistrationInfo, ChangePasswordInput } from './types';
 import { AuthStatus } from './authentication/auth-step';
 import {
 	AccessPointEntity,
@@ -96,7 +96,7 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async authenticate(data: AuthNetworkInput): Promise<AuthStatus> {
+	public async authenticate(data: AuthInput): Promise<AuthStatus> {
 		const account = await this.config.entities.account.read(data.username);
 
 		if (!account) {
@@ -225,7 +225,7 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public logoutFromAllDevices(payload: { sub: string, aud?: string }): Promise<number> {
+	public logoutFromAllDevices(payload: { sub: string; aud?: string }): Promise<number> {
 		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
 	}
 
@@ -241,6 +241,26 @@ class AuthenticationEngine {
 	 */
 	public getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttempts>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
+	}
+
+	/**
+	 * @access private
+	 */
+	public async changePassword(input: ChangePasswordInput): Promise<void> {
+		const account = await this.config.entities.account.readById(input.accountId);
+		if (!account) {
+			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${input.accountId} not found.`);
+		}
+		if (!(await PasswordsManager.isCorrect(input.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
+			throw createException(ErrorCodes.INVALID_PASSWORD, "Old passwords doesn't match.");
+		}
+		await this.passwordsManager.validateStrengthness(input.newPassword);
+
+		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
+
+		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
+		const hash = await PasswordsManager.hash(input.newPassword, salt, this.config.secrets.pepper);
+		await this.config.entities.account.changePassword(input.accountId, hash, salt);
 	}
 }
 

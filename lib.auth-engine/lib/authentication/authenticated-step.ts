@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Email } from '@marin/lib.email';
 import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { Account } from '../models';
 import { AccessPointEntity, FailedAuthAttemptSessionEntity } from '../models/entities';
 import { sendNotificationAuthFromDifferentDevice, NotificationAuthFromDiffDeviceTemplate } from '../utils/email';
@@ -29,7 +29,7 @@ class AuthenticatedStep implements AuthStep {
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput, account: Account): Promise<AuthStepOutput> {
 		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, networkInput.device))) {
 			sendNotificationAuthFromDifferentDevice(this.authFromDiffDeviceTemplate, this.mailer, account.email, networkInput.ip, networkInput.device);
 		}

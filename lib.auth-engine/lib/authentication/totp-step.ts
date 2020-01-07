@@ -2,7 +2,7 @@
 import { Email } from '@marin/lib.email';
 import { totp } from '@marin/lib.utils';
 import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { Account } from '../models';
 import { getLogger } from '../logger';
 import { AUTH_STEP } from '../enums';
@@ -20,7 +20,7 @@ class TotpStep implements AuthStep {
 		this.template = template;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
 		if (!session.mfaToken) {
 			// received invalid token or someone is trying to use same token twice -> treat as error
 			return { nextStep: AUTH_STEP.ERROR };

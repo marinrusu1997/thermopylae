@@ -1,6 +1,6 @@
 import { HexBase64Latin1Encoding } from 'crypto';
 import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { Account } from '../models';
 import { AUTH_STEP } from '../enums';
 import { AuthSession } from '../models/sessions';
@@ -20,7 +20,7 @@ class ChallengeResponseStep implements AuthStep {
 		this.validator = validator;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
 		if (!session.challengeResponseNonce) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}

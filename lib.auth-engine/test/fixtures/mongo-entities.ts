@@ -134,7 +134,11 @@ const AccountEntityMongo: AccountEntity = {
 					throw new Error(`Failed to delete account with id ${_id}. Cause: ${JSON.stringify(result)}`);
 				}
 			});
-	}
+	},
+	changePassword: (_id, password, salt) =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.updateOne({ _id }, { password, salt })
+			.exec()
 };
 
 /* Failed Auth Attempts */

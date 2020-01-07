@@ -1,5 +1,5 @@
 import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { Account } from '../models';
 import { AuthSession } from '../models/sessions';
 import { FailedAuthAttemptsEntity, FailedAuthAttemptSessionEntity } from '../models/entities';
@@ -35,7 +35,7 @@ class ErrorStep implements AuthStep {
 		this.accountLocker = accountLocker;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
 		const now = new Date().getTime();
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(networkInput.username);
 		if (!failedAuthAttemptSession) {

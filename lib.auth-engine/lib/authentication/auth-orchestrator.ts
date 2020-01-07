@@ -1,6 +1,6 @@
 import { AuthStatus, AuthStep } from './auth-step';
 import { createException, ErrorCodes } from '../error';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { Account } from '../models';
 import { AUTH_STEP } from '../enums';
 import { AuthSession } from '../models/sessions';
@@ -17,7 +17,7 @@ class AuthOrchestrator {
 		this.steps.set(name, step);
 	}
 
-	public async authenticate(data: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStatus> {
+	public async authenticate(data: AuthInput, account: Account, session: AuthSession): Promise<AuthStatus> {
 		let currentStepName = this.startStepName;
 		let prevStepName = AUTH_STEP.UNKNOWN;
 		let currentStep = this.steps.get(currentStepName);

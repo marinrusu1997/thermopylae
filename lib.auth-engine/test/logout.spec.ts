@@ -5,7 +5,7 @@ import { chrono } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine } from '../lib/core';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthNetworkInput } from '../lib/types';
+import { AuthInput } from '../lib/types';
 
 describe('Logout spec', () => {
 	const AuthenticationEngineConfig = {
@@ -31,7 +31,7 @@ describe('Logout spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // needed increased jwt duration
 	};
 
-	const validNetworkInput: AuthNetworkInput = {
+	const validNetworkInput: AuthInput = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

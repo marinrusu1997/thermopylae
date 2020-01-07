@@ -1,6 +1,6 @@
 import { AuthStep, AuthStepOutput } from './auth-step';
 import { AuthSession } from '../models/sessions';
-import { AuthNetworkInput } from '../types';
+import { AuthInput } from '../types';
 import { AUTH_STEP } from '../enums';
 import { Account } from '../models';
 
@@ -13,7 +13,7 @@ class RecaptchaStep implements AuthStep {
 		this.recaptchaValidator = recaptchaValidator;
 	}
 
-	async process(networkInput: AuthNetworkInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
 		if (!networkInput.recaptcha) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}
