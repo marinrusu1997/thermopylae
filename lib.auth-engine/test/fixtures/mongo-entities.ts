@@ -277,6 +277,48 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			};
 		});
 	},
+	readAllButOne: async (accountId, exceptedSessionId) => {
+		const sessionsDocs = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
+			.find({ accountId, timestamp: { $ne: exceptedSessionId } })
+			.exec();
+		if (sessionsDocs.length === 0) {
+			return [];
+		}
+		// @ts-ignore
+		const sessionTimestamps = sessionsDocs.map(session => session.timestamp);
+		const accessPointsDocs = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
+			.find({ timestamp: { $in: sessionTimestamps }, accountId })
+			.exec();
+		return accessPointsDocs.map(accessPointDoc => {
+			return {
+				// @ts-ignore
+				timestamp: accessPointDoc.timestamp,
+				// @ts-ignore
+				accountId: accessPointDoc.accountId,
+				// @ts-ignore
+				ip: accessPointDoc.ip,
+				// @ts-ignore
+				device: accessPointDoc.device,
+				// @ts-ignore
+				location: {
+					// @ts-ignore
+					countryCode: accessPointDoc.location.countryCode,
+					// @ts-ignore
+					regionCode: accessPointDoc.location.regionCode,
+					// @ts-ignore
+					city: accessPointDoc.location.city,
+					// @ts-ignore
+					timeZone: accessPointDoc.location.timeZone,
+					// @ts-ignore
+					postalCode: accessPointDoc.location.postalCode,
+					// @ts-ignore
+					latitude: accessPointDoc.location.latitude,
+					// @ts-ignore
+					longitude: accessPointDoc.location.longitude
+				}
+			};
+		});
+	},
 	delete: async (accountId, timestamp) => {
 		const deleteStatus = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
 			.deleteOne({ timestamp, accountId })
@@ -292,6 +334,16 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 		}
 
 		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({ accountId });
+		if (!bulkDelete.ok) {
+			throw new Error('Failed to delete all sessions');
+		}
+		return bulkDelete.deletedCount!;
+	},
+	deleteAllButOne: async (accountId: string, exceptedSessionId: number) => {
+		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({
+			accountId,
+			timestamp: { $ne: exceptedSessionId }
+		});
 		if (!bulkDelete.ok) {
 			throw new Error('Failed to delete all sessions');
 		}

@@ -239,20 +239,6 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public async logout(payload: IIssuedJWTPayload): Promise<void> {
-		return this.userSessionsManager.delete(payload);
-	}
-
-	/**
-	 * @access private
-	 */
-	public logoutFromAllDevices(payload: { sub: string; aud?: string }): Promise<number> {
-		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
-	}
-
-	/**
-	 * @access private
-	 */
 	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>> {
 		return this.userSessionsManager.read(accountId);
 	}
@@ -267,7 +253,7 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public async changePassword(input: ChangePasswordInput): Promise<void> {
+	public async changePassword(input: ChangePasswordInput): Promise<number> {
 		const account = await this.config.entities.account.readById(input.accountId);
 		if (!account) {
 			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${input.accountId} not found.`);
@@ -286,6 +272,9 @@ class AuthenticationEngine {
 		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
 		const hash = await PasswordsManager.hash(input.newPassword, salt, this.config.secrets.pepper);
 		await this.config.entities.account.changePassword(input.accountId, hash, salt);
+
+		// logout from all devices, needs to be be done, as usually jwt will be long lived
+		return this.userSessionsManager.deleteAllButOne(account.id!, account.role, input.sessionId);
 	}
 
 	/**
@@ -318,6 +307,32 @@ class AuthenticationEngine {
 	 */
 	public unlockAccount(accountId: string): Promise<void> {
 		return this.accountLocker.unlock(accountId);
+	}
+
+	/**
+	 * @access private
+	 */
+	public async logout(payload: IIssuedJWTPayload): Promise<void> {
+		return this.userSessionsManager.delete(payload);
+	}
+
+	/**
+	 * @access private
+	 */
+	public logoutFromAllDevices(payload: { sub: string; aud?: string }): Promise<number> {
+		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
+	}
+
+	/**
+	 * @access private
+	 */
+	public logoutFromAllDevicesExceptFrom(accountId: string, sessionId: number): Promise<number> {
+		return this.config.entities.account.readById(accountId).then(account => {
+			if (!account) {
+				throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+			}
+			return this.userSessionsManager.deleteAllButOne(account.id!, account.role, sessionId);
+		});
 	}
 }
 
@@ -410,7 +425,7 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 			totp: options.ttl.totp || 30 // seconds
 		},
 		thresholds: {
-			maxFailedAuthAttempts: options.thresholds.maxFailedAuthAttempts || 15,
+			maxFailedAuthAttempts: options.thresholds.maxFailedAuthAttempts || 20,
 			recaptcha: options.thresholds.recaptcha || 10,
 			passwordBreach: options.thresholds.passwordBreach || 5
 		},

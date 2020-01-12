@@ -68,6 +68,24 @@ class UserSessionsManager {
 			.then(() => this.activeUserSessionEntity.delete(payload.sub, payload.iat));
 	}
 
+	public async deleteAllButOne(accountId: string, accountRole: string | undefined, tokenIssuedAtTime: number): Promise<number> {
+		const ttl = this.jwtRolesTtl && accountRole ? this.jwtRolesTtl.get(accountRole) : this.jwt.blacklist().allTtl; // seconds
+		if (!ttl) {
+			throw createException(ErrorCodes.NOT_FOUND, `Jwt ttl for account ${accountId} not found`);
+		}
+
+		const activeSessions = await this.activeUserSessionEntity.readAllButOne(accountId, tokenIssuedAtTime);
+		const revokeTokenPromises = [];
+		for (let i = 0; i < activeSessions.length; i++) {
+			revokeTokenPromises.push(
+				this.jwt.blacklist().revoke({ sub: accountId, aud: accountRole, iat: activeSessions[i].timestamp, exp: activeSessions[i].timestamp + ttl }, ttl)
+			);
+		}
+		await Promise.all(revokeTokenPromises);
+
+		return this.activeUserSessionEntity.deleteAllButOne(accountId, tokenIssuedAtTime);
+	}
+
 	public deleteAll(accountId: string, accountRole?: string): Promise<number> {
 		const ttl = this.jwtRolesTtl && accountRole ? this.jwtRolesTtl.get(accountRole) : undefined;
 		return this.jwt

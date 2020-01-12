@@ -1,11 +1,12 @@
 import { describe, it } from 'mocha';
-import { expect, assert, AssertionError } from 'chai';
+import { expect } from 'chai';
 import { hostname } from 'os';
 import { chrono } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine } from '../lib/core';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthInput } from '../lib/types';
+import { checkIfJWTWasInvalidated } from './utils';
 
 describe('Logout spec', () => {
 	const AuthenticationEngineConfig = {
@@ -47,20 +48,6 @@ describe('Logout spec', () => {
 		}
 	};
 
-	async function checkIfJWTWasInvalidated(token: string): Promise<void> {
-		let jwtValidateError;
-		try {
-			await AuthenticationEngineConfig.jwt.instance.validate(token);
-			assert(false, 'Authorization was made, even if token needed to be invalidated!');
-		} catch (e) {
-			if (e instanceof AssertionError) {
-				throw e;
-			}
-			jwtValidateError = e;
-		}
-		expect(jwtValidateError).to.not.be.eq(undefined);
-	}
-
 	it('logs out from one device, expecting to delete existing session and invalidate token', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
@@ -77,7 +64,7 @@ describe('Logout spec', () => {
 
 		expect(activeSessions[0].device).to.be.eq('device2');
 
-		await checkIfJWTWasInvalidated(authStatusFirstDevice.token!);
+		await checkIfJWTWasInvalidated(authStatusFirstDevice.token!, basicAuthEngineConfig.jwt.instance);
 	});
 
 	it('logs out from all devices, expecting to delete all existing sessions and invalidate issued tokens', async () => {
@@ -94,6 +81,40 @@ describe('Logout spec', () => {
 		const deletedSessions = await AuthEngineInstance.logoutFromAllDevices({ sub: accountId, aud: defaultRegistrationInfo.role });
 		expect(deletedSessions).to.be.eq(activeSessions.length);
 
-		await checkIfJWTWasInvalidated(authStatus.token!);
+		await checkIfJWTWasInvalidated(authStatus.token!, basicAuthEngineConfig.jwt.instance);
+	});
+
+	it('logs out from all devices, except from the connected one from where logout was requested', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		const authStatus1 = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
+		await chrono.sleep(1000);
+		const authStatus2 = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device2' });
+		await chrono.sleep(1000);
+		const authStatus3 = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device3' });
+
+		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
+		expect(activeSessions.length).to.be.eq(3);
+
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFrom(accountId, activeSessions[0].timestamp);
+		expect(deletedSessions).to.be.eq(activeSessions.length - 1);
+
+		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
+		await checkIfJWTWasInvalidated(authStatus2.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatus3.token!, basicAuthEngineConfig.jwt.instance);
+	}).timeout(3000);
+
+	it('logs out from no devices, except one, when there is only 1 session', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
+
+		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
+		expect(activeSessions.length).to.be.eq(1);
+
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFrom(accountId, activeSessions[0].timestamp);
+		expect(deletedSessions).to.be.eq(0);
+
+		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!)).to.not.be.eq(undefined);
 	});
 });

@@ -41,6 +41,7 @@ export interface AuthInput {
 }
 
 export interface ChangePasswordInput {
+	sessionId: number;
 	accountId: string;
 	oldPassword: string;
 	newPassword: string;

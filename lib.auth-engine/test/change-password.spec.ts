@@ -1,13 +1,14 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { hostname } from 'os';
-import { string } from '@marin/lib.utils';
+import { chrono, string } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine } from '../lib/core';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthInput } from '../lib/types';
 import { ErrorCodes } from '../lib/error';
+import { checkIfJWTWasInvalidated } from './utils';
 
 describe('Change password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
@@ -17,10 +18,10 @@ describe('Change password spec', () => {
 		password: 'auirg7q85y1298huwityh289',
 		email: 'user@product.com',
 		telephone: '+568425666',
-		role: ACCOUNT_ROLES.USER
+		role: ACCOUNT_ROLES.MODERATOR // need long active sessions
 	};
 
-	const validNetworkInput: AuthInput = {
+	const validAuthInput: AuthInput = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -38,21 +39,62 @@ describe('Change password spec', () => {
 
 	it('changes password and then logs in with updated one', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		// authentication needs to be done at upper layers, let's pretend that we are already authenticated
+
+		await AuthEngineInstance.authenticate(validAuthInput);
+		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
+
 		const newPassword = '42asdaffM!asd85';
-		await AuthEngineInstance.changePassword({ accountId, oldPassword: defaultRegistrationInfo.password, newPassword });
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: newPassword });
+
+		// authorization needs to be done at the upper layers
+		await AuthEngineInstance.changePassword({
+			accountId,
+			sessionId: activeSessions[0].timestamp,
+			oldPassword: defaultRegistrationInfo.password,
+			newPassword
+		});
+
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthInput, password: newPassword });
 		expect(authStatus.token).to.not.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error).to.be.eq(undefined);
 	});
+
+	it('invalidates all sessions, excepting the one from where password was changed', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+
+		const authStatus1 = await AuthEngineInstance.authenticate(validAuthInput);
+		await chrono.sleep(1000);
+		const authStatus2 = await AuthEngineInstance.authenticate(validAuthInput);
+		await chrono.sleep(1000);
+		const authStatus3 = await AuthEngineInstance.authenticate(validAuthInput);
+
+		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
+
+		const newPassword = '42asdaffM!asd88';
+		expect(
+			await AuthEngineInstance.changePassword({
+				accountId,
+				sessionId: activeSessionsBeforeChangePassword[0].timestamp,
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword
+			})
+		).to.be.eq(2); // 2 sessions were invalidated
+
+		const activeSessionsAfterChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
+		expect(activeSessionsAfterChangePassword.length).to.be.eq(1);
+		expect(activeSessionsAfterChangePassword[0].timestamp).to.be.eq(activeSessionsBeforeChangePassword[0].timestamp);
+
+		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
+		await checkIfJWTWasInvalidated(authStatus2.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatus3.token!, basicAuthEngineConfig.jwt.instance);
+	}).timeout(3000);
 
 	it('fails to change password if provided account id is not valid', async () => {
 		let accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 		accountId = string.replaceAt('0', accountId.length - 1, accountId);
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, oldPassword: 'does not matter', newPassword: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'does not matter', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
@@ -67,7 +109,7 @@ describe('Change password spec', () => {
 		await AuthEngineInstance.lockAccount(accountId, 'Suspicious activity detected');
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, oldPassword: 'invalid', newPassword: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
@@ -81,7 +123,7 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, oldPassword: 'invalid', newPassword: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
@@ -95,7 +137,7 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, oldPassword: defaultRegistrationInfo.password, newPassword: 'Weak-password' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: defaultRegistrationInfo.password, newPassword: 'Weak-password' });
 		} catch (e) {
 			err = e;
 		}
