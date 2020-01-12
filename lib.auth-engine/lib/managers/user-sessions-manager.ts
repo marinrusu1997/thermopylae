@@ -46,7 +46,10 @@ class UserSessionsManager {
 			}
 		);
 
-		await Promise.all([this.accessPointEntity.create({ timestamp: iat, accountId, ip, device, location }), this.activeUserSessionEntity.create({ timestamp: iat, accountId })]);
+		await Promise.all([
+			this.accessPointEntity.create({ timestamp: iat, accountId, ip, device, location }),
+			this.activeUserSessionEntity.create({ timestamp: iat, accountId })
+		]);
 
 		this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromSeconds(iat + ttl));
 

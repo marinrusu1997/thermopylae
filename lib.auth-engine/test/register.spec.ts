@@ -87,7 +87,10 @@ describe('Account registration spec', () => {
 				expect(e)
 					.to.be.instanceOf(Exception)
 					.and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
-				expect(e).to.haveOwnProperty('message', 'The password must contain at least one uppercase letter..\nThe password must contain at least one number.');
+				expect(e).to.haveOwnProperty(
+					'message',
+					'The password must contain at least one uppercase letter..\nThe password must contain at least one number.'
+				);
 			});
 	});
 

@@ -1,6 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { hostname } from 'os';
+import { string } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine } from '../lib/core';
@@ -47,11 +48,8 @@ describe('Change password spec', () => {
 	});
 
 	it('fails to change password if provided account id is not valid', async () => {
-		function replace(string: string, index: number, replacement: string): string {
-			return string.substr(0, index) + replacement + string.substr(index + replacement.length);
-		}
 		let accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		accountId = replace(accountId, accountId.length - 1, '0');
+		accountId = string.replaceAt('0', accountId.length - 1, accountId);
 		let err;
 		try {
 			await AuthEngineInstance.changePassword({ accountId, oldPassword: 'does not matter', newPassword: 'does not matter' });
@@ -62,6 +60,21 @@ describe('Change password spec', () => {
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found.`);
+	});
+
+	it('fails to change password if account is locked', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.lockAccount(accountId, 'Suspicious activity detected');
+		let err;
+		try {
+			await AuthEngineInstance.changePassword({ accountId, oldPassword: 'invalid', newPassword: 'does not matter' });
+		} catch (e) {
+			err = e;
+		}
+		expect(err)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is locked.`);
 	});
 
 	it('fails to change password if the old one provided is not valid', async () => {

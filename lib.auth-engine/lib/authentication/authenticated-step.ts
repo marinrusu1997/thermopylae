@@ -38,7 +38,9 @@ class AuthenticatedStep implements AuthStep {
 			.delete(account.username)
 			.catch(e => getLogger().error(`Failed to delete failed auth attempts session for account id ${account.id!}. `, e));
 
-		return { done: { token: await this.userSessionsManager.create(networkInput.ip, networkInput.device, networkInput.location, account.id!, account.role) } };
+		return {
+			done: { token: await this.userSessionsManager.create(networkInput.ip, networkInput.device, networkInput.location, account.id!, account.role) }
+		};
 	}
 }
 

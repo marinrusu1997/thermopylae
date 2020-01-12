@@ -38,7 +38,13 @@ function sendNotificationAccountLockedToAdminEmail(mailer: Email, email: string,
 	return mailer.send({ to: email, subject: `Account ${accountId} was locked.`, text: `Cause: ${cause}.` }, true);
 }
 
-function sendNotificationAuthFromDifferentDevice(template: NotificationAuthFromDiffDeviceTemplate, mailer: Email, email: string, ip: string, device: string): void {
+function sendNotificationAuthFromDifferentDevice(
+	template: NotificationAuthFromDiffDeviceTemplate,
+	mailer: Email,
+	email: string,
+	ip: string,
+	device: string
+): void {
 	mailer
 		.send(
 			{

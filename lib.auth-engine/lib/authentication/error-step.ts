@@ -56,7 +56,13 @@ class ErrorStep implements AuthStep {
 
 		if (failedAuthAttemptSession.counter >= this.failedAuthAttemptsThreshold) {
 			const promises: Array<Promise<any>> = [];
-			promises.push(this.accountLocker.lock(account, this.adminEmail, `Threshold of failed authentication attempts (${this.failedAuthAttemptsThreshold}) was reached.`));
+			promises.push(
+				this.accountLocker.lock(
+					account,
+					this.adminEmail,
+					`Threshold of failed authentication attempts (${this.failedAuthAttemptsThreshold}) was reached.`
+				)
+			);
 			promises.push(
 				this.failedAuthAttemptsEntity
 					.create({

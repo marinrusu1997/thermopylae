@@ -359,7 +359,13 @@ describe('Authenticate spec', () => {
 		// check it registered active session
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
-		expect(activeSessions[0]).to.be.deep.eq({ timestamp: jwtPayload.iat, accountId, ip: '158.56.89.230', device: hostname(), location: validNetworkInput.location });
+		expect(activeSessions[0]).to.be.deep.eq({
+			timestamp: jwtPayload.iat,
+			accountId,
+			ip: '158.56.89.230',
+			device: hostname(),
+			location: validNetworkInput.location
+		});
 
 		// check it deleted auth session
 		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
@@ -392,7 +398,13 @@ describe('Authenticate spec', () => {
 		// check it registered active session
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
-		expect(activeSessions[0]).to.be.deep.eq({ timestamp: jwtPayload.iat, accountId, ip: '158.56.89.230', device: hostname(), location: validNetworkInput.location });
+		expect(activeSessions[0]).to.be.deep.eq({
+			timestamp: jwtPayload.iat,
+			accountId,
+			ip: '158.56.89.230',
+			device: hostname(),
+			location: validNetworkInput.location
+		});
 
 		// check it deleted auth session
 		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
@@ -629,7 +641,10 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce(authStatus.token!);
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' } });
+		authStatus = await AuthEngineInstance.authenticate({
+			...validNetworkInput,
+			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
+		});
 		expect(authStatus.token).to.not.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 

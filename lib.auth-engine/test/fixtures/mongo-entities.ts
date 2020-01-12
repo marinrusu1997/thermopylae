@@ -121,6 +121,10 @@ const AccountEntityMongo: AccountEntity = {
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { locked: true })
 			.exec(),
+	unlock: _id =>
+		getMongoModel(Models.ACCOUNT, AccountSchema)
+			.updateOne({ _id }, { locked: false })
+			.exec(),
 	requireMfa: (_id, required) =>
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { mfa: required })

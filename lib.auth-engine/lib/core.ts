@@ -6,7 +6,7 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthInput, BasicRegistrationInfo, ChangePasswordInput } from './types';
+import { AuthInput, BasicCredentials, BasicRegistrationInfo, ChangePasswordInput } from './types';
 import { AuthStatus } from './authentication/auth-step';
 import {
 	AccessPointEntity,
@@ -57,13 +57,24 @@ class AuthenticationEngine {
 			this.config.jwt.rolesTtl
 		);
 		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach);
-		this.accountLocker = new AccountLocker(this.config.entities.account, this.userSessionsManager, this.config['side-channels'].email, this.config.templates.accountLocked);
+		this.accountLocker = new AccountLocker(
+			this.config.entities.account,
+			this.userSessionsManager,
+			this.config['side-channels'].email,
+			this.config.templates.accountLocked
+		);
 
 		this.authOrchestrator = new AuthOrchestrator();
 		this.authOrchestrator.register(AUTH_STEP.DISPATCH, new DispatchStep());
 		this.authOrchestrator.register(AUTH_STEP.PASSWORD, new PasswordStep(this.config.secrets.pepper));
-		this.authOrchestrator.register(AUTH_STEP.GENERATE_TOTP, new GenerateTotpStep(this.totpManager, this.config['side-channels'].sms, this.config.templates.totpTokenSms));
-		this.authOrchestrator.register(AUTH_STEP.TOTP, new TotpStep(this.totpManager, this.config['side-channels'].email, this.config.templates.multiFactorAuthFailed));
+		this.authOrchestrator.register(
+			AUTH_STEP.GENERATE_TOTP,
+			new GenerateTotpStep(this.totpManager, this.config['side-channels'].sms, this.config.templates.totpTokenSms)
+		);
+		this.authOrchestrator.register(
+			AUTH_STEP.TOTP,
+			new TotpStep(this.totpManager, this.config['side-channels'].email, this.config.templates.multiFactorAuthFailed)
+		);
 		this.authOrchestrator.register(AUTH_STEP.RECAPTCHA, new RecaptchaStep(this.config.validators.recaptcha));
 		this.authOrchestrator.register(
 			AUTH_STEP.ERROR,
@@ -174,7 +185,12 @@ class AuthenticationEngine {
 					this.config.ttl.activateAccountSession
 				);
 				activateAccountSessionWasCreated = true;
-				await sendActivateAccountLinkToUserEmail(this.config.templates.activateAccount, this.config['side-channels'].email, registeredAccount.email, activateToken.plain);
+				await sendActivateAccountLinkToUserEmail(
+					this.config.templates.activateAccount,
+					this.config['side-channels'].email,
+					registeredAccount.email,
+					activateToken.plain
+				);
 			} catch (e) {
 				if (deleteAccountTaskId) {
 					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
@@ -204,7 +220,12 @@ class AuthenticationEngine {
 			this.config.schedulers.account.cancelDelete(session.taskId),
 			this.config.entities.activateAccountSession
 				.delete(activateAccountToken)
-				.catch(err => getLogger().error(`Failed to delete activate account session with id ${activateAccountToken} for account with id ${session.accountId}. `, err))
+				.catch(err =>
+					getLogger().error(
+						`Failed to delete activate account session with id ${activateAccountToken} for account with id ${session.accountId}. `,
+						err
+					)
+				)
 		]);
 	}
 
@@ -251,6 +272,10 @@ class AuthenticationEngine {
 		if (!account) {
 			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${input.accountId} not found.`);
 		}
+		if (account.locked) {
+			// just in case session invalidation failed when account was locked
+			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account with id ${input.accountId} is locked.`);
+		}
 		if (!(await PasswordsManager.isCorrect(input.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
 			throw createException(ErrorCodes.INVALID_PASSWORD, "Old passwords doesn't match.");
 		}
@@ -261,6 +286,38 @@ class AuthenticationEngine {
 		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
 		const hash = await PasswordsManager.hash(input.newPassword, salt, this.config.secrets.pepper);
 		await this.config.entities.account.changePassword(input.accountId, hash, salt);
+	}
+
+	/**
+	 * @access internal
+	 */
+	public async areAccountCredentialsValid(accountId: string, credentials: BasicCredentials): Promise<boolean> {
+		const account = await this.config.entities.account.readById(accountId);
+		if (!account) {
+			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+		}
+		if (!(credentials.username === account.username)) {
+			return false;
+		}
+		return PasswordsManager.isCorrect(credentials.password, account.password, account.salt, this.config.secrets.pepper);
+	}
+
+	/**
+	 * @access private by admins only
+	 */
+	public async lockAccount(accountId: string, cause: string): Promise<void> {
+		const account = await this.config.entities.account.readById(accountId);
+		if (!account) {
+			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+		}
+		return this.accountLocker.lock(account, this.config.contacts.adminEmail, cause);
+	}
+
+	/**
+	 * @access private by admins only
+	 */
+	public unlockAccount(accountId: string): Promise<void> {
+		return this.accountLocker.unlock(accountId);
 	}
 }
 
@@ -335,7 +392,9 @@ interface RegistrationOptions {
 	isActivated: boolean; // based on user role, account can be activated or not at the registration time
 }
 
-type InternalUsageOptions = Required<AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { sizes: Required<SizesOptions> }>;
+type InternalUsageOptions = Required<
+	AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { sizes: Required<SizesOptions> }
+>;
 
 function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOptions> {
 	options.ttl = options.ttl || {};

@@ -36,6 +36,10 @@ class AccountLocker {
 				}) as Promise<void>;
 			});
 	}
+
+	public unlock(accountId: string): Promise<void> {
+		return this.accountEntity.unlock(accountId);
+	}
 }
 
 export { AccountLocker };

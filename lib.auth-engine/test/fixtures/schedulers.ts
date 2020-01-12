@@ -19,7 +19,9 @@ const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDelet
 	}
 
 	setTimeout(() => {
-		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch(err => console.error('Error occurred in scheduling delete active user session', err));
+		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch(err =>
+			console.error('Error occurred in scheduling delete active user session', err)
+		);
 	}, whenToDelete.getTime() - new Date().getTime());
 };
 
