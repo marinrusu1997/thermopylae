@@ -7,6 +7,7 @@ declare type NotificationMFAFailedTemplate = (data: { ip: string; device: string
 declare type NotificationAccountLockedTemplate = (data: { cause: string }) => string;
 declare type NotificationAuthFromDiffDeviceTemplate = (data: { ip: string; device: string }) => string;
 declare type ActivateAccountTemplate = (data: { token: string }) => string;
+declare type ForgotPasswordTemplate = (data: { token: string }) => string;
 
 function sendNotificationMFAFailed(template: NotificationMFAFailedTemplate, mailer: Email, email: string, ip: string, device: string): void {
 	mailer
@@ -61,6 +62,10 @@ function sendActivateAccountLinkToUserEmail(template: ActivateAccountTemplate, m
 	return mailer.send({ to: email, subject: 'Activate your account', html: template({ token }) }, true);
 }
 
+function sendForgotPasswordTokenToUserEmail(template: ForgotPasswordTemplate, mailer: Email, email: string, token: string): Promise<SentMessageInfo> {
+	return mailer.send({ to: email, subject: 'Forgot password token', html: template({ token }) }, true);
+}
+
 export {
 	// eslint-disable-next-line no-undef
 	NotificationMFAFailedTemplate,
@@ -70,9 +75,12 @@ export {
 	NotificationAuthFromDiffDeviceTemplate,
 	// eslint-disable-next-line no-undef
 	ActivateAccountTemplate,
+	// eslint-disable-next-line no-undef
+	ForgotPasswordTemplate,
 	sendNotificationMFAFailed,
 	sendNotificationAccountLockedToUserEmail,
 	sendNotificationAccountLockedToAdminEmail,
 	sendNotificationAuthFromDifferentDevice,
-	sendActivateAccountLinkToUserEmail
+	sendActivateAccountLinkToUserEmail,
+	sendForgotPasswordTokenToUserEmail
 };

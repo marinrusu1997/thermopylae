@@ -2,6 +2,11 @@ import { HexBase64Latin1Encoding } from 'crypto';
 
 export type Id = number | string;
 
+export const enum SIDE_CHANNEL {
+	EMAIL = 'EMAIL',
+	SMS = 'SMS'
+}
+
 export interface BasicCredentials {
 	username: string;
 	password: string;
@@ -44,5 +49,15 @@ export interface ChangePasswordInput {
 	sessionId: number;
 	accountId: string;
 	oldPassword: string;
+	newPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+	username: string;
+	'side-channel': SIDE_CHANNEL;
+}
+
+export interface ChangeForgottenPassword {
+	token: string;
 	newPassword: string;
 }

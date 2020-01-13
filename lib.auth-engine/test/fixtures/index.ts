@@ -15,11 +15,20 @@ import memcache, {
 	ActivateAccountSessionEntityMemCache,
 	AuthSessionEntityMemCache,
 	clearOperationFailuresForSessions,
-	FailedAuthAttemptSessionEntityMemCache
+	FailedAuthAttemptSessionEntityMemCache,
+	ForgotPasswordSessionEntityMemCache
 } from './memcache-entities';
 import { EmailMockInstance } from './mocks/email';
 import { SmsMockInstance } from './mocks/sms';
-import { AccountLockedTemplate, ActivateAccountTemplate, AuthFromDiffDeviceTemplate, MultiFactorAuthFailedTemplate, TotpTokenSmsTemplate } from './templates';
+import {
+	AccountLockedTemplate,
+	ActivateAccountTemplate,
+	AuthFromDiffDeviceTemplate,
+	ForgotPasswordTemplateEmail,
+	ForgotPasswordTemplateSms,
+	MultiFactorAuthFailedTemplate,
+	TotpTokenSmsTemplate
+} from './templates';
 import {
 	CancelScheduledUnactivatedAccountDeletionFromMongo,
 	cleanUpSchedulers,
@@ -41,7 +50,8 @@ const basicAuthEngineConfig = {
 		accessPoint: AccessPointEntityMongo,
 		authSession: AuthSessionEntityMemCache,
 		failedAuthAttempts: FailedAuthAttemptsEntityMongo,
-		failedAuthAttemptsSession: FailedAuthAttemptSessionEntityMemCache
+		failedAuthAttemptsSession: FailedAuthAttemptSessionEntityMemCache,
+		forgotPasswordSession: ForgotPasswordSessionEntityMemCache
 	},
 	'side-channels': {
 		email: EmailMockInstance,
@@ -52,7 +62,9 @@ const basicAuthEngineConfig = {
 		activateAccount: ActivateAccountTemplate,
 		authFromDiffDevice: AuthFromDiffDeviceTemplate,
 		accountLocked: AccountLockedTemplate,
-		multiFactorAuthFailed: MultiFactorAuthFailedTemplate
+		multiFactorAuthFailed: MultiFactorAuthFailedTemplate,
+		forgotPasswordTokenSms: ForgotPasswordTemplateSms,
+		forgotPasswordTokenEmail: ForgotPasswordTemplateEmail
 	},
 	schedulers: {
 		account: {

@@ -3,12 +3,15 @@ import owasp from 'owasp-password-strength-test';
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import { createException, ErrorCodes } from '../error';
+import { AccountEntity } from '../models/entities';
 
 class PasswordsManager {
 	private readonly breachThreshold: number;
+	private readonly accountEntity: AccountEntity;
 
-	constructor(breachThreshold: number) {
+	constructor(breachThreshold: number, accountEntity: AccountEntity) {
 		this.breachThreshold = breachThreshold;
+		this.accountEntity = accountEntity;
 	}
 
 	public async validateStrengthness(password: string): Promise<void> {
@@ -36,6 +39,13 @@ class PasswordsManager {
 				throw createException(ErrorCodes.WEAK_PASSWORD, 'Your password has been breached before. We strongly recommend you to choose another one.');
 			}
 		}
+	}
+
+	public async change(accountId: string, newPassword: string, saltSize: number, pepper: string): Promise<void> {
+		await this.validateStrengthness(newPassword);
+		const salt = await PasswordsManager.generateSalt(saltSize);
+		const hash = await PasswordsManager.hash(newPassword, salt, pepper);
+		await this.accountEntity.changePassword(accountId, hash, salt);
 	}
 
 	public static generateSalt(size: number): Promise<string> {

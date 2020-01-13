@@ -11,10 +11,6 @@ const storage = new WeakMap();
  *
  * @param {object} _this This of the class
  * @return {{
- *     formatting: FormattingManager,
- *     console: ConsoleLogsManager,
- *     file: FileLogsManager,
- *     graylog2: GrayLogsManager,
  *     transports: TransportsManager
  * }}
  */

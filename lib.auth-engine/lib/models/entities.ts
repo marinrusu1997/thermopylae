@@ -1,5 +1,5 @@
 import { AccessPoint, Account, FailedAuthAttempts } from './index';
-import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession } from './sessions';
+import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
 export interface AccountEntity {
 	create(account: Account): Promise<Account>;
@@ -49,5 +49,11 @@ export interface FailedAuthAttemptSessionEntity {
 export interface ActivateAccountSessionEntity {
 	create(token: string, session: ActivateAccountSession, ttl: number): Promise<void>;
 	read(token: string): Promise<ActivateAccountSession | null>;
+	delete(token: string): Promise<void>;
+}
+
+export interface ForgotPasswordSessionEntity {
+	create(token: string, session: ForgotPasswordSession, ttl: number): Promise<void>;
+	read(token: string): Promise<ForgotPasswordSession | null>;
 	delete(token: string): Promise<void>;
 }

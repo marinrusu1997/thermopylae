@@ -21,3 +21,8 @@ export interface ActivateAccountSession {
 	taskId: string; // delete unactivated account task id
 	accountId: string;
 }
+
+export interface ForgotPasswordSession {
+	accountId: string;
+	accountRole?: string;
+}

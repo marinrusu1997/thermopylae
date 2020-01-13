@@ -1,5 +1,5 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
-import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity } from '../../lib/models/entities';
+import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity, ForgotPasswordSessionEntity } from '../../lib/models/entities';
 import { AuthSession, FailedAuthAttemptSession } from '../../lib/models/sessions';
 
 const memcache = getDefaultMemCache();
@@ -119,6 +119,26 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 	}
 };
 
+const ForgotPasswordSessionEntityMemCache: ForgotPasswordSessionEntity = {
+	/**
+	 * @param token
+	 * @param session
+	 * @param ttl		Time to live in minutes
+	 */
+	create: async (token, session, ttl) => {
+		const key = `fgtpswd:${token}`;
+		memcache.set(key, session, ttl * 60);
+	},
+	read: async token => {
+		const key = `fgtpswd:${token}`;
+		return memcache.get(key);
+	},
+	delete: async token => {
+		const key = `actacc:${token}`;
+		memcache.del(key);
+	}
+};
+
 function hasAnySessions(): boolean {
 	return memcache.keys().length !== 0;
 }
@@ -136,6 +156,7 @@ export {
 	AuthSessionEntityMemCache,
 	FailedAuthAttemptSessionEntityMemCache,
 	ActivateAccountSessionEntityMemCache,
+	ForgotPasswordSessionEntityMemCache,
 	hasAnySessions,
 	failureWillBeGeneratedForSessionOperation,
 	clearOperationFailuresForSessions,

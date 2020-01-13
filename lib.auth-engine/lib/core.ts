@@ -6,7 +6,7 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthInput, BasicCredentials, BasicRegistrationInfo, ChangePasswordInput } from './types';
+import { AuthInput, BasicCredentials, BasicRegistrationInfo, ChangeForgottenPassword, ChangePasswordInput, ForgotPasswordRequest, SIDE_CHANNEL } from './types';
 import { AuthStatus } from './authentication/auth-step';
 import {
 	AccessPointEntity,
@@ -15,7 +15,8 @@ import {
 	ActiveUserSessionEntity,
 	AuthSessionEntity,
 	FailedAuthAttemptsEntity,
-	FailedAuthAttemptSessionEntity
+	FailedAuthAttemptSessionEntity,
+	ForgotPasswordSessionEntity
 } from './models/entities';
 import { createException, ErrorCodes } from './error';
 import { AuthOrchestrator } from './authentication/auth-orchestrator';
@@ -30,7 +31,18 @@ import { UserSessionsManager } from './managers/user-sessions-manager';
 import { AccountLocker } from './managers/account-locker';
 import { AuthenticatedStep } from './authentication/authenticated-step';
 import { PasswordsManager } from './managers/passwords-manager';
-import { sendActivateAccountLinkToUserEmail } from './utils/email';
+import {
+	// eslint-disable-next-line import/named
+	ActivateAccountTemplate,
+	// eslint-disable-next-line import/named
+	ForgotPasswordTemplate,
+	NotificationAccountLockedTemplate,
+	NotificationAuthFromDiffDeviceTemplate,
+	NotificationMFAFailedTemplate,
+	sendActivateAccountLinkToUserEmail,
+	// eslint-disable-next-line import/named
+	sendForgotPasswordTokenToUserEmail
+} from './utils/email';
 import { ActiveUserSession } from './models/sessions';
 import { AccessPoint, FailedAuthAttempts } from './models';
 import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './models/schedulers';
@@ -56,7 +68,7 @@ class AuthenticationEngine {
 			this.config.entities.accessPoint,
 			this.config.jwt.rolesTtl
 		);
-		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach);
+		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
 		this.accountLocker = new AccountLocker(
 			this.config.entities.account,
 			this.userSessionsManager,
@@ -265,16 +277,74 @@ class AuthenticationEngine {
 		if (!(await PasswordsManager.isCorrect(input.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
 			throw createException(ErrorCodes.INVALID_PASSWORD, "Old passwords doesn't match.");
 		}
-		await this.passwordsManager.validateStrengthness(input.newPassword);
-
 		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
 
-		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
-		const hash = await PasswordsManager.hash(input.newPassword, salt, this.config.secrets.pepper);
-		await this.config.entities.account.changePassword(input.accountId, hash, salt);
+		await this.passwordsManager.change(input.accountId, input.newPassword, this.config.sizes.salt, this.config.secrets.pepper);
 
 		// logout from all devices, needs to be be done, as usually jwt will be long lived
 		return this.userSessionsManager.deleteAllButOne(account.id!, account.role, input.sessionId);
+	}
+
+	/**
+	 * @access public
+	 */
+	public async createForgotPasswordSession(forgotPasswordRequest: ForgotPasswordRequest): Promise<void> {
+		const account = await this.config.entities.account.read(forgotPasswordRequest.username);
+		if (!account) {
+			// silently discard invalid username, in order to prevent user enumeration
+			return;
+		}
+
+		const sessionToken = await token.generateToken(this.config.sizes.token);
+		await this.config.entities.forgotPasswordSession.create(
+			sessionToken.plain,
+			{ accountId: account.id!, accountRole: account.role },
+			this.config.ttl.forgotPasswordSession
+		);
+
+		try {
+			switch (forgotPasswordRequest['side-channel']) {
+				case SIDE_CHANNEL.EMAIL:
+					await sendForgotPasswordTokenToUserEmail(
+						this.config.templates.forgotPasswordTokenEmail,
+						this.config['side-channels'].email,
+						account.email,
+						sessionToken.plain
+					);
+					break;
+				case SIDE_CHANNEL.SMS:
+					await this.config['side-channels'].sms.send(account.telephone, this.config.templates.forgotPasswordTokenSms(sessionToken.plain));
+					break;
+				default:
+					throw new Error('Unknown side channel');
+			}
+		} catch (err) {
+			getLogger().error(`Failed to send forgot password token for account ${account.id}. Deleting session with id ${sessionToken}. `, err);
+			await this.config.entities.forgotPasswordSession.delete(sessionToken.plain);
+			throw err;
+		}
+	}
+
+	/**
+	 * @access public
+	 */
+	public async changeForgottenPassword(changeForgottenPassword: ChangeForgottenPassword): Promise<void> {
+		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPassword.token);
+		if (!forgotPasswordSession) {
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `Invalid forgot password token ${changeForgottenPassword.token}`);
+		}
+		await this.passwordsManager.change(
+			forgotPasswordSession.accountId,
+			changeForgottenPassword.newPassword,
+			this.config.sizes.salt,
+			this.config.secrets.pepper
+		);
+		try {
+			await this.config.entities.forgotPasswordSession.delete(changeForgottenPassword.token);
+			await this.logoutFromAllDevices({ sub: forgotPasswordSession.accountId, aud: forgotPasswordSession.accountRole });
+		} catch (error) {
+			getLogger().error(`Failed to clean up forgot password session for account ${forgotPasswordSession.accountId}. `, error);
+		}
 	}
 
 	/**
@@ -340,6 +410,7 @@ interface TTLOptions {
 	authSession?: number; // minutes
 	failedAuthAttemptsSession?: number; // minutes
 	activateAccountSession?: number; // minutes
+	forgotPasswordSession?: number; // minutes
 	totp?: number; // seconds
 }
 
@@ -367,6 +438,7 @@ interface AuthEngineOptions {
 		failedAuthAttemptsSession: FailedAuthAttemptSessionEntity;
 		failedAuthAttempts: FailedAuthAttemptsEntity;
 		activateAccountSession: ActivateAccountSessionEntity;
+		forgotPasswordSession: ForgotPasswordSessionEntity;
 	};
 	'side-channels': {
 		email: Email;
@@ -374,10 +446,12 @@ interface AuthEngineOptions {
 	};
 	templates: {
 		totpTokenSms: (totp: string) => string;
-		multiFactorAuthFailed: (data: { ip: string; device: string }) => string;
-		accountLocked: (data: { cause: string }) => string;
-		authFromDiffDevice: (data: { ip: string; device: string }) => string;
-		activateAccount: (data: { token: string }) => string;
+		multiFactorAuthFailed: NotificationMFAFailedTemplate;
+		accountLocked: NotificationAccountLockedTemplate;
+		authFromDiffDevice: NotificationAuthFromDiffDeviceTemplate;
+		activateAccount: ActivateAccountTemplate;
+		forgotPasswordTokenSms: (token: string) => string;
+		forgotPasswordTokenEmail: ForgotPasswordTemplate;
 	};
 	schedulers: {
 		deleteActiveUserSession: ScheduleActiveUserSessionDeletion;
@@ -422,6 +496,7 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 			authSession: options.ttl.authSession || 2, // minutes, this needs to be as short as possible
 			failedAuthAttemptsSession: options.ttl.failedAuthAttemptsSession || 5, // minutes,
 			activateAccountSession: options.ttl.activateAccountSession || 60, // minutes
+			forgotPasswordSession: options.ttl.forgotPasswordSession || 5, // minutes
 			totp: options.ttl.totp || 30 // seconds
 		},
 		thresholds: {
