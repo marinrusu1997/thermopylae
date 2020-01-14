@@ -219,11 +219,23 @@ const AccessPointEntityMongo: AccessPointEntity = {
 	create: async accessPoint => {
 		await getMongoModel(Models.ACCESS_POINT, AccessPointSchema).create(accessPoint);
 	},
-	authBeforeFromThisDevice: (accountId, device) =>
-		getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
-			.find({ accountId, device })
-			.exec()
-			.then(docs => docs.length !== 0)
+	authBeforeFromThisDevice: async (accountId, device) => {
+		const prevAuth = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
+			.find({ accountId })
+			.exec();
+		if (prevAuth.length === 0) {
+			return true; // this is the first login ever, don't send notification
+		}
+
+		for (let i = 0; i < prevAuth.length; i++) {
+			// @ts-ignore
+			if (prevAuth[i].device !== device) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 };
 
 /* Active User Session */

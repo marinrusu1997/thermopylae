@@ -131,10 +131,10 @@ const ForgotPasswordSessionEntityMemCache: ForgotPasswordSessionEntity = {
 	},
 	read: async token => {
 		const key = `fgtpswd:${token}`;
-		return memcache.get(key);
+		return memcache.get(key) || null;
 	},
 	delete: async token => {
-		const key = `actacc:${token}`;
+		const key = `fgtpswd:${token}`;
 		memcache.del(key);
 	}
 };

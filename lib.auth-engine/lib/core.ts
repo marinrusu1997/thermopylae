@@ -339,6 +339,8 @@ class AuthenticationEngine {
 			this.config.sizes.salt,
 			this.config.secrets.pepper
 		);
+
+		// operation is considered successful, even if some of the clean up steps fails
 		try {
 			await this.config.entities.forgotPasswordSession.delete(changeForgottenPassword.token);
 			await this.logoutFromAllDevices({ sub: forgotPasswordSession.accountId, aud: forgotPasswordSession.accountRole });

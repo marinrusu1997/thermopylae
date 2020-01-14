@@ -12,7 +12,7 @@ async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> 
 	let jwtValidateError;
 	try {
 		await jwt.validate(token);
-		assert(false, 'Authorization was made, even if token needed to be invalidated!');
+		assert(false, `Authorization was made, even if token ${token} needed to be invalidated!`);
 	} catch (e) {
 		if (e instanceof AssertionError) {
 			throw e;
