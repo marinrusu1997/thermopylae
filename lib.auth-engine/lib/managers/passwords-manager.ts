@@ -3,7 +3,7 @@ import owasp from 'owasp-password-strength-test';
 import argon2 from 'argon2';
 import crypto from 'crypto';
 import { createException, ErrorCodes } from '../error';
-import { AccountEntity } from '../models/entities';
+import { AccountEntity } from '../types/entities';
 
 class PasswordsManager {
 	private readonly breachThreshold: number;

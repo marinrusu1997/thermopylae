@@ -6,7 +6,7 @@ import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine } from '../lib/core';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthInput } from '../lib/types';
+import { AuthRequest } from '../lib/types/requests';
 import { ErrorCodes } from '../lib/error';
 import { checkIfJWTWasInvalidated } from './utils';
 
@@ -21,7 +21,7 @@ describe('Change password spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // need long active sessions
 	};
 
-	const validAuthInput: AuthInput = {
+	const validAuthInput: AuthRequest = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

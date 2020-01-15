@@ -1,6 +1,6 @@
 import { createVerify } from 'crypto';
-import { RecaptchaValidator } from '../../lib/authentication/recaptcha-step';
-import { ChallengeResponseValidator } from '../../lib/authentication/challenge-response-step';
+import { RecaptchaValidator } from '../../lib/authentication/steps/recaptcha-step';
+import { ChallengeResponseValidator } from '../../lib/authentication/steps/challenge-response-step';
 
 const recaptchaValidator: RecaptchaValidator = recaptcha => Promise.resolve(recaptcha === 'valid');
 

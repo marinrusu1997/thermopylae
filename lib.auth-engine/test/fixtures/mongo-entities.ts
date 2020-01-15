@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/models/entities';
+import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/types/entities';
 
 const mongod = new MongoMemoryServer();
 

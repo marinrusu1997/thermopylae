@@ -8,9 +8,9 @@ import { chrono, enums } from '@marin/lib.utils';
 import keypair from 'keypair';
 import { AuthenticationEngine } from '../lib/core';
 import { ErrorCodes } from '../lib/error';
-import { AuthInput } from '../lib/types';
+import { AuthRequest } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AUTH_STEP } from '../lib/enums';
+import { AUTH_STEP } from '../lib/types/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import basicAuthEngineConfig from './fixtures';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
@@ -45,7 +45,7 @@ describe('Authenticate spec', () => {
 		pubKey: primaryKeyPair.public
 	};
 
-	const validNetworkInput: AuthInput = {
+	const validNetworkInput: AuthRequest = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

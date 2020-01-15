@@ -1,6 +1,6 @@
-import { BasicCredentials, BasicLocation } from '../types';
+import { BasicCredentials, BasicLocation } from './basic-types';
 
-export interface Account extends BasicCredentials {
+export interface AccountModel extends BasicCredentials {
 	id?: string;
 	salt: string;
 	role?: string;
@@ -12,7 +12,7 @@ export interface Account extends BasicCredentials {
 	pubKey?: string | Buffer;
 }
 
-export interface AccessPoint {
+export interface AccessPointModel {
 	timestamp: number;
 	accountId: string;
 	ip: string;
@@ -20,7 +20,7 @@ export interface AccessPoint {
 	location: BasicLocation;
 }
 
-export interface FailedAuthAttempts {
+export interface FailedAuthAttemptsModel {
 	id?: string;
 	accountId: string;
 	timestamp: number;

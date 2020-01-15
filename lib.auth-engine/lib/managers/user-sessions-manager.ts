@@ -1,12 +1,12 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 import { enums, chrono } from '@marin/lib.utils';
-import { AccessPointEntity, ActiveUserSessionEntity } from '../models/entities';
-import { ActiveUserSession } from '../models/sessions';
+import { AccessPointEntity, ActiveUserSessionEntity } from '../types/entities';
+import { ActiveUserSession } from '../types/sessions';
 import { createException, ErrorCodes } from '../error';
-import { ScheduleActiveUserSessionDeletion } from '../models/schedulers';
-import { BasicLocation } from '../types';
-import { AccessPoint } from '../models';
+import { ScheduleActiveUserSessionDeletion } from '../types/schedulers';
+import { BasicLocation } from '../types/basic-types';
+import { AccessPointModel } from '../types/models';
 
 class UserSessionsManager {
 	private readonly scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion;
@@ -56,7 +56,7 @@ class UserSessionsManager {
 		return jwt;
 	}
 
-	public read(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>> {
+	public read(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 

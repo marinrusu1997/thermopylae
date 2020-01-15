@@ -1,6 +1,6 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
-import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity, ForgotPasswordSessionEntity } from '../../lib/models/entities';
-import { AuthSession, FailedAuthAttemptSession } from '../../lib/models/sessions';
+import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity, ForgotPasswordSessionEntity } from '../../lib/types/entities';
+import { AuthSession, FailedAuthAttemptSession } from '../../lib/types/sessions';
 
 const memcache = getDefaultMemCache();
 

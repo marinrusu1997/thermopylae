@@ -1,4 +1,5 @@
 import { HexBase64Latin1Encoding } from 'crypto';
+import { BasicCredentials, BasicLocation } from './basic-types';
 
 export type Id = number | string;
 
@@ -7,29 +8,14 @@ export const enum SIDE_CHANNEL {
 	SMS = 'SMS'
 }
 
-export interface BasicCredentials {
-	username: string;
-	password: string;
-}
-
-export interface BasicRegistrationInfo extends BasicCredentials {
+export interface RegistrationRequest extends BasicCredentials {
 	email: string;
 	telephone: string;
 	role?: string;
 	pubKey?: string | Buffer;
 }
 
-export interface BasicLocation {
-	countryCode: string;
-	regionCode: string;
-	city: string;
-	timeZone: string | object;
-	latitude: number;
-	longitude: number;
-	postalCode?: string;
-}
-
-export interface AuthInput {
+export interface AuthRequest {
 	username: string;
 	password: string;
 	ip: string;
@@ -45,7 +31,7 @@ export interface AuthInput {
 	};
 }
 
-export interface ChangePasswordInput {
+export interface ChangePasswordRequest {
 	sessionId: number;
 	accountId: string;
 	oldPassword: string;
@@ -57,7 +43,7 @@ export interface ForgotPasswordRequest {
 	'side-channel': SIDE_CHANNEL;
 }
 
-export interface ChangeForgottenPassword {
+export interface ChangeForgottenPasswordRequest {
 	token: string;
 	newPassword: string;
 }

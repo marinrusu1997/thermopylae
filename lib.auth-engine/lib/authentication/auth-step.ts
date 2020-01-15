@@ -1,8 +1,8 @@
 import Exception from '@marin/lib.error';
-import { Account } from '../models';
-import { AUTH_STEP } from '../enums';
-import { AuthSession } from '../models/sessions';
-import { AuthInput } from '../types';
+import { AccountModel } from '../types/models';
+import { AUTH_STEP } from '../types/enums';
+import { AuthSession } from '../types/sessions';
+import { AuthRequest } from '../types/requests';
 
 export interface AuthStatus {
 	token?: string;
@@ -19,5 +19,5 @@ export interface AuthStepOutput {
 }
 
 export interface AuthStep {
-	process(networkInput: AuthInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput>;
+	process(networkInput: AuthRequest, account: AccountModel, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput>;
 }

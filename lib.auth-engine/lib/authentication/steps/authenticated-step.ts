@@ -1,12 +1,12 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Email } from '@marin/lib.email';
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthInput } from '../types';
-import { Account } from '../models';
-import { AccessPointEntity, FailedAuthAttemptSessionEntity } from '../models/entities';
-import { sendNotificationAuthFromDifferentDevice, NotificationAuthFromDiffDeviceTemplate } from '../utils/email';
-import { UserSessionsManager } from '../managers/user-sessions-manager';
-import { getLogger } from '../logger';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AuthRequest } from '../../types/requests';
+import { AccountModel } from '../../types/models';
+import { AccessPointEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
+import { sendNotificationAuthFromDifferentDevice, NotificationAuthFromDiffDeviceTemplate } from '../../email';
+import { UserSessionsManager } from '../../managers/user-sessions-manager';
+import { getLogger } from '../../logger';
 
 class AuthenticatedStep implements AuthStep {
 	private readonly mailer: Email;
@@ -29,7 +29,7 @@ class AuthenticatedStep implements AuthStep {
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 	}
 
-	async process(networkInput: AuthInput, account: Account): Promise<AuthStepOutput> {
+	async process(networkInput: AuthRequest, account: AccountModel): Promise<AuthStepOutput> {
 		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, networkInput.device))) {
 			sendNotificationAuthFromDifferentDevice(this.authFromDiffDeviceTemplate, this.mailer, account.email, networkInput.ip, networkInput.device);
 		}

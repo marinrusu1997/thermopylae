@@ -1,12 +1,12 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Email } from '@marin/lib.email';
-import { Account } from '../models';
+import { AccountModel } from '../types/models';
 import { UserSessionsManager } from './user-sessions-manager';
 import { getLogger } from '../logger';
-import { sendNotificationAccountLockedToAdminEmail, sendNotificationAccountLockedToUserEmail, NotificationAccountLockedTemplate } from '../utils/email';
-import { AccountEntity } from '../models/entities';
+import { sendNotificationAccountLockedToAdminEmail, sendNotificationAccountLockedToUserEmail, NotificationAccountLockedTemplate } from '../email';
+import { AccountEntity } from '../types/entities';
 
-class AccountLocker {
+class AccountLockingManager {
 	private readonly accountEntity: AccountEntity;
 	private readonly userSessionsManager: UserSessionsManager;
 	private readonly mailer: Email;
@@ -19,7 +19,7 @@ class AccountLocker {
 		this.template = template;
 	}
 
-	public lock(account: Account, adminEmail: string, cause: string): Promise<void> {
+	public lock(account: AccountModel, adminEmail: string, cause: string): Promise<void> {
 		return this.accountEntity
 			.lock(account.id!)
 			.then(() => {
@@ -42,4 +42,4 @@ class AccountLocker {
 	}
 }
 
-export { AccountLocker };
+export { AccountLockingManager };

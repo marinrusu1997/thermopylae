@@ -1,12 +1,12 @@
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthInput } from '../types';
-import { Account } from '../models';
-import { AuthSession } from '../models/sessions';
-import { FailedAuthAttemptsEntity, FailedAuthAttemptSessionEntity } from '../models/entities';
-import { AccountLocker } from '../managers/account-locker';
-import { getLogger } from '../logger';
-import { createException, ErrorCodes } from '../error';
-import { AUTH_STEP } from '../enums';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AuthRequest } from '../../types/requests';
+import { AccountModel } from '../../types/models';
+import { AuthSession } from '../../types/sessions';
+import { FailedAuthAttemptsEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
+import { AccountLockingManager } from '../../managers/account-locking-manager';
+import { getLogger } from '../../logger';
+import { createException, ErrorCodes } from '../../error';
+import { AUTH_STEP } from '../../types/enums';
 
 class ErrorStep implements AuthStep {
 	private readonly adminEmail: string;
@@ -15,7 +15,7 @@ class ErrorStep implements AuthStep {
 	private readonly failedAuthAttemptSessionTtl: number;
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 	private readonly failedAuthAttemptsEntity: FailedAuthAttemptsEntity;
-	private readonly accountLocker: AccountLocker;
+	private readonly accountLocker: AccountLockingManager;
 
 	constructor(
 		adminEmail: string,
@@ -24,7 +24,7 @@ class ErrorStep implements AuthStep {
 		failedAuthAttemptSessionTtl: number,
 		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity,
 		failedAuthAttemptsEntity: FailedAuthAttemptsEntity,
-		accountLocker: AccountLocker
+		accountLocker: AccountLockingManager
 	) {
 		this.adminEmail = adminEmail;
 		this.failedAuthAttemptsThreshold = failedAuthAttemptsThreshold;
@@ -35,7 +35,7 @@ class ErrorStep implements AuthStep {
 		this.accountLocker = accountLocker;
 	}
 
-	async process(networkInput: AuthInput, account: Account, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
+	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
 		const now = new Date().getTime();
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(networkInput.username);
 		if (!failedAuthAttemptSession) {

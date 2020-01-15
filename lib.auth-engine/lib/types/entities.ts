@@ -1,10 +1,10 @@
-import { AccessPoint, Account, FailedAuthAttempts } from './index';
+import { AccessPointModel, AccountModel, FailedAuthAttemptsModel } from './models';
 import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
 export interface AccountEntity {
-	create(account: Account): Promise<Account>;
-	read(username: string): Promise<Account | null>;
-	readById(id: string): Promise<Account | null>;
+	create(account: AccountModel): Promise<AccountModel>;
+	read(username: string): Promise<AccountModel | null>;
+	readById(id: string): Promise<AccountModel | null>;
 	delete(id: string): Promise<void>;
 	activate(id: string): Promise<void>;
 	lock(id: string): Promise<void>;
@@ -14,19 +14,19 @@ export interface AccountEntity {
 }
 
 export interface FailedAuthAttemptsEntity {
-	create(attempts: FailedAuthAttempts): Promise<string>;
-	readRange(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttempts>>;
+	create(attempts: FailedAuthAttemptsModel): Promise<string>;
+	readRange(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>>;
 }
 
 export interface AccessPointEntity {
-	create(accessPoint: AccessPoint): Promise<void>;
+	create(accessPoint: AccessPointModel): Promise<void>;
 	authBeforeFromThisDevice(accountId: string, device: string): Promise<boolean>;
 }
 
 export interface ActiveUserSessionEntity {
 	create(session: ActiveUserSession): Promise<void>;
-	readAll(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>>;
-	readAllButOne(accountId: string, exceptedSessionId: number): Promise<Array<ActiveUserSession & AccessPoint>>;
+	readAll(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>>;
+	readAllButOne(accountId: string, exceptedSessionId: number): Promise<Array<ActiveUserSession & AccessPointModel>>;
 	delete(accountId: string, timestamp: number): Promise<void>;
 	deleteAll(accountId: string): Promise<number>;
 	deleteAllButOne(accountId: string, exceptedSessionId: number): Promise<number>;

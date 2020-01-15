@@ -1,11 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SMS } from '@marin/lib.sms';
 import { totp } from '@marin/lib.utils';
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthInput } from '../types';
-import { Account } from '../models';
-import { AUTH_STEP } from '../enums';
-import { AuthSession } from '../models/sessions';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AuthRequest } from '../../types/requests';
+import { AccountModel } from '../../types/models';
+import { AUTH_STEP } from '../../types/enums';
+import { AuthSession } from '../../types/sessions';
 
 type TotpSmsTemplate = (totpToken: string) => string;
 
@@ -20,7 +20,7 @@ class GenerateTotpStep implements AuthStep {
 		this.template = template;
 	}
 
-	async process(_networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(_networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
 		const totpToken = this.totpManager.generate();
 		session.mfaToken = totpToken; // save token for later verification
 		await this.smsSender.send(account.telephone, this.template(totpToken));

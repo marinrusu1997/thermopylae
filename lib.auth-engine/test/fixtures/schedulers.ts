@@ -1,4 +1,4 @@
-import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from '../../lib/models/schedulers';
+import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from '../../lib/types/schedulers';
 import { AccountEntityMongo, ActiveUserSessionEntityMongo } from './mongo-entities';
 // eslint-disable-next-line no-undef
 import Timeout = NodeJS.Timeout;

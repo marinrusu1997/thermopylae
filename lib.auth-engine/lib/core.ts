@@ -6,7 +6,8 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthInput, BasicCredentials, BasicRegistrationInfo, ChangeForgottenPassword, ChangePasswordInput, ForgotPasswordRequest, SIDE_CHANNEL } from './types';
+import { AuthRequest, RegistrationRequest, ChangeForgottenPasswordRequest, ChangePasswordRequest, ForgotPasswordRequest, SIDE_CHANNEL } from './types/requests';
+import { BasicCredentials } from './types/basic-types';
 import { AuthStatus } from './authentication/auth-step';
 import {
 	AccessPointEntity,
@@ -17,19 +18,19 @@ import {
 	FailedAuthAttemptsEntity,
 	FailedAuthAttemptSessionEntity,
 	ForgotPasswordSessionEntity
-} from './models/entities';
+} from './types/entities';
 import { createException, ErrorCodes } from './error';
 import { AuthOrchestrator } from './authentication/auth-orchestrator';
-import { AUTH_STEP } from './enums';
-import { DispatchStep } from './authentication/dispatch-step';
-import { PasswordStep } from './authentication/password-step';
-import { TotpStep } from './authentication/totp-step';
-import { GenerateTotpStep } from './authentication/generate-totp-step';
-import { RecaptchaStep, RecaptchaValidator } from './authentication/recaptcha-step';
-import { ErrorStep } from './authentication/error-step';
+import { AUTH_STEP } from './types/enums';
+import { DispatchStep } from './authentication/steps/dispatch-step';
+import { PasswordStep } from './authentication/steps/password-step';
+import { TotpStep } from './authentication/steps/totp-step';
+import { GenerateTotpStep } from './authentication/steps/generate-totp-step';
+import { RecaptchaStep, RecaptchaValidator } from './authentication/steps/recaptcha-step';
+import { ErrorStep } from './authentication/steps/error-step';
 import { UserSessionsManager } from './managers/user-sessions-manager';
-import { AccountLocker } from './managers/account-locker';
-import { AuthenticatedStep } from './authentication/authenticated-step';
+import { AccountLockingManager } from './managers/account-locking-manager';
+import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager } from './managers/passwords-manager';
 import {
 	// eslint-disable-next-line import/named
@@ -42,13 +43,13 @@ import {
 	sendActivateAccountLinkToUserEmail,
 	// eslint-disable-next-line import/named
 	sendForgotPasswordTokenToUserEmail
-} from './utils/email';
-import { ActiveUserSession } from './models/sessions';
-import { AccessPoint, FailedAuthAttempts } from './models';
-import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './models/schedulers';
+} from './email';
+import { ActiveUserSession } from './types/sessions';
+import { AccessPointModel, FailedAuthAttemptsModel } from './types/models';
+import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './types/schedulers';
 import { getLogger } from './logger';
-import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/challenge-response-step';
-import { GenerateChallengeStep } from './authentication/generate-challenge-step';
+import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
+import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
 
 class AuthenticationEngine {
 	private readonly config: InternalUsageOptions;
@@ -56,7 +57,7 @@ class AuthenticationEngine {
 	private readonly totpManager: totp.Totp;
 	private readonly userSessionsManager: UserSessionsManager;
 	private readonly passwordsManager: PasswordsManager;
-	private readonly accountLocker: AccountLocker;
+	private readonly accountLocker: AccountLockingManager;
 
 	constructor(options: AuthEngineOptions) {
 		this.config = fillWithDefaults(options);
@@ -69,7 +70,7 @@ class AuthenticationEngine {
 			this.config.jwt.rolesTtl
 		);
 		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
-		this.accountLocker = new AccountLocker(
+		this.accountLocker = new AccountLockingManager(
 			this.config.entities.account,
 			this.userSessionsManager,
 			this.config['side-channels'].email,
@@ -119,7 +120,7 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async authenticate(data: AuthInput): Promise<AuthStatus> {
+	public async authenticate(data: AuthRequest): Promise<AuthStatus> {
 		const account = await this.config.entities.account.read(data.username);
 
 		if (!account) {
@@ -155,7 +156,7 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async register(registrationInfo: BasicRegistrationInfo, options?: Partial<RegistrationOptions>): Promise<string> {
+	public async register(registrationInfo: RegistrationRequest, options?: Partial<RegistrationOptions>): Promise<string> {
 		options = options || {};
 		options.useMultiFactorAuth = (options && options.useMultiFactorAuth) || false;
 		options.isActivated = (options && options.isActivated) || false;
@@ -251,21 +252,21 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPoint>> {
+	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
 		return this.userSessionsManager.read(accountId);
 	}
 
 	/**
 	 * @access private
 	 */
-	public getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttempts>> {
+	public getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
 	/**
 	 * @access private
 	 */
-	public async changePassword(input: ChangePasswordInput): Promise<number> {
+	public async changePassword(input: ChangePasswordRequest): Promise<number> {
 		const account = await this.config.entities.account.readById(input.accountId);
 		if (!account) {
 			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${input.accountId} not found.`);
@@ -328,7 +329,7 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async changeForgottenPassword(changeForgottenPassword: ChangeForgottenPassword): Promise<void> {
+	public async changeForgottenPassword(changeForgottenPassword: ChangeForgottenPasswordRequest): Promise<void> {
 		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPassword.token);
 		if (!forgotPasswordSession) {
 			throw createException(ErrorCodes.INVALID_ARGUMENT, `Invalid forgot password token ${changeForgottenPassword.token}`);

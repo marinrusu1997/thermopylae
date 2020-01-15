@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Email, SentMessageInfo } from '@marin/lib.email';
-import { getLogger } from '../logger';
-import { Id } from '../types';
+import { getLogger } from './logger';
+import { Id } from './types/requests';
 
 declare type NotificationMFAFailedTemplate = (data: { ip: string; device: string }) => string;
 declare type NotificationAccountLockedTemplate = (data: { cause: string }) => string;

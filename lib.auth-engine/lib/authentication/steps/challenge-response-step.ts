@@ -1,9 +1,9 @@
 import { HexBase64Latin1Encoding } from 'crypto';
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthInput } from '../types';
-import { Account } from '../models';
-import { AUTH_STEP } from '../enums';
-import { AuthSession } from '../models/sessions';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AuthRequest } from '../../types/requests';
+import { AccountModel } from '../../types/models';
+import { AUTH_STEP } from '../../types/enums';
+import { AuthSession } from '../../types/sessions';
 
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
@@ -20,7 +20,7 @@ class ChallengeResponseStep implements AuthStep {
 		this.validator = validator;
 	}
 
-	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
 		if (!session.challengeResponseNonce) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}

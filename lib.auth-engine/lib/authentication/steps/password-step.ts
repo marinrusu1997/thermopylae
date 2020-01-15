@@ -1,9 +1,9 @@
-import { PasswordsManager } from '../managers/passwords-manager';
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { Account } from '../models';
-import { AUTH_STEP } from '../enums';
-import { AuthSession } from '../models/sessions';
-import { AuthInput } from '../types';
+import { PasswordsManager } from '../../managers/passwords-manager';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AccountModel } from '../../types/models';
+import { AUTH_STEP } from '../../types/enums';
+import { AuthSession } from '../../types/sessions';
+import { AuthRequest } from '../../types/requests';
 
 class PasswordStep implements AuthStep {
 	private readonly pepper: string;
@@ -12,7 +12,7 @@ class PasswordStep implements AuthStep {
 		this.pepper = pepper;
 	}
 
-	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
 		if (!(await PasswordsManager.isCorrect(networkInput.password, account.password, account.salt, this.pepper))) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}

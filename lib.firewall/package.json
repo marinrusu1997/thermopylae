@@ -1,0 +1,54 @@
+{
+    "name": "@marin/lib.firewall",
+    "description": "User input validation and sanitization",
+    "keywords": [
+        "validation",
+        "ajv",
+        "sanitization"
+    ],
+    "version": "0.0.1-beta",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "license": "ISC",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+        "test": "gulp test",
+        "coverage": "nyc mocha"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": "12.8.0"
+    },
+    "dependencies": {
+        "ajv": "^6.10.2"
+    },
+    "devDependencies": {
+        "@marin/lib.utils": "file:../lib.utils",
+        "@marin/lib.module-builder": "file:../lib.module-builder",
+        "@types/chai": "^4.2.7",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^13.1.7",
+        "@typescript-eslint/eslint-plugin": "^2.16.0",
+        "@typescript-eslint/parser": "^2.16.0",
+        "chai": "^4.2.0",
+        "eslint": "^6.8.0",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-config-prettier": "^6.9.0",
+        "eslint-plugin-import": "^2.20.0",
+        "eslint-plugin-prettier": "^3.1.2",
+        "esm": "^3.2.25",
+        "mocha": "^7.0.0",
+        "nyc": "^15.0.0",
+        "prettier": "^1.19.1",
+        "ts-node": "^8.6.2",
+        "typescript": "^3.7.4"
+    }
+}

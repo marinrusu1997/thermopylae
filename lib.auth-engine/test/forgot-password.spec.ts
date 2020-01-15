@@ -6,7 +6,7 @@ import { chrono } from '@marin/lib.utils';
 import { AuthenticationEngine } from '../lib/core';
 import basicAuthEngineConfig from './fixtures';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthInput, SIDE_CHANNEL } from '../lib/types';
+import { AuthRequest, SIDE_CHANNEL } from '../lib/types/requests';
 import { EmailMockInstance } from './fixtures/mocks/email';
 import { ErrorCodes } from '../lib/error';
 import { SmsMockInstance } from './fixtures/mocks/sms';
@@ -24,7 +24,7 @@ describe('forgot password spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // needing increased duration of session
 	};
 
-	const validAuthInput: AuthInput = {
+	const validAuthInput: AuthRequest = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

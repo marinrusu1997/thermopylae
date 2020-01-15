@@ -1,13 +1,13 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Email } from '@marin/lib.email';
 import { totp } from '@marin/lib.utils';
-import { AuthStep, AuthStepOutput } from './auth-step';
-import { AuthInput } from '../types';
-import { Account } from '../models';
-import { getLogger } from '../logger';
-import { AUTH_STEP } from '../enums';
-import { NotificationMFAFailedTemplate, sendNotificationMFAFailed } from '../utils/email';
-import { AuthSession } from '../models/sessions';
+import { AuthStep, AuthStepOutput } from '../auth-step';
+import { AuthRequest } from '../../types/requests';
+import { AccountModel } from '../../types/models';
+import { getLogger } from '../../logger';
+import { AUTH_STEP } from '../../types/enums';
+import { NotificationMFAFailedTemplate, sendNotificationMFAFailed } from '../../email';
+import { AuthSession } from '../../types/sessions';
 
 class TotpStep implements AuthStep {
 	private readonly totpManager: totp.Totp;
@@ -20,7 +20,7 @@ class TotpStep implements AuthStep {
 		this.template = template;
 	}
 
-	async process(networkInput: AuthInput, account: Account, session: AuthSession): Promise<AuthStepOutput> {
+	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
 		if (!session.mfaToken) {
 			// received invalid token or someone is trying to use same token twice -> treat as error
 			return { nextStep: AUTH_STEP.ERROR };
