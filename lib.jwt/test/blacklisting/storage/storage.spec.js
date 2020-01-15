@@ -1,4 +1,4 @@
-import redis from 'redis';
+import redis from 'redis-mock';
 import bluebird from 'bluebird';
 import { describe, it } from 'mocha';
 import { chai } from '../../chai';

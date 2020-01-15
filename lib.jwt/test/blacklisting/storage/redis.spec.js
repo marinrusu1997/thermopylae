@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import redis from 'redis';
+import redis from 'redis-mock';
 import bluebird from 'bluebird';
 import { RedisStorage } from '../../../lib/blacklisting/storage/redis';
 import { nowInSeconds } from '../../../lib/utils';

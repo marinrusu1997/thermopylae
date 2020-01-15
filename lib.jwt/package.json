@@ -12,7 +12,7 @@
         "build": "eslint lib/ test/ && npm run test",
         "coverage:show": "http-server coverage/",
         "clean": "rm -rf .nyc_output coverage",
-        "clean:all": "rm -rf .nyc_output coverage node_modules package-lock.json"
+        "clean:all": "rm -rf node_modules package-lock.json; npm run clean"
     },
     "dependencies": {
         "express-unless": "^0.5.0",
@@ -37,7 +37,7 @@
         "mocha": "^6.2.0",
         "nyc": "^14.1.1",
         "prettier": "^1.18.2",
-        "redis": "^2.8.0"
+        "redis-mock": "^0.47.0"
     },
     "type": "module"
 }

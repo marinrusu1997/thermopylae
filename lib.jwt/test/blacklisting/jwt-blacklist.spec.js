@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import bluebird from 'bluebird';
-import redis from 'redis';
+import redis from 'redis-mock';
 import { chai } from '../chai';
 import { nowInSeconds } from '../../lib/utils';
 import { sleep } from '../utils';
