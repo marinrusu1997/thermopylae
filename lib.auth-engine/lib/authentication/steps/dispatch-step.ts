@@ -19,8 +19,6 @@ class DispatchStep implements AuthStep {
 		if (networkInput.password) {
 			return { nextStep: AUTH_STEP.PASSWORD };
 		}
-		// password is always required, so theoretically this should never happen
-		/* istanbul ignore next */
 		throw createException(ErrorCodes.INVALID_ARGUMENT, "Can't resolve next step", networkInput);
 	}
 }

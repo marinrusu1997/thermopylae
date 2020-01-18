@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { hostname } from 'os';
 import { chrono } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
-import { AuthenticationEngine } from '../lib/engine';
+import { AuthenticationEngine } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthRequest } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';

@@ -3,9 +3,8 @@ import { expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { string } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
-import { AuthenticationEngine } from '../lib/engine';
+import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { ErrorCodes } from '../lib/error';
 
 describe('Validate account credentials spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);

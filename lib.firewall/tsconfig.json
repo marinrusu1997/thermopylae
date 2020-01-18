@@ -2,10 +2,10 @@
     "compilerOptions": {
         "incremental": true,
         "target": "esnext",
-        "module": "esnext",
+        "module": "commonjs",
         "allowJs": true,
         "declaration": true,
-        "rootDir": "lib",
+        "rootDir": ".",
         "outDir": "dist",
         "composite": true,
         "tsBuildInfoFile": "build/tsbuildinfo",

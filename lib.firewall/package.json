@@ -17,7 +17,8 @@
     "scripts": {
         "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
         "test": "gulp test",
-        "coverage": "nyc mocha"
+        "coverage": "gulp coverage",
+        "purge": "gulp purge"
     },
     "lint-staged": {
         "*.ts": [
@@ -46,7 +47,6 @@
         "eslint-plugin-import": "^2.20.0",
         "eslint-plugin-prettier": "^3.1.2",
         "esm": "^3.2.25",
-        "json-schema-test-data-generator": "^0.1.1",
         "mocha": "^7.0.0",
         "nyc": "^15.0.0",
         "prettier": "^1.19.1",

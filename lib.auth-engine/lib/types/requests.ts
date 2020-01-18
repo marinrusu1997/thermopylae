@@ -17,7 +17,7 @@ export interface RegistrationRequest extends BasicCredentials {
 
 export interface AuthRequest {
 	username: string;
-	password: string;
+	password?: string;
 	ip: string;
 	device: string;
 	location: BasicLocation;

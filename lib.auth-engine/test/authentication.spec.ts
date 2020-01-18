@@ -6,8 +6,7 @@ import { createSign } from 'crypto';
 import { chrono, enums } from '@marin/lib.utils';
 // @ts-ignore
 import keypair from 'keypair';
-import { AuthenticationEngine } from '../lib/engine';
-import { ErrorCodes } from '../lib/error';
+import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthRequest } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AUTH_STEP } from '../lib/types/enums';

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-ACTIVATE_ACCOUNT",
+  "properties": {
+    "activateAccountToken": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]{20}$"
+    }
+  },
+  "required": [
+    "activateAccountToken"
+  ]
+}

@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
 import { assert, expect } from 'chai';
-import { chrono, enums } from '@marin/lib.utils';
+import { chrono, services } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
-import { AuthenticationEngine } from '../lib/engine';
+import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
-import { ErrorCodes } from '../lib/error';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 import { failureWillBeGeneratedForSessionOperation, hasAnySessions, SESSIONS_OP } from './fixtures/memcache-entities';
 
@@ -74,7 +73,7 @@ describe('Account registration spec', () => {
 		} catch (e) {
 			expect(e)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('emitter', enums.SERVICES.AUTH);
+				.and.to.haveOwnProperty('emitter', services.SERVICES.AUTH);
 			expect(e).to.haveOwnProperty('code', ErrorCodes.ALREADY_REGISTERED);
 			expect(e).to.haveOwnProperty('message', `Account ${defaultRegistrationInfo.username} is registered already.`);
 		}

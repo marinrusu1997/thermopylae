@@ -6,7 +6,7 @@
   "title": "AuthService register method",
   "description": "Method used for the registration of the new users.",
   "allOf": [
-    { "$ref": "../base/credentials.json" },
+    { "$ref": "../core/credentials.json"},
     {
       "properties": {
         "email": {
@@ -18,7 +18,6 @@
         "telephone": {
           "type": "string",
           "description": "Telephone number of the user.",
-          "maxLength": 15,
           "pattern": "^\\+[1-9]\\d{1,14}$"
         },
         "role": {

@@ -6,7 +6,7 @@ import Ajv from 'ajv';
 const readDir = promisify(readdir);
 
 const SCHEMAS_DIR = `${__dirname}/schemas`;
-const EXCLUDE_SCHEMAS_DIR = ['base'];
+const EXCLUDE_SCHEMAS_DIR = ['core'];
 
 class Firewall {
 	private static readonly validator: Ajv.Ajv = new Ajv({ loadSchema: uri => fs.readJsonFromFile(`${SCHEMAS_DIR}/${uri}`) });

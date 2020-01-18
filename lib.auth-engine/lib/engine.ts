@@ -120,11 +120,11 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async authenticate(data: AuthRequest): Promise<AuthStatus> {
-		const account = await this.config.entities.account.read(data.username);
+	public async authenticate(authRequest: AuthRequest): Promise<AuthStatus> {
+		const account = await this.config.entities.account.read(authRequest.username);
 
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account ${data.username} not found.`);
+			throw createException(ErrorCodes.NOT_FOUND, `Account ${authRequest.username} not found.`);
 		}
 
 		if (account.locked) {
@@ -135,19 +135,19 @@ class AuthenticationEngine {
 		}
 
 		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
-		let authSession = await this.config.entities.authSession.read(data.username, data.device);
+		let authSession = await this.config.entities.authSession.read(authRequest.username, authRequest.device);
 		if (!authSession) {
-			authSession = await this.config.entities.authSession.create(data.username, data.device, this.config.ttl.authSession);
+			authSession = await this.config.entities.authSession.create(authRequest.username, authRequest.device, this.config.ttl.authSession);
 		}
 
-		const result = await this.authOrchestrator.authenticate(data, account, authSession);
+		const result = await this.authOrchestrator.authenticate(authRequest, account, authSession);
 
 		if (result.nextStep) {
 			// will be reused on auth continuation from previous step
-			await this.config.entities.authSession.update(data.username, data.device, authSession);
+			await this.config.entities.authSession.update(authRequest.username, authRequest.device, authSession);
 		} else {
 			// on success or hard error not needed anymore
-			await this.config.entities.authSession.delete(data.username, data.device);
+			await this.config.entities.authSession.delete(authRequest.username, authRequest.device);
 		}
 
 		return result;
@@ -266,24 +266,29 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public async changePassword(input: ChangePasswordRequest): Promise<number> {
-		const account = await this.config.entities.account.readById(input.accountId);
+	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number> {
+		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${input.accountId} not found.`);
+			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found.`);
 		}
 		if (account.locked) {
 			// just in case session invalidation failed when account was locked
-			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account with id ${input.accountId} is locked.`);
+			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account with id ${changePasswordRequest.accountId} is locked.`);
 		}
-		if (!(await PasswordsManager.isCorrect(input.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
+		if (!(await PasswordsManager.isCorrect(changePasswordRequest.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
 			throw createException(ErrorCodes.INVALID_PASSWORD, "Old passwords doesn't match.");
 		}
 		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
 
-		await this.passwordsManager.change(input.accountId, input.newPassword, this.config.sizes.salt, this.config.secrets.pepper);
+		await this.passwordsManager.change(
+			changePasswordRequest.accountId,
+			changePasswordRequest.newPassword,
+			this.config.sizes.salt,
+			this.config.secrets.pepper
+		);
 
 		// logout from all devices, needs to be be done, as usually jwt will be long lived
-		return this.userSessionsManager.deleteAllButOne(account.id!, account.role, input.sessionId);
+		return this.userSessionsManager.deleteAllButOne(account.id!, account.role, changePasswordRequest.sessionId);
 	}
 
 	/**
@@ -329,21 +334,21 @@ class AuthenticationEngine {
 	/**
 	 * @access public
 	 */
-	public async changeForgottenPassword(changeForgottenPassword: ChangeForgottenPasswordRequest): Promise<void> {
-		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPassword.token);
+	public async changeForgottenPassword(changeForgottenPasswordRequest: ChangeForgottenPasswordRequest): Promise<void> {
+		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPasswordRequest.token);
 		if (!forgotPasswordSession) {
-			throw createException(ErrorCodes.INVALID_ARGUMENT, `Invalid forgot password token ${changeForgottenPassword.token}`);
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `Invalid forgot password token ${changeForgottenPasswordRequest.token}`);
 		}
 		await this.passwordsManager.change(
 			forgotPasswordSession.accountId,
-			changeForgottenPassword.newPassword,
+			changeForgottenPasswordRequest.newPassword,
 			this.config.sizes.salt,
 			this.config.secrets.pepper
 		);
 
 		// operation is considered successful, even if some of the clean up steps fails
 		try {
-			await this.config.entities.forgotPasswordSession.delete(changeForgottenPassword.token);
+			await this.config.entities.forgotPasswordSession.delete(changeForgottenPasswordRequest.token);
 			await this.logoutFromAllDevices({ sub: forgotPasswordSession.accountId, aud: forgotPasswordSession.accountRole });
 		} catch (error) {
 			getLogger().error(`Failed to clean up forgot password session for account ${forgotPasswordSession.accountId}. `, error);
