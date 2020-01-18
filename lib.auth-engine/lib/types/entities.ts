@@ -9,7 +9,7 @@ export interface AccountEntity {
 	activate(id: string): Promise<void>;
 	lock(id: string): Promise<void>;
 	unlock(id: string): Promise<void>;
-	requireMfa(id: string, required: boolean): Promise<void>;
+	activateMFA(id: string, activate: boolean): Promise<void>;
 	changePassword(id: string, passwordHash: string, salt: string): Promise<void>;
 }
 

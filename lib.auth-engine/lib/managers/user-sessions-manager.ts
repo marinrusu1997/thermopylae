@@ -68,7 +68,7 @@ class UserSessionsManager {
 			.then(() => this.activeUserSessionEntity.delete(payload.sub, payload.iat));
 	}
 
-	public async deleteAllButOne(accountId: string, accountRole: string | undefined, tokenIssuedAtTime: number): Promise<number> {
+	public async deleteAllButCurrent(accountId: string, accountRole: string | undefined, tokenIssuedAtTime: number): Promise<number> {
 		const ttl = this.jwtRolesTtl && accountRole ? this.jwtRolesTtl.get(accountRole) : this.jwt.blacklist().allTtl; // seconds
 		if (!ttl) {
 			throw createException(ErrorCodes.NOT_FOUND, `Jwt ttl for account ${accountId} not found`);

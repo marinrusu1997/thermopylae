@@ -380,7 +380,7 @@ describe('Authenticate spec', () => {
 		// expected flow: dispatch -> secret -> generate totp => dispatch -> totp -> authenticated
 
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		await AuthEngineInstance.requireMultiFactorAuth(accountId, true);
+		await AuthEngineInstance.activateMultiFactorAuthentication(accountId, true);
 
 		const authStatusSecretStep = await AuthEngineInstance.authenticate(validNetworkInput);
 		expect(authStatusSecretStep.nextStep!).to.be.eq(AUTH_STEP.TOTP);

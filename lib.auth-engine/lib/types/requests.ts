@@ -38,7 +38,7 @@ export interface ChangePasswordRequest {
 	newPassword: string;
 }
 
-export interface ForgotPasswordRequest {
+export interface CreateForgotPasswordSessionRequest {
 	username: string;
 	'side-channel': SIDE_CHANNEL;
 }

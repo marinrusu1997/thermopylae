@@ -6,7 +6,7 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthRequest, RegistrationRequest, ChangeForgottenPasswordRequest, ChangePasswordRequest, ForgotPasswordRequest, SIDE_CHANNEL } from './types/requests';
+import { AuthRequest, RegistrationRequest, ChangeForgottenPasswordRequest, ChangePasswordRequest, CreateForgotPasswordSessionRequest, SIDE_CHANNEL } from './types/requests';
 import { BasicCredentials } from './types/basic-types';
 import { AuthStatus } from './authentication/auth-step';
 import {
@@ -245,8 +245,8 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public requireMultiFactorAuth(accountId: string, required: boolean): Promise<void> {
-		return this.config.entities.account.requireMfa(accountId, required);
+	public activateMultiFactorAuthentication(accountId: string, activate: boolean): Promise<void> {
+		return this.config.entities.account.activateMFA(accountId, activate);
 	}
 
 	/**
@@ -288,13 +288,13 @@ class AuthenticationEngine {
 		);
 
 		// logout from all devices, needs to be be done, as usually jwt will be long lived
-		return this.userSessionsManager.deleteAllButOne(account.id!, account.role, changePasswordRequest.sessionId);
+		return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
 	}
 
 	/**
 	 * @access public
 	 */
-	public async createForgotPasswordSession(forgotPasswordRequest: ForgotPasswordRequest): Promise<void> {
+	public async createForgotPasswordSession(forgotPasswordRequest: CreateForgotPasswordSessionRequest): Promise<void> {
 		const account = await this.config.entities.account.read(forgotPasswordRequest.username);
 		if (!account) {
 			// silently discard invalid username, in order to prevent user enumeration
@@ -404,12 +404,12 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public logoutFromAllDevicesExceptFrom(accountId: string, sessionId: number): Promise<number> {
+	public logoutFromAllDevicesExceptFromCurrent(accountId: string, sessionId: number): Promise<number> {
 		return this.config.entities.account.readById(accountId).then(account => {
 			if (!account) {
 				throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
 			}
-			return this.userSessionsManager.deleteAllButOne(account.id!, account.role, sessionId);
+			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, sessionId);
 		});
 	}
 }

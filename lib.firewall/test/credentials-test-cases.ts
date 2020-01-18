@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { services, string } from '@marin/lib.utils';
 import { Firewall } from '../lib';
-import { generateString, testPattern, testRequired } from './utils';
+import { generateString, testMaxLength, testMinLength, testPattern, testRequired } from './utils';
 
 function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object): void {
 	describe('username spec', () => {
@@ -81,38 +81,38 @@ function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, ser
 	});
 }
 
-function passwordTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object): void {
+function passwordTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object, passwordPropertyName = 'password'): void {
 	describe('password spec', () => {
 		it('is required', async () => {
 			const data = {
 				username: 'validusername',
 				...serviceSpecificData
 			};
-			await testRequired(service, method, data, '', ['password', '.password']);
+			await testRequired(service, method, data, '', [passwordPropertyName, `.${passwordPropertyName}`]);
 		});
 
 		it('has min length of 10 chars', async () => {
 			const data = {
 				username: 'validusername',
-				password: 'short',
+				[passwordPropertyName]: 'short',
 				...serviceSpecificData
 			};
-			await testPattern(service, method, data, '.password', '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{10,256}$');
+			await testMinLength(service, method, data, `.${passwordPropertyName}`, 10);
 		});
 
 		it('has max length of 256 chars', async () => {
 			const data = {
 				username: 'validusername',
-				password: generateString(257),
+				[passwordPropertyName]: generateString(257),
 				...serviceSpecificData
 			};
-			await testPattern(service, method, data, '.password', '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{10,256}$');
+			await testMaxLength(service, method, data, `.${passwordPropertyName}`, 256);
 		});
 
 		it('passes for valid password', async () => {
 			const data = {
 				username: 'validusername',
-				password: 'r4!Ma4d5g5gdr8',
+				[passwordPropertyName]: 'r4!Ma4d5g5gdr8',
 				...serviceSpecificData
 			};
 			expect(await Firewall.validate(service, method, data)).to.be.deep.eq(data);

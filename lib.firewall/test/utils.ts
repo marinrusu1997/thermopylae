@@ -119,6 +119,24 @@ async function testRequired(service: services.SERVICES, method: string, data: ob
 	}
 }
 
+async function testPassesValidation(service: services.SERVICES, method: string, data: object): Promise<void> {
+	expect(await Firewall.validate(service, method, data)).to.be.deep.eq(data);
+}
+
+async function testMinValue(service: services.SERVICES, method: string, data: object, dataPath: string, value: number): Promise<void> {
+	let err;
+	try {
+		await Firewall.validate(service, method, data);
+	} catch (e) {
+		err = e;
+	}
+	expect(err.message).to.be.eq('validation failed');
+	expect(err.errors.length).to.be.eq(1);
+	expect(err.errors[0].keyword).to.be.eq('minimum');
+	expect(err.errors[0].dataPath).to.be.eq(dataPath);
+	expect(err.errors[0].message).to.be.eq(`should be >= ${value}`);
+}
+
 async function testEnum(service: services.SERVICES, method: string, data: object, dataPath: string): Promise<void> {
 	let err;
 	try {
@@ -147,4 +165,16 @@ async function testAdditionalProperties(service: services.SERVICES, method: stri
 	expect(err.errors[0].message).to.be.eq('should NOT have additional properties');
 }
 
-export { generateString, testType, testPattern, testFormat, testMinLength, testMaxLength, testRequired, testEnum, testAdditionalProperties };
+export {
+	generateString,
+	testType,
+	testMinValue,
+	testPattern,
+	testFormat,
+	testMinLength,
+	testMaxLength,
+	testRequired,
+	testPassesValidation,
+	testEnum,
+	testAdditionalProperties
+};
