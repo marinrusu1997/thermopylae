@@ -4,7 +4,6 @@
         "target": "esnext",
         "module": "esnext",
         "allowJs": true,
-        "checkJs": true,
         "declaration": true,
         "rootDir": "lib",
         "outDir": "dist",
@@ -29,8 +28,8 @@
         "experimentalDecorators": true
     },
     "include": [
-        "lib",
-        "test"
+        "lib/**/*.ts",
+        "test/**/*.ts"
     ],
     "exclude": [
         "node_modules",

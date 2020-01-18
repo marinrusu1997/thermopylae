@@ -28,10 +28,11 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "ajv": "^6.10.2"
+        "@marin/lib.utils": "file:../lib.utils",
+        "ajv": "^6.10.2",
+        "xss": "^1.0.6"
     },
     "devDependencies": {
-        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@types/chai": "^4.2.7",
         "@types/mocha": "^5.2.7",
@@ -45,6 +46,7 @@
         "eslint-plugin-import": "^2.20.0",
         "eslint-plugin-prettier": "^3.1.2",
         "esm": "^3.2.25",
+        "json-schema-test-data-generator": "^0.1.1",
         "mocha": "^7.0.0",
         "nyc": "^15.0.0",
         "prettier": "^1.19.1",

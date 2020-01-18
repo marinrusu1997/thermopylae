@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { string } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
-import { AuthenticationEngine } from '../lib/core';
+import { AuthenticationEngine } from '../lib/engine';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { ErrorCodes } from '../lib/error';
 

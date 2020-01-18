@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 import { assert, expect } from 'chai';
 import { chrono, enums } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
-import { AuthenticationEngine } from '../lib/core';
+import { AuthenticationEngine } from '../lib/engine';
 import basicAuthEngineConfig from './fixtures';
 import { ErrorCodes } from '../lib/error';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';

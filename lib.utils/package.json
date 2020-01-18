@@ -31,6 +31,7 @@
   "engines": {
     "node": ">=12.8.0"
   },
+  "type": "module",
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
     "argon2": "^0.25.1",

@@ -4,7 +4,7 @@ import { hostname } from 'os';
 import { chrono, string } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
-import { AuthenticationEngine } from '../lib/core';
+import { AuthenticationEngine } from '../lib/engine';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthRequest } from '../lib/types/requests';
 import { ErrorCodes } from '../lib/error';
