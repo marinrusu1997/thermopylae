@@ -6,7 +6,14 @@ import { Email } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
-import { AuthRequest, RegistrationRequest, ChangeForgottenPasswordRequest, ChangePasswordRequest, CreateForgotPasswordSessionRequest, SIDE_CHANNEL } from './types/requests';
+import {
+	AuthRequest,
+	RegistrationRequest,
+	ChangeForgottenPasswordRequest,
+	ChangePasswordRequest,
+	CreateForgotPasswordSessionRequest,
+	SIDE_CHANNEL
+} from './types/requests';
 import { BasicCredentials } from './types/basic-types';
 import { AuthStatus } from './authentication/auth-step';
 import {

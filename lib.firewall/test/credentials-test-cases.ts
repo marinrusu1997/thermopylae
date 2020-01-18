@@ -2,13 +2,22 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { services, string } from '@marin/lib.utils';
 import { Firewall } from '../lib';
-import { generateString, testMaxLength, testMinLength, testPattern, testRequired } from './utils';
+import { generateString, testMaxLength, testMinLength, testPattern, testRequired, testType } from './utils';
 
 function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object): void {
 	describe('username spec', () => {
 		it('is required', async () => {
 			const data = { ...serviceSpecificData };
 			await testRequired(service, method, data, '', 'username');
+		});
+
+		it('is string', async () => {
+			const data = {
+				username: 1,
+				password: '!@45Masdasdidgh',
+				...serviceSpecificData
+			};
+			await testType(service, method, data, '.username', 'string');
 		});
 
 		it('has min 6 chars', async () => {
@@ -89,6 +98,15 @@ function passwordTestsSuite(service: services.SERVICES.AUTH, method: string, ser
 				...serviceSpecificData
 			};
 			await testRequired(service, method, data, '', [passwordPropertyName, `.${passwordPropertyName}`]);
+		});
+
+		it('is string', async () => {
+			const data = {
+				username: 'validusername',
+				[passwordPropertyName]: 1,
+				...serviceSpecificData
+			};
+			await testType(service, method, data, `.${passwordPropertyName}`, 'string');
 		});
 
 		it('has min length of 10 chars', async () => {
