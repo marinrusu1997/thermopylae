@@ -19,6 +19,7 @@
     "no-param-reassign": "warn",
     "no-use-before-define": "warn",
     "no-console": "error",
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "@typescript-eslint/no-use-before-define": "warn",
     "@typescript-eslint/no-namespace": "off"
   },

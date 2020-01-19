@@ -16,6 +16,7 @@
     ],
     "scripts": {
         "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+        "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
         "purge": "gulp purge"
