@@ -52,6 +52,8 @@ class Firewall {
 	}
 
 	public static sanitize(data: object | string): object | string {
+		// SQLi are not sanitized, Prepared Statements will be used
+
 		if (typeof data === 'string') {
 			return Firewall.xssFilter.process(data);
 		}

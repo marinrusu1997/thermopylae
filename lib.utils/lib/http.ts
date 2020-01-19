@@ -54,7 +54,7 @@ function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, par
 				return reject(createException(ErrorCodes.NOT_SUPPORTED, res.statusCode.toString()));
 			}
 
-			// cumulate data
+			// accumulate data
 			const body: any[] = [];
 			res.on('data', chunk => body.push(chunk));
 

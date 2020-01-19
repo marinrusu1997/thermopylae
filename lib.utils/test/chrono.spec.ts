@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { chai } from './chai';
-import { nowInSeconds, sleep, dateFromSeconds, minutesToSeconds } from '../lib/chrono';
+import { nowInSeconds, sleep, dateFromSeconds, minutesToSeconds, tomorrow } from '../lib/chrono';
 
 const { assert } = chai;
 
