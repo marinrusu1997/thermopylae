@@ -3,7 +3,7 @@ import http, { IncomingMessage, ServerResponse } from 'http';
 import Exception from '@marin/lib.error';
 import { chai } from './chai';
 import { makeHTTPRequest, makeHTTPSRequest } from '../lib/http';
-import { ErrorCodes } from '../lib/errors';
+import { ErrorCodes, ErrorMessages } from '../lib/errors';
 import { generateToken } from './utils';
 
 const { expect } = chai;
@@ -88,8 +88,8 @@ describe('http spec', () => {
 			.then(() => done(new Error('should not resolve')))
 			.catch((error: Exception) => {
 				expect(error).to.be.instanceOf(Error);
-				expect(error).to.have.property('code', ErrorCodes.REQUEST_FAILED);
-				expect(error).to.have.property('message', `statusCode: ${statusCodeForGETRequest}`);
+				expect(error).to.have.property('code', '400');
+				expect(error).to.have.property('message', ErrorMessages.REQUEST_FAILED);
 				expect(error.data).to.be.deep.equal(responseForGETRequest);
 				done();
 			});

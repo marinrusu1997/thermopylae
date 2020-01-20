@@ -2,7 +2,7 @@ import { URL } from 'url';
 import * as http from 'http';
 import * as https from 'https';
 import { createException } from './exception';
-import { ErrorCodes } from './errors';
+import { ErrorCodes, ErrorMessages } from './errors';
 
 interface PostData {
 	'content-type': string;
@@ -63,7 +63,7 @@ function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, par
 				const parsedBody = parseBody(Buffer.concat(body).toString(), res.headers['content-type']);
 				// reject on bad status
 				if (res.statusCode! >= 400) {
-					return reject(createException(ErrorCodes.REQUEST_FAILED, `statusCode: ${res.statusCode}`, parsedBody));
+					return reject(createException(String(res.statusCode!), ErrorMessages.REQUEST_FAILED, parsedBody));
 				}
 				return resolve(parsedBody);
 			});

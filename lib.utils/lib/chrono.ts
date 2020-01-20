@@ -10,12 +10,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Returns current time in seconds
+ * Returns given time in seconds
  *
  * @returns {number}
  */
-function nowInSeconds(): number {
-	return Math.floor(new Date().getTime() / 1000);
+function dateToUNIX(date = new Date()): number {
+	return Math.floor(date.getTime() / 1000);
 }
 
 /**
@@ -23,7 +23,7 @@ function nowInSeconds(): number {
  *
  * @param {number}	seconds
  */
-function dateFromSeconds(seconds: number): Date {
+function dateFromUNIX(seconds: number): Date {
 	return new Date(seconds * 1000);
 }
 
@@ -47,17 +47,17 @@ function firstDayOfNextMonth(): Date {
 	const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1; // for december, go to january
 	const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-	return new Date(nextYear, nextMonth, 1, 0, 0, 0, 0);
+	return new Date(nextYear, nextMonth, 2);
 }
 
 /**
- * Computes the date of tomorrow
+ * Computes the date of tomorrow. Tomorrow computation will have current time.
  */
 function tomorrow(): Date {
 	// see https://stackoverflow.com/questions/23081158/javascript-get-date-of-the-next-day/23081260
-	var tomorrow = new Date();
-	tomorrow.setDate(new Date().getDate() + 1);
-	return tomorrow;
+	const tomorrowDate = new Date();
+	tomorrowDate.setDate(new Date().getDate() + 1);
+	return tomorrowDate;
 }
 
-export { nowInSeconds, sleep, dateFromSeconds, minutesToSeconds, firstDayOfNextMonth, tomorrow };
+export { dateToUNIX, sleep, dateFromUNIX, minutesToSeconds, firstDayOfNextMonth, tomorrow };
