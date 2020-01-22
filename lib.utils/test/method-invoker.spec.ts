@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { chai } from './chai';
-import { MethodInvoker } from '../lib/method-invoker';
+import { MethodInvoker } from '../lib/method';
 
 const { expect } = chai;
 

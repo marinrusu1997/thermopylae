@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { chai } from './chai';
-import { replaceAt } from '../lib/string';
+import { generateString, replaceAt } from '../lib/string';
 
 const { expect } = chai;
 
@@ -28,6 +28,30 @@ describe('string spec', () => {
 			let str = 'garbage';
 			str = replaceAt('bad ', str.length, str);
 			expect(str).to.be.eq('garbagebad ');
+		});
+	});
+
+	describe('generateString spec', () => {
+		it('generates random string of specified length', () => {
+			const length = 5;
+			const generatedString = generateString(length);
+			expect(generatedString.length).to.be.eq(length);
+		});
+
+		it('generates random string with digits', () => {
+			const generatedString = generateString(5, /^[0-9]$/);
+			for (let i = 0; i < generatedString.length; i++) {
+				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(false);
+			}
+		});
+
+		it('generates random string with digits on heads and chars inside', () => {
+			const generatedString = generateString(5, /^[a-zA-Z]$/, /^[0-9]$/);
+			expect(Number.isNaN(Number(generatedString[0]))).to.be.eq(false);
+			for (let i = 1; i < generatedString.length - 1; i++) {
+				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(true);
+			}
+			expect(Number.isNaN(Number(generatedString[generatedString.length - 1]))).to.be.eq(false);
 		});
 	});
 });

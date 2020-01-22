@@ -2,27 +2,25 @@ import clone from 'lodash.clone';
 import cloneDeep from 'lodash.clonedeep';
 
 /**
- * Removes first occurrence of the item from array if exists
+ * Check if the provided object contains values.
  *
- * @param {boolean|number|string}			item
- * @param {Array<boolean|number|string>}	array
- *
- * @return {boolean}
+ * @param obj
  */
-function removeItemFromArray(item: boolean | number | string, array: Array<boolean | number | string>): boolean {
-	const indexOfTheItem = array.indexOf(item);
-	if (indexOfTheItem !== -1) {
-		return array.splice(indexOfTheItem, 1).length === 1;
-	}
-	return false;
-}
-
 function isEmptyObject(obj: object): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
 type TraverseProcessor = (value: boolean | number | string) => void | boolean | number | string;
 
+/**
+ * Iterates over a provided object and processes it's leafs using provided processor.
+ * If the processor returns a value different from `undefined`, the leaf value will be replaced by this one.
+ * If can option for altering of a clone of the provided object.
+ *
+ * @param object			Object which needs to be iterated.
+ * @param processor			Leaf processor
+ * @param alterDeepClone	Alter a deep clone instead of the provided object.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function traverse(object: object, processor: TraverseProcessor, alterDeepClone?: boolean): object {
 	if (alterDeepClone) {
@@ -57,7 +55,7 @@ function traverse(object: object, processor: TraverseProcessor, alterDeepClone?:
 			traverseObject(value);
 		} else if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
 			const processedVal = processor(value);
-			if (processedVal) {
+			if (typeof processedVal !== 'undefined') {
 				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
 				// eslint-disable-next-line no-param-reassign
@@ -72,4 +70,4 @@ function traverse(object: object, processor: TraverseProcessor, alterDeepClone?:
 }
 
 // eslint-disable-next-line no-undef
-export { clone, cloneDeep, removeItemFromArray, isEmptyObject, traverse, TraverseProcessor };
+export { clone, cloneDeep, isEmptyObject, traverse, TraverseProcessor };

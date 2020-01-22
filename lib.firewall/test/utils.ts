@@ -1,35 +1,6 @@
-import { services } from '@marin/lib.utils';
+import { services, string } from '@marin/lib.utils';
 import { expect } from 'chai';
 import { Firewall } from '../lib';
-
-function generateString(length: number, allowedCharRegex?: RegExp, headsRegex?: RegExp): string {
-	let result = '';
-	const alphaNumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	const specialChars = ' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~';
-	let i = 0;
-	let testRegex: RegExp | undefined;
-	while (i < length) {
-		const charSet = Math.random() < 0.5 ? alphaNumeric : specialChars;
-		const selectedChar = charSet.charAt(Math.floor(Math.random() * charSet.length));
-
-		if (headsRegex && (i === 0 || i === length - 1)) {
-			testRegex = headsRegex;
-		} else {
-			testRegex = allowedCharRegex;
-		}
-
-		if (testRegex) {
-			if (testRegex.test(selectedChar)) {
-				result += selectedChar;
-				i += 1;
-			}
-		} else {
-			result += selectedChar;
-			i += 1;
-		}
-	}
-	return result;
-}
 
 async function testType(service: services.SERVICES, method: string, data: object, dataPath: string, type: string): Promise<void> {
 	let err;
@@ -164,6 +135,8 @@ async function testAdditionalProperties(service: services.SERVICES, method: stri
 	expect(err.errors[0].dataPath).to.be.eq('');
 	expect(err.errors[0].message).to.be.eq('should NOT have additional properties');
 }
+
+const { generateString } = string;
 
 export {
 	generateString,

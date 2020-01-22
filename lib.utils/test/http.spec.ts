@@ -1,9 +1,8 @@
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
-import Exception from '@marin/lib.error';
 import { chai } from './chai';
-import { makeHTTPRequest, makeHTTPSRequest } from '../lib/http';
-import { ErrorCodes, ErrorMessages } from '../lib/errors';
+import { HTTPResponse, makeHTTPRequest, makeHTTPSRequest } from '../lib/http';
+import { ErrorCodes } from '../lib/errors';
 import { generateToken } from './utils';
 
 const { expect } = chai;
@@ -52,7 +51,7 @@ describe('http spec', () => {
 		server.close(err => console.error(err));
 	});
 
-	it('throws when unsupported status code is received', done => {
+	it('throws when unsupported status code is received (redirects)', done => {
 		statusCodeForGETRequest = 300;
 		makeHTTPRequest(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
@@ -69,7 +68,9 @@ describe('http spec', () => {
 		contentTypeForGETRequest = 'text/plain';
 		responseForGETRequest = generateToken(100000);
 		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
-		expect(resp).to.be.deep.equal(responseForGETRequest);
+		expect(resp.status).to.be.eq(statusCodeForGETRequest);
+		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
+		expect(resp.data).to.be.deep.equal(responseForGETRequest);
 	});
 
 	it('makes GET request for json content', async () => {
@@ -77,7 +78,9 @@ describe('http spec', () => {
 		contentTypeForGETRequest = 'application/json';
 		responseForGETRequest = { level1: { level2: 'value' } };
 		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
-		expect(resp).to.be.deep.equal(responseForGETRequest);
+		expect(resp.status).to.be.eq(statusCodeForGETRequest);
+		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
+		expect(resp.data).to.be.deep.equal(responseForGETRequest);
 	});
 
 	it('makes GET request and handles error code in response (400 code)', done => {
@@ -86,10 +89,10 @@ describe('http spec', () => {
 		responseForGETRequest = { error: { message: 'failure' } };
 		makeHTTPRequest(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
-			.catch((error: Exception) => {
-				expect(error).to.be.instanceOf(Error);
-				expect(error).to.have.property('code', '400');
-				expect(error).to.have.property('message', ErrorMessages.REQUEST_FAILED);
+			.catch((error: HTTPResponse) => {
+				expect(error).to.not.be.instanceOf(Error);
+				expect(error).to.have.property('status', 400);
+				expect(error.headers['content-type']).to.be.eq(contentTypeForGETRequest);
 				expect(error.data).to.be.deep.equal(responseForGETRequest);
 				done();
 			});
@@ -111,8 +114,10 @@ describe('http spec', () => {
 		statusCodeForPOSTRequest = 200;
 		dataWhichWasSentInPOSTReq = generateToken(100000);
 		makeHTTPRequest(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq })
-			.then((res: string) => {
-				expect(res).to.be.equal(null);
+			.then((res: HTTPResponse) => {
+				expect(res.status).to.be.eq(statusCodeForPOSTRequest);
+				expect(res.headers['content-type']).to.be.eq(undefined);
+				expect(res.data).to.be.equal(null);
 				done();
 			})
 			.catch(error => done(error));
@@ -126,6 +131,8 @@ describe('http spec', () => {
 			title: 'delectus aut autem',
 			completed: false
 		};
-		expect(resp).to.be.deep.equal(expectedJSON);
+		expect(resp.status).to.be.eq(200);
+		expect(resp.headers['content-type']).to.be.eq('application/json; charset=utf-8');
+		expect(resp.data).to.be.deep.equal(expectedJSON);
 	});
 });

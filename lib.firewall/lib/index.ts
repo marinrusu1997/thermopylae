@@ -1,4 +1,4 @@
-import { services, fs, misc } from '@marin/lib.utils';
+import { services, fs, object } from '@marin/lib.utils';
 import { readdir } from 'fs';
 import { promisify } from 'util';
 import Ajv from 'ajv';
@@ -57,7 +57,7 @@ class Firewall {
 		if (typeof data === 'string') {
 			return Firewall.xssFilter.process(data);
 		}
-		return misc.traverse(data, value => (typeof value === 'string' ? Firewall.xssFilter.process(value) : undefined));
+		return object.traverse(data, value => (typeof value === 'string' ? Firewall.xssFilter.process(value) : undefined));
 	}
 
 	private static computeSchemaId(service: services.SERVICES, method: string): string {

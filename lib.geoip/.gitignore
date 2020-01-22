@@ -19,6 +19,7 @@ package-lock.json
 
 # config
 GeoIP.conf
+.env
 
 # IDEs and editors
 /.idea

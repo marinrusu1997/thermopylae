@@ -15,7 +15,7 @@
         "dist/**/*"
     ],
     "scripts": {
-        "lint": "eslint \"lib/**/*\" \"test/**/*\" --fix",
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
