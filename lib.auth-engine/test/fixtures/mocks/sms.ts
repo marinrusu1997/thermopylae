@@ -1,13 +1,13 @@
-import { SMS } from '@marin/lib.sms';
-import { createException, ErrorCodes } from '../../../lib/error';
+import { SmsClient, ErrorCodes as SmsErrorCodes } from '@marin/lib.sms';
+import { createException } from '../../../lib/error';
 
-class SmsMock extends SMS {
+class SmsMock extends SmsClient {
 	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
 	private deliveryFails = false;
 
 	async send(to: string, body: string): Promise<string> {
 		if (this.deliveryFails) {
-			throw createException(ErrorCodes.NOT_DELIVERED, 'SMS mock client was configured to fail sms delivery');
+			throw createException(SmsErrorCodes.SMS_DELIVERY_FAILED, 'SMS mock client was configured to fail sms delivery');
 		}
 
 		const sms = this.outbox.get(to);

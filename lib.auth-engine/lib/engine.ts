@@ -1,8 +1,8 @@
 import { chrono, token, totp } from '@marin/lib.utils';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SMS } from '@marin/lib.sms';
+import { SmsClient } from '@marin/lib.sms';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Email } from '@marin/lib.email';
+import { EmailClient } from '@marin/lib.email';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
@@ -131,14 +131,14 @@ class AuthenticationEngine {
 		const account = await this.config.entities.account.read(authRequest.username);
 
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account ${authRequest.username} not found.`);
+			return { error: { hard: createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account ${authRequest.username} not found. `) } };
 		}
 
 		if (account.locked) {
-			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account ${account.username} is locked.`);
+			return { error: { hard: createException(ErrorCodes.ACCOUNT_LOCKED, `Account ${account.username} is locked. `) } };
 		}
 		if (!account.activated) {
-			throw createException(ErrorCodes.CHECKING_FAILED, `Account ${account.username} is not activated.`);
+			return { error: { hard: createException(ErrorCodes.ACCOUNT_NOT_ACTIVATED, `Account ${account.username} is not activated. `) } };
 		}
 
 		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
@@ -170,7 +170,7 @@ class AuthenticationEngine {
 
 		const account = await this.config.entities.account.read(registrationInfo.username);
 		if (account) {
-			throw createException(ErrorCodes.ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already.`);
+			throw createException(ErrorCodes.ACCOUNT_ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already.`);
 		}
 
 		await this.passwordsManager.validateStrengthness(registrationInfo.password);
@@ -197,7 +197,7 @@ class AuthenticationEngine {
 				activateToken = await token.generateToken(this.config.sizes.token);
 				deleteAccountTaskId = await this.config.schedulers.account.deleteUnactivated(
 					registeredAccount.id!,
-					chrono.dateFromSeconds(chrono.nowInSeconds() + chrono.minutesToSeconds(this.config.ttl.activateAccountSession))
+					chrono.dateFromUNIX(chrono.dateToUNIX() + chrono.minutesToSeconds(this.config.ttl.activateAccountSession))
 				);
 				await this.config.entities.activateAccountSession.create(
 					activateToken.plain,
@@ -233,7 +233,7 @@ class AuthenticationEngine {
 	public async activateAccount(activateAccountToken: string): Promise<void> {
 		const session = await this.config.entities.activateAccountSession.read(activateAccountToken);
 		if (!session) {
-			throw createException(ErrorCodes.INVALID_ARGUMENT, 'Provided token is not valid');
+			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by provided token ${activateAccountToken} not found. `);
 		}
 		await Promise.all([
 			this.config.entities.account.activate(session.accountId),
@@ -276,14 +276,14 @@ class AuthenticationEngine {
 	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number> {
 		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found.`);
 		}
 		if (account.locked) {
 			// just in case session invalidation failed when account was locked
-			throw createException(ErrorCodes.ACCOUNT_IS_LOCKED, `Account with id ${changePasswordRequest.accountId} is locked.`);
+			throw createException(ErrorCodes.ACCOUNT_LOCKED, `Account with id ${changePasswordRequest.accountId} is locked.`);
 		}
 		if (!(await PasswordsManager.isCorrect(changePasswordRequest.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
-			throw createException(ErrorCodes.INVALID_PASSWORD, "Old passwords doesn't match.");
+			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match.");
 		}
 		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
 
@@ -344,7 +344,10 @@ class AuthenticationEngine {
 	public async changeForgottenPassword(changeForgottenPasswordRequest: ChangeForgottenPasswordRequest): Promise<void> {
 		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPasswordRequest.token);
 		if (!forgotPasswordSession) {
-			throw createException(ErrorCodes.INVALID_ARGUMENT, `Invalid forgot password token ${changeForgottenPasswordRequest.token}`);
+			throw createException(
+				ErrorCodes.SESSION_NOT_FOUND,
+				`Forgot password session identified by provided token ${changeForgottenPasswordRequest.token} not found. `
+			);
 		}
 		await this.passwordsManager.change(
 			forgotPasswordSession.accountId,
@@ -368,7 +371,7 @@ class AuthenticationEngine {
 	public async areAccountCredentialsValid(accountId: string, credentials: BasicCredentials): Promise<boolean> {
 		const account = await this.config.entities.account.readById(accountId);
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
 		}
 		if (!(credentials.username === account.username)) {
 			return false;
@@ -382,7 +385,7 @@ class AuthenticationEngine {
 	public async lockAccount(accountId: string, cause: string): Promise<void> {
 		const account = await this.config.entities.account.readById(accountId);
 		if (!account) {
-			throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
 		}
 		return this.accountLocker.lock(account, this.config.contacts.adminEmail, cause);
 	}
@@ -414,7 +417,7 @@ class AuthenticationEngine {
 	public logoutFromAllDevicesExceptFromCurrent(accountId: string, sessionId: number): Promise<number> {
 		return this.config.entities.account.readById(accountId).then(account => {
 			if (!account) {
-				throw createException(ErrorCodes.NOT_FOUND, `Account with id ${accountId} not found.`);
+				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
 			}
 			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, sessionId);
 		});
@@ -456,8 +459,8 @@ interface AuthEngineOptions {
 		forgotPasswordSession: ForgotPasswordSessionEntity;
 	};
 	'side-channels': {
-		email: Email;
-		sms: SMS;
+		email: EmailClient;
+		sms: SmsClient;
 	};
 	templates: {
 		totpTokenSms: (totp: string) => string;

@@ -16,7 +16,12 @@
   ],
   "scripts": {
     "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-    "coverage": "nyc mocha"
+    "build": "gulp build",
+    "test": "gulp test",
+    "coverage": "gulp coverage",
+    "coverage:show": "gulp coverageShow",
+    "clean": "gulp clean",
+    "purge": "gulp purge"
   },
   "lint-staged": {
     "*.ts": [
@@ -29,7 +34,6 @@
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
     "@marin/lib.logger": "file:../lib.logger",
-    "@marin/lib.utils": "file:../lib.utils",
     "nodemailer": "6"
   },
   "devDependencies": {
@@ -39,6 +43,7 @@
     "@types/nodemailer": "6",
     "@typescript-eslint/eslint-plugin": "2",
     "@typescript-eslint/parser": "2",
+    "@marin/lib.utils": "file:../lib.utils",
     "@marin/lib.module-builder": "file:../lib.module-builder",
     "chai": "4",
     "dotenv": "8",

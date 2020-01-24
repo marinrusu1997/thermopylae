@@ -1,4 +1,4 @@
-import { misc } from '@marin/lib.utils';
+import { object } from '@marin/lib.utils';
 import { EventEmitter } from 'events';
 import { GarbageCollector } from './garbage-collector';
 
@@ -46,7 +46,7 @@ class MemCache<Key = string, Value = any> {
 	 * @param ttl 		Time to live in seconds
 	 */
 	public set(key: Key, value: Value, ttl?: number): void {
-		value = this.config.useClones ? misc.cloneDeep(value) : value;
+		value = this.config.useClones ? object.cloneDeep(value) : value;
 		this.cache.set(key, value);
 		ttl = ttl || this.config.stdTTL;
 		if (ttl > 0) {

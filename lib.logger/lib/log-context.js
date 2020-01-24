@@ -1,5 +1,5 @@
-import { errors, token } from '@marin/lib.utils';
-import { createException } from './error';
+import { token } from '@marin/lib.utils';
+import { createException, ErrorCodes } from './error';
 
 const LOG_CTX_COMPONENTS = {
 	ACTION: 'action',
@@ -42,11 +42,11 @@ class LogContext {
 	 */
 	getContext(contextToken) {
 		if (contextToken !== globalContextToken) {
-			throw createException(errors.ErrorCodes.ILLEGAL_ARGUMENT, 'Context token is not valid');
+			throw createException(ErrorCodes.INVALID_CONTEXT_TOKEN, 'Context token is not valid.');
 		}
 		const { ctx } = internal(this);
 		if (!ctx) {
-			throw createException(errors.ErrorCodes.NOT_INITIALIZED, errors.ErrorMessages.NOT_INITIALIZED);
+			throw createException(ErrorCodes.NOT_INITIALIZED, 'Log context is not initialized.');
 		}
 		return ctx;
 	}
@@ -59,7 +59,7 @@ class LogContext {
 	 */
 	setContext(ctx, contextToken) {
 		if (contextToken !== globalContextToken) {
-			throw createException(errors.ErrorCodes.ILLEGAL_ARGUMENT, 'Context token is not valid');
+			throw createException(ErrorCodes.INVALID_CONTEXT_TOKEN, 'Context token is not valid.');
 		}
 		internal(this).ctx = ctx;
 	}

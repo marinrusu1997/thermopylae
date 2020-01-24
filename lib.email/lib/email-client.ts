@@ -1,10 +1,9 @@
-import { errors } from '@marin/lib.utils';
 import { Transporter, createTransport, SendMailOptions } from 'nodemailer';
 import { EmailTransportOptions, EmailTransportDefaults, SentMessageInfo } from './types';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import { getLogger } from './logger';
 
-class Email {
+class EmailClient {
 	private transport: Transporter | undefined | null;
 
 	/**
@@ -15,7 +14,7 @@ class Email {
 	 */
 	init(options: EmailTransportOptions, defaults?: EmailTransportDefaults): void {
 		if (this.transport) {
-			throw createException(errors.ErrorCodes.ALREADY_INITIALIZED, errors.ErrorMessages.ALREADY_INITIALIZED);
+			throw createException(ErrorCodes.EMAIL_CLIENT_ALREADY_INITIALIZED, 'Email client was initialized before. ');
 		}
 		this.transport = createTransport(options, defaults);
 		this.transport.on('error', err => getLogger().error(err));
@@ -32,11 +31,11 @@ class Email {
 	 */
 	async send(message: SendMailOptions, strict?: boolean): Promise<SentMessageInfo> {
 		if (!this.transport) {
-			throw createException(errors.ErrorCodes.NOT_INITIALIZED, errors.ErrorMessages.NOT_INITIALIZED);
+			throw createException(ErrorCodes.EMAIL_CLIENT_NOT_INITIALIZED, 'Email client needs to be initialized before sending an email. ');
 		}
 		const info = await this.transport.sendMail(message);
 		if (strict && info.accepted.length !== (message.to as []).length) {
-			throw createException(errors.ErrorCodes.NOT_DELIVERED, 'Email was not delivered to all recipients', info);
+			throw createException(ErrorCodes.EMAIL_DELIVERY_FAILED, 'Email was not delivered to all recipients', info);
 		}
 		return info;
 	}
@@ -47,11 +46,11 @@ class Email {
 	 */
 	unload(): void {
 		if (!this.transport) {
-			throw createException(errors.ErrorCodes.NOT_INITIALIZED, errors.ErrorMessages.NOT_INITIALIZED);
+			throw createException(ErrorCodes.EMAIL_CLIENT_NOT_INITIALIZED, 'Email client needs to be initialized before being unloaded. ');
 		}
 		this.transport.close();
 		this.transport = null;
 	}
 }
 
-export { Email, EmailTransportOptions, EmailTransportDefaults, SendMailOptions, SentMessageInfo };
+export { EmailClient, EmailTransportOptions, EmailTransportDefaults, SendMailOptions, SentMessageInfo };

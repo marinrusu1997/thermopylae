@@ -1,11 +1,12 @@
 import { describe, it } from 'mocha';
-import { services } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { expect } from 'chai';
 import { passwordTestsSuite, usernameTestsSuite } from './credentials-test-cases';
 import { Firewall } from '../lib';
 import { generateString, testAdditionalProperties, testPattern, testMaxLength, testMinLength, testRequired, testType } from './utils';
 
-describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE} spec`, () => {
+describe(`${Services.AUTH}-${AuthServiceMethods.AUTHENTICATE} spec`, () => {
 	const validCredentials = {
 		username: 'validpassword',
 		password: '!@45Masdasdidgh'
@@ -17,8 +18,8 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 	};
 
 	describe('credentials spec', () => {
-		usernameTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, authenticationInfo);
-		passwordTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, authenticationInfo);
+		usernameTestsSuite(Services.AUTH, AuthServiceMethods.AUTHENTICATE, authenticationInfo);
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.AUTHENTICATE, authenticationInfo);
 
 		it('password not required when totp is present', async () => {
 			const data = {
@@ -26,7 +27,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				totp: '123456'
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 
 		it('password not required when generateChallenge is present', async () => {
@@ -35,7 +36,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				generateChallenge: true
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 
 		it('password not required when responseForChallenge is present', async () => {
@@ -48,7 +49,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 					signEncoding: 'utf8'
 				}
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 	});
 
@@ -58,7 +59,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...validCredentials,
 				device: 'device'
 			};
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '', 'ip');
+			await testRequired(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '', 'ip');
 		});
 
 		it('is string', async () => {
@@ -67,7 +68,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				device: 'device',
 				ip: []
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.ip', 'string');
+			await testType(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.ip', 'string');
 		});
 
 		it('rejects invalid ipv4 address', async () => {
@@ -77,8 +78,8 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				ip: '1455.12.12.12'
 			};
 			await testPattern(
-				services.SERVICES.AUTH,
-				services.AUTH_SERVICE_METHODS.AUTHENTICATE,
+				Services.AUTH,
+				AuthServiceMethods.AUTHENTICATE,
 				data,
 				'.ip',
 				'((^\\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\s*$)|(^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$))'
@@ -91,7 +92,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				ip: '10.189.65.36'
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 
 		it('rejects invalid ipv6 address', async () => {
@@ -101,8 +102,8 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				ip: '1200:0000:AB00:1234:O000:2552:7777:1313'
 			};
 			await testPattern(
-				services.SERVICES.AUTH,
-				services.AUTH_SERVICE_METHODS.AUTHENTICATE,
+				Services.AUTH,
+				AuthServiceMethods.AUTHENTICATE,
 				data,
 				'.ip',
 				'((^\\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\s*$)|(^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$))'
@@ -115,7 +116,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				ip: '1200:0000:AB00:1234:0000:2552:7777:1313'
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 	});
 
@@ -125,7 +126,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...validCredentials,
 				ip: '127.0.0.1'
 			};
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '', 'device');
+			await testRequired(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '', 'device');
 		});
 
 		it('is string', async () => {
@@ -134,7 +135,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				ip: '127.0.0.1',
 				device: 146565626
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.device', 'string');
+			await testType(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.device', 'string');
 		});
 
 		it('has min length of 5 characters', async () => {
@@ -143,16 +144,16 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				device: generateString(4)
 			};
-			await testMinLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.device', 5);
+			await testMinLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.device', 5);
 		});
 
-		it('has max length of 50 characters', async () => {
+		it('has max length of 300 characters', async () => {
 			const data = {
 				...validCredentials,
 				...authenticationInfo,
-				device: generateString(51)
+				device: generateString(301)
 			};
-			await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.device', 50);
+			await testMaxLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.device', 300);
 		});
 	});
 
@@ -163,7 +164,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				totp: '123456'
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data)).to.be.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data)).to.be.eq(data);
 		});
 
 		it('is string', async () => {
@@ -172,7 +173,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				totp: 123456
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.totp', 'string');
+			await testType(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.totp', 'string');
 		});
 
 		it("can't contain less than 6 digits", async () => {
@@ -181,7 +182,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				totp: '12345'
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.totp', '^[0-9]{6}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.totp', '^[0-9]{6}$');
 		});
 
 		it("can't contain more than 6 digits", async () => {
@@ -190,7 +191,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				totp: '1234567'
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.totp', '^[0-9]{6}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.totp', '^[0-9]{6}$');
 		});
 	});
 
@@ -201,7 +202,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				recaptcha: 12345
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.recaptcha', 'string');
+			await testType(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.recaptcha', 'string');
 		});
 
 		it('has max length of 50 chars', async () => {
@@ -210,7 +211,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				recaptcha: generateString(51)
 			};
-			await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.recaptcha', 50);
+			await testMaxLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.recaptcha', 50);
 		});
 	});
 
@@ -221,7 +222,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 				...authenticationInfo,
 				generateChallenge: 12345
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.generateChallenge', 'boolean');
+			await testType(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.generateChallenge', 'boolean');
 		});
 	});
 
@@ -236,7 +237,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: 'utf8'
 					}
 				};
-				await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge', 'signature');
+				await testRequired(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge', 'signature');
 			});
 
 			it('has min length of 10 chars', async () => {
@@ -249,7 +250,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: 'utf8'
 					}
 				};
-				await testMinLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge.signature', 10);
+				await testMinLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge.signature', 10);
 			});
 
 			it('has max length of 256 characters', async () => {
@@ -262,7 +263,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: 'utf8'
 					}
 				};
-				await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge.signature', 256);
+				await testMaxLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge.signature', 256);
 			});
 		});
 
@@ -276,7 +277,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: 'utf8'
 					}
 				};
-				await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge', 'signAlgorithm');
+				await testRequired(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge', 'signAlgorithm');
 			});
 
 			it('has max length of 50 characters', async () => {
@@ -289,7 +290,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: 'utf8'
 					}
 				};
-				await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge.signAlgorithm', 50);
+				await testMaxLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge.signAlgorithm', 50);
 			});
 		});
 
@@ -303,7 +304,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signAlgorithm: 'rsa'
 					}
 				};
-				await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge', 'signEncoding');
+				await testRequired(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge', 'signEncoding');
 			});
 
 			it('has max length of 50 characters', async () => {
@@ -316,7 +317,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 						signEncoding: generateString(51)
 					}
 				};
-				await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data, '.responseForChallenge.signEncoding', 50);
+				await testMaxLength(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data, '.responseForChallenge.signEncoding', 50);
 			});
 		});
 	});
@@ -327,6 +328,6 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.AUTHENTICATE
 			...authenticationInfo,
 			'@additionalProperty@': []
 		};
-		await testAdditionalProperties(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.AUTHENTICATE, data);
+		await testAdditionalProperties(Services.AUTH, AuthServiceMethods.AUTHENTICATE, data);
 	});
 });

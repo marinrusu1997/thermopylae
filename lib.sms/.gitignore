@@ -13,6 +13,9 @@
 /.nyc_output
 /coverage
 
+# environment
+.env
+
 # dependencies
 /node_modules
 package-lock.json
@@ -63,7 +66,4 @@ Thumbs.db
 *.swp
 .Spotlight*
 .Trashes
-
-# Environment
-.env
 

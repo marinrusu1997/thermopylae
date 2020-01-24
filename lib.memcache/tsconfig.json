@@ -5,9 +5,9 @@
     "module": "esnext",
     "allowJs": true,
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "dist",
     "composite": true,
-    "tsBuildInfoFile": "./build/tsbuildinfo",
+    "tsBuildInfoFile": "build/tsbuildinfo",
     "removeComments": false,
     "strict": true,
     "noImplicitAny": true,
@@ -26,8 +26,8 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "lib/**/*",
-    "test/**/*"
+    "lib/**/*.ts",
+    "test/**/*.ts"
   ],
   "exclude": [
     "node_modules",

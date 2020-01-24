@@ -1,37 +1,64 @@
 {
-    "name": "@marin/lib.sms",
-    "version": "1.0.0",
-    "description": "Lib for SMS",
+    "name": "lib.sms",
+    "description": "Sms library",
+    "keywords": [
+        "sms",
+        "lib",
+        "ts"
+    ],
+    "version": "0.0.1-beta",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "main": "lib/index.js",
+    "license": "ISC",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
     "scripts": {
-        "lint": "eslint --fix lib/**/*.js test/**/*.js",
-        "test": "mocha -r esm",
-        "coverage": "nyc mocha",
-        "build": "eslint lib/ test/ && npm run test",
-        "coverage:show": "http-server coverage/",
-        "clean": "rm -rf .nyc_output coverage",
-        "clean:all": "rm -rf .nyc_output coverage node_modules package-lock.json"
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "test": "gulp test",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "clean": "gulp clean",
+        "purge": "gulp purge"
     },
-    "type": "module",
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": "12.8.0"
+    },
+    "dependencies": {
+        "@marin/lib.error": "file:../lib.error",
+        "twilio": "^3.39.3"
+    },
     "devDependencies": {
+        "@marin/lib.module-builder": "file:../lib.module-builder",
+        "@marin/lib.utils": "file:../lib.utils",
+        "@types/chai": "^4.2.7",
+        "@types/chai-arrays": "^1.0.3",
+        "@types/chai-as-promised": "^7.1.2",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^13.5.0",
+        "@typescript-eslint/eslint-plugin": "^2.17.0",
+        "@typescript-eslint/parser": "^2.17.0",
         "chai": "^4.2.0",
         "chai-arrays": "^2.0.0",
         "chai-as-promised": "^7.1.1",
         "dotenv": "^8.2.0",
-        "eslint": "^6.6.0",
+        "eslint": "^6.8.0",
         "eslint-config-airbnb-base": "^14.0.0",
-        "eslint-config-prettier": "^6.4.0",
-        "eslint-plugin-import": "^2.18.2",
-        "eslint-plugin-prettier": "^3.1.1",
+        "eslint-config-prettier": "^6.9.0",
+        "eslint-plugin-import": "^2.20.0",
+        "eslint-plugin-prettier": "^3.1.2",
         "esm": "^3.2.25",
-        "mocha": "^6.2.2",
-        "nyc": "^14.1.1",
-        "prettier": "^1.18.2"
-    },
-    "dependencies": {
-        "@marin/lib.error": "file:../lib.error",
-        "@marin/lib.utils": "file:../lib.utils",
-        "twilio": "^3.36.0"
+        "mocha": "^7.0.0",
+        "nyc": "^15.0.0",
+        "prettier": "^1.19.1",
+        "ts-node": "^8.6.2",
+        "typescript": "^3.7.5"
     }
 }

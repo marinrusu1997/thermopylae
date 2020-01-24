@@ -1,16 +1,32 @@
 import { Exception } from '@marin/lib.error';
-import { errors, services } from '@marin/lib.utils';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import { Libraries } from '@marin/lib.utils/dist/enums';
 
-const ErrorCodes = {
-	...errors.ErrorCodes,
-	ACCOUNT_IS_LOCKED: 'ACCOUNT_IS_LOCKED',
-	INVALID_PASSWORD: 'INVALID_PASSWORD',
-	WEAK_PASSWORD: 'WEAK_PASSWORD'
-};
-const { ErrorMessages } = errors;
+const enum ErrorCodes {
+	ACCOUNT_ALREADY_REGISTERED = 'ACCOUNT_ALREADY_REGISTERED',
+	ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
+	ACCOUNT_NOT_ACTIVATED = 'ACCOUNT_NOT_ACTIVATED',
+	ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
 
-function createException(code: string, message: string, data?: any): Exception {
-	return new Exception(services.SERVICES.AUTH, code, message, data);
+	INCORRECT_CREDENTIALS = 'INCORRECT_CREDENTIALS',
+	INCORRECT_PASSWORD = 'INCORRECT_PASSWORD',
+
+	INVALID_CONFIG = 'INVALID_CONFIG',
+	INVALID_AUTH_STEP_OUTPUT = 'INVALID_AUTH_STEP_OUTPUT',
+
+	JWT_TTL_NOT_FOUND = 'JWT_TTL_NOT_FOUND',
+
+	NEXT_AUTH_STEP_RESOLVING_FAILED = 'NEXT_AUTH_STEP_RESOLVING_FAILED',
+
+	RECAPTCHA_THRESHOLD_REACHED = 'RECAPTCHA_THRESHOLD_REACHED',
+
+	SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
+
+	WEAK_PASSWORD = 'WEAK_PASSWORD'
 }
 
-export { ErrorCodes, ErrorMessages, createException };
+function createException(code: string, message: string, data?: any): Exception {
+	return new Exception(Libraries.AUTH_ENGINE, code, message, data);
+}
+
+export { ErrorCodes, createException };

@@ -2,11 +2,12 @@ import { before, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { config as dotEnvConfig } from 'dotenv';
 import LoggerInstance from '@marin/lib.logger';
-import { chrono, enums } from '@marin/lib.utils';
+import { chrono } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Libraries } from '@marin/lib.utils/dist/enums';
 import Exception from '@marin/lib.error';
-import { ExternalService, GeoIP } from '../lib';
+import { GeoIP, ExternalService, ErrorCodes } from '../lib';
 import { HttpClientMock, ServiceFailureType } from './http-client-mock';
-import { ErrorCodes } from '../lib/error';
 
 describe('geoip spec', () => {
 	let ipstackAccessKey: string | undefined;
@@ -77,8 +78,8 @@ describe('geoip spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('emitter', enums.SYSTEMS.GEO_IP);
-		expect(err).to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			.and.to.haveOwnProperty('emitter', Libraries.GEO_IP);
+		expect(err).to.haveOwnProperty('code', ErrorCodes.IP_LOCATION_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Couldn't locate ip ${ip}.`);
 	});
 

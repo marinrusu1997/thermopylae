@@ -28,7 +28,7 @@ describe('Validate account credentials spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found.`);
 	});
 

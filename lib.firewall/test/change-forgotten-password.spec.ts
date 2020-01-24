@@ -1,13 +1,14 @@
 import { describe, it } from 'mocha';
-import { services } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { generateString, testMaxLength, testRequired, testType } from './utils';
 import { passwordTestsSuite } from './credentials-test-cases';
 
-describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CHANGE_FORGOTTEN_PASSWORD} spec`, () => {
+describe(`${Services.AUTH}-${AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD} spec`, () => {
 	describe('token spec', () => {
 		it('is required', async () => {
 			const data = {};
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CHANGE_FORGOTTEN_PASSWORD, data, '', 'token');
+			await testRequired(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '', 'token');
 		});
 
 		it('is string', async () => {
@@ -15,7 +16,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CHANGE_FORGO
 				token: 1,
 				newPassword: generateString(10)
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 'string');
+			await testType(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 'string');
 		});
 
 		it('has max length of 20 chars', async () => {
@@ -23,7 +24,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CHANGE_FORGO
 				token: generateString(21),
 				newPassword: generateString(10)
 			};
-			await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 20);
+			await testMaxLength(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 20);
 		});
 	});
 
@@ -31,6 +32,6 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CHANGE_FORGO
 		const data = {
 			token: generateString(20)
 		};
-		passwordTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CHANGE_FORGOTTEN_PASSWORD, data, 'newPassword');
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, 'newPassword');
 	});
 });

@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SMS } from '@marin/lib.sms';
+import { SmsClient } from '@marin/lib.sms';
 import { totp } from '@marin/lib.utils';
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
@@ -10,11 +10,11 @@ import { AuthSession } from '../../types/sessions';
 type TotpSmsTemplate = (totpToken: string) => string;
 
 class GenerateTotpStep implements AuthStep {
-	private readonly smsSender: SMS;
+	private readonly smsSender: SmsClient;
 	private readonly totpManager: totp.Totp;
 	private readonly template: TotpSmsTemplate;
 
-	constructor(totpManager: totp.Totp, smsSender: SMS, template: TotpSmsTemplate) {
+	constructor(totpManager: totp.Totp, smsSender: SmsClient, template: TotpSmsTemplate) {
 		this.smsSender = smsSender;
 		this.totpManager = totpManager;
 		this.template = template;

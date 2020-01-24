@@ -45,7 +45,7 @@ class GarbageCollector<Key = string> {
 			} while (item); // remove all items with same when to delete timestamp
 			const itemWhichNeedsToBeRemovedOnNextGC = this.trackedItems.peek();
 			if (itemWhichNeedsToBeRemovedOnNextGC) {
-				this.start(itemWhichNeedsToBeRemovedOnNextGC.whenToDelete - chrono.nowInSeconds()); // schedule next GC
+				this.start(itemWhichNeedsToBeRemovedOnNextGC.whenToDelete - chrono.dateToUNIX()); // schedule next GC
 			}
 		}, delay * 1000);
 	}
@@ -61,9 +61,8 @@ class GarbageCollector<Key = string> {
 	public track(key: Key, ttl: number): void {
 		const item: TrackedItem<Key> = {
 			key,
-			whenToDelete: chrono.nowInSeconds() + ttl
+			whenToDelete: chrono.dateToUNIX() + ttl
 		};
-		/* istanbul ignore if  */
 		if (!this.trackedItems.add(item)) {
 			throw createException(ErrorCodes.ITEM_TRACKING_FAILED, `${ErrorMessages.ITEM_TRACKING_FAILED} ${key}`);
 		}
@@ -76,7 +75,6 @@ class GarbageCollector<Key = string> {
 	 * Stops GC and clears all tracked items
 	 */
 	public stop(): void {
-		/* istanbul ignore else  */
 		if (this.timeoutId) {
 			clearTimeout(this.timeoutId);
 			this.trackedItems.clear();

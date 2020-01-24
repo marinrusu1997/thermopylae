@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Email } from '@marin/lib.email';
+import { EmailClient } from '@marin/lib.email';
 import { AccountModel } from '../types/models';
 import { UserSessionsManager } from './user-sessions-manager';
 import { getLogger } from '../logger';
@@ -9,10 +9,10 @@ import { AccountEntity } from '../types/entities';
 class AccountLockingManager {
 	private readonly accountEntity: AccountEntity;
 	private readonly userSessionsManager: UserSessionsManager;
-	private readonly mailer: Email;
+	private readonly mailer: EmailClient;
 	private readonly template: NotificationAccountLockedTemplate;
 
-	constructor(accountEntity: AccountEntity, userSessionsManager: UserSessionsManager, mailer: Email, template: NotificationAccountLockedTemplate) {
+	constructor(accountEntity: AccountEntity, userSessionsManager: UserSessionsManager, mailer: EmailClient, template: NotificationAccountLockedTemplate) {
 		this.accountEntity = accountEntity;
 		this.userSessionsManager = userSessionsManager;
 		this.mailer = mailer;

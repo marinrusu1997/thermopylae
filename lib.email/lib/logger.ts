@@ -1,10 +1,10 @@
 import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
-import { enums } from '@marin/lib.utils';
+import { Libraries } from '@marin/lib.utils/dist/enums';
 
 let logger: WinstonLogger | undefined;
 function getLogger(): WinstonLogger {
 	if (!logger) {
-		logger = LoggerInstance.for(enums.SYSTEMS.EMAIL);
+		logger = LoggerInstance.for(Libraries.EMAIL);
 	}
 	return logger;
 }

@@ -21,8 +21,8 @@
     "test": "mocha",
     "coverage": "nyc mocha",
     "coverage:show": "http-server coverage/",
-    "clear": "rm -rf .nyc_output build coverage dist",
-    "clear:all": "npm run clear; rm -rf node_modules package-lock.json"
+    "clean": "rm -rf .nyc_output build coverage dist",
+    "purge": "npm run clear; rm -rf node_modules package-lock.json"
   },
   "lint-staged": {
     "*.ts": [

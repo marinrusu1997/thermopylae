@@ -1,13 +1,16 @@
 import { authenticator } from 'otplib';
 import crypto from 'crypto';
 import { createException } from './exception';
-import { ErrorCodes } from './errors';
 
 const { Authenticator } = authenticator;
 
 interface Options {
 	ttl: number; // in seconds
 	secret: string;
+}
+
+const enum ErrorCodes {
+	TOTP_CHECK_FAILED = 'TOTP_CHECK_FAILED'
 }
 
 /** Class for operations which TOTP tokens */
@@ -47,10 +50,10 @@ class Totp {
 		try {
 			return stored ? stored === received && this.impl.check(received, this.secret) : this.impl.check(received, this.secret);
 		} catch (error) {
-			(logger || console).error(createException(ErrorCodes.CHECKING_FAILED, 'Failed to check TOTP signature', error));
+			(logger || console).error(createException(ErrorCodes.TOTP_CHECK_FAILED, 'Failed to check TOTP signature', error));
 		}
 		return false;
 	}
 }
 
-export { Totp };
+export { Totp, ErrorCodes };

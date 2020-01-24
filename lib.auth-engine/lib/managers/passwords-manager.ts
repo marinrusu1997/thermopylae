@@ -29,7 +29,7 @@ class PasswordsManager {
 		const suffix = hash.substr(5);
 
 		const response = await http.makeHTTPSRequest('https://api.pwnedpasswords.com', { path: `/range/${prefix}` });
-		const breachedPasswords = response.split('\n');
+		const breachedPasswords = (response.data as string).split('\n');
 
 		for (let i = 0; i < breachedPasswords.length; i += 1) {
 			const [entry, howOften] = breachedPasswords[i].split(':');

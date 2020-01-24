@@ -38,8 +38,13 @@ function defineFormatters(formatters) {
 	formatters.set('colorize', colorize({ all: true }));
 	formatters.set(
 		'printf',
-		printf(({ level, message, label, timestamp, stack }) => {
-			return `${timestamp} [${label}] ${level}: ${message || ''}${stack ? `\n${stack}` : ''}`;
+		printf(info => {
+			const { emitter, code, data, level, stack, label, timestamp } = info;
+			if (emitter && code) {
+				// eslint-disable-next-line no-param-reassign
+				info.message = `${info.message}; Emitter: ${emitter}; Code: ${code}; Data: ${JSON.stringify(data)}`;
+			}
+			return `${timestamp} [${label}] ${level}: ${info.message || ''}${stack ? `\n${stack}` : ''}`;
 		})
 	);
 	formatters.set('json', json({ space: 4 }));

@@ -61,7 +61,7 @@ describe('forgot password spec', () => {
 
 		// check old password is no longer valid
 		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthInput);
-		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
 		// check new credentials are valid
 		const newCredentialsAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthInput, password: newPassword });
@@ -128,8 +128,8 @@ describe('forgot password spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
-		expect(err).to.haveOwnProperty('message', 'Invalid forgot password token invalid');
+			.and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by provided token invalid not found. `);
 	});
 
 	it('fails to change forgotten password when providing new weak password', async () => {
@@ -194,6 +194,6 @@ describe('forgot password spec', () => {
 
 		// bad guy can't log with old credentials
 		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthInput);
-		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 	});
 });

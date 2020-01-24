@@ -32,10 +32,14 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "@marin/lib.firewall": "file:../lib.firewall"
+        "@marin/lib.firewall": "file:../lib.firewall",
+        "@marin/lib.logger": "file:../lib.logger",
+        "@marin/lib.error": "file:../lib.error"
     },
     "devDependencies": {
         "@marin/lib.auth-engine": "file:../lib.auth-engine",
+        "@marin/lib.geoip": "file:../lib.geoip",
+        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@types/chai": "^4.2.7",
         "@types/mocha": "^5.2.7",

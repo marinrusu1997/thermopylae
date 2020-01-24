@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Email } from '@marin/lib.email';
+import { EmailClient } from '@marin/lib.email';
 import { totp } from '@marin/lib.utils';
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
@@ -11,10 +11,10 @@ import { AuthSession } from '../../types/sessions';
 
 class TotpStep implements AuthStep {
 	private readonly totpManager: totp.Totp;
-	private readonly mailer: Email;
+	private readonly mailer: EmailClient;
 	private readonly template: NotificationMFAFailedTemplate;
 
-	constructor(totpManager: totp.Totp, mailer: Email, template: NotificationMFAFailedTemplate) {
+	constructor(totpManager: totp.Totp, mailer: EmailClient, template: NotificationMFAFailedTemplate) {
 		this.totpManager = totpManager;
 		this.mailer = mailer;
 		this.template = template;

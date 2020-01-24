@@ -71,12 +71,12 @@ class ErrorStep implements AuthStep {
 						ips: new Set<string>(failedAuthAttemptSession.ip),
 						devices: new Set<string>(failedAuthAttemptSession.device)
 					})
-					.catch(error => getLogger().error(`Failed to persist failed auth attempts for account ${account.id}`, error))
+					.catch(error => getLogger().error(`Failed to persist failed auth attempts for account ${account.id}. `, error))
 			);
 			promises.push(
 				this.failedAuthAttemptSessionEntity
 					.delete(account.username)
-					.catch(error => getLogger().error(`Failed to delete failed auth attempts session for account ${account.id}`, error))
+					.catch(error => getLogger().error(`Failed to delete failed auth attempts session for account ${account.id}. `, error))
 			);
 			await Promise.all(promises);
 
@@ -84,15 +84,15 @@ class ErrorStep implements AuthStep {
 				done: {
 					error: {
 						hard: createException(
-							ErrorCodes.ACCOUNT_IS_LOCKED,
-							`Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}).`
+							ErrorCodes.ACCOUNT_LOCKED,
+							`Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}). `
 						)
 					}
 				}
 			};
 		}
 
-		const errorMessage = `Credentials are not valid. Remaining attempts (${this.failedAuthAttemptsThreshold - failedAuthAttemptSession.counter}).`;
+		const errorMessage = `Credentials are not valid. Remaining attempts (${this.failedAuthAttemptsThreshold - failedAuthAttemptSession.counter}). `;
 
 		if (failedAuthAttemptSession.counter >= this.recaptchaThreshold) {
 			session.recaptchaRequired = true;
@@ -101,7 +101,9 @@ class ErrorStep implements AuthStep {
 				done: {
 					// ternary is needed in order to inform client that it's time to use captcha
 					nextStep: prevStepName === AUTH_STEP.PASSWORD ? AUTH_STEP.RECAPTCHA : prevStepName,
-					error: { soft: createException(ErrorCodes.INVALID_ARGUMENT, errorMessage) }
+					error: {
+						soft: createException(ErrorCodes.RECAPTCHA_THRESHOLD_REACHED, errorMessage)
+					}
 				}
 			};
 		}
@@ -109,7 +111,9 @@ class ErrorStep implements AuthStep {
 		return {
 			done: {
 				nextStep: prevStepName,
-				error: { soft: createException(ErrorCodes.INVALID_ARGUMENT, errorMessage) }
+				error: {
+					soft: createException(ErrorCodes.INCORRECT_CREDENTIALS, errorMessage)
+				}
 			}
 		};
 	}

@@ -1,5 +1,5 @@
 import { Exception } from '@marin/lib.error';
-import { enums } from '@marin/lib.utils';
+import { Libraries } from '@marin/lib.utils/dist/enums';
 
 const ErrorCodes = {
 	ITEM_TRACKING_FAILED: 'ITEM_TRACKING_FAILED'
@@ -10,7 +10,7 @@ const ErrorMessages = {
 };
 
 function createException(code: string, message: string, cause?: object): Exception {
-	return new Exception(enums.SYSTEMS.MEM_CACHE, code, message, cause);
+	return new Exception(Libraries.MEM_CACHE, code, message, cause);
 }
 
 export { createException, ErrorCodes, ErrorMessages };

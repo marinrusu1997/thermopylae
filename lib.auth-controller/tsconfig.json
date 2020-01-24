@@ -4,9 +4,8 @@
         "target": "esnext",
         "module": "esnext",
         "allowJs": true,
-        "checkJs": true,
         "declaration": true,
-        "rootDir": "lib",
+        "rootDir": ".",
         "outDir": "dist",
         "composite": true,
         "tsBuildInfoFile": "build/tsbuildinfo",
@@ -29,7 +28,8 @@
         "experimentalDecorators": true
     },
     "include": [
-        "lib/**/*.ts"
+        "lib/**/*.ts",
+        "test/**/*.ts"
     ],
     "exclude": [
         "node_modules",

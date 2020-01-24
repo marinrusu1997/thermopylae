@@ -1,11 +1,12 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { services } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { Firewall } from '../lib';
 import { passwordTestsSuite, usernameTestsSuite } from './credentials-test-cases';
 import { generateString, testEnum, testPattern, testMaxLength, testRequired, testFormat } from './utils';
 
-describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} spec`, () => {
+describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {
 	const registrationInfo = {
 		email: 'email@email.com',
 		telephone: '+437746564663'
@@ -17,8 +18,8 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 	};
 
 	describe('credentials spec', () => {
-		usernameTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, registrationInfo);
-		passwordTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, registrationInfo);
+		usernameTestsSuite(Services.AUTH, AuthServiceMethods.REGISTER, registrationInfo);
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.REGISTER, registrationInfo);
 	});
 
 	describe('email spec', () => {
@@ -28,7 +29,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo
 			};
 			delete data.email;
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '', 'email');
+			await testRequired(Services.AUTH, AuthServiceMethods.REGISTER, data, '', 'email');
 		});
 
 		it("can't exceed max length of 254", async () => {
@@ -37,7 +38,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				email: generateString(255)
 			};
-			await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.email', 254);
+			await testMaxLength(Services.AUTH, AuthServiceMethods.REGISTER, data, '.email', 254);
 		});
 
 		it('rejects invalid email format', async () => {
@@ -68,7 +69,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 					...registrationInfo,
 					email: invalidEmails[i]
 				};
-				await testFormat(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.email', 'email');
+				await testFormat(Services.AUTH, AuthServiceMethods.REGISTER, data, '.email', 'email');
 			}
 		});
 
@@ -101,7 +102,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 					...registrationInfo,
 					email: validEmails[i]
 				};
-				expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data)).to.be.deep.eq(data);
+				expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
 			}
 		});
 	});
@@ -113,7 +114,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo
 			};
 			delete data.telephone;
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '', 'telephone');
+			await testRequired(Services.AUTH, AuthServiceMethods.REGISTER, data, '', 'telephone');
 		});
 
 		it('has min length of 3 chars', async () => {
@@ -122,7 +123,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				telephone: '+4'
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
 		});
 
 		it('has max of 15 chars', async () => {
@@ -131,7 +132,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				telephone: `+${generateString(16, /^[1-9]$/)}`
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
 		});
 
 		it('needs to start with country code', async () => {
@@ -140,7 +141,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				telephone: '07756'
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
 		});
 
 		it("can't contain letters", async () => {
@@ -149,7 +150,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				telephone: `+${generateString(16, /^[a-zA-Z]$/)}`
 			};
-			await testPattern(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
+			await testPattern(Services.AUTH, AuthServiceMethods.REGISTER, data, '.telephone', '^\\+[1-9]\\d{1,14}$');
 		});
 	});
 
@@ -159,7 +160,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...validCredentials,
 				...registrationInfo
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data)).to.be.deep.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
 		});
 
 		it('should be equal to one of the allowed values', async () => {
@@ -168,7 +169,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				role: generateString(5)
 			};
-			await testEnum(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.role');
+			await testEnum(Services.AUTH, AuthServiceMethods.REGISTER, data, '.role');
 		});
 
 		it('accepts only USER as role', async () => {
@@ -177,7 +178,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				role: 'USER'
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data)).to.be.deep.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
 		});
 	});
 
@@ -187,7 +188,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...validCredentials,
 				...registrationInfo
 			};
-			expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data)).to.be.deep.eq(data);
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
 		});
 
 		it('needs to have max length of 540', async () => {
@@ -196,7 +197,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 				...registrationInfo,
 				pubKey: generateString(541)
 			};
-			await testMaxLength(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, data, '.pubKey', 540);
+			await testMaxLength(Services.AUTH, AuthServiceMethods.REGISTER, data, '.pubKey', 540);
 		});
 	});
 
@@ -207,6 +208,6 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.REGISTER} sp
 			role: 'USER',
 			pubKey: generateString(540)
 		};
-		expect(await Firewall.validate(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.REGISTER, registrationData)).to.be.deep.eq(registrationData);
+		expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, registrationData)).to.be.deep.eq(registrationData);
 	});
 });

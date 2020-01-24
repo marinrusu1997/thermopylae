@@ -1,16 +1,17 @@
-import { Email } from './email';
+import { EmailClient } from './email-client';
+import { ErrorCodes } from './error';
 
-let defaultInstance: Email | undefined;
+let defaultInstance: EmailClient | undefined;
 
 /**
  * Returns the default email instance
  */
-function getDefaultInstance(): Email {
+function getDefaultEmailClientInstance(): EmailClient {
 	if (!defaultInstance) {
-		defaultInstance = new Email();
+		defaultInstance = new EmailClient();
 	}
 	return defaultInstance;
 }
 
-export * from './email';
-export { getDefaultInstance };
+export * from './email-client';
+export { getDefaultEmailClientInstance, ErrorCodes };

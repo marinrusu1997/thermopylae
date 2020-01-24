@@ -1,10 +1,10 @@
 import { describe, it } from 'mocha';
-import { chrono, misc } from '@marin/lib.utils';
+import { chrono, array } from '@marin/lib.utils';
 import { MemCache } from '../lib';
 import { chai } from './chai';
 
-const { nowInSeconds } = chrono;
-const { removeItemFromArray } = misc;
+const nowInSeconds = chrono.dateToUNIX;
+const { removeItemFromArray } = array;
 const { expect } = chai;
 
 describe('MemCache spec', () => {

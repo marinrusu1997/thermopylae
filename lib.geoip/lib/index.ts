@@ -99,7 +99,7 @@ class GeoIP {
 		}
 
 		if (!location) {
-			throw createException(ErrorCodes.NOT_FOUND, `Couldn't locate ip ${ip}.`);
+			throw createException(ErrorCodes.IP_LOCATION_NOT_FOUND, `Couldn't locate ip ${ip}.`);
 		}
 	}
 
@@ -233,4 +233,4 @@ class GeoIP {
 }
 
 // eslint-disable-next-line no-undef
-export { GeoIP, IpLocation, HTTPClient, HTTPResponse, ExternalService, ExternalServiceLoadBalancer };
+export { GeoIP, IpLocation, HTTPClient, HTTPResponse, ExternalService, ExternalServiceLoadBalancer, ErrorCodes };

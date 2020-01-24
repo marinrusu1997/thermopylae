@@ -8,8 +8,8 @@ export interface AuthStatus {
 	token?: string;
 	nextStep?: string;
 	error?: {
-		hard?: Error | Exception;
-		soft?: Error | Exception;
+		hard?: Exception;
+		soft?: Exception;
 	};
 }
 

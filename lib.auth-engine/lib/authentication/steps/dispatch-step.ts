@@ -19,7 +19,8 @@ class DispatchStep implements AuthStep {
 		if (networkInput.password) {
 			return { nextStep: AUTH_STEP.PASSWORD };
 		}
-		throw createException(ErrorCodes.INVALID_ARGUMENT, "Can't resolve next step", networkInput);
+		// configuration error, user input not validated properly, allowed to throw
+		throw createException(ErrorCodes.NEXT_AUTH_STEP_RESOLVING_FAILED, `Can't resolve next step from ${AUTH_STEP.DISPATCH}. `);
 	}
 }
 

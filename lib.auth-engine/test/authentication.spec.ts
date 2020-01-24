@@ -1,9 +1,11 @@
 import { describe, it } from 'mocha';
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { hostname } from 'os';
 import { createSign } from 'crypto';
-import { chrono, enums } from '@marin/lib.utils';
+import { chrono } from '@marin/lib.utils';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import { AuthTokenType } from '@marin/lib.utils/dist/enums';
 // @ts-ignore
 import keypair from 'keypair';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
@@ -69,55 +71,45 @@ describe('Authenticate spec', () => {
 	it('fails to authenticate non existing accounts', () => {
 		const networkInput = { username: 'non-existing-account' };
 		// @ts-ignore
-		return AuthEngineInstance.authenticate(networkInput)
-			.then(() => assert(false, 'User with non existing account was authenticated'))
-			.catch((e: Error | Exception) => {
-				if (!(e instanceof Exception)) {
-					throw e;
-				}
-				expect(e)
-					.to.be.instanceOf(Exception)
-					.and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
-				expect(e).to.haveOwnProperty('message', `Account ${networkInput.username} not found.`);
-			});
+		return AuthEngineInstance.authenticate(networkInput).then(authStatus => {
+			expect(authStatus.token).to.be.eq(undefined);
+			expect(authStatus.nextStep).to.be.eq(undefined);
+			expect(authStatus.error!.soft).to.be.eq(undefined);
+			expect(authStatus.error!.hard)
+				.to.be.instanceOf(Exception)
+				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
+			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} not found. `);
+		});
 	});
 
 	it('fails to authenticate users with locked accounts', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		await basicAuthEngineConfig.entities.account.lock(accountId); // auth engine can't explicitly lock accounts
+		await AuthEngineInstance.lockAccount(accountId, 'For test');
 		const networkInput = { username: defaultRegistrationInfo.username };
-		try {
-			// @ts-ignore
-			await AuthEngineInstance.authenticate(networkInput);
-			assert(false, 'User with a locked account was authenticated');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
+		// @ts-ignore
+		return AuthEngineInstance.authenticate(networkInput).then(authStatus => {
+			expect(authStatus.token).to.be.eq(undefined);
+			expect(authStatus.nextStep).to.be.eq(undefined);
+			expect(authStatus.error!.soft).to.be.eq(undefined);
+			expect(authStatus.error!.hard)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-			expect(e).to.haveOwnProperty('message', `Account ${networkInput.username} is locked.`);
-		}
+				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} is locked. `);
+		});
 	});
 
 	it('fails to authenticate users with non activated accounts', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo); // by default, account is not activated
 		const networkInput = { username: defaultRegistrationInfo.username };
-		try {
-			// @ts-ignore
-			await AuthEngineInstance.authenticate(networkInput);
-			assert(false, 'User with a non activated account was authenticated');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.CHECKING_FAILED);
-			expect(e).to.haveOwnProperty('message', `Account ${networkInput.username} is not activated.`);
-			// automatic clean up, for timers too
-		}
+		// @ts-ignore
+		const authStatus = await AuthEngineInstance.authenticate(networkInput);
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_ACTIVATED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} is not activated. `);
 	});
 
 	it('fails to authenticate user when wrong secret provided, user gives up, expect not to leak disk memory for auth temp session', async () => {
@@ -127,7 +119,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.have.property('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl.authSession) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
@@ -146,7 +138,7 @@ describe('Authenticate spec', () => {
 		});
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 
 		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
@@ -168,7 +160,7 @@ describe('Authenticate spec', () => {
 		});
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -186,7 +178,7 @@ describe('Authenticate spec', () => {
 		});
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -204,7 +196,7 @@ describe('Authenticate spec', () => {
 		});
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -238,7 +230,7 @@ describe('Authenticate spec', () => {
 		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 	});
 
@@ -254,7 +246,7 @@ describe('Authenticate spec', () => {
 		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: undefined });
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 	});
 
 	it('failed auth attempts are shared between auth sessions', async () => {
@@ -272,7 +264,7 @@ describe('Authenticate spec', () => {
 			const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE1, password: 'invalid' });
 			expect(status.error!.soft)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+				.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(status.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 			numberOfAuthAttempts += 1;
 		}
@@ -284,7 +276,7 @@ describe('Authenticate spec', () => {
 			const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE2, password: 'invalid' });
 			expect(status.error!.soft)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+				.and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
 			expect(status.nextStep).to.be.eq(AUTH_STEP.RECAPTCHA);
 			numberOfAuthAttempts += 1;
 		}
@@ -294,7 +286,7 @@ describe('Authenticate spec', () => {
 		const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE3, password: 'invalid' });
 		expect(status.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 	});
 
 	it('locks account on failed auth attempts threshold, even if sending notification email and logging user out from all devices failed', async () => {
@@ -307,15 +299,14 @@ describe('Authenticate spec', () => {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
 		}
 
-		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput });
-			assert(false, 'User was authenticated even if his account is locked');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-		}
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
 	});
 
 	it('locks the user account when providing invalid response to challenge', async () => {
@@ -327,9 +318,8 @@ describe('Authenticate spec', () => {
 				...validNetworkInput,
 				responseForChallenge: { signature: 'invalid signature', signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 			});
-			expect(authStatus.error!.soft)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
+			expect(authStatus.error!.soft).to.be.instanceOf(Exception);
+			expect(authStatus.error!.soft!.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.RECAPTCHA_THRESHOLD_REACHED]);
 			expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 		}
 
@@ -339,7 +329,7 @@ describe('Authenticate spec', () => {
 			if (!(e instanceof Exception)) {
 				throw e;
 			}
-			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 		}
 	});
 
@@ -353,7 +343,7 @@ describe('Authenticate spec', () => {
 		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!);
 		expect(jwtPayload.sub).to.be.eq(accountId);
 		expect(jwtPayload.aud).to.be.eq(defaultRegistrationInfo.role);
-		expect(jwtPayload.type).to.be.eq(enums.AUTH_TOKEN_TYPE.BASIC);
+		expect(jwtPayload.type).to.be.eq(AuthTokenType.BASIC);
 
 		// check it registered active session
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
@@ -392,7 +382,7 @@ describe('Authenticate spec', () => {
 		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatusTotpStep.token!);
 		expect(jwtPayload.sub).to.be.eq(accountId);
 		expect(jwtPayload.aud).to.be.eq(defaultRegistrationInfo.role);
-		expect(jwtPayload.type).to.be.eq(enums.AUTH_TOKEN_TYPE.BASIC);
+		expect(jwtPayload.type).to.be.eq(AuthTokenType.BASIC);
 
 		// check it registered active session
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
@@ -523,19 +513,16 @@ describe('Authenticate spec', () => {
 
 		expect(lastAuthStatus!.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 
-		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput });
-			assert(false, 'Authentication with valid credentials was possible, even when account was locked');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-		}
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
 	});
 
 	it('aborts authentication after hard error occurred in recaptcha step (mfa not required)', async () => {
@@ -549,17 +536,14 @@ describe('Authenticate spec', () => {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: 'invalid' });
 		}
 
-		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput });
-			assert(false, 'Authentication with valid credentials was possible, even when account was locked');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-		}
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
 	});
 
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
@@ -577,17 +561,14 @@ describe('Authenticate spec', () => {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, totp: 'invalid' });
 		}
 
-		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput });
-			assert(false, 'Authentication with valid credentials was possible, even when account was locked');
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-		}
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
 	});
 
 	it('stores failed auth attempts after account was locked when failure threshold reached', async () => {
@@ -619,17 +600,14 @@ describe('Authenticate spec', () => {
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
 		expect(failedAuthAttempts.length).to.be.eq(0);
 
-		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput });
-			assert(false, "User was authenticated, even if it's account is locked");
-		} catch (e) {
-			if (!(e instanceof Exception)) {
-				throw e;
-			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
-		}
+		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.nextStep).to.be.eq(undefined);
+		expect(authStatus.error!.soft).to.be.eq(undefined);
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
 	});
 
 	it('authenticates the user using challenge response authentication method', async () => {

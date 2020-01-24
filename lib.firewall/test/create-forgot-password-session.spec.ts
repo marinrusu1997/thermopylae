@@ -1,12 +1,13 @@
 import { describe, it } from 'mocha';
-import { services } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { generateString, testEnum, testPassesValidation, testRequired, testType } from './utils';
 import { usernameTestsSuite } from './credentials-test-cases';
 
-describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION} spec`, () => {
+describe(`${Services.AUTH}-${AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION} spec`, () => {
 	describe('username spec', () => {
 		const data = { 'side-channel': 'SMS' };
-		usernameTestsSuite(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION, data);
+		usernameTestsSuite(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, data);
 	});
 
 	describe('side-channel spec', () => {
@@ -14,7 +15,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CREATE_FORGO
 			const data = {
 				username: 'usernameee'
 			};
-			await testRequired(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION, data, '', 'side-channel');
+			await testRequired(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, data, '', 'side-channel');
 		});
 
 		it('is string', async () => {
@@ -22,7 +23,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CREATE_FORGO
 				username: 'usernameee',
 				'side-channel': 1
 			};
-			await testType(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION, data, "['side-channel']", 'string');
+			await testType(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, data, "['side-channel']", 'string');
 		});
 
 		it('accepts only specified enum values', async () => {
@@ -30,7 +31,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CREATE_FORGO
 				username: 'usernameee',
 				'side-channel': 'EMAIL'
 			};
-			await testPassesValidation(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION, data);
+			await testPassesValidation(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, data);
 		});
 
 		it('rejects non enum values', async () => {
@@ -40,7 +41,7 @@ describe(`${services.SERVICES.AUTH}-${services.AUTH_SERVICE_METHODS.CREATE_FORGO
 			};
 			for (let i = 0; i < 10; i++) {
 				data['side-channel'] = generateString(5);
-				await testEnum(services.SERVICES.AUTH, services.AUTH_SERVICE_METHODS.CREATE_FORGOT_PASSWORD_SESSION, data, "['side-channel']");
+				await testEnum(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, data, "['side-channel']");
 			}
 		});
 	});

@@ -99,7 +99,7 @@ describe('Change password spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found.`);
 	});
 
@@ -114,7 +114,7 @@ describe('Change password spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_IS_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is locked.`);
 	});
 
@@ -128,7 +128,7 @@ describe('Change password spec', () => {
 		}
 		expect(err)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INVALID_PASSWORD);
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
 		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match.");
 	});
 

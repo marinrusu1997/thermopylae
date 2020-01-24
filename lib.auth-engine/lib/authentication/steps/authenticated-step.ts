@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Email } from '@marin/lib.email';
+import { EmailClient } from '@marin/lib.email';
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
@@ -9,14 +9,14 @@ import { UserSessionsManager } from '../../managers/user-sessions-manager';
 import { getLogger } from '../../logger';
 
 class AuthenticatedStep implements AuthStep {
-	private readonly mailer: Email;
+	private readonly mailer: EmailClient;
 	private readonly authFromDiffDeviceTemplate: NotificationAuthFromDiffDeviceTemplate;
 	private readonly userSessionsManager: UserSessionsManager;
 	private readonly accessPointEntity: AccessPointEntity;
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 
 	constructor(
-		mailer: Email,
+		mailer: EmailClient,
 		authFromDiffDeviceTemplate: NotificationAuthFromDiffDeviceTemplate,
 		userSessionsManager: UserSessionsManager,
 		accessPointEntity: AccessPointEntity,

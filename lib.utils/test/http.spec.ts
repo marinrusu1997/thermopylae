@@ -1,8 +1,7 @@
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { chai } from './chai';
-import { HTTPResponse, makeHTTPRequest, makeHTTPSRequest } from '../lib/http';
-import { ErrorCodes } from '../lib/errors';
+import { makeHTTPRequest, makeHTTPSRequest, HTTPResponse, ErrorCodes } from '../lib/http';
 import { generateToken } from './utils';
 
 const { expect } = chai;
@@ -57,7 +56,7 @@ describe('http spec', () => {
 			.then(() => done(new Error('should not resolve')))
 			.catch(error => {
 				expect(error).to.be.instanceOf(Error);
-				expect(error).to.have.property('code', ErrorCodes.NOT_SUPPORTED);
+				expect(error).to.have.property('code', ErrorCodes.REDIRECT_NOT_SUPPORTED);
 				expect(error).to.have.property('message', statusCodeForGETRequest.toString());
 				done();
 			});

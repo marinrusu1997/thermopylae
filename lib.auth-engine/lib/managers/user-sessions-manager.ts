@@ -1,6 +1,8 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
-import { enums, chrono } from '@marin/lib.utils';
+import { chrono } from '@marin/lib.utils';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import { AuthTokenType } from '@marin/lib.utils/dist/enums';
 import { AccessPointEntity, ActiveUserSessionEntity } from '../types/entities';
 import { ActiveUserSession } from '../types/sessions';
 import { createException, ErrorCodes } from '../error';
@@ -30,7 +32,7 @@ class UserSessionsManager {
 	}
 
 	public async create(ip: string, device: string, location: BasicLocation, accountId: string, accountRole?: string): Promise<string> {
-		const iat = chrono.nowInSeconds();
+		const iat = chrono.dateToUNIX();
 		const ttl = this.jwtRolesTtl && accountRole ? this.jwtRolesTtl.get(accountRole) : this.jwt.blacklist().allTtl; // seconds
 		if (!ttl) {
 			throw createException(ErrorCodes.INVALID_CONFIG, `TTL for role ${accountRole} not present, and jwt blacklist not configured with @all ttl`);
@@ -39,7 +41,7 @@ class UserSessionsManager {
 			{
 				sub: accountId,
 				aud: accountRole,
-				type: enums.AUTH_TOKEN_TYPE.BASIC
+				type: AuthTokenType.BASIC
 			},
 			{
 				expiresIn: ttl
@@ -51,7 +53,7 @@ class UserSessionsManager {
 			this.activeUserSessionEntity.create({ timestamp: iat, accountId })
 		]);
 
-		this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromSeconds(iat + ttl));
+		this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromUNIX(iat + ttl));
 
 		return jwt;
 	}
@@ -71,7 +73,7 @@ class UserSessionsManager {
 	public async deleteAllButCurrent(accountId: string, accountRole: string | undefined, tokenIssuedAtTime: number): Promise<number> {
 		const ttl = this.jwtRolesTtl && accountRole ? this.jwtRolesTtl.get(accountRole) : this.jwt.blacklist().allTtl; // seconds
 		if (!ttl) {
-			throw createException(ErrorCodes.NOT_FOUND, `Jwt ttl for account ${accountId} not found`);
+			throw createException(ErrorCodes.JWT_TTL_NOT_FOUND, `Jwt ttl for account ${accountId} not found`);
 		}
 
 		const activeSessions = await this.activeUserSessionEntity.readAllButOne(accountId, tokenIssuedAtTime);

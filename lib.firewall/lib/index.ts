@@ -1,4 +1,6 @@
-import { services, fs, object } from '@marin/lib.utils';
+import { fs, object } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services } from '@marin/lib.utils/dist/enums';
 import { readdir } from 'fs';
 import { promisify } from 'util';
 import Ajv from 'ajv';
@@ -43,9 +45,19 @@ class Firewall {
 			});
 	}
 
-	public static validate(service: services.SERVICES, method: string, data: object): Promise<object> {
+	public static validate(service: Services, method: string, data: object): Promise<object> {
 		const schemaId = Firewall.computeSchemaId(service, method);
-		return Firewall.validator.validate(schemaId, data) as Promise<object>;
+		return (Firewall.validator.validate(schemaId, data) as Promise<object>).catch(e => {
+			e.message = 'Validation failed. Details:';
+			let separator = ' ';
+			for (let i = 0; i < e.errors.length; i++) {
+				delete e.errors[i].schemaPath;
+				delete e.errors[i].params;
+				e.message += `${separator}${JSON.stringify(e.errors[i])}`;
+				separator = ', ';
+			}
+			throw e;
+		});
 	}
 
 	public static sanitize(data: object | string): object | string {
@@ -57,7 +69,7 @@ class Firewall {
 		return object.traverse(data, value => (typeof value === 'string' ? Firewall.xssFilter.process(value) : undefined));
 	}
 
-	private static computeSchemaId(service: services.SERVICES, method: string): string {
+	private static computeSchemaId(service: Services, method: string): string {
 		return `#${service}-${method}`;
 	}
 }

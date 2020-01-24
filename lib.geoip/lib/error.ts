@@ -1,10 +1,13 @@
 import { Exception } from '@marin/lib.error';
-import { enums, errors } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Libraries } from '@marin/lib.utils/dist/enums';
 
-const { ErrorCodes } = errors;
+const enum ErrorCodes {
+	IP_LOCATION_NOT_FOUND = 'IP_LOCATION_NOT_FOUND'
+}
 
 function createException(code: string, message: string): Exception {
-	return new Exception(enums.SYSTEMS.GEO_IP, code, message);
+	return new Exception(Libraries.GEO_IP, code, message);
 }
 
 export { createException, ErrorCodes };

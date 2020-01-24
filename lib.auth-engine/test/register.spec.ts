@@ -1,6 +1,9 @@
 import { describe, it } from 'mocha';
 import { assert, expect } from 'chai';
-import { chrono, services } from '@marin/lib.utils';
+import { chrono } from '@marin/lib.utils';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import { Libraries } from '@marin/lib.utils/dist/enums';
+import { ErrorCodes as EmailErrorCodes } from '@marin/lib.email';
 import Exception from '@marin/lib.error';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
@@ -73,8 +76,8 @@ describe('Account registration spec', () => {
 		} catch (e) {
 			expect(e)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('emitter', services.SERVICES.AUTH);
-			expect(e).to.haveOwnProperty('code', ErrorCodes.ALREADY_REGISTERED);
+				.and.to.haveOwnProperty('emitter', Libraries.AUTH_ENGINE);
+			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_ALREADY_REGISTERED);
 			expect(e).to.haveOwnProperty('message', `Account ${defaultRegistrationInfo.username} is registered already.`);
 		}
 	});
@@ -147,8 +150,8 @@ describe('Account registration spec', () => {
 			}
 			expect(e)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.INVALID_ARGUMENT);
-			expect(e).to.haveOwnProperty('message', 'Provided token is not valid');
+				.and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+			expect(e).to.haveOwnProperty('message', `Activate account session identified by provided token invalid-token not found. `);
 		}
 
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.outboxFor(defaultRegistrationInfo.email)[0].html as string);
@@ -206,7 +209,7 @@ describe('Account registration spec', () => {
 			}
 			expect(e)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.NOT_DELIVERED);
+				.and.to.haveOwnProperty('code', EmailErrorCodes.EMAIL_DELIVERY_FAILED);
 			expect(e).to.haveOwnProperty('message', 'Email client was configured to fail mail delivery');
 
 			const account = await basicAuthEngineConfig.entities.account.read(defaultRegistrationInfo.username);

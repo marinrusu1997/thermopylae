@@ -1,10 +1,12 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { services, string } from '@marin/lib.utils';
+import { string } from '@marin/lib.utils';
+// eslint-disable-next-line import/no-unresolved
+import { Services } from '@marin/lib.utils/dist/enums';
 import { Firewall } from '../lib';
 import { generateString, testMaxLength, testMinLength, testPattern, testRequired, testType } from './utils';
 
-function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object): void {
+function usernameTestsSuite(service: Services, method: string, serviceSpecificData: object): void {
 	describe('username spec', () => {
 		it('is required', async () => {
 			const data = { ...serviceSpecificData };
@@ -90,7 +92,7 @@ function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, ser
 	});
 }
 
-function passwordTestsSuite(service: services.SERVICES.AUTH, method: string, serviceSpecificData: object, passwordPropertyName = 'password'): void {
+function passwordTestsSuite(service: Services, method: string, serviceSpecificData: object, passwordPropertyName = 'password'): void {
 	describe('password spec', () => {
 		it('is required', async () => {
 			const data = {

@@ -2,7 +2,6 @@ import { URL } from 'url';
 import * as http from 'http';
 import * as https from 'https';
 import { createException } from './exception';
-import { ErrorCodes } from './errors';
 
 interface HTTPPostData {
 	'content-type': string;
@@ -13,6 +12,11 @@ interface HTTPResponse {
 	data: string | object;
 	status: number;
 	headers: http.IncomingHttpHeaders;
+}
+
+const enum ErrorCodes {
+	NO_HTTP_STATUS_CODE = 'NO_HTTP_STATUS_CODE',
+	REDIRECT_NOT_SUPPORTED = 'REDIRECT_NOT_SUPPORTED'
 }
 
 type HTTPRequestOpts = http.RequestOptions;
@@ -58,12 +62,11 @@ function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, par
 		const req = request(url, params, (res: http.IncomingMessage): void => {
 			// reject if no status code, WTF no status code
 			if (!res.statusCode) {
-				return reject(createException(ErrorCodes.NOT_FOUND, 'Status code not found'));
+				return reject(createException(ErrorCodes.NO_HTTP_STATUS_CODE, 'Status code not found'));
 			}
 
-			// redirection is not supported :(
 			if (res.statusCode >= 300 && res.statusCode < 400) {
-				return reject(createException(ErrorCodes.NOT_SUPPORTED, res.statusCode.toString()));
+				return reject(createException(ErrorCodes.REDIRECT_NOT_SUPPORTED, res.statusCode.toString()));
 			}
 
 			// accumulate data
@@ -124,4 +127,4 @@ function makeHTTPSRequest(url: string | URL, params: HTTPSRequestOpts, postData?
 }
 
 // eslint-disable-next-line no-undef
-export { makeHTTPRequest, makeHTTPSRequest, HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse };
+export { makeHTTPRequest, makeHTTPSRequest, HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse, ErrorCodes };

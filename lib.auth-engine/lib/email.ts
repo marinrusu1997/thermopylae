@@ -1,7 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Email, SentMessageInfo } from '@marin/lib.email';
+import { EmailClient, SentMessageInfo } from '@marin/lib.email';
 import { getLogger } from './logger';
-import { Id } from './types/requests';
 
 declare type NotificationMFAFailedTemplate = (data: { ip: string; device: string }) => string;
 declare type NotificationAccountLockedTemplate = (data: { cause: string }) => string;
@@ -9,7 +8,7 @@ declare type NotificationAuthFromDiffDeviceTemplate = (data: { ip: string; devic
 declare type ActivateAccountTemplate = (data: { token: string }) => string;
 declare type ForgotPasswordTemplate = (data: { token: string }) => string;
 
-function sendNotificationMFAFailed(template: NotificationMFAFailedTemplate, mailer: Email, email: string, ip: string, device: string): void {
+function sendNotificationMFAFailed(template: NotificationMFAFailedTemplate, mailer: EmailClient, email: string, ip: string, device: string): void {
 	mailer
 		.send(
 			{
@@ -22,7 +21,7 @@ function sendNotificationMFAFailed(template: NotificationMFAFailedTemplate, mail
 		.catch((error: Error) => getLogger().error(`Failed to deliver mfa failed notification to ${email}`, error));
 }
 
-function sendNotificationAccountLockedToUserEmail(template: NotificationAccountLockedTemplate, mailer: Email, email: string, cause: string): void {
+function sendNotificationAccountLockedToUserEmail(template: NotificationAccountLockedTemplate, mailer: EmailClient, email: string, cause: string): void {
 	mailer
 		.send(
 			{
@@ -35,13 +34,13 @@ function sendNotificationAccountLockedToUserEmail(template: NotificationAccountL
 		.catch((error: Error) => getLogger().error(`Failed to deliver mfa failed notification to ${email}`, error));
 }
 
-function sendNotificationAccountLockedToAdminEmail(mailer: Email, email: string, accountId: Id, cause: string): Promise<SentMessageInfo> {
+function sendNotificationAccountLockedToAdminEmail(mailer: EmailClient, email: string, accountId: string, cause: string): Promise<SentMessageInfo> {
 	return mailer.send({ to: email, subject: `Account ${accountId} was locked.`, text: `Cause: ${cause}.` }, true);
 }
 
 function sendNotificationAuthFromDifferentDevice(
 	template: NotificationAuthFromDiffDeviceTemplate,
-	mailer: Email,
+	mailer: EmailClient,
 	email: string,
 	ip: string,
 	device: string
@@ -58,11 +57,11 @@ function sendNotificationAuthFromDifferentDevice(
 		.catch((error: Error) => getLogger().error(`Failed to deliver auth from different device notification to ${email}`, error));
 }
 
-function sendActivateAccountLinkToUserEmail(template: ActivateAccountTemplate, mailer: Email, email: string, token: string): Promise<SentMessageInfo> {
+function sendActivateAccountLinkToUserEmail(template: ActivateAccountTemplate, mailer: EmailClient, email: string, token: string): Promise<SentMessageInfo> {
 	return mailer.send({ to: email, subject: 'Activate your account', html: template({ token }) }, true);
 }
 
-function sendForgotPasswordTokenToUserEmail(template: ForgotPasswordTemplate, mailer: Email, email: string, token: string): Promise<SentMessageInfo> {
+function sendForgotPasswordTokenToUserEmail(template: ForgotPasswordTemplate, mailer: EmailClient, email: string, token: string): Promise<SentMessageInfo> {
 	return mailer.send({ to: email, subject: 'Forgot password token', html: template({ token }) }, true);
 }
 

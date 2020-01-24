@@ -1,8 +1,6 @@
 import { HexBase64Latin1Encoding } from 'crypto';
 import { BasicCredentials, BasicLocation } from './basic-types';
 
-export type Id = number | string;
-
 export const enum SIDE_CHANNEL {
 	EMAIL = 'EMAIL',
 	SMS = 'SMS'

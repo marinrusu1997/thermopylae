@@ -1,3 +1,4 @@
+
 "use strict";
 
 const build = require('@marin/lib.module-builder/lib/build');
@@ -6,20 +7,14 @@ const coverage = require('@marin/lib.module-builder/lib/coverage');
 const clean = require('@marin/lib.module-builder/lib/clean');
 const gulp = require('gulp');
 
-const buildWithDeclarationFiles = done => {
-  const buildModuleTask = build.buildFactory('TS', gulp);
-  const copyDeclarationFiles = () => gulp.src(['lib/**/*.d.ts']).pipe(gulp.dest('dist'));
-  const buildTask = gulp.series(buildModuleTask, copyDeclarationFiles);
-  buildTask();
-  done();
-};
-
 module.exports = {
-  build: buildWithDeclarationFiles,
+  build: build.buildFactory('TS', gulp),
   test,
   clean: clean.clean,
   purge: clean.purge,
 
   coverage: coverage.coverageFactory('TS', gulp),
-  coverageShow: coverage.coverageShow
+  coverageShow: coverage.coverageShow,
+  restoreTestConfig: coverage.restoreTestConfig,
+  cleanTranspiledTests: coverage.cleanTranspiledTests
 };

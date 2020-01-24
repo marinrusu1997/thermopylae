@@ -3,7 +3,7 @@ import { describe, it } from 'mocha';
 import { chai } from './chai';
 import { GarbageCollector } from '../lib/garbage-collector';
 
-const { nowInSeconds } = chrono;
+const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
 
 describe('Garbage Collector spec', () => {

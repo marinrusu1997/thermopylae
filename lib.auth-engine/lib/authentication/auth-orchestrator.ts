@@ -30,8 +30,8 @@ class AuthOrchestrator {
 			} else if (output.done) {
 				return output.done;
 			} else {
-				/* istanbul ignore next */
-				throw createException(ErrorCodes.INVALID_OUTPUT, 'Expected done or next step');
+				// configuration error, allowed to throw
+				throw createException(ErrorCodes.INVALID_AUTH_STEP_OUTPUT, 'Expected done or next step');
 			}
 		}
 	}
