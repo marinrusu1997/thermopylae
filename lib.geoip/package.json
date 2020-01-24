@@ -19,6 +19,7 @@
         "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
         "clean": "gulp clean",
         "purge": "gulp purge"
     },
@@ -33,6 +34,7 @@
     "dependencies": {
         "@marin/lib.logger": "file:../lib.logger",
         "@marin/lib.utils": "file:../lib.utils",
+        "@marin/lib.error": "file:../lib.error",
         "geoip-lite": "^1.4.0"
     },
     "devDependencies": {

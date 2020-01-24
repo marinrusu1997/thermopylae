@@ -51,6 +51,8 @@ function parseBody(body: string, contentType?: string): any {
  * @returns {Promise<string| object>}
  */
 function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, params: HTTPRequestOpts | HTTPSRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
+	// fixme careful, the actual lib.geoip highly depends on this API, i.e. positive => HTTPResponse with resolve, negative 400- => HTTPResponse with reject, other errors => Exception with reject
+
 	return new Promise((resolve, reject) => {
 		// eslint-disable-next-line consistent-return
 		const req = request(url, params, (res: http.IncomingMessage): void => {
