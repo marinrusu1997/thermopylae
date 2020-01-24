@@ -14,26 +14,18 @@ function replaceAt(replacement: string, index: number, string: string): string {
  *
  * @param length				Length of the generated string
  * @param allowedCharRegex		Allowed chars that will be included in generated string
- * @param headsRegex			Regex for allowed chars on the begin and end of string.
  */
-function generateString(length: number, allowedCharRegex?: RegExp, headsRegex?: RegExp): string {
+function generateString(length: number, allowedCharRegex?: RegExp): string {
 	let result = '';
 	const alphaNumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	const specialChars = ' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~';
 	let i = 0;
-	let testRegex: RegExp | undefined;
 	while (i < length) {
 		const charSet = Math.random() < 0.5 ? alphaNumeric : specialChars;
 		const selectedChar = charSet.charAt(Math.floor(Math.random() * charSet.length));
 
-		if (headsRegex && (i === 0 || i === length - 1)) {
-			testRegex = headsRegex;
-		} else {
-			testRegex = allowedCharRegex;
-		}
-
-		if (testRegex) {
-			if (testRegex.test(selectedChar)) {
+		if (allowedCharRegex) {
+			if (allowedCharRegex.test(selectedChar)) {
 				result += selectedChar;
 				i += 1;
 			}

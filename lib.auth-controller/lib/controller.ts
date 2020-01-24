@@ -11,5 +11,7 @@ class AuthController {
 		AuthController.authenticationEngine = authenticationEngine;
 	}
 
-	public static authenticate(req: Request, res: Response): Promise<void> {}
+	public static authenticate(req: Request, res: Response): Promise<void> {
+
+	}
 }

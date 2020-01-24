@@ -10,7 +10,6 @@ const SCHEMAS_DIR = `${__dirname}/schemas`;
 const EXCLUDE_SCHEMAS_DIR = ['core'];
 
 class Firewall {
-	// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 	private static readonly validator: Ajv.Ajv = new Ajv({ loadSchema: uri => fs.readJsonFromFile(`${SCHEMAS_DIR}/${uri}`) });
 
 	private static readonly xssFilter: FilterXSS = new FilterXSS();
@@ -29,9 +28,7 @@ class Firewall {
 							for (let j = 0; j < schemas.length; j++) {
 								schemasPromises.push(
 									fs.readJsonFromFile(`${SCHEMAS_DIR}/${servicesSchemasDirs[i]}/${schemas[j]}`).then(schema => {
-										// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 										// @ts-ignore
-										// eslint-disable-next-line no-param-reassign
 										schema.$async = true;
 										Firewall.validator.addSchema(schema);
 										return Firewall.validator.compileAsync(schema);

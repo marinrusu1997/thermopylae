@@ -52,7 +52,7 @@ function usernameTestsSuite(service: services.SERVICES.AUTH, method: string, ser
 		it("underscore and dot can't be at the end or start of a username", async () => {
 			for (let i = 0; i < 10; i++) {
 				const data = {
-					username: generateString(7, /^[a-zA-Z0-9._]$/, /^[._]$/),
+					username: `${generateString(1, /^[._]$/)}${generateString(5, /^[a-zA-Z0-9._]$/)}${generateString(1, /^[._]$/)}`,
 					password: '!@45Masdasdidgh',
 					...serviceSpecificData
 				};

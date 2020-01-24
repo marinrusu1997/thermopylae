@@ -57,7 +57,6 @@ function makeRequest(url: string | URL, request: HTTPRequest | HTTPSRequest, par
 		// eslint-disable-next-line consistent-return
 		const req = request(url, params, (res: http.IncomingMessage): void => {
 			// reject if no status code, WTF no status code
-			/* istanbul ignore if */
 			if (!res.statusCode) {
 				return reject(createException(ErrorCodes.NOT_FOUND, 'Status code not found'));
 			}

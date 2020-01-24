@@ -45,8 +45,8 @@ describe('string spec', () => {
 			}
 		});
 
-		it('generates random string with digits on heads and chars inside', () => {
-			const generatedString = generateString(5, /^[a-zA-Z]$/, /^[0-9]$/);
+		it('can generate custom random string using invocations with different regexes', () => {
+			const generatedString = `${generateString(1, /^[0-9]$/)}${generateString(3, /^[a-zA-Z]$/)}${generateString(1, /^[0-9]$/)}`;
 			expect(Number.isNaN(Number(generatedString[0]))).to.be.eq(false);
 			for (let i = 1; i < generatedString.length - 1; i++) {
 				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(true);

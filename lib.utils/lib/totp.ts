@@ -47,10 +47,8 @@ class Totp {
 		try {
 			return stored ? stored === received && this.impl.check(received, this.secret) : this.impl.check(received, this.secret);
 		} catch (error) {
-			/* istanbul ignore next */
 			(logger || console).error(createException(ErrorCodes.CHECKING_FAILED, 'Failed to check TOTP signature', error));
 		}
-		/* istanbul ignore next */
 		return false;
 	}
 }

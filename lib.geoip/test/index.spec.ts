@@ -4,7 +4,7 @@ import { config as dotEnvConfig } from 'dotenv';
 import LoggerInstance from '@marin/lib.logger';
 import { chrono, enums } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
-import { GeoIP, NOT_EXPIRED } from '../lib/geoip';
+import { ExternalService, GeoIP } from '../lib';
 import { HttpClientMock, ServiceFailureType } from './http-client-mock';
 import { ErrorCodes } from '../lib/error';
 
@@ -26,7 +26,7 @@ describe('geoip spec', () => {
 		LoggerInstance.console.setConfig({ level: 'emerg' }); // suppress error logs
 	});
 
-	const externalServiceLoadBalancerMock = (): 'IP_STACK' => 'IP_STACK';
+	const externalServiceLoadBalancerMock = () => [ExternalService.IPSTACK, ExternalService.IPLOCATE];
 
 	it('retrieves location', async () => {
 		const geoip = new GeoIP(ipstackAccessKey!);
@@ -35,14 +35,14 @@ describe('geoip spec', () => {
 		expect(location!.countryCode).to.be.eq('US');
 		expect(location!.regionCode).to.be.oneOf(['CA', null]);
 		expect(location!.city).to.be.oneOf(['Mountain View', null]);
-		expect(location!.timeZone).to.be.oneOf(['America/Los_Angeles', 'America/Chicago']);
+		expect(location!.timeZone).to.be.oneOf(['America/Los_Angeles', 'America/Chicago', null]);
 		expect(location!.postalCode).to.be.oneOf(['94041', null]);
 		expect(location!.latitude).to.be.oneOf([37.38801956176758, 37.751]);
 		expect(location!.longitude).to.be.oneOf([-122.07431030273438, -97.822]);
 	});
 
 	it('retrieves location when partially specialized', async () => {
-		const geoip = new GeoIP(ipstackAccessKey!, null, () => 'IP_LOCATE');
+		const geoip = new GeoIP(ipstackAccessKey!, null, () => [ExternalService.IPLOCATE, ExternalService.IPSTACK]);
 		const location = await geoip.locate('8.8.8.8');
 		expect(location).not.to.be.eq(null);
 		expect(location!.countryCode).to.be.eq('US');
@@ -165,11 +165,11 @@ describe('geoip spec', () => {
 		// detect that limit expired for ipstack
 		await geoip.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 
 		// reset limit expired for ipstack
 		// @ts-ignore
-		geoip.limitExpire.ipStack = now - 1;
+		geoip.whenLimitsWillExpire.ipStack = now - 1;
 		httpClient.serviceFailures.ipStack = undefined;
 		httpClient.resetServiceCalls();
 
@@ -178,7 +178,7 @@ describe('geoip spec', () => {
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(0);
 		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(NOT_EXPIRED);
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(-1);
 
 		location = await geoip.locate('8.8.8.8');
 		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
@@ -194,11 +194,11 @@ describe('geoip spec', () => {
 		// detect that limit expired for ipstack
 		await geoip.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 
 		// reset limit expired for ipstack
 		// @ts-ignore
-		geoip.limitExpire.ipStack = now - 1;
+		geoip.whenLimitsWillExpire.ipStack = now - 1;
 		httpClient.resetServiceCalls();
 
 		const location = await geoip.locate('8.8.8.8');
@@ -206,7 +206,7 @@ describe('geoip spec', () => {
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
 		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.not.be.eq(NOT_EXPIRED);
+		expect(geoip.whenLimitsWillExpire.ipStack).to.not.be.eq(-1);
 	});
 
 	it('does resets internal reached limit for iplocate on success response after expiry time', async () => {
@@ -220,13 +220,13 @@ describe('geoip spec', () => {
 		// detect that limit expired for ipstack and iplocate
 		await geoip.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
+		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
 
 		// reset limit expired for iplocate
 		// @ts-ignore
-		geoip.limitExpire.ipLocate = now - 1;
+		geoip.whenLimitsWillExpire.ipLocate = now - 1;
 		httpClient.serviceFailures.ipLocate = undefined;
 		httpClient.resetServiceCalls();
 
@@ -235,9 +235,9 @@ describe('geoip spec', () => {
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1); // try to call
 		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipLocate).to.be.eq(NOT_EXPIRED);
+		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(-1);
 
 		location = await geoip.locate('8.8.8.8');
 		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
@@ -254,12 +254,12 @@ describe('geoip spec', () => {
 		// detect that limit expired for ipstack and iplocate
 		await geoip.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
+		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
 
 		// @ts-ignore
-		geoip.limitExpire.ipLocate = now - 1;
+		geoip.whenLimitsWillExpire.ipLocate = now - 1;
 		httpClient.resetServiceCalls();
 
 		const location = await geoip.locate('8.8.8.8');
@@ -267,9 +267,9 @@ describe('geoip spec', () => {
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1); // will try to call, because internal expiry timestamp is old
 		expect(location!.countryCode).to.be.eq('US'); // but will fallback to geoip-lite
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.limitExpire.ipLocate).to.not.be.eq(NOT_EXPIRED);
+		expect(geoip.whenLimitsWillExpire.ipLocate).to.not.be.eq(-1);
 	});
 
 	it('a new instance of GeoIp which tries to call services with expired limit detects it and computes correctly reset timestamp', async () => {
@@ -288,9 +288,9 @@ describe('geoip spec', () => {
 		// first instance detects that limit expired for ipstack and iplocate
 		await firstGeoipInstance.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(firstGeoipInstance.limitExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
+		expect(firstGeoipInstance.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(firstGeoipInstance.limitExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
+		expect(firstGeoipInstance.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
 		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
 
@@ -303,9 +303,9 @@ describe('geoip spec', () => {
 		// second instance detects that limit expired for ipstack and iplocate
 		await secondGeoipInstance.locate('8.8.8.8');
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(secondGeoipInstance.limitExpire.ipStack).to.be.eq(firstGeoipInstance.limitExpire.ipStack);
+		expect(secondGeoipInstance.whenLimitsWillExpire.ipStack).to.be.eq(firstGeoipInstance.whenLimitsWillExpire.ipStack);
 		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(secondGeoipInstance.limitExpire.ipLocate).to.be.eq(firstGeoipInstance.limitExpire.ipLocate);
+		expect(secondGeoipInstance.whenLimitsWillExpire.ipLocate).to.be.eq(firstGeoipInstance.whenLimitsWillExpire.ipLocate);
 		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
 		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
 	});
