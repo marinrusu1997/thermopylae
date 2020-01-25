@@ -1,40 +1,47 @@
 {
-  "definitions": {},
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "#AUTH_SERVICE-REGISTER",
   "type": "object",
   "title": "AuthService register method",
   "description": "Method used for the registration of the new users.",
-  "allOf": [
-    { "$ref": "../core/credentials.json"},
-    {
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "Email of the user.",
-          "maxLength": 254,
-          "format": "email"
-        },
-        "telephone": {
-          "type": "string",
-          "description": "Telephone number of the user.",
-          "pattern": "^\\+[1-9]\\d{1,14}$"
-        },
-        "role": {
-          "type": "string",
-          "description": "The account role.",
-          "enum": ["USER"]
-        },
-        "pubKey": {
-          "type": "string",
-          "description": "Public key used for as alternative login method.",
-          "maxLength": 540
-        }
-      },
-      "required": [
-        "email",
-        "telephone"
-      ]
+  "properties": {
+    "username": {
+      "$ref": "../core/credentials.json#/properties/username"
+    },
+    "password": {
+      "$ref": "../core/credentials.json#/properties/password"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email of the user.",
+      "maxLength": 254,
+      "format": "email"
+    },
+    "telephone": {
+      "type": "string",
+      "description": "Telephone number of the user.",
+      "pattern": "^\\+[1-9]\\d{1,14}$"
+    },
+    "role": {
+      "type": "string",
+      "description": "The account role.",
+      "enum": ["USER"]
+    },
+    "pubKey": {
+      "type": "string",
+      "description": "Public key used for as alternative login method.",
+      "maxLength": 540
+    },
+    "enableMultiFactorAuth": {
+      "type": "boolean"
     }
-  ]
+  },
+  "required": [
+    "username",
+    "password",
+    "email",
+    "telephone",
+    "role"
+  ],
+  "additionalProperties": false
 }

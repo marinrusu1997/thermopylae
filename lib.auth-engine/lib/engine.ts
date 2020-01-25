@@ -165,7 +165,7 @@ class AuthenticationEngine {
 	 */
 	public async register(registrationInfo: RegistrationRequest, options?: Partial<RegistrationOptions>): Promise<string> {
 		options = options || {};
-		options.useMultiFactorAuth = (options && options.useMultiFactorAuth) || false;
+		options.enableMultiFactorAuth = (options && options.enableMultiFactorAuth) || false;
 		options.isActivated = (options && options.isActivated) || false;
 
 		const account = await this.config.entities.account.read(registrationInfo.username);
@@ -185,7 +185,7 @@ class AuthenticationEngine {
 			role: registrationInfo.role,
 			locked: false,
 			activated: options.isActivated,
-			mfa: options.useMultiFactorAuth,
+			mfa: options.enableMultiFactorAuth,
 			pubKey: registrationInfo.pubKey
 		});
 
@@ -495,7 +495,7 @@ interface AuthEngineOptions {
 }
 
 interface RegistrationOptions {
-	useMultiFactorAuth: boolean;
+	enableMultiFactorAuth: boolean;
 	isActivated: boolean; // based on user role, account can be activated or not at the registration time
 }
 

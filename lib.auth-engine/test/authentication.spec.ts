@@ -201,7 +201,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it("doesn't allow to bypass multi factor step, if not providing totp token", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
 		const firstTOTP = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
@@ -220,7 +220,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it("can't use same totp twice (prevents replay attacks)", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
@@ -235,7 +235,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can lock account on threshold", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		// activate recaptcha
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
@@ -336,7 +336,7 @@ describe('Authenticate spec', () => {
 	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa not required)", async () => {
 		// expected flow: dispatch -> secret -> authenticated
 
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: false });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: false });
 		const authStatus = await AuthEngineInstance.authenticate(validNetworkInput);
 
 		// check issued valid jwt
@@ -437,7 +437,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('authenticates user after soft error occurred in totp multi factor auth step, expect failed auth session to be cleared', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
@@ -485,7 +485,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		// trigger recaptcha
 		let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha;
@@ -547,7 +547,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
@@ -572,7 +572,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('stores failed auth attempts after account was locked when failure threshold reached', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
@@ -591,7 +591,7 @@ describe('Authenticate spec', () => {
 		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE);
 		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE);
 
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
 			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });

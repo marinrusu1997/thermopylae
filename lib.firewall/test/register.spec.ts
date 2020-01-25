@@ -1,15 +1,16 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 // eslint-disable-next-line import/no-unresolved
-import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
+import { AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
 import { Firewall } from '../lib';
 import { passwordTestsSuite, usernameTestsSuite } from './credentials-test-cases';
-import { generateString, testEnum, testPattern, testMaxLength, testRequired, testFormat } from './utils';
+import { generateString, testAdditionalProperties, testEnum, testFormat, testMaxLength, testPattern, testRequired, testType } from './utils';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {
 	const registrationInfo = {
 		email: 'email@email.com',
-		telephone: '+437746564663'
+		telephone: '+437746564663',
+		role: 'USER'
 	};
 
 	const validCredentials = {
@@ -155,12 +156,13 @@ describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {
 	});
 
 	describe('role spec', () => {
-		it('is not required', async () => {
+		it('is required', async () => {
 			const data = {
 				...validCredentials,
-				...registrationInfo
+				...registrationInfo,
+				role: undefined
 			};
-			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
+			await testRequired(Services.AUTH, AuthServiceMethods.REGISTER, data, '', 'role');
 		});
 
 		it('should be equal to one of the allowed values', async () => {
@@ -199,6 +201,34 @@ describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {
 			};
 			await testMaxLength(Services.AUTH, AuthServiceMethods.REGISTER, data, '.pubKey', 540);
 		});
+	});
+
+	describe('enableMultiFactorAuth spec', () => {
+		it('is not required', async () => {
+			const data = {
+				...validCredentials,
+				...registrationInfo
+			};
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, data)).to.be.deep.eq(data);
+		});
+
+		it('needs to be a boolean', async () => {
+			const data = {
+				...validCredentials,
+				...registrationInfo,
+				enableMultiFactorAuth: 'true'
+			};
+			await testType(Services.AUTH, AuthServiceMethods.REGISTER, data, '.enableMultiFactorAuth', 'boolean');
+		});
+	});
+
+	it("can't contain additional properties", () => {
+		const registrationData = {
+			...validCredentials,
+			...registrationInfo,
+			additional: 'property'
+		};
+		testAdditionalProperties(Services.AUTH, AuthServiceMethods.REGISTER, registrationData);
 	});
 
 	it('correct registration date passes validation', async () => {

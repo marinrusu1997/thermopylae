@@ -3,7 +3,9 @@ import { fs, object } from '@marin/lib.utils';
 import { Services } from '@marin/lib.utils/dist/enums';
 import { readdir } from 'fs';
 import { promisify } from 'util';
-import Ajv from 'ajv';
+import Ajv, { ErrorObject } from 'ajv';
+// @ts-ignore
+import AjvLocalizeEn from 'ajv-i18n/localize/en';
 import { FilterXSS } from 'xss';
 
 const readDir = promisify(readdir);
@@ -12,7 +14,9 @@ const SCHEMAS_DIR = `${__dirname}/schemas`;
 const EXCLUDE_SCHEMAS_DIR = ['core'];
 
 class Firewall {
-	private static readonly validator: Ajv.Ajv = new Ajv({ loadSchema: uri => fs.readJsonFromFile(`${SCHEMAS_DIR}/${uri}`) });
+	private static readonly validator: Ajv.Ajv = new Ajv({
+		loadSchema: uri => fs.readJsonFromFile(`${SCHEMAS_DIR}/${uri}`)
+	});
 
 	private static readonly xssFilter: FilterXSS = new FilterXSS();
 
@@ -47,17 +51,7 @@ class Firewall {
 
 	public static validate(service: Services, method: string, data: object): Promise<object> {
 		const schemaId = Firewall.computeSchemaId(service, method);
-		return (Firewall.validator.validate(schemaId, data) as Promise<object>).catch(e => {
-			e.message = 'Validation failed. Details:';
-			let separator = ' ';
-			for (let i = 0; i < e.errors.length; i++) {
-				delete e.errors[i].schemaPath;
-				delete e.errors[i].params;
-				e.message += `${separator}${JSON.stringify(e.errors[i])}`;
-				separator = ', ';
-			}
-			throw e;
-		});
+		return Firewall.validator.validate(schemaId, data) as Promise<object>;
 	}
 
 	public static sanitize(data: object | string): object | string {
@@ -67,6 +61,27 @@ class Firewall {
 			return Firewall.xssFilter.process(data);
 		}
 		return object.traverse(data, value => (typeof value === 'string' ? Firewall.xssFilter.process(value) : undefined));
+	}
+
+	public static joinErrors(errors: Array<ErrorObject>, into: 'text' | 'object', skippedKeywords = ['pattern']): string | object {
+		switch (into) {
+			case 'text':
+				AjvLocalizeEn(errors);
+				return Firewall.validator.errorsText(errors, { separator: '\n' });
+			case 'object':
+				const errObj: any = {};
+				let error;
+				for (let i = 0; i < errors.length; i++) {
+					error = errors[i];
+					if (skippedKeywords.includes(error.keyword)) {
+						continue;
+					}
+					errObj[error.dataPath] = error.message;
+				}
+				return errObj;
+			default:
+				throw new Error('Invalid into param');
+		}
 	}
 
 	private static computeSchemaId(service: Services, method: string): string {

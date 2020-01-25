@@ -4,6 +4,7 @@ import asyncHandler from 'express-async-handler';
 
 const AuthRouter: Router = Router();
 
-AuthRouter.post('/signin', asyncHandler(AuthValidator.authenticate), asyncHandler(AuthController.authenticate));
+AuthRouter.post('/session', asyncHandler(AuthValidator.authenticate), asyncHandler(AuthController.authenticate));
+AuthRouter.post('/account', asyncHandler(AuthValidator.register), asyncHandler(AuthController.register));
 
 export { AuthRouter };

@@ -33,6 +33,7 @@
     "dependencies": {
         "@marin/lib.utils": "file:../lib.utils",
         "ajv": "^6.10.2",
+        "ajv-i18n": "^3.5.0",
         "xss": "^1.0.6"
     },
     "devDependencies": {

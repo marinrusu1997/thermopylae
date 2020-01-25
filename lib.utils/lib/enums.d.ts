@@ -38,4 +38,9 @@ declare const enum AuthTokenType {
 	FACEBOOK = 'FACEBOOK'
 }
 
-export { Libraries, AuthTokenType, Services, AuthServiceMethods };
+declare const enum AccountRole {
+	ADMIN = 'ADMIN',
+	USER = 'USER'
+}
+
+export { Libraries, AuthTokenType, Services, AuthServiceMethods, AccountRole };

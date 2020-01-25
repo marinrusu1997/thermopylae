@@ -1,4 +1,6 @@
-import { AuthenticationEngine } from '@marin/lib.auth-engine';
+import Exception from '@marin/lib.error';
+import { Libraries } from '@marin/lib.utils/dist/enums';
+import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
 import { Request, Response } from 'express';
 import { getLogger } from './logger';
 import { createException, ErrorCodes } from './error';
@@ -35,6 +37,19 @@ class AuthController {
 		}
 
 		throw createException(ErrorCodes.MISCONFIGURATION, "Authentication completed, but it's status couldn't be resolved.");
+	}
+
+	public static async register(req: Request, res: Response): Promise<void> {
+		try {
+			await AuthController.authenticationEngine.register(req.body, { isActivated: false, enableMultiFactorAuth: req.body.enableMultiFactorAuth });
+		} catch (e) {
+			if (e instanceof Exception && e.emitter === Libraries.AUTH_ENGINE) {
+				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? 409 : 400;
+				res.status(httpResponseCode).json({ code: e.code });
+				return;
+			}
+			throw e;
+		}
 	}
 }
 

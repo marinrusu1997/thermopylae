@@ -11,7 +11,7 @@ async function testType(service: Services, method: string, data: object, dataPat
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('type');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -25,7 +25,7 @@ async function testPattern(service: Services, method: string, data: object, data
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('pattern');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -39,7 +39,7 @@ async function testFormat(service: Services, method: string, data: object, dataP
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('format');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -53,7 +53,7 @@ async function testMinLength(service: Services, method: string, data: object, da
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('minLength');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -67,7 +67,7 @@ async function testMaxLength(service: Services, method: string, data: object, da
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('maxLength');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -81,7 +81,7 @@ async function testRequired(service: Services, method: string, data: object, dat
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('required');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -103,7 +103,7 @@ async function testMinValue(service: Services, method: string, data: object, dat
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('minimum');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -117,7 +117,7 @@ async function testEnum(service: Services, method: string, data: object, dataPat
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('enum');
 	expect(err.errors[0].dataPath).to.be.eq(dataPath);
@@ -131,7 +131,7 @@ async function testAdditionalProperties(service: Services, method: string, data:
 	} catch (e) {
 		err = e;
 	}
-	expect(err.message.substr(0, 28)).to.be.eq('Validation failed. Details: ');
+	expect(err.message).to.be.eq('validation failed');
 	expect(err.errors.length).to.be.eq(1);
 	expect(err.errors[0].keyword).to.be.eq('additionalProperties');
 	expect(err.errors[0].dataPath).to.be.eq('');

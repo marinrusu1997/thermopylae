@@ -34,7 +34,7 @@ describe('Account registration spec', () => {
 	};
 
 	it('registers a new account using explicit registration options', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, useMultiFactorAuth: true }); // do not trigger deletion timer
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true }); // do not trigger deletion timer
 		const account = await basicAuthEngineConfig.entities.account.read('username');
 		if (!account) {
 			throw new Error('Registered account not found');

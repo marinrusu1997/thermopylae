@@ -29,11 +29,11 @@ class RestApiRouter {
 					path: [
 						{
 							method: 'POST',
-							url: new RegExp('/auth/signin$')
+							url: new RegExp('/auth/session$')
 						},
 						{
 							method: 'POST',
-							url: new RegExp('/auth/signup$')
+							url: new RegExp('/auth/account$')
 						}
 					]
 				},
