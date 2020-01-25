@@ -235,9 +235,12 @@ class AuthenticationEngine {
 		if (!session) {
 			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by provided token ${activateAccountToken} not found. `);
 		}
+
+		// it's pointless to activate users account if canceling it's scheduled deletion fails
+		await this.config.schedulers.account.cancelDelete(session.taskId);
+
 		await Promise.all([
 			this.config.entities.account.activate(session.accountId),
-			this.config.schedulers.account.cancelDelete(session.taskId),
 			this.config.entities.activateAccountSession
 				.delete(activateAccountToken)
 				.catch(err =>

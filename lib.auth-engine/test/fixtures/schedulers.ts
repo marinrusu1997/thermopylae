@@ -5,7 +5,8 @@ import Timeout = NodeJS.Timeout;
 
 enum SCHEDULING_OP {
 	DELETE_ACTIVE_USER_SESSION,
-	DELETE_UNACTIVATED_ACCOUNT
+	DELETE_UNACTIVATED_ACCOUNT,
+	CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT
 }
 
 const failures = new Map<number, boolean>();
@@ -43,6 +44,10 @@ const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDel
 };
 
 const CancelScheduledUnactivatedAccountDeletionFromMongo: CancelScheduledUnactivatedAccountDeletion = taskId => {
+	if (failures.get(SCHEDULING_OP.CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT)) {
+		throw new Error('Canceling deletion of unactivated account was configured to fail');
+	}
+
 	const numericTaskId = Number(taskId);
 	clearTimeout(timeouts.get(numericTaskId)!);
 	timeouts.delete(numericTaskId);

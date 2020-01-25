@@ -5,10 +5,12 @@ import { chrono } from '@marin/lib.utils';
 import { Libraries } from '@marin/lib.utils/dist/enums';
 import { ErrorCodes as EmailErrorCodes } from '@marin/lib.email';
 import Exception from '@marin/lib.error';
+import { hostname } from 'os';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 import { failureWillBeGeneratedForSessionOperation, hasAnySessions, SESSIONS_OP } from './fixtures/memcache-entities';
+import { AuthRequest } from '../lib/types/requests';
 
 describe('Account registration spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine({
@@ -31,6 +33,22 @@ describe('Account registration spec', () => {
 		password: 'auirg7q85y1298huwityh289',
 		email: 'user@product.com',
 		telephone: '+568425666'
+	};
+
+	const validAuthRequest: AuthRequest = {
+		username: defaultRegistrationInfo.username,
+		password: defaultRegistrationInfo.password,
+		ip: '158.56.89.230',
+		device: hostname(),
+		location: {
+			countryCode: 'US',
+			regionCode: 'CA',
+			city: 'Los Angeles',
+			postalCode: '90067',
+			timeZone: 'America/Los_Angeles',
+			latitude: 34.0577507019043,
+			longitude: -118.41380310058594
+		}
 	};
 
 	it('registers a new account using explicit registration options', async () => {
@@ -156,6 +174,23 @@ describe('Account registration spec', () => {
 
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.outboxFor(defaultRegistrationInfo.email)[0].html as string);
 		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel delete account timer
+	});
+
+	it("doesn't activate account if canceling account deletion failed", async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: false });
+
+		failureWillBeGeneratedWhenScheduling(SCHEDULING_OP.CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT);
+		try {
+			const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.outboxFor(defaultRegistrationInfo.email)[0].html as string);
+			await AuthEngineInstance.activateAccount(activationToken.token);
+		} catch (e) {
+			expect(e).to.not.be.instanceOf(Exception);
+			expect(e).to.haveOwnProperty('message', 'Canceling deletion of unactivated account was configured to fail');
+			const authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
+			expect(authStatus.error!.hard).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_ACTIVATED);
+			return;
+		}
+		assert(false, 'Account was activated, even if canceling account deletion failed.');
 	});
 
 	it('will delete account if not activated in specified amount of time (also deletes activate account session)', async () => {

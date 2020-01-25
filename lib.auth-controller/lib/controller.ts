@@ -43,9 +43,21 @@ class AuthController {
 		try {
 			await AuthController.authenticationEngine.register(req.body, { isActivated: false, enableMultiFactorAuth: req.body.enableMultiFactorAuth });
 		} catch (e) {
-			if (e instanceof Exception && e.emitter === Libraries.AUTH_ENGINE) {
+			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? 409 : 400;
 				res.status(httpResponseCode).json({ code: e.code });
+				return;
+			}
+			throw e;
+		}
+	}
+
+	public static async activateAccount(req: Request, res: Response): Promise<void> {
+		try {
+			await AuthController.authenticationEngine.activateAccount(req.params.token);
+		} catch (e) {
+			if (e instanceof Exception && e.emitter === Libraries.AUTH_ENGINE) {
+				res.status(404).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
 				return;
 			}
 			throw e;

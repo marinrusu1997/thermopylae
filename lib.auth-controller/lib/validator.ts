@@ -1,5 +1,5 @@
 import { Firewall } from '@marin/lib.firewall';
-import { AuthServiceMethods, Services, AccountRole } from '@marin/lib.utils/dist/enums';
+import { AccountRole, AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
 import { NextFunction, Request, Response } from 'express';
 import { GeoIP } from '@marin/lib.geoip';
 import { getLogger } from './logger';
@@ -43,6 +43,24 @@ class AuthValidator {
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for register method.`, e);
+			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * PUT /api/rest/auth/account/activate?token=hfhfhhfhf
+	 *
+	 * Flow: req to this endpoint from email link, web server intercepts response
+	 * and redirects to endpoint with prepared httl page based on response success
+	 * This way Referer header won't be present
+	 */
+	static async activateAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.ACTIVATE_ACCOUNT, { activateAccountToken: req.params.token });
+
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for activate account method.`, e);
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}

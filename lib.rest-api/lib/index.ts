@@ -34,6 +34,10 @@ class RestApiRouter {
 						{
 							method: 'POST',
 							url: new RegExp('/auth/account$')
+						},
+						{
+							method: 'PUT',
+							url: new RegExp('/account/activate$')
 						}
 					]
 				},
@@ -44,7 +48,7 @@ class RestApiRouter {
 		RestApiRouter.router.use('/auth', AuthRouter);
 	}
 
-	public static get ExpressRouter() {
+	public static get ExpressRouter(): IRouter {
 		if (!RestApiRouter.router) {
 			throw createException(ErrorCodes.REST_API_ROUTER_NOT_INITIALIZED, '');
 		}

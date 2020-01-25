@@ -46,7 +46,7 @@ describe('Authenticate spec', () => {
 		pubKey: primaryKeyPair.public
 	};
 
-	const validNetworkInput: AuthRequest = {
+	const validAuthRequest: AuthRequest = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -114,7 +114,7 @@ describe('Authenticate spec', () => {
 
 	it('fails to authenticate user when wrong secret provided, user gives up, expect not to leak disk memory for auth temp session', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 		expect(authStatus.error!.soft)
@@ -124,7 +124,7 @@ describe('Authenticate spec', () => {
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl.authSession) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
+		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 	});
 
@@ -133,7 +133,7 @@ describe('Authenticate spec', () => {
 
 		const signatureOfTokenWhichWasNeverIssued = signChallengeNonce('token-which-was-never-issued');
 		let authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature: signatureOfTokenWhichWasNeverIssued, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft)
@@ -141,13 +141,13 @@ describe('Authenticate spec', () => {
 			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signatureOfValidToken = signChallengeNonce(authStatus.token!);
 		authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.token).to.not.be.eq(undefined);
@@ -155,7 +155,7 @@ describe('Authenticate spec', () => {
 
 		// prevent replay attack
 		authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft)
@@ -167,13 +167,13 @@ describe('Authenticate spec', () => {
 	it('fails to authenticate user when challenge nonce is signed with invalid private key', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce(authStatus.token!, secondaryKeyPair.private);
 		authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft)
@@ -185,13 +185,13 @@ describe('Authenticate spec', () => {
 	it('fails to authenticate user when invalid challenge nonce is signed with valid private key (unlikely to happen in real scenario)', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce('invalid token');
 		authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft)
@@ -202,7 +202,7 @@ describe('Authenticate spec', () => {
 
 	it("doesn't allow to bypass multi factor step, if not providing totp token", async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const firstTOTP = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(firstTOTP).to.not.be.eq(undefined);
@@ -211,7 +211,7 @@ describe('Authenticate spec', () => {
 		await chrono.sleep(1000); // totp is based on timestamps, need another timestamp in order to issue different token
 
 		// subsequent calls should resolve to totp step
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const [secondTOTP] = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(secondTOTP).to.not.be.eq(undefined);
@@ -221,13 +221,13 @@ describe('Authenticate spec', () => {
 
 	it("can't use same totp twice (prevents replay attacks)", async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 		expect(authStatus.token).to.not.be.eq(undefined); // this will remove token from auth session, thus in can't be used twice
 
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 		expect(authStatus.error!.soft)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
@@ -239,11 +239,11 @@ describe('Authenticate spec', () => {
 
 		// activate recaptcha
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		// provide no recaptcha when it's required
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: undefined });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: undefined });
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
@@ -261,7 +261,7 @@ describe('Authenticate spec', () => {
 		let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha - 1;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
-			const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE1, password: 'invalid' });
+			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE1, password: 'invalid' });
 			expect(status.error!.soft)
 				.to.be.instanceOf(Exception)
 				.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
@@ -273,7 +273,7 @@ describe('Authenticate spec', () => {
 		let numberOfTriesTillAccountLock = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - AuthenticationEngineConfig.thresholds.recaptcha;
 		// eslint-disable-next-line no-plusplus
 		while (numberOfTriesTillAccountLock--) {
-			const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE2, password: 'invalid' });
+			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE2, password: 'invalid' });
 			expect(status.error!.soft)
 				.to.be.instanceOf(Exception)
 				.and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
@@ -283,7 +283,7 @@ describe('Authenticate spec', () => {
 
 		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds.recaptcha);
 
-		const status = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: DEVICE3, password: 'invalid' });
+		const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE3, password: 'invalid' });
 		expect(status.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
@@ -296,26 +296,26 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
 	});
 
 	it('locks the user account when providing invalid response to challenge', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
 		for (let i = 1; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 			const authStatus = await AuthEngineInstance.authenticate({
-				...validNetworkInput,
+				...validAuthRequest,
 				responseForChallenge: { signature: 'invalid signature', signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 			});
 			expect(authStatus.error!.soft).to.be.instanceOf(Exception);
@@ -324,7 +324,7 @@ describe('Authenticate spec', () => {
 		}
 
 		try {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput }); // using secret step
+			await AuthEngineInstance.authenticate({ ...validAuthRequest }); // using secret step
 		} catch (e) {
 			if (!(e instanceof Exception)) {
 				throw e;
@@ -337,7 +337,7 @@ describe('Authenticate spec', () => {
 		// expected flow: dispatch -> secret -> authenticated
 
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: false });
-		const authStatus = await AuthEngineInstance.authenticate(validNetworkInput);
+		const authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
 
 		// check issued valid jwt
 		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!);
@@ -353,11 +353,11 @@ describe('Authenticate spec', () => {
 			accountId,
 			ip: '158.56.89.230',
 			device: hostname(),
-			location: validNetworkInput.location
+			location: validAuthRequest.location
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
+		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -372,11 +372,11 @@ describe('Authenticate spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 		await AuthEngineInstance.activateMultiFactorAuthentication(accountId, true);
 
-		const authStatusSecretStep = await AuthEngineInstance.authenticate(validNetworkInput);
+		const authStatusSecretStep = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatusSecretStep.nextStep!).to.be.eq(AUTH_STEP.TOTP);
 
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const authStatusTotpStep = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
+		const authStatusTotpStep = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 
 		// check issued valid jwt
 		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatusTotpStep.token!);
@@ -392,11 +392,11 @@ describe('Authenticate spec', () => {
 			accountId,
 			ip: '158.56.89.230',
 			device: hostname(),
-			location: validNetworkInput.location
+			location: validAuthRequest.location
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validNetworkInput.username, validNetworkInput.device);
+		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -411,23 +411,23 @@ describe('Authenticate spec', () => {
 		config.jwt.rolesTtl = undefined;
 		const AuthEngine = new AuthenticationEngine(config);
 		await AuthEngine.register(defaultRegistrationInfo, { isActivated: true });
-		const authStatus = await AuthEngine.authenticate(validNetworkInput);
+		const authStatus = await AuthEngine.authenticate(validAuthRequest);
 		expect(authStatus.token).to.not.be.eq(undefined);
 	});
 
 	it('authenticates user after soft error occurred in secret step, expect failed auth session to be cleared', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+		await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
 		// second time will work, also needs to reset failed auth attempts
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		// now retry again till hard error, counter needs to be 0 again
 		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - 1; // on last it will lock account
 		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
-			authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 			expect(authStatus.error!.soft).to.not.be.eq(undefined);
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
@@ -438,22 +438,22 @@ describe('Authenticate spec', () => {
 
 	it('authenticates user after soft error occurred in totp multi factor auth step, expect failed auth session to be cleared', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp: 'invalid' });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp: 'invalid' });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(authStatus.error!.soft).to.not.be.eq(undefined);
 
 		// second time will work, also needs to reset failed auth attempts
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		// now retry again till hard error, counter needs to be 0 again
 		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - 1; // on last it will lock account
 		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
-			authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 			expect(authStatus.error!.soft).to.not.be.eq(undefined);
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
@@ -469,11 +469,11 @@ describe('Authenticate spec', () => {
 			let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha;
 			// eslint-disable-next-line no-plusplus
 			while (recaptchaThreshold--) {
-				await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+				await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 			}
 
 			// now provide correct info along with correct recaptcha
-			const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: 'valid' }); // this is how validator is implemented
+			const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'valid' }); // this is how validator is implemented
 			expect(authStatus.token).to.not.be.eq(undefined);
 		}
 
@@ -491,15 +491,15 @@ describe('Authenticate spec', () => {
 		let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		// provide valid recaptcha
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: 'valid' });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'valid' });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 
 		const [totp] = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone);
-		authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, totp });
+		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 		expect(authStatus.token).to.not.be.eq(undefined);
 	});
 
@@ -508,74 +508,74 @@ describe('Authenticate spec', () => {
 
 		let lastAuthStatus: any;
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			lastAuthStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			lastAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		expect(lastAuthStatus!.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
 	});
 
 	it('aborts authentication after hard error occurred in recaptcha step (mfa not required)', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		for (let i = AuthenticationEngineConfig.thresholds.recaptcha; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'invalid' });
 		}
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
 	});
 
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
-		const recaptchaAuthStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, recaptcha: 'valid' });
+		const recaptchaAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'valid' });
 		expect(recaptchaAuthStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.not.be.eq(undefined);
 
 		for (let i = AuthenticationEngineConfig.thresholds.recaptcha; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, totp: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, totp: 'invalid' });
 		}
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
 	});
 
 	it('stores failed auth attempts after account was locked when failure threshold reached', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
@@ -583,8 +583,8 @@ describe('Authenticate spec', () => {
 		expect(failedAuthAttempts[0].devices.size).to.be.eq(1);
 		expect(failedAuthAttempts[0].ips.size).to.be.eq(1);
 
-		expect(failedAuthAttempts[0].devices.has(validNetworkInput.device)).to.be.eq(true);
-		expect(failedAuthAttempts[0].ips.has(validNetworkInput.ip)).to.be.eq(true);
+		expect(failedAuthAttempts[0].devices.has(validAuthRequest.device)).to.be.eq(true);
+		expect(failedAuthAttempts[0].ips.has(validAuthRequest.ip)).to.be.eq(true);
 	});
 
 	it('locks account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
@@ -594,38 +594,38 @@ describe('Authenticate spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
 
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
-			await AuthEngineInstance.authenticate({ ...validNetworkInput, password: 'invalid' });
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
 		expect(failedAuthAttempts.length).to.be.eq(0);
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput });
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validNetworkInput.username} is locked. `);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
 	});
 
 	it('authenticates the user using challenge response authentication method', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
 
-		let authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, generateChallenge: true });
+		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce(authStatus.token!);
 		authStatus = await AuthEngineInstance.authenticate({
-			...validNetworkInput,
+			...validAuthRequest,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.token).to.not.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 
 		// session was deletion, prevent replay attacks with already emitted nonce
-		expect(await AuthenticationEngineConfig.entities.authSession.read(defaultRegistrationInfo.username, validNetworkInput.device)).to.be.eq(null);
+		expect(await AuthenticationEngineConfig.entities.authSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
 	});
 });
