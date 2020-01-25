@@ -64,6 +64,25 @@ class AuthValidator {
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
+
+	/**
+	 * PUT /api/rest/auth/account/multifactor?enable=boolean
+	 */
+	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
+		if (req.params.enable === 'true' || req.params.enable === '1') {
+			// @ts-ignore
+			req.params.enable = true;
+			return next();
+		}
+
+		if (req.params.enable === 'false' || req.params.enable === '0') {
+			// @ts-ignore
+			req.params.enable = false;
+			return next();
+		}
+
+		res.status(400).json({ enable: 'query param is required and needs to be a boolean' });
+	}
 }
 
 export { AuthValidator };

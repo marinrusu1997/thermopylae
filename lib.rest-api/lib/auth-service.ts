@@ -7,5 +7,6 @@ const AuthRouter: IRouter = Router();
 AuthRouter.post('/session', asyncHandler(AuthValidator.authenticate), asyncHandler(AuthController.authenticate));
 AuthRouter.post('/account', asyncHandler(AuthValidator.register), asyncHandler(AuthController.register));
 AuthRouter.put('/account/activate', asyncHandler(AuthValidator.activateAccount), asyncHandler(AuthController.activateAccount));
+AuthRouter.put('/account/multifactor', AuthValidator.enableMultiFactorAuthentication, asyncHandler(AuthController.enableMultiFactorAuthentication));
 
 export { AuthRouter };

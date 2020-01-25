@@ -1,4 +1,3 @@
-import Exception from '@marin/lib.error';
 import { Libraries } from '@marin/lib.utils/dist/enums';
 import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
 import { Request, Response } from 'express';
@@ -56,12 +55,21 @@ class AuthController {
 		try {
 			await AuthController.authenticationEngine.activateAccount(req.params.token);
 		} catch (e) {
-			if (e instanceof Exception && e.emitter === Libraries.AUTH_ENGINE) {
+			if (e.emitter === Libraries.AUTH_ENGINE) {
 				res.status(404).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
 				return;
 			}
 			throw e;
 		}
+	}
+
+	public static async enableMultiFactorAuthentication(req: Request, res: Response): Promise<void> {
+		// @ts-ignore
+		const accountId: string = req.pipeline.jwtPayload.sub;
+		// @ts-ignore
+		const enabled: boolean = req.params.enable;
+		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, enabled);
+		res.status(200).send();
 	}
 }
 

@@ -32,7 +32,7 @@ describe('entities', () => {
 		expect((await AccountEntityMongo.read(account.username))!.locked).to.be.equal(true);
 		await AccountEntityMongo.activate(account.id!);
 		expect((await AccountEntityMongo.read(account.username))!.activated).to.be.equal(true);
-		await AccountEntityMongo.activateMFA(account.id!, true);
+		await AccountEntityMongo.enableMFA(account.id!, true);
 		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(true);
 	});
 

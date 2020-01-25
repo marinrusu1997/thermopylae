@@ -255,8 +255,8 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public activateMultiFactorAuthentication(accountId: string, activate: boolean): Promise<void> {
-		return this.config.entities.account.activateMFA(accountId, activate);
+	public enableMultiFactorAuthentication(accountId: string, enabled: boolean): Promise<void> {
+		return this.config.entities.account.enableMFA(accountId, enabled);
 	}
 
 	/**

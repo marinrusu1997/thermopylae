@@ -19,8 +19,10 @@
         "no-param-reassign": "warn",
         "no-use-before-define": "warn",
         "lines-between-class-members": "warn",
+        "consistent-return": "warn",
         "@typescript-eslint/no-use-before-define": "warn",
         "@typescript-eslint/no-namespace": "off",
+        "@typescript-eslint/ban-ts-ignore": "warn",
         "import/extensions": [
             "error",
             "ignorePackages",
