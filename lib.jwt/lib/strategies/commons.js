@@ -30,7 +30,7 @@ function resolveBasicOptions(opts) {
 function tryToLogError(err, msg, logger) {
 	if (logger) {
 		try {
-			logger.error(err, msg);
+			logger.error(msg, err);
 			// eslint-disable-next-line no-empty
 		} catch (e) {}
 	}

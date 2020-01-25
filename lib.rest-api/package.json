@@ -1,13 +1,13 @@
 {
-    "name": "@marin/lib.auth-router",
-    "description": "Express router which exposes authentication api",
+    "name": "lib.rest-api",
+    "description": "REST API for exposed services",
     "keywords": [
-        "express",
-        "router",
         "rest",
-        "auth"
+        "api",
+        "http",
+        "services"
     ],
-    "version": "1.0.0",
+    "version": "0.0.1-beta",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -20,6 +20,7 @@
         "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
         "clean": "gulp clean",
         "purge": "gulp purge"
     },
@@ -32,21 +33,22 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "@marin/lib.firewall": "file:../lib.firewall",
+        "@marin/lib.auth-controller": "file:../lib.auth-controller",
+        "@marin/lib.error": "file:../lib.error",
+        "@marin/lib.jwt": "file:../lib.jwt",
         "@marin/lib.logger": "file:../lib.logger",
-        "@marin/lib.error": "file:../lib.error"
+        "express": "^4.17.1",
+        "express-async-handler": "^1.1.4"
     },
     "devDependencies": {
-        "@marin/lib.auth-engine": "file:../lib.auth-engine",
-        "@marin/lib.geoip": "file:../lib.geoip",
-        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.module-builder": "file:../lib.module-builder",
+        "@marin/lib.utils": "file:../lib.utils",
         "@types/chai": "^4.2.7",
-        "@types/mocha": "^5.2.7",
-        "@types/node": "^13.1.8",
         "@types/express": "^4.17.1",
-        "@typescript-eslint/eslint-plugin": "^2.16.0",
-        "@typescript-eslint/parser": "^2.16.0",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^13.5.0",
+        "@typescript-eslint/eslint-plugin": "^2.17.0",
+        "@typescript-eslint/parser": "^2.17.0",
         "chai": "^4.2.0",
         "eslint": "^6.8.0",
         "eslint-config-airbnb-base": "^14.0.0",

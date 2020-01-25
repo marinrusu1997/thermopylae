@@ -4,11 +4,11 @@ export interface BasicCredentials {
 }
 
 export interface BasicLocation {
-	countryCode: string;
-	regionCode: string;
-	city: string;
-	timeZone: string | object;
-	latitude: number;
-	longitude: number;
-	postalCode?: string;
+	countryCode: string | null;
+	regionCode: string | null;
+	city: string | null;
+	timeZone: string | object | null;
+	latitude: number | null;
+	longitude: number | null;
+	postalCode?: string | null;
 }

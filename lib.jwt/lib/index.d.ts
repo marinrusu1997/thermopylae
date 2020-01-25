@@ -1,3 +1,4 @@
+import { SignOptions, VerifyOptions } from "jsonwebtoken";
 /** This is the manager class of the library */
 import { Jwt } from './auth/jwt';
 import { IIssuedJWTPayload } from './auth/jwt-payload';
@@ -11,4 +12,4 @@ import { JwtAuthMiddleware } from './strategies/express/express';
 import { JwtStrategy } from './strategies/passport/passport';
 
 /** LIBRARY EXPORTS */
-export { Jwt, IIssuedJWTPayload, MemoryStorage, RedisStorage, JwtAuthMiddleware, JwtStrategy };
+export { Jwt, SignOptions, VerifyOptions, IIssuedJWTPayload, MemoryStorage, RedisStorage, JwtAuthMiddleware, JwtStrategy };

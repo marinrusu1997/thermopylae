@@ -58,12 +58,12 @@ declare namespace JwtAuthMiddleware {
   /** Configuration options for express-unless middleware */
   interface IUnlessOpts {
     /** Method or array of methods */
-    readonly method: string | Array<string>;
+    readonly method?: string | Array<string>;
     /** Array of paths, regex, or path and method */
-    readonly path: string | RegExp | Array<string | RegExp> | Array<{method: string; url: string;}>;
-    readonly ext: string | Array<string>;
-    readonly custom: (req: object) => boolean;
-    readonly useOriginalUrl: boolean;
+    readonly path?: string | RegExp | Array<string | RegExp> | Array<{method: string; url: string | RegExp;}>;
+    readonly ext?: string | Array<string>;
+    readonly custom?: (req: object) => boolean;
+    readonly useOriginalUrl?: boolean;
   }
   /** Configuration options for Jwt Auth Express Middleware */
   interface IExpressMiddlewareOpts extends IBasicJWTAuthenticatorOpts {

@@ -5,6 +5,7 @@ declare const enum Libraries {
 	LOGGER = 'LOGGER_LIB',
 	MEM_CACHE = 'MEM_CACHE_LIB',
 	SMS = 'SMS_LIB',
+	REST_API = 'REST_API_LIB',
 	UTILS = 'UTILS_LIB'
 }
 

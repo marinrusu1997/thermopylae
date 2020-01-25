@@ -75,9 +75,9 @@ const getSecret = (secret, keyType, options) => {
  * which can be overwritten by custom provided options.
  *
  * @param {SignOptions | VerifyOptions}   custom    			Custom provided options on operation invocation
- * @param {ISignVerifyOpts | undefined}   defaultOptions  Default options specified at instance initialization
+ * @param {ISignVerifyOpts | undefined}   defaultOptions  		Default options specified at instance initialization
  * @param {string}                        opType    			Type of the operation (sign/verify)
- * @returns {SignOptions | VerifyOptions |undefined}   Options for operation invocation
+ * @returns {SignOptions | VerifyOptions | undefined}   		Options for operation invocation
  * @api private
  */
 const getOptions = (custom, defaultOptions, opType) => ({

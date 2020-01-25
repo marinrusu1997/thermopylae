@@ -47,7 +47,12 @@ describe('JWTBlacklist spec', () => {
 		it('defines all audiences successfully', async () => {
 			const instance = new JWTBlacklist();
 			await instance.init(new MemoryStorage());
-			await expect(instance.defineAudiences([{ name: '1', ttl: 1 }, { name: '2', ttl: 2 }]))
+			await expect(
+				instance.defineAudiences([
+					{ name: '1', ttl: 1 },
+					{ name: '2', ttl: 2 }
+				])
+			)
 				.to.eventually.be.fulfilled.and.to.be.array()
 				.ofSize(2)
 				.equalTo([true, true]);
@@ -56,7 +61,10 @@ describe('JWTBlacklist spec', () => {
 		it('defines a few audiences successfully, returns Error for unsuccessfull ones', async () => {
 			const instance = new JWTBlacklist();
 			await instance.init(new MemoryStorage());
-			const bulkResult = await instance.defineAudiences([{ name: '1', ttl: 1 }, { name: '1', ttl: 1 }]);
+			const bulkResult = await instance.defineAudiences([
+				{ name: '1', ttl: 1 },
+				{ name: '1', ttl: 1 }
+			]);
 			expect(bulkResult)
 				.to.be.array()
 				.ofSize(2);

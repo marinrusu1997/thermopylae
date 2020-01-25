@@ -82,7 +82,6 @@ class GeoIP {
 	 * @throws {Exception}	When location couldn't be found.
 	 */
 	// @ts-ignore
-	// eslint-disable-next-line consistent-return
 	public async locate(ip: string): Promise<IpLocation> {
 		const currentTimeUNIX = chrono.dateToUNIX();
 		const externalServicesOrder = this.externalServiceLoadBalancer();
@@ -99,7 +98,7 @@ class GeoIP {
 		}
 
 		if (!location) {
-			throw createException(ErrorCodes.IP_LOCATION_NOT_FOUND, `Couldn't locate ip ${ip}.`);
+			throw createException(ErrorCodes.IP_LOCATION_NOT_FOUND, `Couldn't locate ip ${ip}. `);
 		}
 	}
 
