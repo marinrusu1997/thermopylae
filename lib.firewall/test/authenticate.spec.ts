@@ -19,7 +19,7 @@ describe(`${Services.AUTH}-${AuthServiceMethods.AUTHENTICATE} spec`, () => {
 
 	describe('credentials spec', () => {
 		usernameTestsSuite(Services.AUTH, AuthServiceMethods.AUTHENTICATE, authenticationInfo);
-		passwordTestsSuite(Services.AUTH, AuthServiceMethods.AUTHENTICATE, authenticationInfo);
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.AUTHENTICATE, { ...authenticationInfo, username: 'validusername' });
 
 		it('password not required when totp is present', async () => {
 			const data = {

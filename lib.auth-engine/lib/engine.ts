@@ -276,7 +276,7 @@ class AuthenticationEngine {
 	/**
 	 * @access private
 	 */
-	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number> {
+	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number | undefined> {
 		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
 		if (!account) {
 			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found.`);
@@ -285,20 +285,23 @@ class AuthenticationEngine {
 			// just in case session invalidation failed when account was locked
 			throw createException(ErrorCodes.ACCOUNT_LOCKED, `Account with id ${changePasswordRequest.accountId} is locked.`);
 		}
-		if (!(await PasswordsManager.isCorrect(changePasswordRequest.oldPassword, account.password, account.salt, this.config.secrets.pepper))) {
+		if (!(await PasswordsManager.isCorrect(changePasswordRequest.old, account.password, account.salt, this.config.secrets.pepper))) {
 			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match.");
 		}
 		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
 
-		await this.passwordsManager.change(
-			changePasswordRequest.accountId,
-			changePasswordRequest.newPassword,
-			this.config.sizes.salt,
-			this.config.secrets.pepper
-		);
+		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.new, this.config.sizes.salt, this.config.secrets.pepper);
 
-		// logout from all devices, needs to be be done, as usually jwt will be long lived
-		return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
+		if (typeof changePasswordRequest.logAllOtherSessionsOut !== 'boolean') {
+			// by default logout from all devices, needs to be be done, as usually jwt will be long lived
+			changePasswordRequest.logAllOtherSessionsOut = true;
+		}
+
+		if (changePasswordRequest.logAllOtherSessionsOut) {
+			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
+		}
+
+		return undefined;
 	}
 
 	/**

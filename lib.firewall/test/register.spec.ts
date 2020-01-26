@@ -20,7 +20,7 @@ describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {
 
 	describe('credentials spec', () => {
 		usernameTestsSuite(Services.AUTH, AuthServiceMethods.REGISTER, registrationInfo);
-		passwordTestsSuite(Services.AUTH, AuthServiceMethods.REGISTER, registrationInfo);
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.REGISTER, { ...registrationInfo, username: 'validusername' });
 	});
 
 	describe('email spec', () => {

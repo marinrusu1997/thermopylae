@@ -1,48 +1,51 @@
 import { describe, it } from 'mocha';
+import { expect } from 'chai';
 // eslint-disable-next-line import/no-unresolved
-import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
-import { generateString, testMaxLength, testRequired, testType } from './utils';
+import { AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
+import { generateString, testAdditionalProperties, testType } from './utils';
 import { passwordTestsSuite } from './credentials-test-cases';
+import { Firewall } from '../lib';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.CHANGE_PASSWORD} spec`, () => {
-	describe('sessionId spec', () => {
-		it('is required', async () => {
-			const data = {};
-			await testRequired(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, '', 'sessionId');
+	describe('old password spec', () => {
+		const data = {
+			new: generateString(10)
+		};
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, 'old');
+	});
+
+	describe('new password spec', () => {
+		const data = {
+			old: generateString(10)
+		};
+		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, 'new');
+	});
+
+	describe('log all other sessions out spec', () => {
+		it('is not required', async () => {
+			const data = {
+				old: generateString(10),
+				new: generateString(10)
+			};
+			expect(await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data)).to.be.deep.eq(data);
 		});
 
-		it('is string', async () => {
+		it('is a boolean', async () => {
 			const data = {
-				sessionId: 1,
-				oldPassword: generateString(10),
-				newPassword: generateString(10)
+				old: generateString(10),
+				new: generateString(10),
+				logAllOtherSessionsOut: 'true'
 			};
-			await testType(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, '.sessionId', 'string');
-		});
-
-		it('has max length of 20 chars', async () => {
-			const data = {
-				sessionId: generateString(21),
-				oldPassword: generateString(10),
-				newPassword: generateString(10)
-			};
-			await testMaxLength(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, '.sessionId', 20);
+			await testType(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, '.logAllOtherSessionsOut', 'boolean');
 		});
 	});
 
-	describe('oldPassword spec', () => {
+	it('does not support additional properties', async () => {
 		const data = {
-			sessionId: generateString(20),
-			newPassword: generateString(10)
+			old: generateString(10),
+			new: generateString(10),
+			additional: 'property'
 		};
-		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, 'oldPassword');
-	});
-
-	describe('newPassword spec', () => {
-		const data = {
-			sessionId: generateString(20),
-			oldPassword: generateString(10)
-		};
-		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data, 'newPassword');
+		await testAdditionalProperties(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, data);
 	});
 });

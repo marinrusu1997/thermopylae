@@ -35,8 +35,7 @@ class PasswordsManager {
 			const [entry, howOften] = breachedPasswords[i].split(':');
 			if (entry === suffix && Number(howOften) >= this.breachThreshold) {
 				// after owasp test chances that chosen password was breached before are very low
-				/* istanbul ignore next */
-				throw createException(ErrorCodes.WEAK_PASSWORD, 'Your password has been breached before. We strongly recommend you to choose another one.');
+				throw createException(ErrorCodes.WEAK_PASSWORD, 'Provided password has been breached before. ', password);
 			}
 		}
 	}

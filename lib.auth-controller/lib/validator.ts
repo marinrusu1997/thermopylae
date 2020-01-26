@@ -12,7 +12,7 @@ class AuthValidator {
 	}
 
 	/**
-	 * POST /api/rest/auth/session
+	 * POST /api/rest/v1/auth/session
 	 * Body args: { username, password?, totp?, recaptcha?, generateChallenge?, responseForChallenge? }
 	 */
 	static async authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -25,29 +25,34 @@ class AuthValidator {
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for login method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(400).send();
 		}
 	}
 
 	/**
-	 * POST /api/rest/auth/account
+	 * POST /api/rest/v1/auth/account
 	 * Body args: { username, password, email, telephone, pubKey?, enableMultiFactorAuth? }
 	 */
 	static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
 			req.body.role = AccountRole.USER;
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, req.body);
-			req.body = Firewall.sanitize(req.body);
+			req.body = Firewall.sanitize(
+				req.body,
+				new Set<string>(['username', 'password', 'pubKey'])
+			);
 
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for register method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
 	/**
-	 * PUT /api/rest/auth/account/activate?token=hfhfhhfhf
+	 * PUT /api/rest/v1/auth/account/activate?token=hfhfhhfhf
 	 *
 	 * Flow: req to this endpoint from email link, web server intercepts response
 	 * and redirects to endpoint with prepared httl page based on response success
@@ -60,12 +65,13 @@ class AuthValidator {
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for activate account method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
 	/**
-	 * PUT /api/rest/auth/account/multifactor?enable=boolean
+	 * PUT /api/rest/v1/auth/account/multifactor?enable=boolean
 	 */
 	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
 		if (req.params.enable === 'true' || req.params.enable === '1') {
@@ -84,7 +90,26 @@ class AuthValidator {
 	}
 
 	/**
-	 * GET /api/rest/auth/failed_auth_attempts?accountId=ashduah45&from=12456789&to=456975566
+	 * GET /api/rest/v1/auth/session?accountId=ajsdhasjd
+	 */
+	static getActiveSessions(req: Request, res: Response, next: NextFunction): void {
+		if (req.params.accountId) {
+			// @ts-ignore
+			const accountRole: string = req.pipeline.jwtPayload.aud;
+			if (accountRole !== AccountRole.ADMIN) {
+				res.status(403).send();
+				return;
+			}
+		} else {
+			// @ts-ignore
+			req.params.accountId = req.pipeline.jwtPayload.sub;
+		}
+
+		next();
+	}
+
+	/**
+	 * GET /api/rest/v1/auth/failed_auth_attempts?accountId=ashduah45&from=12456789&to=456975566
 	 */
 	static async getFailedAuthenticationAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
 		// @ts-ignore
@@ -106,6 +131,27 @@ class AuthValidator {
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for get failed authentication attempts method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * PUT /api/rest/v1/auth/account/password
+	 * Body: { old: "password", new: "password", logAllOtherSessionsOut?: false }
+	 */
+	static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, req.body);
+			// @ts-ignore
+			req.body.sessionId = req.pipeline.jwtPayload.iat;
+			// @ts-ignore
+			req.body.accountId = req.pipeline.jwtPayload.sub;
+
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for change password method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}

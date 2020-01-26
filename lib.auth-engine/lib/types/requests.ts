@@ -32,8 +32,9 @@ export interface AuthRequest {
 export interface ChangePasswordRequest {
 	sessionId: number;
 	accountId: string;
-	oldPassword: string;
-	newPassword: string;
+	old: string;
+	new: string;
+	logAllOtherSessionsOut?: boolean;
 }
 
 export interface CreateForgotPasswordSessionRequest {

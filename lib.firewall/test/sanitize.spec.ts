@@ -41,4 +41,30 @@ describe('sanitize spec', () => {
 		};
 		expect(jsonWithXss).to.be.deep.eq(expectedJsonAfterSanitize);
 	});
+
+	it('skips specified paths and does not sanitize them', () => {
+		const jsonWithXss = {
+			str1: '<script></script>',
+			num: 1,
+			obj: {
+				bool: true,
+				str1: '<script></script>',
+				arr: ['<script></script>', '<script></script>'],
+				str2: '<script></script>'
+			},
+			str2: '<script></script>'
+		};
+		Firewall.sanitize(
+			jsonWithXss,
+			new Set<string>(['str1', 'obj.str1', 'obj.arr.[0]'])
+		);
+		expect(jsonWithXss.str1).to.be.eq('<script></script>');
+		expect(jsonWithXss.num).to.be.eq(1);
+		expect(jsonWithXss.obj.bool).to.be.eq(true);
+		expect(jsonWithXss.obj.str1).to.be.eq('<script></script>');
+		expect(jsonWithXss.obj.arr[0]).to.be.eq('<script></script>');
+		expect(jsonWithXss.obj.arr[1]).to.be.eq('&lt;script&gt;&lt;/script&gt;');
+		expect(jsonWithXss.obj.str2).to.be.eq('&lt;script&gt;&lt;/script&gt;');
+		expect(jsonWithXss.str2).to.be.eq('&lt;script&gt;&lt;/script&gt;');
+	});
 });

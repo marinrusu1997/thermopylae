@@ -54,13 +54,21 @@ class Firewall {
 		return Firewall.validator.validate(schemaId, data) as Promise<object>;
 	}
 
-	public static sanitize(data: object | string): object | string {
+	public static sanitize(data: object | string, exceptPaths?: Set<string>): object | string {
 		// SQLi are not sanitized, Prepared Statements will be used
 
 		if (typeof data === 'string') {
 			return Firewall.xssFilter.process(data);
 		}
-		return object.traverse(data, value => (typeof value === 'string' ? Firewall.xssFilter.process(value) : undefined));
+		return object.traverse(data, (currentPath, value) => {
+			if (typeof value === 'string') {
+				if (exceptPaths && exceptPaths.has(currentPath)) {
+					return value;
+				}
+				return Firewall.xssFilter.process(value);
+			}
+			return value;
+		});
 	}
 
 	public static joinErrors(errors: Array<ErrorObject>, into: 'text' | 'object', skippedKeywords = ['pattern']): string | object {

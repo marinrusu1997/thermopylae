@@ -96,7 +96,6 @@ function passwordTestsSuite(service: Services, method: string, serviceSpecificDa
 	describe('password spec', () => {
 		it('is required', async () => {
 			const data = {
-				username: 'validusername',
 				...serviceSpecificData
 			};
 			await testRequired(service, method, data, '', [passwordPropertyName, `.${passwordPropertyName}`]);
@@ -104,7 +103,6 @@ function passwordTestsSuite(service: Services, method: string, serviceSpecificDa
 
 		it('is string', async () => {
 			const data = {
-				username: 'validusername',
 				[passwordPropertyName]: 1,
 				...serviceSpecificData
 			};
@@ -113,7 +111,6 @@ function passwordTestsSuite(service: Services, method: string, serviceSpecificDa
 
 		it('has min length of 10 chars', async () => {
 			const data = {
-				username: 'validusername',
 				[passwordPropertyName]: 'short',
 				...serviceSpecificData
 			};
@@ -122,7 +119,6 @@ function passwordTestsSuite(service: Services, method: string, serviceSpecificDa
 
 		it('has max length of 256 chars', async () => {
 			const data = {
-				username: 'validusername',
 				[passwordPropertyName]: generateString(257),
 				...serviceSpecificData
 			};
@@ -131,7 +127,6 @@ function passwordTestsSuite(service: Services, method: string, serviceSpecificDa
 
 		it('passes for valid password', async () => {
 			const data = {
-				username: 'validusername',
 				[passwordPropertyName]: 'r4!Ma4d5g5gdr8',
 				...serviceSpecificData
 			};
