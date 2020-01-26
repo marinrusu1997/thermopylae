@@ -3,7 +3,7 @@ import { expect } from 'chai';
 // eslint-disable-next-line import/no-unresolved
 import { AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
 import { Firewall } from '../lib';
-import { passwordTestsSuite, usernameTestsSuite } from './credentials-test-cases';
+import { passwordTestsSuite, usernameTestsSuite } from './test-cases/credentials-test-cases';
 import { generateString, testAdditionalProperties, testEnum, testFormat, testMaxLength, testPattern, testRequired, testType } from './utils';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.REGISTER} spec`, () => {

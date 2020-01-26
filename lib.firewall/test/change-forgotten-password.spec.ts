@@ -1,36 +1,20 @@
-import { describe, it } from 'mocha';
+import { describe } from 'mocha';
 // eslint-disable-next-line import/no-unresolved
 import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
-import { generateString, testMaxLength, testRequired, testType } from './utils';
-import { passwordTestsSuite } from './credentials-test-cases';
+import { generateString } from './utils';
+import { passwordTestsSuite } from './test-cases/credentials-test-cases';
+import { tokenTestSuite } from './test-cases/core-test-cases';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD} spec`, () => {
-	describe('token spec', () => {
-		it('is required', async () => {
-			const data = {};
-			await testRequired(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '', 'token');
-		});
+	const serviceSpecificData = {
+		newPassword: generateString(10)
+	};
 
-		it('is string', async () => {
-			const data = {
-				token: 1,
-				newPassword: generateString(10)
-			};
-			await testType(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 'string');
-		});
-
-		it('has max length of 20 chars', async () => {
-			const data = {
-				token: generateString(21),
-				newPassword: generateString(10)
-			};
-			await testMaxLength(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, '.token', 20);
-		});
-	});
+	tokenTestSuite(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, serviceSpecificData, 'token');
 
 	describe('newPassword spec', () => {
 		const data = {
-			token: generateString(20)
+			token: generateString(20, /[a-f0-9]/)
 		};
 		passwordTestsSuite(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, data, 'newPassword');
 	});

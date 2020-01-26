@@ -12,7 +12,7 @@ class AuthValidator {
 	}
 
 	/**
-	 * POST /api/rest/v1/auth/session
+	 * POST /api/rest/v1/auth/session/user
 	 * Body args: { username, password?, totp?, recaptcha?, generateChallenge?, responseForChallenge? }
 	 */
 	static async authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -137,7 +137,7 @@ class AuthValidator {
 	}
 
 	/**
-	 * PUT /api/rest/v1/auth/account/password
+	 * PUT /api/rest/v1/auth/account/password/change
 	 * Body: { old: "password", new: "password", logAllOtherSessionsOut?: false }
 	 */
 	static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -151,6 +151,56 @@ class AuthValidator {
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for change password method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * POST /api/rest/v1/auth/session/forgot_password
+	 * BODY { username: "username", side-channel: "email" }
+	 */
+	static async createForgotPasswordSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, req.body);
+
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * PUT /api/rest/v1/auth/account/password/reset
+	 * Body { token: "string", newPassword: "string" }
+	 */
+	static async changeForgottenPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD, req.body);
+
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * POST /internal/api/rest/v1/auth/account/credentials/validate?accountId=asd12
+	 * Body { username: "string", password: "password" }
+	 *
+	 * Exposed via private ip for other microservices
+	 */
+	static async validateAccountCredentials(req: Request, res: Response, next: NextFunction): Promise<void> {
+		try {
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS, { ...req.body, accountId: req.params.accountId });
+
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for validate account credentials method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
 		}

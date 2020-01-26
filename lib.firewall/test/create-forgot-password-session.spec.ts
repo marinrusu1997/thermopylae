@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 // eslint-disable-next-line import/no-unresolved
 import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { generateString, testEnum, testPassesValidation, testRequired, testType } from './utils';
-import { usernameTestsSuite } from './credentials-test-cases';
+import { usernameTestsSuite } from './test-cases/credentials-test-cases';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION} spec`, () => {
 	describe('username spec', () => {

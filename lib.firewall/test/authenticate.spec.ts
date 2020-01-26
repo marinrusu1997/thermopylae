@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 // eslint-disable-next-line import/no-unresolved
 import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
 import { expect } from 'chai';
-import { passwordTestsSuite, usernameTestsSuite } from './credentials-test-cases';
+import { passwordTestsSuite, usernameTestsSuite } from './test-cases/credentials-test-cases';
 import { Firewall } from '../lib';
 import { generateString, testAdditionalProperties, testPattern, testMaxLength, testMinLength, testRequired, testType } from './utils';
 

@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { string } from '@marin/lib.utils';
-// eslint-disable-next-line import/no-unresolved
 import { Services } from '@marin/lib.utils/dist/enums';
-import { Firewall } from '../lib';
-import { generateString, testMaxLength, testMinLength, testPattern, testRequired, testType } from './utils';
+import { Firewall } from '../../lib';
+import { generateString, testMaxLength, testMinLength, testPattern, testRequired, testType } from '../utils';
 
 function usernameTestsSuite(service: Services, method: string, serviceSpecificData: object): void {
 	describe('username spec', () => {

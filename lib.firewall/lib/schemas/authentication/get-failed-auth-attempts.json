@@ -4,9 +4,7 @@
   "type": "object",
   "properties": {
     "accountId": {
-      "type": "string",
-      "minLength": 5,
-      "maxLength": 50
+      "$ref": "../core/core.json#/definitions/id"
     },
     "startingFrom": {
       "type": "integer",

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "id": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 50
+    },
+    "token": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 20,
+      "pattern": "^[a-f0-9]+$"
+    }
+  }
+}

@@ -29,7 +29,7 @@ class RestApiRouter {
 					path: [
 						{
 							method: 'POST',
-							url: new RegExp('/auth/session$')
+							url: new RegExp('/auth/session/user$')
 						},
 						{
 							method: 'POST',
@@ -37,7 +37,15 @@ class RestApiRouter {
 						},
 						{
 							method: 'PUT',
-							url: new RegExp('/account/activate$')
+							url: new RegExp('/auth/account/activate$')
+						},
+						{
+							method: 'POST',
+							url: new RegExp('/auth/session/forgot_password$')
+						},
+						{
+							method: 'PUT',
+							url: new RegExp('/auth/account/password/reset$')
 						}
 					]
 				},

@@ -49,6 +49,7 @@ class AuthController {
 				isActivated: false,
 				enableMultiFactorAuth: req.body.enableMultiFactorAuth
 			});
+			res.status(202).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? 409 : 400;
@@ -62,6 +63,7 @@ class AuthController {
 	static async activateAccount(req: Request, res: Response): Promise<void> {
 		try {
 			await AuthController.authenticationEngine.activateAccount(req.params.token);
+			res.status(204).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				res.status(404).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
@@ -77,7 +79,7 @@ class AuthController {
 		// @ts-ignore
 		const enabled: boolean = req.params.enable;
 		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, enabled);
-		res.status(200).send();
+		res.status(204).send();
 	}
 
 	static async getActiveSessions(req: Request, res: Response): Promise<void> {
@@ -100,7 +102,7 @@ class AuthController {
 		try {
 			const numberOfLoggedOutSessions = await AuthController.authenticationEngine.changePassword(req.body);
 			if (typeof numberOfLoggedOutSessions === 'undefined') {
-				res.status(200).send();
+				res.status(204).send();
 			} else {
 				res.status(200).json({ numberOfLoggedOutSessions });
 			}
@@ -129,6 +131,54 @@ class AuthController {
 				}
 				res.status(httpResponseStatus).json({ code: e.code });
 				return;
+			}
+
+			throw e;
+		}
+	}
+
+	static async createForgotPasswordSession(req: Request, res: Response): Promise<void> {
+		await AuthController.authenticationEngine.createForgotPasswordSession(req.body);
+		res.status(202).send();
+	}
+
+	static async changeForgottenPassword(req: Request, res: Response): Promise<void> {
+		try {
+			await AuthController.authenticationEngine.changeForgottenPassword(req.body);
+			res.status(204).send();
+		} catch (e) {
+			if (e.emitter === Libraries.AUTH_ENGINE) {
+				let httpResponseStatus;
+				switch (e.code) {
+					case AuthEngineErrorCodes.SESSION_NOT_FOUND:
+						httpResponseStatus = 404;
+						break;
+					case AuthEngineErrorCodes.WEAK_PASSWORD:
+						httpResponseStatus = 400;
+						break;
+					default:
+						// will be processed by global handled with a 500 Server Error
+						throw createException(
+							ErrorCodes.MISCONFIGURATION_STATUS_CODE_COULD_NOT_BE_DETERMINED,
+							"Could't determine http response code from Exception thrown by AuthEngine.changeForgottenPassword method."
+						);
+				}
+				res.status(httpResponseStatus).json({ code: e.code });
+				return;
+			}
+
+			throw e;
+		}
+	}
+
+	static async validateAccountCredentials(req: Request, res: Response): Promise<void> {
+		// FIXME this should be mounted into internal rest api router
+		try {
+			const areValid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.params.accountId, req.body);
+			res.status(200).json({ areValid });
+		} catch (e) {
+			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
+				res.status(404).send({ code: e.code });
 			}
 
 			throw e;

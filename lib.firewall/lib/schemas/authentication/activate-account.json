@@ -3,8 +3,7 @@
   "$id": "#AUTH_SERVICE-ACTIVATE_ACCOUNT",
   "properties": {
     "activateAccountToken": {
-      "type": "string",
-      "pattern": "^[a-zA-Z0-9]{20}$"
+      "$ref": "../core/core.json#/definitions/token"
     }
   },
   "required": [

@@ -362,11 +362,12 @@ class AuthenticationEngine {
 			this.config.secrets.pepper
 		);
 
-		// operation is considered successful, even if some of the clean up steps fails
 		try {
+			// prevent replay attacks
 			await this.config.entities.forgotPasswordSession.delete(changeForgottenPasswordRequest.token);
 			await this.logoutFromAllDevices({ sub: forgotPasswordSession.accountId, aud: forgotPasswordSession.accountRole });
 		} catch (error) {
+			// operation is considered successful, even if some of the clean up steps fails
 			getLogger().error(`Failed to clean up forgot password session for account ${forgotPasswordSession.accountId}. `, error);
 		}
 	}
