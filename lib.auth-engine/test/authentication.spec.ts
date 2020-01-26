@@ -580,11 +580,11 @@ describe('Authenticate spec', () => {
 
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
 		expect(failedAuthAttempts.length).to.be.eq(1);
-		expect(failedAuthAttempts[0].devices.size).to.be.eq(1);
-		expect(failedAuthAttempts[0].ips.size).to.be.eq(1);
+		expect(failedAuthAttempts[0].devices.length).to.be.eq(1);
+		expect(failedAuthAttempts[0].ips.length).to.be.eq(1);
 
-		expect(failedAuthAttempts[0].devices.has(validAuthRequest.device)).to.be.eq(true);
-		expect(failedAuthAttempts[0].ips.has(validAuthRequest.ip)).to.be.eq(true);
+		expect(failedAuthAttempts[0].devices.includes(validAuthRequest.device)).to.be.eq(true);
+		expect(failedAuthAttempts[0].ips.includes(validAuthRequest.ip)).to.be.eq(true);
 	});
 
 	it('locks account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {

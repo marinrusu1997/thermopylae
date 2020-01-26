@@ -1,3 +1,4 @@
+import { array } from '@marin/lib.utils';
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
@@ -47,7 +48,6 @@ class ErrorStep implements AuthStep {
 			failedAuthAttemptSession.device.push(networkInput.device);
 			failedAuthAttemptSession.counter += 1;
 
-			/* istanbul ignore else */
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsThreshold) {
 				// update only in case it will not be deleted later by reached threshold
 				await this.failedAuthAttemptSessionEntity.update(networkInput.username, failedAuthAttemptSession);
@@ -68,8 +68,8 @@ class ErrorStep implements AuthStep {
 					.create({
 						accountId: account.id!,
 						timestamp: now,
-						ips: new Set<string>(failedAuthAttemptSession.ip),
-						devices: new Set<string>(failedAuthAttemptSession.device)
+						ips: array.extractUniqueItems(failedAuthAttemptSession.ip),
+						devices: array.extractUniqueItems(failedAuthAttemptSession.device)
 					})
 					.catch(error => getLogger().error(`Failed to persist failed auth attempts for account ${account.id}. `, error))
 			);

@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { generateRandomNumber, generateArbitraryNumber } from '../lib/number';
 
-describe('array spec', () => {
+describe('number spec', () => {
 	describe('randomness spec', () => {
 		const LOWER_END = 1;
 		const HIGHER_END = 5;

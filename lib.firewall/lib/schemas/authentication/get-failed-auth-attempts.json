@@ -3,6 +3,11 @@
   "$id": "#AUTH_SERVICE-GET_FAILED_AUTH_ATTEMPTS",
   "type": "object",
   "properties": {
+    "accountId": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 50
+    },
     "startingFrom": {
       "type": "integer",
       "minimum": 0
@@ -12,5 +17,8 @@
       "minimum": 0
     }
   },
+  "required": [
+    "accountId"
+  ],
   "additionalProperties": false
 }

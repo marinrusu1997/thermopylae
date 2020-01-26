@@ -71,6 +71,24 @@ class AuthController {
 		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, enabled);
 		res.status(200).send();
 	}
+
+	public static async getActiveSessions(req: Request, res: Response): Promise<void> {
+		// @ts-ignore
+		const accountId: string = req.pipeline.jwtPayload.sub;
+		const activeSessions = await AuthController.authenticationEngine.getActiveSessions(accountId);
+		res.status(200).json(activeSessions);
+	}
+
+	public static async getFailedAuthenticationAttempts(req: Request, res: Response): Promise<void> {
+		const { accountId } = req.params;
+		// @ts-ignore
+		const startingFrom: number = req.params.from;
+		// @ts-ignore
+		const endingTo: number = req.params.to;
+
+		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(accountId, startingFrom, endingTo);
+		res.status(200).json(failedAuthAttempts);
+	}
 }
 
 export { AuthController };

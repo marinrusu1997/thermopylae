@@ -41,20 +41,20 @@ describe('entities', () => {
 		await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now,
-			devices: new Set<string>(['device1']),
-			ips: new Set<string>(['127.0.0.1'])
+			devices: ['device1'],
+			ips: ['127.0.0.1']
 		});
 		const attempt2Id = await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now - 1000,
-			devices: new Set<string>(['device1']),
-			ips: new Set<string>(['127.0.0.1'])
+			devices: ['device1'],
+			ips: ['127.0.0.1']
 		});
 		const attempt3Id = await FailedAuthAttemptsEntityMongo.create({
 			accountId: '1',
 			timestamp: now - 5000,
-			devices: new Set<string>(['device1']),
-			ips: new Set<string>(['127.0.0.1'])
+			devices: ['device1'],
+			ips: ['127.0.0.1']
 		});
 		const attempts = await FailedAuthAttemptsEntityMongo.readRange('1', now - 5000, now - 900);
 		expect(attempts.length).to.be.equal(2);

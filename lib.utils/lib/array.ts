@@ -14,4 +14,13 @@ function removeItemFromArray(item: boolean | number | string, array: Array<boole
 	return false;
 }
 
-export { removeItemFromArray };
+/**
+ * Creates a new array which contains unique items
+ *
+ * @param items
+ */
+function extractUniqueItems<T>(items: Array<T>): Array<T> {
+	return Array.from(new Set(items));
+}
+
+export { removeItemFromArray, extractUniqueItems };

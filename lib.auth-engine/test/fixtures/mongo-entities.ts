@@ -158,11 +158,6 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 			return new Promise((_resolve, reject) => reject(new Error('Creation of failed auth attempts was configured to fail.')));
 		}
 
-		// @ts-ignore
-		attempts.ips = Array.from(attempts.ips);
-		// @ts-ignore
-		attempts.devices = Array.from(attempts.devices);
-
 		return getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
 			.create(attempts)
 			.then(doc => String(doc._id));
@@ -191,9 +186,9 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 			// @ts-ignore
 			timestamp: doc.timestamp,
 			// @ts-ignore
-			devices: new Set<string>(doc.devices),
+			devices: doc.devices,
 			// @ts-ignore
-			ips: new Set<string>(doc.ips)
+			ips: doc.ips
 		}));
 	}
 };

@@ -24,6 +24,6 @@ export interface FailedAuthAttemptsModel {
 	id?: string;
 	accountId: string;
 	timestamp: number;
-	devices: Set<string>;
-	ips: Set<string>;
+	devices: Array<string>;
+	ips: Array<string>;
 }
