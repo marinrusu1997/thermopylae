@@ -8,6 +8,7 @@ class AuthController {
 	private static authenticationEngine: AuthenticationEngine;
 
 	static init(authenticationEngine: AuthenticationEngine): void {
+		// FIXME pass name of prop where jwt payload is attached
 		AuthController.authenticationEngine = authenticationEngine;
 	}
 

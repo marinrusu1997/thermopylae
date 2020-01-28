@@ -1,5 +1,4 @@
-import { fs, object } from '@marin/lib.utils';
-// eslint-disable-next-line import/no-unresolved
+import { fs, object as objectUtils } from '@marin/lib.utils';
 import { Services } from '@marin/lib.utils/dist/enums';
 import { readdir } from 'fs';
 import { promisify } from 'util';
@@ -10,43 +9,44 @@ import { FilterXSS } from 'xss';
 
 const readDir = promisify(readdir);
 
-const SCHEMAS_DIR = `${__dirname}/schemas`;
-const EXCLUDE_SCHEMAS_DIR = ['core'];
-
 class Firewall {
-	private static readonly validator: Ajv.Ajv = new Ajv({
-		loadSchema: uri => fs.readJsonFromFile(`${SCHEMAS_DIR}/${uri}`)
-	});
+	private static validator: Ajv.Ajv;
 
 	private static readonly xssFilter: FilterXSS = new FilterXSS();
 
-	public static init(): Promise<void> {
-		return readDir(SCHEMAS_DIR)
-			.then(schemasDirs => {
-				return schemasDirs.filter(schemaDir => !EXCLUDE_SCHEMAS_DIR.includes(schemaDir));
-			})
-			.then(servicesSchemasDirs => {
-				const servicesSchemasPromises = [];
-				for (let i = 0; i < servicesSchemasDirs.length; i++) {
-					servicesSchemasPromises.push(
-						readDir(`${SCHEMAS_DIR}/${servicesSchemasDirs[i]}`).then(schemas => {
-							const schemasPromises = [];
-							for (let j = 0; j < schemas.length; j++) {
-								schemasPromises.push(
-									fs.readJsonFromFile(`${SCHEMAS_DIR}/${servicesSchemasDirs[i]}/${schemas[j]}`).then(schema => {
-										// @ts-ignore
-										schema.$async = true;
-										Firewall.validator.addSchema(schema);
-										return Firewall.validator.compileAsync(schema);
-									})
-								);
-							}
-							return Promise.all(schemasPromises);
-						})
-					);
-				}
-				return (Promise.all(servicesSchemasPromises) as unknown) as Promise<void>;
-			});
+	public static async init(jsonSchemaDir?: string, excludeDirs?: Array<string>): Promise<void> {
+		jsonSchemaDir = jsonSchemaDir || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/validation`;
+
+		Firewall.validator = new Ajv({
+			loadSchema: uri => fs.readJsonFromFile(`${jsonSchemaDir}/${uri}`)
+		});
+
+		let servicesSchemasDirs = await readDir(jsonSchemaDir);
+		if (excludeDirs && excludeDirs.length !== 0) {
+			servicesSchemasDirs = servicesSchemasDirs.filter(schemaDir => !excludeDirs.includes(schemaDir));
+		}
+
+		const servicesSchemasPromises = [];
+		for (let i = 0; i < servicesSchemasDirs.length; i++) {
+			servicesSchemasPromises.push(
+				readDir(`${jsonSchemaDir}/${servicesSchemasDirs[i]}`).then(schemas => {
+					const schemasPromises = [];
+					for (let j = 0; j < schemas.length; j++) {
+						schemasPromises.push(
+							fs.readJsonFromFile(`${jsonSchemaDir}/${servicesSchemasDirs[i]}/${schemas[j]}`).then(schema => {
+								// @ts-ignore
+								schema.$async = true;
+								Firewall.validator.addSchema(schema);
+								return Firewall.validator.compileAsync(schema);
+							})
+						);
+					}
+					return Promise.all(schemasPromises);
+				})
+			);
+		}
+
+		return ((await Promise.all(servicesSchemasPromises)) as unknown) as Promise<void>;
 	}
 
 	public static validate(service: Services, method: string, data: object): Promise<object> {
@@ -60,7 +60,8 @@ class Firewall {
 		if (typeof data === 'string') {
 			return Firewall.xssFilter.process(data);
 		}
-		return object.traverse(data, (currentPath, value) => {
+
+		return objectUtils.traverse(data, (currentPath, value) => {
 			if (typeof value === 'string') {
 				if (exceptPaths && exceptPaths.has(currentPath)) {
 					return value;

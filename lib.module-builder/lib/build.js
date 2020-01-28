@@ -59,6 +59,17 @@ function buildFactory(module, gulp) {
   }
 }
 
+function buildWithDeclarationsFileFactory(module, gulp) {
+  return function buildWithDeclarationFiles(done) {
+    const buildModuleTask = buildFactory(module, gulp);
+    const copyDeclarationFiles = () => gulp.src(['lib/**/*.d.ts']).pipe(gulp.dest('dist'));
+    const buildTask = gulp.series(buildModuleTask, copyDeclarationFiles);
+    buildTask();
+    done();
+  };
+}
+
 module.exports = {
-  buildFactory
+  buildFactory,
+  buildWithDeclarationsFileFactory
 };

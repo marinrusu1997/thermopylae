@@ -1,13 +1,14 @@
 {
-    "name": "@marin/lib.auth-router",
-    "description": "Express router which exposes authentication api",
+    "name": "@marin/auth-router",
+    "description": "Authentication Service controller and validator",
     "keywords": [
         "express",
-        "router",
         "rest",
-        "auth"
+        "auth",
+        "controller",
+        "validator"
     ],
-    "version": "1.0.0",
+    "version": "0.0.1-beta",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",

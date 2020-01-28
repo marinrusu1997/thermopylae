@@ -1,0 +1,47 @@
+{
+  "name": "AUTH_SERVICE",
+  "path": "/auth",
+  "methods": {
+    "authenticate": {
+      "method": "post",
+      "path": "/session/user",
+      "unauthorized": true
+    },
+    "register": {
+      "method": "post",
+      "path": "/account",
+      "unauthorized": true
+    },
+    "activateAccount": {
+      "method": "put",
+      "path": "/account/activate",
+      "unauthorized": true
+    },
+    "enableMultiFactorAuthentication": {
+      "method": "put",
+      "path": "/multi_factor"
+    },
+    "getActiveSessions": {
+      "method": "get",
+      "path": "/session/user/active"
+    },
+    "getFailedAuthenticationAttempts": {
+      "method": "get",
+      "path": "/failed_auth_attempts"
+    },
+    "changePassword": {
+      "method": "put",
+      "path": "/account/password/change"
+    },
+    "createForgotPasswordSession": {
+      "method": "post",
+      "path": "/session/forgot_password",
+      "unauthorized": true
+    },
+    "changeForgottenPassword": {
+      "method": "put",
+      "path": "/account/password/reset",
+      "unauthorized": true
+    }
+  }
+}

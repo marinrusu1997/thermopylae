@@ -11,7 +11,7 @@ function getDefaultFailureHandler(logger) {
 		} else if (err && status === false) {
 			// token validation error
 			tryToLogError(err, 'Authorization failed.', logger);
-			res.status(403).send();
+			res.status(401).send();
 		} else {
 			throw new Error('Invalid err & status parameters combination');
 		}

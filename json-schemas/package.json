@@ -1,0 +1,7 @@
+{
+  "name": "@marin/json-schemas",
+  "version": "0.0.1-beta",
+  "description": "JSON Schema Draft 7 user for service method input validation and API describing",
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC"
+}

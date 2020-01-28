@@ -18,8 +18,11 @@
         "import/prefer-default-export": "off",
         "no-param-reassign": "warn",
         "no-use-before-define": "warn",
+        "no-restricted-syntax": "warn",
+        "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
         "@typescript-eslint/no-use-before-define": "warn",
         "@typescript-eslint/no-namespace": "off",
+        "@typescript-eslint/ban-ts-ignore": "warn",
         "import/extensions": [
             "error",
             "ignorePackages",

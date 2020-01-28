@@ -8,6 +8,7 @@ class AuthValidator {
 	private static geoIP: GeoIP;
 
 	public static init(geoIp: GeoIP): void {
+		// FIXME pass name of prop where jwt payload is attached
 		AuthValidator.geoIP = geoIp;
 	}
 
@@ -71,7 +72,7 @@ class AuthValidator {
 	}
 
 	/**
-	 * PUT /api/rest/v1/auth/account/multifactor?enable=boolean
+	 * PUT /api/rest/v1/auth/account/multi_factor?enable=boolean
 	 */
 	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
 		if (req.params.enable === 'true' || req.params.enable === '1') {
