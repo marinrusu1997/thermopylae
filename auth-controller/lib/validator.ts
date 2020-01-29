@@ -1,15 +1,20 @@
 import { Firewall } from '@marin/lib.firewall';
-import { AccountRole, AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
-import { NextFunction, Request, Response } from 'express';
 import { GeoIP } from '@marin/lib.geoip';
+import { AuthServiceMethods, Services } from '@marin/declarations/services';
+import { AccountRole } from '@marin/declarations/auth';
+import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
+import { NextFunction, Request, Response } from 'express';
+import get from 'lodash.get';
 import { getLogger } from './logger';
 
 class AuthValidator {
 	private static geoIP: GeoIP;
 
-	public static init(geoIp: GeoIP): void {
-		// FIXME pass name of prop where jwt payload is attached
+	private static jwtPayloadPathInReqObj: string;
+
+	public static init(geoIp: GeoIP, jwtPayloadPathInReqObj = 'pipeline.jwtPayload'): void {
 		AuthValidator.geoIP = geoIp;
+		AuthValidator.jwtPayloadPathInReqObj = jwtPayloadPathInReqObj;
 	}
 
 	/**
@@ -27,7 +32,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for login method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).send();
+			res.status(HttpStatusCode.BAD_REQUEST).send();
 		}
 	}
 
@@ -48,7 +53,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for register method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -67,7 +72,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for activate account method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -87,23 +92,25 @@ class AuthValidator {
 			return next();
 		}
 
-		res.status(400).json({ enable: 'query param is required and needs to be a boolean' });
+		res.status(HttpStatusCode.BAD_REQUEST).json({ enable: 'query param is required and needs to be a boolean' });
 	}
 
 	/**
 	 * GET /api/rest/v1/auth/session?accountId=ajsdhasjd
 	 */
 	static getActiveSessions(req: Request, res: Response, next: NextFunction): void {
+		const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj);
+
 		if (req.params.accountId) {
 			// @ts-ignore
-			const accountRole: string = req.pipeline.jwtPayload.aud;
+			const accountRole: string = jwtPayload.aud;
 			if (accountRole !== AccountRole.ADMIN) {
-				res.status(403).send();
+				res.status(HttpStatusCode.FORBIDDEN).send();
 				return;
 			}
 		} else {
 			// @ts-ignore
-			req.params.accountId = req.pipeline.jwtPayload.sub;
+			req.params.accountId = jwtPayload.sub;
 		}
 
 		next();
@@ -114,9 +121,9 @@ class AuthValidator {
 	 */
 	static async getFailedAuthenticationAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
 		// @ts-ignore
-		const accountRole: string = req.pipeline.jwtPayload.aud;
+		const accountRole: string = get(req, AuthValidator.jwtPayloadPathInReqObj).aud; // if not present, treat as server error
 		if (accountRole !== AccountRole.ADMIN) {
-			res.status(403).send();
+			res.status(HttpStatusCode.FORBIDDEN).send();
 			return;
 		}
 
@@ -133,7 +140,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for get failed authentication attempts method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -142,18 +149,19 @@ class AuthValidator {
 	 * Body: { old: "password", new: "password", logAllOtherSessionsOut?: false }
 	 */
 	static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+		const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj); // if not present, treat as internal server error
 		try {
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, req.body);
 			// @ts-ignore
-			req.body.sessionId = req.pipeline.jwtPayload.iat;
+			req.body.sessionId = jwtPayload.iat;
 			// @ts-ignore
-			req.body.accountId = req.pipeline.jwtPayload.sub;
+			req.body.accountId = jwtPayload.sub;
 
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for change password method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -169,7 +177,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -185,7 +193,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 
@@ -203,7 +211,7 @@ class AuthValidator {
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for validate account credentials method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(400).json(Firewall.joinErrors(e.errors, 'object'));
+			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
 		}
 	}
 }

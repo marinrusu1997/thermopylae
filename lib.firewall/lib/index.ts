@@ -1,5 +1,4 @@
 import { fs, object as objectUtils } from '@marin/lib.utils';
-import { Services } from '@marin/lib.utils/dist/enums';
 import { readdir } from 'fs';
 import { promisify } from 'util';
 import Ajv, { ErrorObject } from 'ajv';
@@ -49,7 +48,7 @@ class Firewall {
 		return ((await Promise.all(servicesSchemasPromises)) as unknown) as Promise<void>;
 	}
 
-	public static validate(service: Services, method: string, data: object): Promise<object> {
+	public static validate(service: string, method: string, data: object): Promise<object> {
 		const schemaId = Firewall.computeSchemaId(service, method);
 		return Firewall.validator.validate(schemaId, data) as Promise<object>;
 	}
@@ -93,7 +92,7 @@ class Firewall {
 		}
 	}
 
-	private static computeSchemaId(service: Services, method: string): string {
+	private static computeSchemaId(service: string, method: string): string {
 		return `#${service}-${method}`;
 	}
 }

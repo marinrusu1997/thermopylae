@@ -1,8 +1,8 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { string } from '@marin/lib.utils';
-import { Services } from '@marin/lib.utils/dist/enums';
-import { Firewall } from '../../lib';
+import { Services } from '@marin/declarations/services';
+import { Firewall } from '@marin/lib.firewall';
 import { generateString, testMaxLength, testMinLength, testPattern, testRequired, testType } from '../utils';
 
 function usernameTestsSuite(service: Services, method: string, serviceSpecificData: object): void {

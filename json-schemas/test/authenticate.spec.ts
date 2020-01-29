@@ -1,9 +1,8 @@
 import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-unresolved
-import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
+import { Services, AuthServiceMethods } from '@marin/declarations/services';
 import { expect } from 'chai';
+import { Firewall } from '@marin/lib.firewall';
 import { passwordTestsSuite, usernameTestsSuite } from './test-cases/credentials-test-cases';
-import { Firewall } from '../lib';
 import { generateString, testAdditionalProperties, testPattern, testMaxLength, testMinLength, testRequired, testType } from './utils';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.AUTHENTICATE} spec`, () => {

@@ -1,15 +1,19 @@
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Libraries, HttpStatusCode } from '@marin/lib.utils/dist/enums';
+
 import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
 import { Request, Response } from 'express';
+import get from 'lodash.get';
 import { getLogger } from './logger';
 import { createException, ErrorCodes } from './error';
 
 class AuthController {
 	private static authenticationEngine: AuthenticationEngine;
 
-	static init(authenticationEngine: AuthenticationEngine): void {
-		// FIXME pass name of prop where jwt payload is attached
+	private static jwtPayloadPathInReqObj: string;
+
+	static init(authenticationEngine: AuthenticationEngine, jwtPayloadPathInReqObj = 'pipeline.jwtPayload'): void {
 		AuthController.authenticationEngine = authenticationEngine;
+		AuthController.jwtPayloadPathInReqObj = jwtPayloadPathInReqObj;
 	}
 
 	static async authenticate(req: Request, res: Response): Promise<void> {
@@ -17,30 +21,30 @@ class AuthController {
 			const authStatus = await AuthController.authenticationEngine.authenticate(req.body);
 
 			if (authStatus.token && !authStatus.nextStep) {
-				res.status(200).json({ token: authStatus.token });
+				res.status(HttpStatusCode.OK).json({ token: authStatus.token });
 				return;
 			}
 
 			if (authStatus.nextStep) {
 				if (authStatus.error && authStatus.error.soft) {
 					getLogger().warning(`Soft error while authenticating.`, authStatus.error.soft);
-					res.status(401).json({ nextStep: authStatus.nextStep });
+					res.status(HttpStatusCode.UNAUTHORIZED).json({ nextStep: authStatus.nextStep });
 					return;
 				}
-				res.status(202).json({ nextStep: authStatus.nextStep, token: authStatus.token });
+				res.status(HttpStatusCode.ACCEPTED).json({ nextStep: authStatus.nextStep, token: authStatus.token });
 				return;
 			}
 
 			if (authStatus.error && authStatus.error.hard) {
 				getLogger().alert(`Hard error while authenticating.`, authStatus.error.hard);
-				res.status(410).send();
+				res.status(HttpStatusCode.GONE).send();
 				return;
 			}
 
 			throw createException(ErrorCodes.MISCONFIGURATION, "Authentication completed, but it's status couldn't be resolved.");
 		} catch (e) {
 			getLogger().alert('An error non related to authentication happened while executing AuthEngine.authenticate method. Sending 400', e);
-			res.status(400).send();
+			res.status(HttpStatusCode.BAD_REQUEST).send();
 		}
 	}
 
@@ -50,7 +54,7 @@ class AuthController {
 				isActivated: false,
 				enableMultiFactorAuth: req.body.enableMultiFactorAuth
 			});
-			res.status(202).send();
+			res.status(HttpStatusCode.ACCEPTED).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? 409 : 400;
@@ -64,10 +68,10 @@ class AuthController {
 	static async activateAccount(req: Request, res: Response): Promise<void> {
 		try {
 			await AuthController.authenticationEngine.activateAccount(req.params.token);
-			res.status(204).send();
+			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
-				res.status(404).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
+				res.status(HttpStatusCode.NOT_FOUND).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
 				return;
 			}
 			throw e;
@@ -76,16 +80,16 @@ class AuthController {
 
 	static async enableMultiFactorAuthentication(req: Request, res: Response): Promise<void> {
 		// @ts-ignore
-		const accountId: string = req.pipeline.jwtPayload.sub;
+		const accountId: string = get(req, AuthController.jwtPayloadPathInReqObj).sub;
 		// @ts-ignore
 		const enabled: boolean = req.params.enable;
 		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, enabled);
-		res.status(204).send();
+		res.status(HttpStatusCode.NO_CONTENT).send();
 	}
 
 	static async getActiveSessions(req: Request, res: Response): Promise<void> {
 		const activeSessions = await AuthController.authenticationEngine.getActiveSessions(req.params.accountId);
-		res.status(200).json(activeSessions);
+		res.status(HttpStatusCode.OK).json(activeSessions);
 	}
 
 	static async getFailedAuthenticationAttempts(req: Request, res: Response): Promise<void> {
@@ -96,32 +100,32 @@ class AuthController {
 		const endingTo: number = req.params.to;
 
 		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(accountId, startingFrom, endingTo);
-		res.status(200).json(failedAuthAttempts);
+		res.status(HttpStatusCode.OK).json(failedAuthAttempts);
 	}
 
 	static async changePassword(req: Request, res: Response): Promise<void> {
 		try {
 			const numberOfLoggedOutSessions = await AuthController.authenticationEngine.changePassword(req.body);
 			if (typeof numberOfLoggedOutSessions === 'undefined') {
-				res.status(204).send();
+				res.status(HttpStatusCode.NO_CONTENT).send();
 			} else {
-				res.status(200).json({ numberOfLoggedOutSessions });
+				res.status(HttpStatusCode.OK).json({ numberOfLoggedOutSessions });
 			}
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				let httpResponseStatus;
 				switch (e.code) {
 					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:
-						httpResponseStatus = 404;
+						httpResponseStatus = HttpStatusCode.NOT_FOUND;
 						break;
 					case AuthEngineErrorCodes.ACCOUNT_LOCKED:
-						httpResponseStatus = 410;
+						httpResponseStatus = HttpStatusCode.GONE;
 						break;
 					case AuthEngineErrorCodes.INCORRECT_PASSWORD:
-						httpResponseStatus = 401;
+						httpResponseStatus = HttpStatusCode.UNAUTHORIZED;
 						break;
 					case AuthEngineErrorCodes.WEAK_PASSWORD:
-						httpResponseStatus = 400;
+						httpResponseStatus = HttpStatusCode.BAD_REQUEST;
 						break;
 					default:
 						// will be processed by global handled with a 500 Server Error
@@ -140,22 +144,22 @@ class AuthController {
 
 	static async createForgotPasswordSession(req: Request, res: Response): Promise<void> {
 		await AuthController.authenticationEngine.createForgotPasswordSession(req.body);
-		res.status(202).send();
+		res.status(HttpStatusCode.ACCEPTED).send();
 	}
 
 	static async changeForgottenPassword(req: Request, res: Response): Promise<void> {
 		try {
 			await AuthController.authenticationEngine.changeForgottenPassword(req.body);
-			res.status(204).send();
+			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				let httpResponseStatus;
 				switch (e.code) {
 					case AuthEngineErrorCodes.SESSION_NOT_FOUND:
-						httpResponseStatus = 404;
+						httpResponseStatus = HttpStatusCode.NOT_FOUND;
 						break;
 					case AuthEngineErrorCodes.WEAK_PASSWORD:
-						httpResponseStatus = 400;
+						httpResponseStatus = HttpStatusCode.BAD_REQUEST;
 						break;
 					default:
 						// will be processed by global handled with a 500 Server Error
@@ -176,10 +180,10 @@ class AuthController {
 		// FIXME this should be mounted into internal rest api router
 		try {
 			const areValid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.params.accountId, req.body);
-			res.status(200).json({ areValid });
+			res.status(HttpStatusCode.OK).json({ areValid });
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
-				res.status(404).send({ code: e.code });
+				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
 			}
 
 			throw e;

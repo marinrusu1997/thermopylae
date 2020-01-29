@@ -1,0 +1,7 @@
+{
+  "name": "@marin/declarations",
+  "version": "0.0.1-beta",
+  "description": "Common declaration files",
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC"
+}

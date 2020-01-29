@@ -1,8 +1,7 @@
 import { string } from '@marin/lib.utils';
-// eslint-disable-next-line import/no-unresolved
-import { Services } from '@marin/lib.utils/dist/enums';
+import { Services } from '@marin/declarations/services';
 import { expect } from 'chai';
-import { Firewall } from '../lib';
+import { Firewall } from '@marin/lib.firewall';
 
 async function testType(service: Services, method: string, data: object, dataPath: string, type: string): Promise<void> {
 	let err;

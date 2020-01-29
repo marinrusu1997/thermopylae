@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-// eslint-disable-next-line import/no-unresolved
-import { AuthServiceMethods, Services } from '@marin/lib.utils/dist/enums';
+import { AuthServiceMethods, Services } from '@marin/declarations/services';
+import { Firewall } from '@marin/lib.firewall';
 import { generateString, testAdditionalProperties, testType } from './utils';
 import { passwordTestsSuite } from './test-cases/credentials-test-cases';
-import { Firewall } from '../lib';
 
 describe(`${Services.AUTH}-${AuthServiceMethods.CHANGE_PASSWORD} spec`, () => {
 	describe('old password spec', () => {

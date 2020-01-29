@@ -33,22 +33,26 @@
         "node": "12.8.0"
     },
     "dependencies": {
+        "@marin/lib.error": "file:../lib.error",
         "@marin/lib.firewall": "file:../lib.firewall",
         "@marin/lib.logger": "file:../lib.logger",
-        "@marin/lib.error": "file:../lib.error"
+        "lodash.get": "^4.4.2"
     },
     "devDependencies": {
+        "@marin/declarations": "file:../declarations",
         "@marin/lib.auth-engine": "file:../lib.auth-engine",
         "@marin/lib.geoip": "file:../lib.geoip",
-        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.module-builder": "file:../lib.module-builder",
+        "@marin/lib.utils": "file:../lib.utils",
         "@types/chai": "^4.2.7",
+        "@types/express": "^4.17.1",
+        "@types/lodash.get": "^4.4.6",
         "@types/mocha": "^5.2.7",
         "@types/node": "^13.1.8",
-        "@types/express": "^4.17.1",
         "@typescript-eslint/eslint-plugin": "^2.16.0",
         "@typescript-eslint/parser": "^2.16.0",
         "chai": "^4.2.0",
+        "declarations": "file:../declarations",
         "eslint": "^6.8.0",
         "eslint-config-airbnb-base": "^14.0.0",
         "eslint-config-prettier": "^6.9.0",

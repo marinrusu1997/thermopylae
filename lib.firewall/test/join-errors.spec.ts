@@ -1,8 +1,12 @@
-import { describe, it } from 'mocha';
+import { describe, it, before } from 'mocha';
 import { expect } from 'chai';
 import { Firewall } from '../lib';
 
 describe('join errors spec', () => {
+	before(async () => {
+		await Firewall.init('test/fixtures', ['core']);
+	});
+
 	it('joins errors into string', () => {
 		const errors = [
 			{

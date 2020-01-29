@@ -1,33 +1,27 @@
-import { Services } from '@marin/lib.utils/dist/enums';
-import { Request, Response, NextFunction } from 'express';
+import { RequestHandler } from 'express';
+import { HttpMethod } from '@marin/lib.utils/dist/enums';
+
+export type ServiceName = string;
 
 export interface UnauthorizedEndpoint {
-	method: string;
+	method: HttpMethod;
 	url: RegExp;
 }
 
-export interface ServiceMethod {
+export interface ServiceMethodSchema {
 	method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'connect' | 'options' | 'trace' | 'patch';
 	path: string;
 	unauthorized?: boolean;
 }
 
-export interface ServiceRESTApi {
-	name: Services;
+export interface ServiceRESTApiSchema {
+	name: ServiceName;
 	path: string;
 	methods: {
-		[name: string]: ServiceMethod;
+		[name: string]: ServiceMethodSchema;
 	};
 }
 
-export type ValidatorMiddleware = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
-export type ControllerMiddleware = (req: Request, res: Response, next?: NextFunction) => void | Promise<void>;
-
-export interface ServiceRESTApiController {
-	validator: {
-		[method: string]: ValidatorMiddleware | Array<ValidatorMiddleware>;
-	};
-	controller: {
-		[method: string]: ControllerMiddleware | Array<ControllerMiddleware>;
-	};
+export interface ServiceRequestHandlers {
+	[method: string]: Array<RequestHandler>;
 }

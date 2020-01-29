@@ -1,96 +1,76 @@
 import { Jwt, VerifyOptions, JwtAuthMiddleware } from '@marin/lib.jwt';
 import { fs } from '@marin/lib.utils';
-import { Services } from '@marin/lib.utils/dist/enums';
-import { Router, IRouter, Request } from 'express';
+import { Router, IRouter, Request, RequestHandler } from 'express';
 import { readdir } from 'fs';
 import { promisify } from 'util';
 import { createException, ErrorCodes } from './error';
 import { getLogger } from './logger';
-import { ControllerMiddleware, ServiceMethod, ServiceRESTApi, ServiceRESTApiController, UnauthorizedEndpoint, ValidatorMiddleware } from './types';
+import { ServiceMethodSchema, ServiceName, ServiceRequestHandlers, ServiceRESTApiSchema, UnauthorizedEndpoint } from './types';
 
 type JwtVerifyOptsProvider = (req: Request) => VerifyOptions | undefined;
 
 const readDir = promisify(readdir);
 
-class RestApiRouter {
-	private static jwt: Jwt;
-
-	private static router: IRouter;
-
-	public static async init(
+class RestApiRouterFactory {
+	static async createRouter(
 		jwt: Jwt,
-		serviceControllers: Map<Services, ServiceRESTApiController>,
+		servicesRequestHandlers: Map<ServiceName, ServiceRequestHandlers>,
 		requestPropNameWhereToAttachJwtPayload = 'pipeline.jwtPayload',
 		pathToServicesRESTApiSchemas?: string,
 		jwtVerifyOptsProvider?: JwtVerifyOptsProvider
-	): Promise<void> {
-		if (RestApiRouter.jwt) {
-			throw createException(ErrorCodes.REST_API_ROUTER_ALREADY_INITIALIZED, '');
-		}
-
+	): Promise<IRouter> {
 		pathToServicesRESTApiSchemas =
 			pathToServicesRESTApiSchemas || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/rest-api`;
 
-		const servicesRESTApi = await RestApiRouter.readServicesRestApiSchemas(pathToServicesRESTApiSchemas);
+		const servicesRESTApiSchemas = await RestApiRouterFactory.readServicesRestApiSchemas(pathToServicesRESTApiSchemas);
 
-		RestApiRouter.jwt = jwt;
-		RestApiRouter.router = Router();
+		const RestAPIRouter: IRouter = Router();
 
 		const unauthorizedEndpoints: Array<UnauthorizedEndpoint> = [];
-		let serviceRESTApiController: ServiceRESTApiController | undefined;
+		let serviceRequestHandlers: ServiceRequestHandlers | undefined;
 		let ServiceRouter: IRouter;
-		for (const serviceRESTApi of servicesRESTApi) {
-			serviceRESTApiController = serviceControllers.get(serviceRESTApi.name);
-			if (!serviceRESTApiController) {
-				throw createException(ErrorCodes.MISCONFIGURATION_SERVICE_CONTROLLER_NOT_FOUND, `Couldn't find controller for ${serviceRESTApi.name} service.`);
+		for (const serviceRESTApiSchema of servicesRESTApiSchemas) {
+			serviceRequestHandlers = servicesRequestHandlers.get(serviceRESTApiSchema.name);
+			if (!serviceRequestHandlers) {
+				throw createException(
+					ErrorCodes.MISCONFIGURATION_SERVICE_REQUEST_HANDLERS_NOT_FOUND,
+					`Couldn't find request handlers for ${serviceRESTApiSchema.name} service.`
+				);
 			}
 
 			ServiceRouter = Router();
 
-			let serviceMethod: ServiceMethod;
-			let serviceMethodValidator: ValidatorMiddleware | Array<ValidatorMiddleware> | undefined;
-			let serviceMethodController: ControllerMiddleware | Array<ControllerMiddleware> | undefined;
-			let middlewares: any[];
-
+			let serviceMethodSchema: ServiceMethodSchema;
+			let methodRequestHandlers: Array<RequestHandler>;
 			// eslint-disable-next-line guard-for-in
-			for (const serviceMethodName in serviceRESTApi.methods) {
-				serviceMethod = serviceRESTApi.methods[serviceMethodName];
-				serviceMethodController = serviceRESTApiController.controller[serviceMethodName];
-				if (!serviceMethodController) {
-					throw createException(ErrorCodes.MISCONFIGURATION_METHOD_CONTROLLER_NOT_FOUND, `Couldn't find controller for ${serviceMethodName} method.`);
-				}
-				serviceMethodValidator = serviceRESTApiController.validator[serviceMethodName];
-				middlewares = [];
-
-				if (serviceMethodValidator) {
-					if (Array.isArray(serviceMethodValidator)) {
-						middlewares.push(...serviceMethodValidator);
-					} else {
-						middlewares.push(serviceMethodValidator);
-					}
-				}
-				if (Array.isArray(serviceMethodController)) {
-					middlewares.push(...serviceMethodController);
-				} else {
-					middlewares.push(serviceMethodController);
+			for (const serviceMethodName in serviceRESTApiSchema.methods) {
+				methodRequestHandlers = serviceRequestHandlers[serviceMethodName];
+				if (!methodRequestHandlers) {
+					throw createException(
+						ErrorCodes.MISCONFIGURATION_METHOD_REQUEST_HANDLERS_NOT_FOUND,
+						`Couldn't find request handlers for ${serviceMethodName} method.`
+					);
 				}
 
-				ServiceRouter[serviceMethod.method](serviceMethod.path, middlewares);
+				serviceMethodSchema = serviceRESTApiSchema.methods[serviceMethodName];
 
-				if (serviceMethod.unauthorized) {
+				ServiceRouter[serviceMethodSchema.method](serviceMethodSchema.path, methodRequestHandlers);
+
+				if (serviceMethodSchema.unauthorized) {
 					unauthorizedEndpoints.push({
-						method: serviceMethod.method,
-						url: new RegExp(`${serviceRESTApi.path}${serviceMethod.path}$`)
+						// @ts-ignore
+						method: serviceMethodSchema.method.toUpperCase(),
+						url: new RegExp(`${serviceRESTApiSchema.path}${serviceMethodSchema.path}$`)
 					});
 				}
 			}
 
-			RestApiRouter.router.use(serviceRESTApi.path, ServiceRouter);
+			RestAPIRouter.use(serviceRESTApiSchema.path, ServiceRouter);
 		}
 
-		RestApiRouter.router.all(
+		RestAPIRouter.all(
 			'*',
-			JwtAuthMiddleware(RestApiRouter.jwt, {
+			JwtAuthMiddleware(jwt, {
 				verifyOptsProvider: jwtVerifyOptsProvider,
 				attach: requestPropNameWhereToAttachJwtPayload,
 				unless: {
@@ -100,23 +80,18 @@ class RestApiRouter {
 				logger: getLogger()
 			})
 		);
+
+		return RestAPIRouter;
 	}
 
-	public static get ExpressRouter(): IRouter {
-		if (!RestApiRouter.router) {
-			throw createException(ErrorCodes.REST_API_ROUTER_NOT_INITIALIZED, '');
-		}
-		return RestApiRouter.router;
-	}
-
-	private static async readServicesRestApiSchemas(pathToSchemas: string): Promise<Array<ServiceRESTApi>> {
+	private static async readServicesRestApiSchemas(pathToSchemas: string): Promise<Array<ServiceRESTApiSchema>> {
 		const serviceSchemasFiles = await readDir(pathToSchemas);
 		const restApiSchemasPromises = [];
 		for (const serviceSchemaFile of serviceSchemasFiles) {
 			restApiSchemasPromises.push(fs.readJsonFromFile(serviceSchemaFile));
 		}
-		return ((await Promise.all(restApiSchemasPromises)) as unknown) as Promise<Array<ServiceRESTApi>>;
+		return ((await Promise.all(restApiSchemasPromises)) as unknown) as Promise<Array<ServiceRESTApiSchema>>;
 	}
 }
 
-export { RestApiRouter };
+export { RestApiRouterFactory };

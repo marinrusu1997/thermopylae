@@ -1,6 +1,5 @@
 import { describe } from 'mocha';
-// eslint-disable-next-line import/no-unresolved
-import { Services, AuthServiceMethods } from '@marin/lib.utils/dist/enums';
+import { Services, AuthServiceMethods } from '@marin/declarations/services';
 import { generateString } from './utils';
 import { passwordTestsSuite } from './test-cases/credentials-test-cases';
 import { tokenTestSuite } from './test-cases/core-test-cases';

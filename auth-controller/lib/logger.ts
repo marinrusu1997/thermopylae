@@ -1,6 +1,5 @@
 import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
-// eslint-disable-next-line import/no-extraneous-dependencies, import/no-unresolved
-import { Services } from '@marin/lib.utils/dist/enums';
+import { Services } from '@marin/declarations/services';
 
 let logger: WinstonLogger | undefined;
 function getLogger(): WinstonLogger {

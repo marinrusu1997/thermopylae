@@ -15,7 +15,7 @@
         "dist/**/*"
     ],
     "scripts": {
-        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "lint": "eslint lib/**/*.ts test/**/*.ts --fix",
         "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
@@ -37,7 +37,6 @@
         "xss": "^1.0.6"
     },
     "devDependencies": {
-        "@marin/json-schemas": "file:../json-schemas",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@types/chai": "^4.2.7",
         "@types/mocha": "^5.2.7",
