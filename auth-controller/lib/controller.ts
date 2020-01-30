@@ -179,8 +179,25 @@ class AuthController {
 	static async validateAccountCredentials(req: Request, res: Response): Promise<void> {
 		// FIXME this should be mounted into internal rest api router
 		try {
-			const areValid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.params.accountId, req.body);
+			const areValid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.body.accountId, req.body);
 			res.status(HttpStatusCode.OK).json({ areValid });
+		} catch (e) {
+			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
+				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
+			}
+
+			throw e;
+		}
+	}
+
+	static async changeAccountLockStatus(req: Request, res: Response): Promise<void> {
+		try {
+			if (req.params.enable) {
+				await AuthController.authenticationEngine.lockAccount(req.body.accountId, req.body.cause);
+			} else {
+				await AuthController.authenticationEngine.unlockAccount(req.body.accountId);
+			}
+			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
 				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });

@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { Services, AuthServiceMethods } from '@marin/declarations/services';
+import { Services, AuthServiceMethods } from '@marin/declarations/lib/services';
 import { expect } from 'chai';
 import { Firewall } from '@marin/lib.firewall';
 import { passwordTestsSuite, usernameTestsSuite } from './test-cases/credentials-test-cases';

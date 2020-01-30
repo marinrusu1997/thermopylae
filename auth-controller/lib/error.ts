@@ -1,5 +1,5 @@
 import { Exception } from '@marin/lib.error';
-import { Services } from '@marin/declarations/services';
+import { Services } from '@marin/declarations/lib/services';
 
 const enum ErrorCodes {
 	MISCONFIGURATION = 'MISCONFIGURATION',

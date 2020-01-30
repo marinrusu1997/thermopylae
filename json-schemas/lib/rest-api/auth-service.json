@@ -42,6 +42,10 @@
       "method": "put",
       "path": "/account/password/reset",
       "unauthorized": true
+    },
+    "changeAccountLockStatus": {
+      "method": "put",
+      "path": "/account/lock"
     }
   }
 }

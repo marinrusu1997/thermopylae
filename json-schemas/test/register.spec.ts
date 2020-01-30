@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { AuthServiceMethods, Services } from '@marin/declarations/services';
+import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
 import { Firewall } from '@marin/lib.firewall';
 import { passwordTestsSuite, usernameTestsSuite } from './test-cases/credentials-test-cases';
 import { generateString, testAdditionalProperties, testEnum, testFormat, testMaxLength, testPattern, testRequired, testType } from './utils';

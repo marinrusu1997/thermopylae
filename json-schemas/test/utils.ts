@@ -1,5 +1,5 @@
 import { string } from '@marin/lib.utils';
-import { Services } from '@marin/declarations/services';
+import { Services } from '@marin/declarations/lib/services';
 import { expect } from 'chai';
 import { Firewall } from '@marin/lib.firewall';
 

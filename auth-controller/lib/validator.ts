@@ -1,7 +1,8 @@
 import { Firewall } from '@marin/lib.firewall';
+import { boolean } from '@marin/lib.utils';
 import { GeoIP } from '@marin/lib.geoip';
-import { AuthServiceMethods, Services } from '@marin/declarations/services';
-import { AccountRole } from '@marin/declarations/auth';
+import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
+import { AccountRole } from '@marin/declarations/lib/auth';
 import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
@@ -80,19 +81,15 @@ class AuthValidator {
 	 * PUT /api/rest/v1/auth/account/multi_factor?enable=boolean
 	 */
 	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
-		if (req.params.enable === 'true' || req.params.enable === '1') {
+		try {
 			// @ts-ignore
-			req.params.enable = true;
-			return next();
+			req.params.enable = boolean.toBoolean(req.params.enable);
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for enabling multi factor authentication method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(HttpStatusCode.BAD_REQUEST).json({ enable: 'query param is required and needs to be a boolean' });
 		}
-
-		if (req.params.enable === 'false' || req.params.enable === '0') {
-			// @ts-ignore
-			req.params.enable = false;
-			return next();
-		}
-
-		res.status(HttpStatusCode.BAD_REQUEST).json({ enable: 'query param is required and needs to be a boolean' });
 	}
 
 	/**
@@ -120,6 +117,7 @@ class AuthValidator {
 	 * GET /api/rest/v1/auth/failed_auth_attempts?accountId=ashduah45&from=12456789&to=456975566
 	 */
 	static async getFailedAuthenticationAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
+		// FIXME user role validation needs to be encapsulated into permission/authorization module
 		// @ts-ignore
 		const accountRole: string = get(req, AuthValidator.jwtPayloadPathInReqObj).aud; // if not present, treat as server error
 		if (accountRole !== AccountRole.ADMIN) {
@@ -198,20 +196,45 @@ class AuthValidator {
 	}
 
 	/**
-	 * POST /internal/api/rest/v1/auth/account/credentials/validate?accountId=asd12
-	 * Body { username: "string", password: "password" }
+	 * POST /internal/api/rest/v1/auth/account/credentials/validate
+	 * Body { accountId: "string", username: "string", password: "password" }
 	 *
 	 * Exposed via private ip for other microservices
 	 */
 	static async validateAccountCredentials(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			await Firewall.validate(Services.AUTH, AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS, { ...req.body, accountId: req.params.accountId });
-
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS, req.body);
 			next();
 		} catch (e) {
 			getLogger().error(`Failed to gather and validate network input for validate account credentials method.`, e);
 			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
 			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+		}
+	}
+
+	/**
+	 * PUT /api/rest/v1/auth/account/lock?enable=boolean
+	 * Body { accountId: string, cause?: string }
+	 */
+	static async changeAccountLockStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+		// FIXME user role validation needs to be encapsulated into permission/authorization module
+		// @ts-ignore
+		const accountRole: string = get(req, AuthValidator.jwtPayloadPathInReqObj).aud; // if not present, treat as server error
+		if (accountRole !== AccountRole.ADMIN) {
+			res.status(HttpStatusCode.FORBIDDEN).send();
+			return;
+		}
+
+		try {
+			// @ts-ignore
+			req.params.enable = boolean.toBoolean(req.params.enable);
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, { ...req.body, enable: req.params.enable });
+			req.body.cause = req.body.cause ? Firewall.sanitize(req.body.cause) : req.body.cause;
+			next();
+		} catch (e) {
+			getLogger().error(`Failed to gather and validate network input for change account lock status method.`, e);
+			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
+			res.status(HttpStatusCode.BAD_REQUEST).json(e.errors ? Firewall.joinErrors(e.errors, 'object') : { code: e.code });
 		}
 	}
 }

@@ -63,15 +63,9 @@
   "additionalProperties": false,
   "if": {
     "properties": {
-      "totp": {
-        "const": null
-      },
-      "generateChallenge": {
-        "const": null
-      },
-      "responseForChallenge": {
-        "const": null
-      }
+      "totp": false,
+      "generateChallenge": false,
+      "responseForChallenge": false
     }
   },
   "then": {

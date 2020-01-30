@@ -1,5 +1,5 @@
 import { describe } from 'mocha';
-import { Services, AuthServiceMethods } from '@marin/declarations/services';
+import { Services, AuthServiceMethods } from '@marin/declarations/lib/services';
 import { generateString } from './utils';
 import { passwordTestsSuite } from './test-cases/credentials-test-cases';
 import { tokenTestSuite } from './test-cases/core-test-cases';
