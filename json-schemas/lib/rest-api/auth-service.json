@@ -46,6 +46,10 @@
     "changeAccountLockStatus": {
       "method": "put",
       "path": "/account/lock"
+    },
+    "logout": {
+      "method": "delete",
+      "path": "/session/user"
     }
   }
 }

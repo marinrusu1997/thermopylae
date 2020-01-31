@@ -1,6 +1,6 @@
 import { Libraries, HttpStatusCode } from '@marin/lib.utils/dist/enums';
-
 import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
+import { LogoutType } from '@marin/declarations/lib/auth';
 import { Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
@@ -184,6 +184,7 @@ class AuthController {
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
 				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
+				return;
 			}
 
 			throw e;
@@ -201,6 +202,50 @@ class AuthController {
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
 				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
+				return;
+			}
+
+			throw e;
+		}
+	}
+
+	static async logout(req: Request, res: Response): Promise<void> {
+		const jwtPayload = get(req, AuthController.jwtPayloadPathInReqObj);
+
+		try {
+			switch (req.params.type as LogoutType) {
+				case LogoutType.CURRENT_SESSION:
+					await AuthController.authenticationEngine.logout(jwtPayload);
+					break;
+				case LogoutType.ALL_SESSIONS:
+					await AuthController.authenticationEngine.logoutFromAllDevices(jwtPayload);
+					break;
+				case LogoutType.ALL_SESSIONS_EXCEPT_CURRENT:
+					await AuthController.authenticationEngine.logoutFromAllDevicesExceptFromCurrent(jwtPayload.sub, jwtPayload.iat);
+					break;
+				default:
+					res.status(HttpStatusCode.BAD_REQUEST).json({ code: ErrorCodes.INVALID_LOGOUT_TYPE });
+			}
+		} catch (e) {
+			if (e.emitter === Libraries.AUTH_ENGINE) {
+				let httpResponseStatus;
+				switch (e.code) {
+					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:
+						httpResponseStatus = HttpStatusCode.NOT_FOUND;
+						break;
+					case AuthEngineErrorCodes.JWT_TTL_NOT_FOUND:
+						throw createException(
+							ErrorCodes.MISCONFIGURATION_JWT_TTL_FOR_ACCOUNT_NOT_FOUND_BY_AUTH_ENGINE,
+							`JWT TTL for account ${jwtPayload.sub} not found when logout of type ${req.params.type} has been made.`
+						);
+					default:
+						throw createException(
+							ErrorCodes.MISCONFIGURATION_STATUS_CODE_COULD_NOT_BE_DETERMINED,
+							`Couldn't determine HTTP response code after logout of type ${req.params.type}.`
+						);
+				}
+				res.status(httpResponseStatus).json({ code: e.code });
+				return;
 			}
 
 			throw e;
