@@ -16,7 +16,7 @@ const ErrorCodes = {
  */
 function createException(code, message, data) {
 	// fixme turn this module into TS one and make use of const enums
-	return new Exception('LOGGER_LIB', code, message, data);
+	return new Exception('LIB_LOGGER', code, message, data);
 }
 
 // eslint-disable-next-line import/prefer-default-export

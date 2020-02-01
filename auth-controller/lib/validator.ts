@@ -1,5 +1,5 @@
 import { Firewall } from '@marin/lib.firewall';
-import { boolean } from '@marin/lib.utils';
+import { boolean, number } from '@marin/lib.utils';
 import { GeoIP } from '@marin/lib.geoip';
 import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
 import { AccountRole } from '@marin/declarations/lib/auth';
@@ -7,6 +7,14 @@ import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
+import { IIssuedJWTPayload } from '../../lib.jwt/lib';
+
+type ExpressResponseMethod = 'json' | 'send';
+
+interface ResponseBodyOnError {
+	method: ExpressResponseMethod;
+	body: any;
+}
 
 class AuthValidator {
 	private static geoIP: GeoIP;
@@ -31,9 +39,7 @@ class AuthValidator {
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for login method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).send();
+			AuthValidator.handleError('authenticate', e, res);
 		}
 	}
 
@@ -45,16 +51,11 @@ class AuthValidator {
 		try {
 			req.body.role = AccountRole.USER;
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.REGISTER, req.body);
-			req.body = Firewall.sanitize(
-				req.body,
-				new Set<string>(['username', 'password', 'pubKey'])
-			);
+			req.body.email = Firewall.sanitize(req.body.email);
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for register method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('register', e, res);
 		}
 	}
 
@@ -71,9 +72,7 @@ class AuthValidator {
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for activate account method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('activate account', e, res);
 		}
 	}
 
@@ -83,27 +82,34 @@ class AuthValidator {
 	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
 		try {
 			// @ts-ignore
-			req.params.enable = boolean.toBoolean(req.params.enable);
+			req.params.enable = boolean.toBoolean(req.params.enable, true);
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for enabling multi factor authentication method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json({ enable: 'query param is required and needs to be a boolean' });
+			AuthValidator.handleError(' enable multi factor authentication', e, res, {
+				method: 'json',
+				body: {
+					enable: 'query param is required and needs to be a boolean'
+				}
+			});
 		}
 	}
 
 	/**
 	 * GET /api/rest/v1/auth/session?accountId=ajsdhasjd
 	 */
-	static getActiveSessions(req: Request, res: Response, next: NextFunction): void {
+	static async getActiveSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
 		const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj);
 
 		if (req.params.accountId) {
-			// @ts-ignore
-			const accountRole: string = jwtPayload.aud;
-			if (accountRole !== AccountRole.ADMIN) {
+			if (!AuthValidator.validateAdminPermissions('get user active sessions', req, jwtPayload)) {
 				res.status(HttpStatusCode.FORBIDDEN).send();
 				return;
+			}
+
+			try {
+				await Firewall.validate(Services.AUTH, AuthServiceMethods.GET_ACTIVE_SESSIONS, { accountId: req.params.accountId });
+			} catch (e) {
+				return AuthValidator.handleError(`get active sessions (by ${AccountRole.ADMIN})`, e, res);
 			}
 		} else {
 			// @ts-ignore
@@ -117,28 +123,23 @@ class AuthValidator {
 	 * GET /api/rest/v1/auth/failed_auth_attempts?accountId=ashduah45&from=12456789&to=456975566
 	 */
 	static async getFailedAuthenticationAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
-		// FIXME user role validation needs to be encapsulated into permission/authorization module
-		// @ts-ignore
-		const accountRole: string = get(req, AuthValidator.jwtPayloadPathInReqObj).aud; // if not present, treat as server error
-		if (accountRole !== AccountRole.ADMIN) {
-			res.status(HttpStatusCode.FORBIDDEN).send();
-			return;
-		}
-
 		try {
+			if (!AuthValidator.validateAdminPermissions('get failed authentication attempts', req)) {
+				res.status(HttpStatusCode.FORBIDDEN).send();
+				return;
+			}
+
 			// @ts-ignore
-			req.params.from = Number(req.params.from);
+			req.params.from = number.toNumber(req.params.from);
 			// @ts-ignore
-			req.params.to = Number(req.params.to);
+			req.params.to = number.toNumber(req.params.to);
 
 			const query = { accountId: req.params.accountId, startingFrom: req.params.from, endingTo: req.params.to };
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.GET_FAILED_AUTH_ATTEMPTS, query);
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for get failed authentication attempts method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError(`get failed authentication attempts (by ${AccountRole.ADMIN})`, e, res);
 		}
 	}
 
@@ -147,9 +148,10 @@ class AuthValidator {
 	 * Body: { old: "password", new: "password", logAllOtherSessionsOut?: false }
 	 */
 	static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
-		const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj); // if not present, treat as internal server error
 		try {
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_PASSWORD, req.body);
+
+			const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj);
 			// @ts-ignore
 			req.body.sessionId = jwtPayload.iat;
 			// @ts-ignore
@@ -157,9 +159,7 @@ class AuthValidator {
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for change password method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('change password', e, res);
 		}
 	}
 
@@ -173,9 +173,7 @@ class AuthValidator {
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('create forgot password session', e, res);
 		}
 	}
 
@@ -189,9 +187,7 @@ class AuthValidator {
 
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for create forgot password session method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('change forgotten password', e, res);
 		}
 	}
 
@@ -204,11 +200,10 @@ class AuthValidator {
 	static async validateAccountCredentials(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS, req.body);
+
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for validate account credentials method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(Firewall.joinErrors(e.errors, 'object'));
+			AuthValidator.handleError('validate account credentials', e, res);
 		}
 	}
 
@@ -217,25 +212,72 @@ class AuthValidator {
 	 * Body { accountId: string, cause?: string }
 	 */
 	static async changeAccountLockStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-		// FIXME user role validation needs to be encapsulated into permission/authorization module
-		// @ts-ignore
-		const accountRole: string = get(req, AuthValidator.jwtPayloadPathInReqObj).aud; // if not present, treat as server error
-		if (accountRole !== AccountRole.ADMIN) {
-			res.status(HttpStatusCode.FORBIDDEN).send();
-			return;
-		}
-
 		try {
+			if (!AuthValidator.validateAdminPermissions('change account lock status', req)) {
+				res.status(HttpStatusCode.FORBIDDEN).send();
+				return;
+			}
+
 			// @ts-ignore
-			req.params.enable = boolean.toBoolean(req.params.enable);
+			req.params.enable = boolean.toBoolean(req.params.enable, true);
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, { ...req.body, enable: req.params.enable });
 			req.body.cause = req.body.cause ? Firewall.sanitize(req.body.cause) : req.body.cause;
+
 			next();
 		} catch (e) {
-			getLogger().error(`Failed to gather and validate network input for change account lock status method.`, e);
-			// if e.errors is null | undefined, will throw error, which will be processed by global error handler
-			res.status(HttpStatusCode.BAD_REQUEST).json(e.errors ? Firewall.joinErrors(e.errors, 'object') : { code: e.code });
+			AuthValidator.handleError('changed account lock status', e, res);
 		}
+	}
+
+	private static handleError(methodName: string, e: any, res: Response, body?: ResponseBodyOnError): void {
+		let messageToLog;
+		let errorToLog;
+		let errorBody: ResponseBodyOnError | undefined = body;
+		if (e.errors) {
+			messageToLog = `Failed to gather and validate network input for ${methodName} method. Validation errors: ${Firewall.joinErrors(
+				e.errors,
+				'text'
+			)}. `;
+			errorToLog = new Error();
+			if (!errorBody) {
+				errorBody = {
+					method: 'json',
+					body: Firewall.joinErrors(e.errors, 'object') as object
+				};
+				if (Object.getOwnPropertyNames(errorBody.body).length === 0) {
+					errorBody.method = 'send';
+					errorBody.body = undefined;
+				}
+			}
+		} else {
+			messageToLog = `Failed to gather and validate network input for ${methodName} method. `;
+			errorToLog = e;
+			if (!errorBody) {
+				errorBody = {
+					method: 'send',
+					body: undefined
+				};
+			}
+		}
+
+		getLogger().error(messageToLog, errorToLog);
+		res.status(HttpStatusCode.BAD_REQUEST)[errorBody.method](errorBody.body);
+	}
+
+	private static validateAdminPermissions(action: string, req: Request, jwtPayload?: IIssuedJWTPayload): boolean {
+		// @ts-ignore
+		jwtPayload = jwtPayload || get(req, AuthValidator.jwtPayloadPathInReqObj);
+		// @ts-ignore
+		if (jwtPayload.aud !== AccountRole.ADMIN) {
+			const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+			getLogger().warning(
+				`Detected an attempt to ${action} for  account with id ${req.params.accountId || req.body.accountId} by an user without ${
+					AccountRole.ADMIN
+				} role. His jwt: ${JSON.stringify(jwtPayload)}. Request originated from: ${remoteIp}.`
+			);
+			return false;
+		}
+		return true;
 	}
 }
 

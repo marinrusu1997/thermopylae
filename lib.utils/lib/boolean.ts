@@ -4,10 +4,13 @@ const enum ErrorCodes {
 	BOOLEAN_TYPE_CASTING_FAILED = 'BOOLEAN_TYPE_CASTING_FAILED'
 }
 
-function toBoolean(value: null | undefined | string | number): boolean {
+function toBoolean(value: null | undefined | string | number | boolean, strict?: boolean): boolean {
 	const valueType = typeof value;
 
 	if (valueType === 'undefined' || value === null) {
+		if (strict) {
+			throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);
+		}
 		return false;
 	}
 
@@ -26,6 +29,10 @@ function toBoolean(value: null | undefined | string | number): boolean {
 
 	if (valueType === 'number') {
 		return Boolean(value);
+	}
+
+	if (valueType === 'boolean') {
+		return value as boolean;
 	}
 
 	throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);

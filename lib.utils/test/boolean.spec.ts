@@ -42,36 +42,73 @@ describe('boolean spec', () => {
 			expect(toBoolean(NaN)).to.be.eq(false);
 		});
 
-		it("throws when can't convert to boolean (receiving value of type different than string or number)", () => {
-			let valueToCnvert: any = {};
+		it('returns back the same value if it was a boolean', () => {
+			expect(toBoolean(true)).to.be.eq(true);
+			expect(toBoolean(false)).to.be.eq(false);
+		});
+
+		it('throws when value is null or undefined and strict mode is turned on', () => {
+			let valueToConvert: null | undefined;
 
 			let err;
 			try {
 				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
-				toBoolean(valueToCnvert);
+				toBoolean(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
 			expect(err)
 				.to.be.instanceOf(Exception)
 				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToCnvert} of type ${typeof valueToCnvert} to boolean.`);
+			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 
-			valueToCnvert = [];
+			valueToConvert = null;
 			err = undefined;
 
 			try {
 				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
-				toBoolean(valueToCnvert);
+				toBoolean(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
 			expect(err)
 				.to.be.instanceOf(Exception)
 				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToCnvert} of type ${typeof valueToCnvert} to boolean.`);
+			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
+		});
+
+		it("throws when can't convert to boolean (receiving value of type different than string or number)", () => {
+			let valueToConvert: any = {};
+
+			let err;
+			try {
+				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+				// @ts-ignore
+				toBoolean(valueToConvert);
+			} catch (e) {
+				err = e;
+			}
+			expect(err)
+				.to.be.instanceOf(Exception)
+				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
+
+			valueToConvert = [];
+			err = undefined;
+
+			try {
+				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+				// @ts-ignore
+				toBoolean(valueToConvert);
+			} catch (e) {
+				err = e;
+			}
+			expect(err)
+				.to.be.instanceOf(Exception)
+				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 		});
 	});
 });

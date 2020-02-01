@@ -21,6 +21,7 @@
         "build": "gulp build",
         "test": "gulp test",
         "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
         "clean": "gulp clean",
         "purge": "gulp purge"
     },
@@ -41,6 +42,7 @@
     },
     "devDependencies": {
         "@marin/declarations": "file:../declarations",
+        "@marin/json-schemas": "file:../json-schemas",
         "@marin/lib.auth-engine": "file:../lib.auth-engine",
         "@marin/lib.geoip": "file:../lib.geoip",
         "@marin/lib.module-builder": "file:../lib.module-builder",

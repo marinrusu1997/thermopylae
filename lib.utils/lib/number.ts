@@ -1,3 +1,9 @@
+import { createException } from './exception';
+
+const enum ErrorCodes {
+	NUMBER_TYPE_CASTING_FAILED = 'NUMBER_TYPE_CASTING_FAILED'
+}
+
 /**
  * Returns a random number between min (inclusive) and max (exclusive)
  */
@@ -19,4 +25,22 @@ function generateRandomNumber(min: number, max: number): number {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export { generateArbitraryNumber, generateRandomNumber };
+/**
+ * Converts a giver value to it's corresponding number.
+ * When strict mode is enabled, given undefined or null will throw an error
+ * When strict mode is disabled, given undefined or null will return them back.
+ *
+ * @param value
+ * @param strict
+ */
+function toNumber(value: boolean | number | string | null | undefined, strict?: boolean): number | null | undefined {
+	if (typeof value === 'undefined' || value === null) {
+		if (strict) {
+			throw createException(ErrorCodes.NUMBER_TYPE_CASTING_FAILED, '');
+		}
+		return value;
+	}
+	return Number(value);
+}
+
+export { generateArbitraryNumber, generateRandomNumber, toNumber, ErrorCodes };

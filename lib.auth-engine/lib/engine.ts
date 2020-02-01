@@ -431,6 +431,11 @@ class AuthenticationEngine {
 	}
 }
 
+interface RegistrationOptions {
+	enableMultiFactorAuth: boolean;
+	isActivated: boolean; // based on user role, account can be activated or not at the registration time
+}
+
 interface TTLOptions {
 	authSession?: number; // minutes
 	failedAuthAttemptsSession?: number; // minutes
@@ -501,11 +506,6 @@ interface AuthEngineOptions {
 	};
 }
 
-interface RegistrationOptions {
-	enableMultiFactorAuth: boolean;
-	isActivated: boolean; // based on user role, account can be activated or not at the registration time
-}
-
 type InternalUsageOptions = Required<
 	AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { sizes: Required<SizesOptions> }
 >;
@@ -543,4 +543,4 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 }
 
 // eslint-disable-next-line no-undef
-export { AuthenticationEngine, AuthEngineOptions };
+export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, SizesOptions, RegistrationOptions };

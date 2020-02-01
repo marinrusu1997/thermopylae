@@ -37,13 +37,13 @@ class ErrorStep implements AuthStep {
 	}
 
 	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
-		const now = new Date().getTime();
+		const nowInMilliseconds = new Date().getTime();
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(networkInput.username);
 		if (!failedAuthAttemptSession) {
-			failedAuthAttemptSession = { timestamp: now, ip: [networkInput.ip], device: [networkInput.device], counter: 1 };
+			failedAuthAttemptSession = { timestamp: nowInMilliseconds, ip: [networkInput.ip], device: [networkInput.device], counter: 1 };
 			await this.failedAuthAttemptSessionEntity.create(networkInput.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 		} else {
-			failedAuthAttemptSession.timestamp = now;
+			failedAuthAttemptSession.timestamp = nowInMilliseconds;
 			failedAuthAttemptSession.ip.push(networkInput.ip);
 			failedAuthAttemptSession.device.push(networkInput.device);
 			failedAuthAttemptSession.counter += 1;
@@ -67,7 +67,7 @@ class ErrorStep implements AuthStep {
 				this.failedAuthAttemptsEntity
 					.create({
 						accountId: account.id!,
-						timestamp: now,
+						timestamp: nowInMilliseconds,
 						ips: array.extractUniqueItems(failedAuthAttemptSession.ip),
 						devices: array.extractUniqueItems(failedAuthAttemptSession.device)
 					})

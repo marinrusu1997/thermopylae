@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-GET_ACTIVE_SESSIONS",
+  "type": "object",
+  "properties": {
+    "accountId": {
+      "$ref": "../core/core.json#/definitions/id"
+    }
+  },
+  "required": [
+    "accountId"
+  ],
+  "additionalProperties": false
+}
