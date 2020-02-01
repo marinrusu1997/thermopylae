@@ -3,6 +3,7 @@ import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin
 import { LogoutType } from '@marin/declarations/lib/auth';
 import { Request, Response } from 'express';
 import get from 'lodash.get';
+import { AuthServiceMethods } from '@marin/declarations/lib/services';
 import { getLogger } from './logger';
 import { createException, ErrorCodes } from './error';
 
@@ -17,7 +18,9 @@ class AuthController {
 	}
 
 	static async authenticate(req: Request, res: Response): Promise<void> {
+		let remoteIp;
 		try {
+			remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			const authStatus = await AuthController.authenticationEngine.authenticate(req.body);
 
 			if (authStatus.token && !authStatus.nextStep) {
@@ -27,7 +30,10 @@ class AuthController {
 
 			if (authStatus.nextStep) {
 				if (authStatus.error && authStatus.error.soft) {
-					getLogger().warning(`Soft error while authenticating.`, authStatus.error.soft);
+					getLogger().error(
+						`${AuthServiceMethods.AUTHENTICATE} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `,
+						authStatus.error.soft
+					);
 					res.status(HttpStatusCode.UNAUTHORIZED).json({ nextStep: authStatus.nextStep });
 					return;
 				}
@@ -36,14 +42,17 @@ class AuthController {
 			}
 
 			if (authStatus.error && authStatus.error.hard) {
-				getLogger().alert(`Hard error while authenticating.`, authStatus.error.hard);
+				getLogger().alert(
+					`${AuthServiceMethods.AUTHENTICATE} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `,
+					authStatus.error.hard
+				);
 				res.status(HttpStatusCode.GONE).send();
 				return;
 			}
 
-			throw createException(ErrorCodes.MISCONFIGURATION, "Authentication completed, but it's status couldn't be resolved.");
+			throw createException(ErrorCodes.MISCONFIGURATION, "Authentication completed, but it's status couldn't be resolved.", authStatus);
 		} catch (e) {
-			getLogger().alert('An error non related to authentication happened while executing AuthEngine.authenticate method. Sending 400', e);
+			getLogger().error(`${AuthServiceMethods.AUTHENTICATE} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `, e);
 			res.status(HttpStatusCode.BAD_REQUEST).send();
 		}
 	}
@@ -57,7 +66,10 @@ class AuthController {
 			res.status(HttpStatusCode.ACCEPTED).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
-				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? 409 : 400;
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(`${AuthServiceMethods.REGISTER} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `, e);
+
+				const httpResponseCode = e.code === AuthEngineErrorCodes.ACCOUNT_ALREADY_REGISTERED ? HttpStatusCode.CONFLICT : HttpStatusCode.BAD_REQUEST;
 				res.status(httpResponseCode).json({ code: e.code });
 				return;
 			}
@@ -71,7 +83,13 @@ class AuthController {
 			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
-				res.status(HttpStatusCode.NOT_FOUND).json({ code: e.code }); // only SESSION_NOT_FOUND can be thrown
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.ACTIVATE_ACCOUNT} failed. Request params: ${JSON.stringify(req.params)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
+				res.status(HttpStatusCode.BAD_REQUEST).json({ code: ErrorCodes.INVALID_TOKEN });
 				return;
 			}
 			throw e;
@@ -82,8 +100,7 @@ class AuthController {
 		// @ts-ignore
 		const accountId: string = get(req, AuthController.jwtPayloadPathInReqObj).sub;
 		// @ts-ignore
-		const enabled: boolean = req.params.enable;
-		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, enabled);
+		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, req.params.enable);
 		res.status(HttpStatusCode.NO_CONTENT).send();
 	}
 
@@ -93,13 +110,8 @@ class AuthController {
 	}
 
 	static async getFailedAuthenticationAttempts(req: Request, res: Response): Promise<void> {
-		const { accountId } = req.params;
 		// @ts-ignore
-		const startingFrom: number = req.params.from;
-		// @ts-ignore
-		const endingTo: number = req.params.to;
-
-		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(accountId, startingFrom, endingTo);
+		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(req.params.accountId, req.params.from, req.params.to);
 		res.status(HttpStatusCode.OK).json(failedAuthAttempts);
 	}
 
@@ -113,6 +125,12 @@ class AuthController {
 			}
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.CHANGE_PASSWORD} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
 				let httpResponseStatus;
 				switch (e.code) {
 					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:
@@ -153,13 +171,19 @@ class AuthController {
 			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
-				let httpResponseStatus;
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.CHANGE_FORGOTTEN_PASSWORD} failed. Request body: ${JSON.stringify(req.body)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
+				let code;
 				switch (e.code) {
 					case AuthEngineErrorCodes.SESSION_NOT_FOUND:
-						httpResponseStatus = HttpStatusCode.NOT_FOUND;
+						code = ErrorCodes.INVALID_TOKEN;
 						break;
 					case AuthEngineErrorCodes.WEAK_PASSWORD:
-						httpResponseStatus = HttpStatusCode.BAD_REQUEST;
+						code = AuthEngineErrorCodes.WEAK_PASSWORD;
 						break;
 					default:
 						// will be processed by global handled with a 500 Server Error
@@ -168,7 +192,7 @@ class AuthController {
 							"Could't determine http response code from Exception thrown by AuthEngine.changeForgottenPassword method."
 						);
 				}
-				res.status(httpResponseStatus).json({ code: e.code });
+				res.status(HttpStatusCode.BAD_REQUEST).json({ code });
 				return;
 			}
 
@@ -179,11 +203,19 @@ class AuthController {
 	static async validateAccountCredentials(req: Request, res: Response): Promise<void> {
 		// FIXME this should be mounted into internal rest api router
 		try {
-			const areValid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.body.accountId, req.body);
-			res.status(HttpStatusCode.OK).json({ areValid });
+			const valid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.body.accountId, req.body);
+			res.status(HttpStatusCode.OK).json({ valid });
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
-				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS} failed. Request body: ${JSON.stringify(
+						req.body
+					)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
+				res.status(HttpStatusCode.NOT_FOUND).json({ code: e.code });
 				return;
 			}
 
@@ -201,7 +233,15 @@ class AuthController {
 			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
-				res.status(HttpStatusCode.NOT_FOUND).send({ code: e.code });
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS} failed. Request body: ${JSON.stringify(req.body)}. Request params: ${JSON.stringify(
+						req.params
+					)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
+				res.status(HttpStatusCode.NOT_FOUND).json({ code: e.code });
 				return;
 			}
 
@@ -213,21 +253,29 @@ class AuthController {
 		const jwtPayload = get(req, AuthController.jwtPayloadPathInReqObj);
 
 		try {
+			let loggedOutSessions = 1;
 			switch (req.params.type as LogoutType) {
 				case LogoutType.CURRENT_SESSION:
 					await AuthController.authenticationEngine.logout(jwtPayload);
 					break;
 				case LogoutType.ALL_SESSIONS:
-					await AuthController.authenticationEngine.logoutFromAllDevices(jwtPayload);
+					loggedOutSessions = await AuthController.authenticationEngine.logoutFromAllDevices(jwtPayload);
 					break;
 				case LogoutType.ALL_SESSIONS_EXCEPT_CURRENT:
-					await AuthController.authenticationEngine.logoutFromAllDevicesExceptFromCurrent(jwtPayload.sub, jwtPayload.iat);
+					loggedOutSessions = await AuthController.authenticationEngine.logoutFromAllDevicesExceptFromCurrent(jwtPayload.sub, jwtPayload.iat);
 					break;
-				default:
-					res.status(HttpStatusCode.BAD_REQUEST).json({ code: ErrorCodes.INVALID_LOGOUT_TYPE });
 			}
+			res.status(HttpStatusCode.OK).json({ loggedOutSessions });
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
+				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+				getLogger().error(
+					`${AuthServiceMethods.LOGOUT} failed. Request params: ${JSON.stringify(req.params)}. JWT: ${JSON.stringify(
+						jwtPayload
+					)}. Request origin: ${remoteIp}. Cause: `,
+					e
+				);
+
 				let httpResponseStatus;
 				switch (e.code) {
 					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:

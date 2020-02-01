@@ -4,17 +4,14 @@ import { Request } from 'express';
 import { Firewall } from '@marin/lib.firewall';
 import { IpLocation } from '@marin/lib.geoip';
 import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
-import { AccountRole } from '@marin/declarations/lib/auth';
+import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
 import { chrono, object, string } from '@marin/lib.utils';
 import { AuthValidator } from '../lib';
 import { GeoIpMethods, GeoIpMock } from './mocks/geo-ip';
 import { ResponseMock } from './mocks/response';
 import { ExpressNextFunction, expressNextFunctionFactory } from './mocks/next-function';
-
-interface ExpectedMethodInvocation<T> {
-	called: boolean;
-	with?: T;
-}
+import { checkHttpResponse, ExpectedMethodInvocation } from './utils';
+import { ErrorCodes } from '../lib/error';
 
 describe('validator spec', () => {
 	const geoIpMock = new GeoIpMock();
@@ -62,24 +59,7 @@ describe('validator spec', () => {
 		send: ExpectedMethodInvocation<any> = { called: false }
 	): void {
 		expect(expressNextFunctionMock.calls).to.be.eq(0);
-
-		if (status.called) {
-			expect(responseMock.getStatus()).to.be.eq(status.with);
-		} else {
-			expect(() => responseMock.getStatus()).to.throw('status method not called only once');
-		}
-
-		if (json.called) {
-			expect(responseMock.getJson()).to.be.deep.eq(json.with);
-		} else {
-			expect(() => responseMock.getJson()).to.throw('json method not called only once');
-		}
-
-		if (send.called) {
-			expect(responseMock.getSend()).to.be.deep.eq(send.with);
-		} else {
-			expect(() => responseMock.getSend()).to.throw('send method not called only once');
-		}
+		checkHttpResponse(responseMock, status, json, send);
 	}
 
 	describe('authenticate spec', () => {
@@ -1127,6 +1107,122 @@ describe('validator spec', () => {
 			expect(req.body.cause).to.be.eq('&lt;script&gt;does not matter for tests&lt;/script&gt;');
 
 			checkValidationPassed();
+		});
+	});
+
+	describe('logout spec', () => {
+		it(`accepts requests with valid logout type ${LogoutType.CURRENT_SESSION}`, () => {
+			// @ts-ignore
+			const req: Request = {
+				params: {
+					type: LogoutType.CURRENT_SESSION
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						aud: AccountRole.ADMIN
+					}
+				}
+			};
+
+			// @ts-ignore
+			AuthValidator.logout(req, responseMock, expressNextFunctionMock.next);
+
+			checkValidationPassed();
+		});
+
+		it(`accepts requests with valid logout type ${LogoutType.ALL_SESSIONS}`, () => {
+			// @ts-ignore
+			const req: Request = {
+				params: {
+					type: LogoutType.ALL_SESSIONS
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						aud: AccountRole.ADMIN
+					}
+				}
+			};
+
+			// @ts-ignore
+			AuthValidator.logout(req, responseMock, expressNextFunctionMock.next);
+
+			checkValidationPassed();
+		});
+
+		it(`accepts requests with valid logout type ${LogoutType.ALL_SESSIONS_EXCEPT_CURRENT}`, () => {
+			// @ts-ignore
+			const req: Request = {
+				params: {
+					type: LogoutType.ALL_SESSIONS_EXCEPT_CURRENT
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						aud: AccountRole.ADMIN
+					}
+				}
+			};
+
+			// @ts-ignore
+			AuthValidator.logout(req, responseMock, expressNextFunctionMock.next);
+
+			checkValidationPassed();
+		});
+
+		it('rejects requests without logout type', () => {
+			// @ts-ignore
+			const req: Request = {
+				params: {},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						aud: AccountRole.ADMIN
+					}
+				}
+			};
+
+			// @ts-ignore
+			AuthValidator.logout(req, responseMock, expressNextFunctionMock.next);
+
+			checkValidationFailed(
+				{ called: true, with: HttpStatusCode.BAD_REQUEST },
+				{
+					called: true,
+					with: {
+						type: ErrorCodes.INVALID_LOGOUT_TYPE
+					}
+				}
+			);
+		});
+
+		it('rejects requests with invalid logout type', () => {
+			// @ts-ignore
+			const req: Request = {
+				params: {
+					type: 'INVALID'
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						aud: AccountRole.ADMIN
+					}
+				}
+			};
+
+			// @ts-ignore
+			AuthValidator.logout(req, responseMock, expressNextFunctionMock.next);
+
+			checkValidationFailed(
+				{ called: true, with: HttpStatusCode.BAD_REQUEST },
+				{
+					called: true,
+					with: {
+						type: ErrorCodes.INVALID_LOGOUT_TYPE
+					}
+				}
+			);
 		});
 	});
 });

@@ -2,12 +2,13 @@ import { Firewall } from '@marin/lib.firewall';
 import { boolean, number } from '@marin/lib.utils';
 import { GeoIP } from '@marin/lib.geoip';
 import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
-import { AccountRole } from '@marin/declarations/lib/auth';
+import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
 import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
 import { IIssuedJWTPayload } from '../../lib.jwt/lib';
+import { ErrorCodes } from './error';
 
 type ExpressResponseMethod = 'json' | 'send';
 
@@ -15,6 +16,8 @@ interface ResponseBodyOnError {
 	method: ExpressResponseMethod;
 	body: any;
 }
+
+const LogoutTypes = [LogoutType.CURRENT_SESSION, LogoutType.ALL_SESSIONS, LogoutType.ALL_SESSIONS_EXCEPT_CURRENT];
 
 class AuthValidator {
 	private static geoIP: GeoIP;
@@ -227,6 +230,18 @@ class AuthValidator {
 		} catch (e) {
 			AuthValidator.handleError('changed account lock status', e, res);
 		}
+	}
+
+	/**
+	 * DELETE /api/rest/v1/auth/session/user?type=enum
+	 */
+	static logout(req: Request, res: Response, next: NextFunction): void {
+		// @ts-ignore
+		if (!LogoutTypes.includes(req.params.type)) {
+			res.status(HttpStatusCode.BAD_REQUEST).json({ type: ErrorCodes.INVALID_LOGOUT_TYPE });
+			return;
+		}
+		next();
 	}
 
 	private static handleError(methodName: string, e: any, res: Response, body?: ResponseBodyOnError): void {

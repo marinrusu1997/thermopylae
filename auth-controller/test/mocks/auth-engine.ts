@@ -1,4 +1,4 @@
-import { AuthenticationEngine, RegistrationOptions } from '@marin/lib.auth-engine';
+import { RegistrationOptions } from '@marin/lib.auth-engine';
 import {
 	AuthRequest,
 	ChangeForgottenPasswordRequest,
@@ -20,11 +20,15 @@ interface MethodBehaviour {
 	throws?: Error | Exception;
 }
 
-class AuthenticationEngineMock extends AuthenticationEngine {
+class AuthenticationEngineMock {
 	private readonly methodsBehaviour: Map<AuthServiceMethods, MethodBehaviour> = new Map<AuthServiceMethods, MethodBehaviour>();
 
 	setMethodBehaviour(method: AuthServiceMethods, behaviour: MethodBehaviour): void {
 		this.methodsBehaviour.set(method, behaviour);
+	}
+
+	clearMethodBehaviours(): void {
+		this.methodsBehaviour.clear();
 	}
 
 	async authenticate(authRequest: AuthRequest): Promise<AuthStatus> {
@@ -154,7 +158,7 @@ class AuthenticationEngineMock extends AuthenticationEngine {
 	}
 
 	async logoutFromAllDevicesExceptFromCurrent(accountId: string, sessionId: number): Promise<number> {
-		const behaviour = this.getMethodBehaviour(AuthServiceMethods.LOGOUT);
+		const behaviour = this.getMethodBehaviour(AuthServiceMethods.LOGOUT_FROM_ALL_DEVICE_EXCEPT_FROM_CURRENT);
 		behaviour.expectingInput(accountId, sessionId);
 		if (behaviour.throws) {
 			throw behaviour.throws;
