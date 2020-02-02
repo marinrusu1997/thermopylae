@@ -1,5 +1,5 @@
 import { Exception } from '@marin/lib.error';
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Libraries } from '@marin/lib.utils/dist/declarations';
 
 const enum ErrorCodes {
 	MISCONFIGURATION_METHOD_REQUEST_HANDLERS_NOT_FOUND = 'MISCONFIGURATION_METHOD_REQUEST_HANDLERS_NOT_FOUND',

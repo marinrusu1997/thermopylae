@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import Exception from '@marin/lib.error';
-import { generateRandomNumber, generateArbitraryNumber, toNumber, ErrorCodes } from '../lib/number';
+import { generateRandom, generateArbitrary, toNumber, ErrorCodes, toLetter } from '../lib/number';
 
 describe('number spec', () => {
 	describe('randomness spec', () => {
@@ -10,7 +10,7 @@ describe('number spec', () => {
 
 		it('generates arbitrary number', () => {
 			for (let i = 0; i < 100; i++) {
-				const random = generateArbitraryNumber(LOWER_END, HIGHER_END);
+				const random = generateArbitrary(LOWER_END, HIGHER_END);
 				expect(random).to.be.gte(LOWER_END);
 				expect(random).to.be.lt(HIGHER_END);
 			}
@@ -18,7 +18,7 @@ describe('number spec', () => {
 
 		it('generates random number', () => {
 			for (let i = 0; i < 100; i++) {
-				const random = generateRandomNumber(LOWER_END, HIGHER_END);
+				const random = generateRandom(LOWER_END, HIGHER_END);
 				expect(random).to.be.gte(LOWER_END);
 				expect(random).to.be.lte(HIGHER_END);
 			}
@@ -56,6 +56,12 @@ describe('number spec', () => {
 			expect(toNumber('1')).to.be.eq(1);
 			expect(toNumber(1)).to.be.eq(1);
 			expect(toNumber(true)).to.be.eq(1);
+		});
+	});
+
+	describe('toLetter spec', () => {
+		it('returns number converted to letter', () => {
+			expect(toLetter(10000000)).to.be.eq('2oMX');
 		});
 	});
 });

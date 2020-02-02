@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import { HttpMethod } from '@marin/lib.utils/dist/enums';
+import { HttpMethod } from '@marin/lib.utils/dist/declarations';
 
 export type ServiceName = string;
 
@@ -10,7 +10,7 @@ export interface UnauthorizedEndpoint {
 
 export interface ServiceMethodSchema {
 	method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'connect' | 'options' | 'trace' | 'patch';
-	path: string;
+	path?: string;
 	unauthorized?: boolean;
 }
 

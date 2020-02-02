@@ -20,8 +20,11 @@
     "no-use-before-define": "warn",
     "no-console": "error",
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-restricted-syntax": "warn",
+    "no-continue": "warn",
     "@typescript-eslint/no-use-before-define": "warn",
-    "@typescript-eslint/no-namespace": "off"
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/ban-ts-ignore": "warn"
   },
   "globals": {
     "Atomics": "readonly",

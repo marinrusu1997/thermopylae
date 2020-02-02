@@ -1,12 +1,11 @@
 import clone from 'lodash.clone';
 import cloneDeep from 'lodash.clonedeep';
 
-/**
- * Check if the provided object contains values.
- *
- * @param obj
- */
-function isEmptyObject(obj: object): boolean {
+function isObject(item: any): boolean {
+	return typeof item === 'object' && !Array.isArray(item) && item !== null;
+}
+
+function isEmpty(obj: object): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
@@ -29,18 +28,15 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 	const isArray = Array.isArray(objectOrArray);
 
 	if (alterDeepClone && !isArray) {
-		// eslint-disable-next-line no-param-reassign
 		objectOrArray = cloneDeep(objectOrArray);
 	}
 
 	let currentPath = '';
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function traverseArray(arr: Array<any>, pathSeparator: string): void {
 		const appendIndex = currentPath.length;
 		for (let i = 0; i < arr.length; i++) {
 			currentPath += `${pathSeparator}[${i}]`;
-			// eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
 			continueTraversal(arr, i, arr[i]);
 			currentPath = currentPath.substring(0, appendIndex);
 		}
@@ -52,24 +48,19 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 		for (let i = 0; i < keys.length; i++) {
 			const key = keys[i];
 			currentPath += `${pathSeparator}${key}`;
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
-			// eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
 			continueTraversal(obj, key, obj[key]);
 			currentPath = currentPath.substring(0, appendIndex);
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function continueTraversal(currentObject: object | Array<any>, key: string | number, value: any): void {
 		if (Array.isArray(value)) {
 			traverseArray(value, '.');
 		} else if (typeof value === 'object' && value !== null) {
 			traverseObject(value, '.');
 		} else if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' || typeof value === 'undefined' || value === null) {
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
-			// eslint-disable-next-line no-param-reassign
 			currentObject[key] = processor(currentPath, value);
 		}
 	}
@@ -83,5 +74,89 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 	return objectOrArray;
 }
 
+/**
+ * deep-sort an object so its attributes are in lexical order.
+ * Also sorts the arrays inside of the object if sortArray is set
+ */
+function sort(obj: object, sortArray = true): object {
+	if (!obj) return obj; // do not sort null, false or undefined
+
+	// array
+	if (Array.isArray(obj)) {
+		return !sortArray
+			? obj
+			: obj
+					.sort((a, b) => {
+						if (typeof a === 'string' && typeof b === 'string') {
+							return a.localeCompare(b);
+						}
+
+						return typeof a === 'object' ? 1 : -1;
+					})
+					.map(i => sort(i, sortArray));
+	}
+
+	// object
+	if (typeof obj === 'object') {
+		if (obj instanceof RegExp) {
+			return obj;
+		}
+
+		const out: object = {};
+		Object.keys(obj)
+			.sort((a, b) => a.localeCompare(b))
+			.forEach(key => {
+				// @ts-ignore
+				out[key] = sort(obj[key], sortArray);
+			});
+		return out;
+	}
+
+	// everything else
+	return obj;
+}
+
+/**
+ * returns a flattened object
+ * @link https://gist.github.com/penguinboy/762197
+ */
+function flatten(obj: object): object {
+	if (obj === null) {
+		// @ts-ignore
+		return null;
+	}
+
+	const toReturn: any = {};
+
+	for (const objKey in obj) {
+		// eslint-disable-next-line no-prototype-builtins
+		if (!obj.hasOwnProperty(objKey)) {
+			continue;
+		}
+
+		const adjustedObjKey = `${Array.isArray(obj) ? `[${objKey}]` : `${objKey}`}`;
+
+		// @ts-ignore
+		if (typeof obj[objKey] === 'object') {
+			// @ts-ignore
+			const flatObject = flatten(obj[objKey]);
+			if (flatObject === null) {
+				// @ts-ignore
+				toReturn[adjustedObjKey] = flatObject;
+			} else {
+				// eslint-disable-next-line guard-for-in
+				for (const flatObjectKey in flatObject) {
+					// @ts-ignore
+					toReturn[`${adjustedObjKey}.${flatObjectKey}`] = flatObject[flatObjectKey];
+				}
+			}
+		} else {
+			// @ts-ignore
+			toReturn[adjustedObjKey] = obj[objKey];
+		}
+	}
+	return toReturn;
+}
+
 // eslint-disable-next-line no-undef
-export { clone, cloneDeep, isEmptyObject, traverse, TraverseProcessor };
+export { clone, cloneDeep, isObject, isEmpty, traverse, TraverseProcessor, sort, flatten };

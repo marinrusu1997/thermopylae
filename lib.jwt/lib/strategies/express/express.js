@@ -6,11 +6,11 @@ function getDefaultFailureHandler(logger) {
 	return async function onFailureHandler(err, status, res) {
 		if (err && status === null) {
 			// hard error
-			tryToLogError(err, 'Authorization failed (non jwt related)', logger);
+			tryToLogError(err, 'Authorization failed (non jwt related). ', logger);
 			res.status(500).send();
 		} else if (err && status === false) {
 			// token validation error
-			tryToLogError(err, 'Authorization failed.', logger);
+			tryToLogError(err, 'Authorization failed. ', logger);
 			res.status(401).send();
 		} else {
 			throw new Error('Invalid err & status parameters combination');
@@ -40,7 +40,7 @@ function JwtAuthMiddleware(auth, opts) {
 		const { verifyOptsProvider, extractor, attach, onFailure } = usedOpts;
 		const token = extractor(req);
 		if (!token) {
-			await onFailure(new Error('Jwt not present in request.'), false, res);
+			await onFailure(new Error('Json Web Token not present in request.'), false, res);
 			return;
 		}
 		try {

@@ -15,8 +15,8 @@ class RestApiRouterFactory {
 	static async createRouter(
 		jwt: Jwt,
 		servicesRequestHandlers: Map<ServiceName, ServiceRequestHandlers>,
-		requestPropNameWhereToAttachJwtPayload = 'pipeline.jwtPayload',
 		pathToServicesRESTApiSchemas?: string,
+		requestPropNameWhereToAttachJwtPayload = 'pipeline.jwtPayload',
 		jwtVerifyOptsProvider?: JwtVerifyOptsProvider
 	): Promise<IRouter> {
 		pathToServicesRESTApiSchemas =
@@ -27,6 +27,21 @@ class RestApiRouterFactory {
 		const RestAPIRouter: IRouter = Router();
 
 		const unauthorizedEndpoints: Array<UnauthorizedEndpoint> = [];
+
+		// FIXME This will work only if JwtAuthMiddleware uses the same reference to unauthorized endpoints
+		RestAPIRouter.all(
+			'*',
+			JwtAuthMiddleware(jwt, {
+				verifyOptsProvider: jwtVerifyOptsProvider,
+				attach: requestPropNameWhereToAttachJwtPayload,
+				unless: {
+					useOriginalUrl: true,
+					path: unauthorizedEndpoints
+				},
+				logger: getLogger()
+			})
+		);
+
 		let serviceRequestHandlers: ServiceRequestHandlers | undefined;
 		let ServiceRouter: IRouter;
 		for (const serviceRESTApiSchema of servicesRESTApiSchemas) {
@@ -54,7 +69,7 @@ class RestApiRouterFactory {
 
 				serviceMethodSchema = serviceRESTApiSchema.methods[serviceMethodName];
 
-				ServiceRouter[serviceMethodSchema.method](serviceMethodSchema.path, methodRequestHandlers);
+				ServiceRouter[serviceMethodSchema.method](serviceMethodSchema.path || '/', methodRequestHandlers);
 
 				if (serviceMethodSchema.unauthorized) {
 					unauthorizedEndpoints.push({
@@ -68,19 +83,6 @@ class RestApiRouterFactory {
 			RestAPIRouter.use(serviceRESTApiSchema.path, ServiceRouter);
 		}
 
-		RestAPIRouter.all(
-			'*',
-			JwtAuthMiddleware(jwt, {
-				verifyOptsProvider: jwtVerifyOptsProvider,
-				attach: requestPropNameWhereToAttachJwtPayload,
-				unless: {
-					useOriginalUrl: true,
-					path: unauthorizedEndpoints
-				},
-				logger: getLogger()
-			})
-		);
-
 		return RestAPIRouter;
 	}
 
@@ -88,7 +90,7 @@ class RestApiRouterFactory {
 		const serviceSchemasFiles = await readDir(pathToSchemas);
 		const restApiSchemasPromises = [];
 		for (const serviceSchemaFile of serviceSchemasFiles) {
-			restApiSchemasPromises.push(fs.readJsonFromFile(serviceSchemaFile));
+			restApiSchemasPromises.push(fs.readJsonFromFile(`${pathToSchemas}/${serviceSchemaFile}`));
 		}
 		return ((await Promise.all(restApiSchemasPromises)) as unknown) as Promise<Array<ServiceRESTApiSchema>>;
 	}

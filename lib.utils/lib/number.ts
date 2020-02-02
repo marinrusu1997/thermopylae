@@ -7,7 +7,7 @@ const enum ErrorCodes {
 /**
  * Returns a random number between min (inclusive) and max (exclusive)
  */
-function generateArbitraryNumber(min: number, max: number): number {
+function generateArbitrary(min: number, max: number): number {
 	return Math.random() * (max - min) + min;
 }
 
@@ -19,7 +19,7 @@ function generateArbitraryNumber(min: number, max: number): number {
  *
  * Using Math.round() will give you a non-uniform distribution!
  */
-function generateRandomNumber(min: number, max: number): number {
+function generateRandom(min: number, max: number): number {
 	min = Math.ceil(min);
 	max = Math.floor(max);
 	return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -43,4 +43,32 @@ function toNumber(value: boolean | number | string | null | undefined, strict?: 
 	return Number(value);
 }
 
-export { generateArbitraryNumber, generateRandomNumber, toNumber, ErrorCodes };
+/**
+ * @link https://de.wikipedia.org/wiki/Base58
+ * this does not start with the numbers to generate valid variable-names
+ */
+const base58Chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789';
+const base58Length: number = base58Chars.length;
+
+/**
+ * transform a number to a string by using only base58 chars
+ * @link https://github.com/matthewmueller/number-to-letter/blob/master/index.js
+ * @param nr                                       | 10000000
+ * @return the string-representation of the number | '2oMX'
+ */
+function toLetter(nr: number): string {
+	const digits = [];
+	do {
+		const v = nr % base58Length;
+		digits.push(v);
+		nr = Math.floor(nr / base58Length);
+		// eslint-disable-next-line no-plusplus
+	} while (nr-- > 0);
+
+	return digits
+		.reverse()
+		.map(d => base58Chars[d])
+		.join('');
+}
+
+export { generateArbitrary, generateRandom, toNumber, toLetter, ErrorCodes };

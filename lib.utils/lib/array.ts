@@ -1,17 +1,25 @@
+import { UnaryPredicate } from './declarations';
+
 /**
- * Removes first occurrence of the item from array if exists
- *
- * @param {boolean|number|string}			item
- * @param {Array<boolean|number|string>}	array
- *
- * @return {boolean}
+ * @link https://stackoverflow.com/a/15996017
  */
-function removeItemFromArray(item: boolean | number | string, array: Array<boolean | number | string>): boolean {
-	const indexOfTheItem = array.indexOf(item);
-	if (indexOfTheItem !== -1) {
-		return array.splice(indexOfTheItem, 1).length === 1;
+function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true, firstOccurrence = true): Array<T> {
+	if (!inPlace) {
+		array = array.slice();
 	}
-	return false;
+	let i = array.length;
+	// eslint-disable-next-line no-plusplus
+	while (i--) {
+		if (predicate(array[i])) {
+			array.splice(i, 1);
+			if (firstOccurrence) {
+				break;
+			} else {
+				continue;
+			}
+		}
+	}
+	return array;
 }
 
 /**
@@ -19,8 +27,15 @@ function removeItemFromArray(item: boolean | number | string, array: Array<boole
  *
  * @param items
  */
-function extractUniqueItems<T>(items: Array<T>): Array<T> {
+function extractUnique<T>(items: Array<T>): Array<T> {
 	return Array.from(new Set(items));
 }
 
-export { removeItemFromArray, extractUniqueItems };
+/**
+ * shuffle the given array
+ */
+function shuffle<T>(arr: T[]): T[] {
+	return arr.sort(() => Math.random() - 0.5);
+}
+
+export { remove, extractUnique, shuffle };

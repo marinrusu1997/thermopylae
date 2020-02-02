@@ -1,0 +1,26 @@
+{
+  "name": "USER_SERVICE",
+  "path": "/user",
+  "methods": {
+    "create": {
+      "method": "post",
+      "path": "/new"
+    },
+    "read": {
+      "method": "get",
+      "unauthorized": true
+    },
+    "readAll": {
+      "method": "get",
+      "path": "/read/all"
+    },
+    "enable": {
+      "method": "put",
+      "path": "/enable"
+    },
+    "delete": {
+      "method": "delete",
+      "path": "/remove/all/users"
+    }
+  }
+}

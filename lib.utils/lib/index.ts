@@ -1,4 +1,5 @@
 import * as array from './array';
+import * as async from './async';
 import * as boolean from './boolean';
 import * as chrono from './chrono';
 import * as fs from './fs';
@@ -10,4 +11,4 @@ import * as string from './string';
 import * as token from './token';
 import * as totp from './totp';
 
-export { array, boolean, chrono, fs, http, method, number, object, string, token, totp };
+export { array, async, boolean, chrono, fs, http, method, number, object, string, token, totp };

@@ -15,7 +15,7 @@ function replaceAt(replacement: string, index: number, string: string): string {
  * @param length				Length of the generated string
  * @param allowedCharRegex		Allowed chars that will be included in generated string
  */
-function generateString(length: number, allowedCharRegex?: RegExp): string {
+function generateStringOfLength(length: number, allowedCharRegex?: RegExp): string {
 	let result = '';
 	const alphaNumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	const specialChars = ' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~';
@@ -37,4 +37,30 @@ function generateString(length: number, allowedCharRegex?: RegExp): string {
 	return result;
 }
 
-export { replaceAt, generateString };
+/**
+ * uppercase first char
+ */
+function upperCaseFirstLetter(str: string): string {
+	str += '';
+	const f = str.charAt(0).toUpperCase();
+	return f + str.substr(1);
+}
+
+/**
+ * removes trailing and ending dots from the string
+ */
+function trimDots(str: string): string {
+	// start
+	while (str.charAt(0) === '.') {
+		str = str.substr(1);
+	}
+
+	// end
+	while (str.slice(-1) === '.') {
+		str = str.slice(0, -1);
+	}
+
+	return str;
+}
+
+export { replaceAt, generateStringOfLength, upperCaseFirstLetter, trimDots };

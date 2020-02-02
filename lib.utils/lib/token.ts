@@ -1,4 +1,4 @@
-import { hash, argon2id, verify } from 'argon2';
+import { hash as argon2Hash, argon2id, verify } from 'argon2';
 import { randomBytes as randomBytesCallbackVersion } from 'crypto';
 import { promisify } from 'util';
 
@@ -25,12 +25,12 @@ const options = { type: argon2id };
 
  * @returns {Promise<Tokens>}
  */
-async function generateToken(size: number, doHash?: boolean): Promise<Tokens> {
+async function generate(size: number, doHash?: boolean): Promise<Tokens> {
 	const token: Tokens = {
 		plain: (await randomBytes(size)).toString('hex').substr(0, size)
 	};
 	if (doHash) {
-		token.hash = await hashToken(token.plain);
+		token.hash = await hash(token.plain);
 	}
 	return token;
 }
@@ -42,8 +42,8 @@ async function generateToken(size: number, doHash?: boolean): Promise<Tokens> {
  *
  * @return {Promise<string>} Hashed token
  */
-function hashToken(plain: string): Promise<string> {
-	return hash(plain, options);
+function hash(plain: string): Promise<string> {
+	return argon2Hash(plain, options);
 }
 
 /**
@@ -55,7 +55,7 @@ function hashToken(plain: string): Promise<string> {
  *
  * @returns {Promise<boolean>}
  */
-async function compareTokens(stored: string, received: string, doHash?: boolean): Promise<boolean> {
+async function compare(stored: string, received: string, doHash?: boolean): Promise<boolean> {
 	let areEquals = false;
 	if (!doHash) {
 		areEquals = stored === received;
@@ -69,4 +69,27 @@ async function compareTokens(stored: string, received: string, doHash?: boolean)
 	return areEquals;
 }
 
-export { hashToken, generateToken, compareTokens };
+/**
+ * this is a very fast hashing but its un-secure
+ * @link http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+ * @return a number as hash-result
+ */
+function fastUnSecureHash(obj: any): number {
+	if (typeof obj !== 'string') obj = JSON.stringify(obj);
+	let hashValue = 0;
+	let i;
+	let chr;
+	let len;
+	if (obj.length === 0) return hashValue;
+	for (i = 0, len = obj.length; i < len; i++) {
+		chr = obj.charCodeAt(i);
+		// eslint-disable-next-line no-bitwise
+		hashValue = (hashValue << 5) - hashValue + chr;
+		// eslint-disable-next-line no-bitwise
+		hashValue |= 0; // Convert to 32bit integer
+	}
+	if (hashValue < 0) hashValue *= -1;
+	return hashValue;
+}
+
+export { hash, generate, compare, fastUnSecureHash };
