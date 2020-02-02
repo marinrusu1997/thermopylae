@@ -25,7 +25,7 @@ const internal = _this => {
 // this is used in order to limit access to some member functions
 let /** @type {string} */ globalContextToken;
 (async () => {
-	globalContextToken = (await token.generateToken(10)).plain;
+	globalContextToken = (await token.generate(10)).plain;
 })();
 
 class LogContext {

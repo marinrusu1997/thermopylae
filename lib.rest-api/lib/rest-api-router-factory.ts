@@ -68,14 +68,14 @@ class RestApiRouterFactory {
 				}
 
 				serviceMethodSchema = serviceRESTApiSchema.methods[serviceMethodName];
-
-				ServiceRouter[serviceMethodSchema.method](serviceMethodSchema.path || '/', methodRequestHandlers);
+				serviceMethodSchema.path = serviceMethodSchema.path || '';
+				ServiceRouter[serviceMethodSchema.method](serviceMethodSchema.path, methodRequestHandlers);
 
 				if (serviceMethodSchema.unauthorized) {
 					unauthorizedEndpoints.push({
 						// @ts-ignore
 						method: serviceMethodSchema.method.toUpperCase(),
-						url: new RegExp(`${serviceRESTApiSchema.path}${serviceMethodSchema.path}$`)
+						url: new RegExp(serviceMethodSchema.unauthorized)
 					});
 				}
 			}

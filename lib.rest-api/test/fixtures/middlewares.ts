@@ -6,6 +6,8 @@ interface User {
 	name: string;
 	surname: string;
 	age: string;
+	birth?: string;
+	address?: string;
 }
 
 function UserServiceCreateMiddlewareFactory(): Array<RequestHandler> {
@@ -18,28 +20,37 @@ function UserServiceCreateMiddlewareFactory(): Array<RequestHandler> {
 
 function UserServiceReadMiddlewareFactory(): Array<RequestHandler> {
 	return [
-		(_req, _res, next) => next(),
+		(req, _res, next) => {
+			req.params.birth = 'yesterday';
+			next();
+		},
 		(req, res) => {
 			const user: User = {
 				name: 'John',
 				surname: 'Dee',
-				age: req.params.age
+				age: req.query.age,
+				birth: req.params.birth
 			};
 			res.json(user);
 		}
 	];
 }
 
-function UserServiceReadAllMiddlewareFactory(): Array<RequestHandler> {
+function UserServiceUpdateMiddlewareFactory(): Array<RequestHandler> {
 	return [
-		(_req, _res, next) => next(),
+		(req, _res, next) => {
+			req.query.address = 'New York';
+			next();
+		},
 		(req, res) => {
 			const user: User = {
 				name: 'John',
 				surname: 'Dee',
-				age: req.params.age
+				age: req.params.age,
+				birth: req.params.birth,
+				address: req.query.address
 			};
-			res.json([user, user]);
+			res.json(user);
 		}
 	];
 }
@@ -68,7 +79,7 @@ function UserServiceDeleteMiddlewareFactory(): Array<RequestHandler> {
 export {
 	UserServiceCreateMiddlewareFactory,
 	UserServiceReadMiddlewareFactory,
-	UserServiceReadAllMiddlewareFactory,
+	UserServiceUpdateMiddlewareFactory,
 	UserServiceEnableMiddlewareFactory,
 	UserServiceDeleteMiddlewareFactory,
 	User

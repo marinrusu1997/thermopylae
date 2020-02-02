@@ -48,4 +48,9 @@ function issueJWT(accountRole: AccountRole, accountId?: string): string {
 	);
 }
 
-export { defaultJwtInstance, rolesTtlMap, issueJWT, AccountRole };
+async function addJwtToBlacklist(jwt: string): Promise<void> {
+	const payload = await defaultJwtInstance.validate(jwt);
+	await defaultJwtInstance.blacklist().revoke(payload, rolesTtlMap.get(payload.aud!));
+}
+
+export { defaultJwtInstance, rolesTtlMap, issueJWT, addJwtToBlacklist, AccountRole };

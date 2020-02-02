@@ -5,13 +5,13 @@ export type ServiceName = string;
 
 export interface UnauthorizedEndpoint {
 	method: HttpMethod;
-	url: RegExp;
+	url: RegExp | string;
 }
 
 export interface ServiceMethodSchema {
 	method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'connect' | 'options' | 'trace' | 'patch';
 	path?: string;
-	unauthorized?: boolean;
+	unauthorized?: string;
 }
 
 export interface ServiceRESTApiSchema {

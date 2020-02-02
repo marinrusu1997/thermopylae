@@ -1,3 +1,5 @@
+import { JsonWebTokenError } from 'jsonwebtoken';
+
 function extractJWT(req) {
 	if (
 		(req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Token') ||
@@ -30,6 +32,15 @@ function resolveBasicOptions(opts) {
 function tryToLogError(err, msg, logger) {
 	if (logger) {
 		try {
+			if (err instanceof JsonWebTokenError) {
+				// eslint-disable-next-line no-param-reassign
+				msg = `${msg}${JSON.stringify(err)}`;
+				const originalStack = err.stack;
+				// eslint-disable-next-line no-param-reassign
+				err = new Error();
+				// eslint-disable-next-line no-param-reassign
+				err.stack = originalStack;
+			}
 			logger.error(msg, err);
 			// eslint-disable-next-line no-empty
 		} catch (e) {}

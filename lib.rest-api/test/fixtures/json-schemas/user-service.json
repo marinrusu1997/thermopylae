@@ -8,15 +8,17 @@
     },
     "read": {
       "method": "get",
-      "unauthorized": true
+      "unauthorized": "[/]?$"
     },
-    "readAll": {
-      "method": "get",
-      "path": "/read/all"
+    "update": {
+      "method": "put",
+      "path": "/update/:birth/and/:age",
+      "unauthorized": "(?:\\/update\\b)(?:\\/[\\w]+)(?:\\/and\\b)(?:\\/[\\w]+)$"
     },
     "enable": {
       "method": "put",
-      "path": "/enable"
+      "path": "/enable/",
+      "unauthorized": true
     },
     "delete": {
       "method": "delete",
