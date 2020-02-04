@@ -82,6 +82,16 @@ describe('http spec', () => {
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
 	});
 
+	it('makes GET request for html content', async () => {
+		statusCodeForGETRequest = 200;
+		contentTypeForGETRequest = 'text/html; charset=utf-8';
+		responseForGETRequest = '<head></head>';
+		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
+		expect(resp.status).to.be.eq(statusCodeForGETRequest);
+		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
+		expect(resp.data).to.be.deep.equal(responseForGETRequest);
+	});
+
 	it('makes GET request and handles error code in response (400 code)', done => {
 		statusCodeForGETRequest = 400;
 		contentTypeForGETRequest = 'application/json';

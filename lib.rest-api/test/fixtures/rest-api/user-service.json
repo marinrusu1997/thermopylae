@@ -15,10 +15,10 @@
       "path": "/update/:birth/and/:age",
       "unauthorized": "(?:\\/update\\b)(?:\\/[\\w]+)(?:\\/and\\b)(?:\\/[\\w]+)$"
     },
-    "enable": {
-      "method": "put",
-      "path": "/enable/",
-      "unauthorized": true
+    "about": {
+      "method": "options",
+      "path": "/about/",
+      "unauthorized": "/about$"
     },
     "delete": {
       "method": "delete",

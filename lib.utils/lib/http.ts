@@ -30,6 +30,7 @@ type BodyParser = (body: string) => any;
 const parsersRepo = new Map<string, BodyParser>();
 parsersRepo.set('application/json', body => JSON.parse(body));
 parsersRepo.set('text/plain', body => body);
+parsersRepo.set('text/html', body => body);
 
 function extractContentType(contentTypeHeaderValue: string): string {
 	const contentTypeParts = contentTypeHeaderValue.split(';');

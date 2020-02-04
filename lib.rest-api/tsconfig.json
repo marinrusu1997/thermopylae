@@ -2,7 +2,7 @@
     "compilerOptions": {
         "incremental": true,
         "target": "esnext",
-        "module": "CommonJS",
+        "module": "commonjs",
         "allowJs": true,
         "declaration": true,
         "rootDir": ".",

@@ -96,4 +96,4 @@ class RestApiRouterFactory {
 	}
 }
 
-export { RestApiRouterFactory };
+export { RestApiRouterFactory, JwtVerifyOptsProvider, IRouter };

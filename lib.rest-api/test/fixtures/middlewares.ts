@@ -55,10 +55,10 @@ function UserServiceUpdateMiddlewareFactory(): Array<RequestHandler> {
 	];
 }
 
-function UserServiceEnableMiddlewareFactory(): Array<RequestHandler> {
+function UserServiceAboutMiddlewareFactory(): Array<RequestHandler> {
 	return [
 		(req, res) => {
-			res.status(HttpStatusCode.BAD_REQUEST).send(req.body);
+			res.status(HttpStatusCode.BAD_REQUEST).json(req.query);
 		}
 	];
 }
@@ -68,9 +68,9 @@ function UserServiceDeleteMiddlewareFactory(): Array<RequestHandler> {
 		(req, res) => {
 			// @ts-ignore
 			if (req.pipeline.jwtPayload.aud !== AccountRole.ADMIN) {
-				res.status(HttpStatusCode.FORBIDDEN).send(req.params);
+				res.status(HttpStatusCode.FORBIDDEN).json(req.query);
 			} else {
-				res.status(HttpStatusCode.OK).send(req.params);
+				res.status(HttpStatusCode.OK).json(req.query);
 			}
 		}
 	];
@@ -80,7 +80,7 @@ export {
 	UserServiceCreateMiddlewareFactory,
 	UserServiceReadMiddlewareFactory,
 	UserServiceUpdateMiddlewareFactory,
-	UserServiceEnableMiddlewareFactory,
+	UserServiceAboutMiddlewareFactory,
 	UserServiceDeleteMiddlewareFactory,
 	User
 };
