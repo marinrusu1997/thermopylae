@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Request } from 'express';
 import { Firewall } from '@marin/lib.firewall';
 import { IpLocation } from '@marin/lib.geoip';
-import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
+import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
 import { chrono, object, string } from '@marin/lib.utils';
 import { AuthValidator } from '../lib';
@@ -282,8 +282,8 @@ describe('validator spec', () => {
 		it('accepts valid request', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					token: string.generateString(20, /[a-f0-9]/)
+				query: {
+					token: string.generateStringOfLength(20, /[a-f0-9]/)
 				}
 			};
 
@@ -296,7 +296,7 @@ describe('validator spec', () => {
 		it('rejects request with no token', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {}
+				query: {}
 			};
 
 			// @ts-ignore
@@ -316,8 +316,8 @@ describe('validator spec', () => {
 		it('rejects request with invalid token', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					token: string.generateString(10)
+				query: {
+					token: string.generateStringOfLength(10)
 				}
 			};
 
@@ -340,7 +340,7 @@ describe('validator spec', () => {
 		it('accepts valid requests with query param of string type', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'true'
 				}
 			};
@@ -354,7 +354,7 @@ describe('validator spec', () => {
 		it('accepts valid requests with query param of number type', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: '0'
 				}
 			};
@@ -368,7 +368,7 @@ describe('validator spec', () => {
 		it('rejects request when enable query param not found', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {}
+				query: {}
 			};
 
 			// @ts-ignore
@@ -388,7 +388,7 @@ describe('validator spec', () => {
 		it("rejects request when enable query param has a value which can't be converted to boolean", async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'enable'
 				}
 			};
@@ -412,11 +412,11 @@ describe('validator spec', () => {
 		it(`accepts valid requests made by user with ${AccountRole.USER} role`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {},
+				query: {},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(10, /[a-zA-Z0-9]/),
+						sub: string.generateStringOfLength(10, /[a-zA-Z0-9]/),
 						aud: AccountRole.USER
 					}
 				}
@@ -431,8 +431,8 @@ describe('validator spec', () => {
 		it(`accepts valid requests made by user with ${AccountRole.ADMIN} role to retrieve active sessions of another users`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(10, /[a-zA-Z0-9]/)
+				query: {
+					accountId: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
 				},
 				// @ts-ignore
 				pipeline: {
@@ -451,11 +451,11 @@ describe('validator spec', () => {
 		it(`accepts valid requests made by user with ${AccountRole.ADMIN} role to retrieve active sessions of itself`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {},
+				query: {},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(10, /[a-zA-Z0-9]/),
+						sub: string.generateStringOfLength(10, /[a-zA-Z0-9]/),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -470,8 +470,8 @@ describe('validator spec', () => {
 		it("throws when couldn't get jwt payload from request (handled at upper levels as server error)", async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(10, /[a-zA-Z0-9]/)
+				query: {
+					accountId: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
 				}
 			};
 
@@ -490,8 +490,8 @@ describe('validator spec', () => {
 		it(`is required that only user with ${AccountRole.ADMIN} role can provide an explicit accountId`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(10, /[a-zA-Z0-9]/)
+				query: {
+					accountId: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
 				},
 				headers: {
 					'x-forwarded-for': defaultIp
@@ -521,8 +521,8 @@ describe('validator spec', () => {
 		it(`rejects request with invalid explicit accountId provided by user with ${AccountRole.ADMIN} role`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(4)
+				query: {
+					accountId: string.generateStringOfLength(4)
 				},
 				// @ts-ignore
 				pipeline: {
@@ -551,13 +551,13 @@ describe('validator spec', () => {
 		it(`accepts requests only from user with ${AccountRole.ADMIN} role (without pagination)`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5)
+				query: {
+					accountId: string.generateStringOfLength(5)
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -572,14 +572,14 @@ describe('validator spec', () => {
 		it(`accepts requests only from user with ${AccountRole.ADMIN} role (partial pagination from)`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5),
+				query: {
+					accountId: string.generateStringOfLength(5),
 					from: String(new Date().getTime())
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -594,14 +594,14 @@ describe('validator spec', () => {
 		it(`accepts requests only from user with ${AccountRole.ADMIN} role (partial pagination to)`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5),
+				query: {
+					accountId: string.generateStringOfLength(5),
 					to: String(new Date().getTime())
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -616,15 +616,15 @@ describe('validator spec', () => {
 		it(`accepts requests only from user with ${AccountRole.ADMIN} role (with pagination)`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5),
+				query: {
+					accountId: string.generateStringOfLength(5),
 					from: String(new Date().getTime()),
 					to: String(new Date().getTime())
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -654,13 +654,13 @@ describe('validator spec', () => {
 				connection: {
 					remoteAddress: defaultIp
 				},
-				params: {
-					accountId: string.generateString(10)
+				query: {
+					accountId: string.generateStringOfLength(10)
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER
 					}
 				}
@@ -675,13 +675,13 @@ describe('validator spec', () => {
 		it('rejects invalid requests', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(4)
+				query: {
+					accountId: string.generateStringOfLength(4)
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.ADMIN
 					}
 				}
@@ -707,14 +707,14 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					old: string.generateString(10),
-					new: string.generateString(10),
+					old: string.generateStringOfLength(10),
+					new: string.generateStringOfLength(10),
 					logAllOtherSessionsOut: true
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						iat: chrono.dateToUNIX()
 					}
 				}
@@ -730,7 +730,7 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					old: string.generateString(4)
+					old: string.generateStringOfLength(4)
 				}
 			};
 
@@ -752,8 +752,8 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					old: string.generateString(10),
-					new: string.generateString(10),
+					old: string.generateStringOfLength(10),
+					new: string.generateStringOfLength(10),
 					logAllOtherSessionsOut: false
 				}
 			};
@@ -778,7 +778,7 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					username: string.generateString(10, /[a-zA-Z0-9]/),
+					username: string.generateStringOfLength(10, /[a-zA-Z0-9]/),
 					'side-channel': 'EMAIL'
 				}
 			};
@@ -793,7 +793,7 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					username: string.generateString(10, /[a-zA-Z0-9]/),
+					username: string.generateStringOfLength(10, /[a-zA-Z0-9]/),
 					'side-channel': 'INVALID'
 				}
 			};
@@ -818,8 +818,8 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					token: string.generateString(20, /[a-f0-9]/),
-					newPassword: string.generateString(10)
+					token: string.generateStringOfLength(20, /[a-f0-9]/),
+					newPassword: string.generateStringOfLength(10)
 				}
 			};
 
@@ -833,8 +833,8 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					token: string.generateString(20, /[a-f0-9]/),
-					newPassword: string.generateString(9)
+					token: string.generateStringOfLength(20, /[a-f0-9]/),
+					newPassword: string.generateStringOfLength(9)
 				}
 			};
 
@@ -858,9 +858,9 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					accountId: string.generateString(10),
-					username: string.generateString(10, /[a-zA-Z0-9]/),
-					password: string.generateString(10)
+					accountId: string.generateStringOfLength(10),
+					username: string.generateStringOfLength(10, /[a-zA-Z0-9]/),
+					password: string.generateStringOfLength(10)
 				}
 			};
 
@@ -874,9 +874,9 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					accountId: string.generateString(10),
-					username: string.generateString(10, /[$%^&]/),
-					password: string.generateString(10)
+					accountId: string.generateStringOfLength(10),
+					username: string.generateStringOfLength(10, /[$%^&]/),
+					password: string.generateStringOfLength(10)
 				}
 			};
 
@@ -899,12 +899,12 @@ describe('validator spec', () => {
 		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when enabling lock`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'true'
 				},
 				body: {
-					accountId: string.generateString(10),
-					cause: string.generateString(10)
+					accountId: string.generateStringOfLength(10),
+					cause: string.generateStringOfLength(10)
 				},
 				// @ts-ignore
 				pipeline: {
@@ -923,11 +923,11 @@ describe('validator spec', () => {
 		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when disabling lock`, async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'false'
 				},
 				body: {
-					accountId: string.generateString(10)
+					accountId: string.generateStringOfLength(10)
 				},
 				// @ts-ignore
 				pipeline: {
@@ -965,9 +965,9 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				headers: {},
-				params: {},
+				query: {},
 				body: {
-					accountId: string.generateString(10)
+					accountId: string.generateStringOfLength(10)
 				},
 				// @ts-ignore
 				connection: {
@@ -998,7 +998,7 @@ describe('validator spec', () => {
 		it('rejects requests which do not contain lock status', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {},
+				query: {},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
@@ -1024,7 +1024,7 @@ describe('validator spec', () => {
 		it('rejects requests which contain invalid lock status', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enabled: 'yep'
 				},
 				// @ts-ignore
@@ -1052,11 +1052,11 @@ describe('validator spec', () => {
 		it('rejects requests with invalid body', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'true'
 				},
 				body: {
-					accountId: string.generateString(10)
+					accountId: string.generateStringOfLength(10)
 				},
 				// @ts-ignore
 				pipeline: {
@@ -1083,11 +1083,11 @@ describe('validator spec', () => {
 		it('sanitizes cause when enabling lock', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					enable: 'true'
 				},
 				body: {
-					accountId: string.generateString(10),
+					accountId: string.generateStringOfLength(10),
 					cause: `<script>does not matter for tests</script>`
 				},
 				// @ts-ignore
@@ -1114,7 +1114,7 @@ describe('validator spec', () => {
 		it(`accepts requests with valid logout type ${LogoutType.CURRENT_SESSION}`, () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					type: LogoutType.CURRENT_SESSION
 				},
 				// @ts-ignore
@@ -1134,7 +1134,7 @@ describe('validator spec', () => {
 		it(`accepts requests with valid logout type ${LogoutType.ALL_SESSIONS}`, () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					type: LogoutType.ALL_SESSIONS
 				},
 				// @ts-ignore
@@ -1154,7 +1154,7 @@ describe('validator spec', () => {
 		it(`accepts requests with valid logout type ${LogoutType.ALL_SESSIONS_EXCEPT_CURRENT}`, () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					type: LogoutType.ALL_SESSIONS_EXCEPT_CURRENT
 				},
 				// @ts-ignore
@@ -1174,7 +1174,7 @@ describe('validator spec', () => {
 		it('rejects requests without logout type', () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {},
+				query: {},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
@@ -1200,7 +1200,7 @@ describe('validator spec', () => {
 		it('rejects requests with invalid logout type', () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					type: 'INVALID'
 				},
 				// @ts-ignore

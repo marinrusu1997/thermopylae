@@ -1,4 +1,4 @@
-import { Libraries, HttpStatusCode } from '@marin/lib.utils/dist/enums';
+import { Libraries, HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
 import { LogoutType } from '@marin/declarations/lib/auth';
 import { Request, Response } from 'express';
@@ -79,13 +79,13 @@ class AuthController {
 
 	static async activateAccount(req: Request, res: Response): Promise<void> {
 		try {
-			await AuthController.authenticationEngine.activateAccount(req.params.token);
+			await AuthController.authenticationEngine.activateAccount(req.query.token);
 			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				getLogger().error(
-					`${AuthServiceMethods.ACTIVATE_ACCOUNT} failed. Request params: ${JSON.stringify(req.params)}. Request origin: ${remoteIp}. Cause: `,
+					`${AuthServiceMethods.ACTIVATE_ACCOUNT} failed. Query params: ${JSON.stringify(req.query)}. Request origin: ${remoteIp}. Cause: `,
 					e
 				);
 
@@ -100,18 +100,18 @@ class AuthController {
 		// @ts-ignore
 		const accountId: string = get(req, AuthController.jwtPayloadPathInReqObj).sub;
 		// @ts-ignore
-		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, req.params.enable);
+		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, req.query.enable);
 		res.status(HttpStatusCode.NO_CONTENT).send();
 	}
 
 	static async getActiveSessions(req: Request, res: Response): Promise<void> {
-		const activeSessions = await AuthController.authenticationEngine.getActiveSessions(req.params.accountId);
+		const activeSessions = await AuthController.authenticationEngine.getActiveSessions(req.query.accountId);
 		res.status(HttpStatusCode.OK).json(activeSessions);
 	}
 
 	static async getFailedAuthenticationAttempts(req: Request, res: Response): Promise<void> {
 		// @ts-ignore
-		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(req.params.accountId, req.params.from, req.params.to);
+		const failedAuthAttempts = await AuthController.authenticationEngine.getFailedAuthAttempts(req.query.accountId, req.query.from, req.query.to);
 		res.status(HttpStatusCode.OK).json(failedAuthAttempts);
 	}
 
@@ -225,7 +225,7 @@ class AuthController {
 
 	static async changeAccountLockStatus(req: Request, res: Response): Promise<void> {
 		try {
-			if (req.params.enable) {
+			if (req.query.enable) {
 				await AuthController.authenticationEngine.lockAccount(req.body.accountId, req.body.cause);
 			} else {
 				await AuthController.authenticationEngine.unlockAccount(req.body.accountId);
@@ -235,8 +235,8 @@ class AuthController {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
 				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				getLogger().error(
-					`${AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS} failed. Request body: ${JSON.stringify(req.body)}. Request params: ${JSON.stringify(
-						req.params
+					`${AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS} failed. Request body: ${JSON.stringify(req.body)}. Query params: ${JSON.stringify(
+						req.query
 					)}. Request origin: ${remoteIp}. Cause: `,
 					e
 				);
@@ -254,7 +254,7 @@ class AuthController {
 
 		try {
 			let loggedOutSessions = 1;
-			switch (req.params.type as LogoutType) {
+			switch (req.query.type as LogoutType) {
 				case LogoutType.CURRENT_SESSION:
 					await AuthController.authenticationEngine.logout(jwtPayload);
 					break;
@@ -270,7 +270,7 @@ class AuthController {
 			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				getLogger().error(
-					`${AuthServiceMethods.LOGOUT} failed. Request params: ${JSON.stringify(req.params)}. JWT: ${JSON.stringify(
+					`${AuthServiceMethods.LOGOUT} failed. Query params: ${JSON.stringify(req.query)}. JWT: ${JSON.stringify(
 						jwtPayload
 					)}. Request origin: ${remoteIp}. Cause: `,
 					e
@@ -284,12 +284,12 @@ class AuthController {
 					case AuthEngineErrorCodes.JWT_TTL_NOT_FOUND:
 						throw createException(
 							ErrorCodes.MISCONFIGURATION_JWT_TTL_FOR_ACCOUNT_NOT_FOUND_BY_AUTH_ENGINE,
-							`JWT TTL for account ${jwtPayload.sub} not found when logout of type ${req.params.type} has been made.`
+							`JWT TTL for account ${jwtPayload.sub} not found when logout of type ${req.query.type} has been made.`
 						);
 					default:
 						throw createException(
 							ErrorCodes.MISCONFIGURATION_STATUS_CODE_COULD_NOT_BE_DETERMINED,
-							`Couldn't determine HTTP response code after logout of type ${req.params.type}.`
+							`Couldn't determine HTTP response code after logout of type ${req.query.type}.`
 						);
 				}
 				res.status(httpResponseStatus).json({ code: e.code });

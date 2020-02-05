@@ -4,7 +4,7 @@ import { AuthServiceMethods } from '@marin/declarations/lib/services';
 import { chrono, string } from '@marin/lib.utils';
 import { ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
 import { Request } from 'express';
-import { HttpStatusCode, Libraries } from '@marin/lib.utils/dist/enums';
+import { HttpStatusCode, Libraries } from '@marin/lib.utils/dist/declarations';
 import { AUTH_STEP } from '@marin/lib.auth-engine/dist/types/enums';
 import Exception from '@marin/lib.error';
 import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
@@ -43,8 +43,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					username: string.generateString(5),
-					password: string.generateString(5)
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
 				}
 			};
 
@@ -78,11 +78,11 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					username: string.generateString(5),
-					password: string.generateString(5)
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
 				}
 			};
-			const token = string.generateString(10);
+			const token = string.generateStringOfLength(10);
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.AUTHENTICATE, {
 				expectingInput: credentials => expect(credentials).to.be.eq(req.body),
@@ -148,7 +148,7 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				}
 			};
-			const token = string.generateString(10);
+			const token = string.generateStringOfLength(10);
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.AUTHENTICATE, {
 				expectingInput: credentials => expect(credentials).to.be.eq(undefined),
@@ -259,7 +259,7 @@ describe('controller spec', () => {
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.REGISTER, {
 				expectingInput: credentials => expect(credentials).to.be.eq(req.body),
-				returns: string.generateString(10)
+				returns: string.generateStringOfLength(10)
 			});
 
 			// @ts-ignore
@@ -382,13 +382,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
-					token: string.generateString(10)
+				query: {
+					token: string.generateStringOfLength(10)
 				}
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.ACTIVATE_ACCOUNT, {
-				expectingInput: token => expect(token).to.be.eq(req.params.token),
+				expectingInput: token => expect(token).to.be.eq(req.query.token),
 				returns: undefined
 			});
 
@@ -416,13 +416,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
-					token: string.generateString(10)
+				query: {
+					token: string.generateStringOfLength(10)
 				}
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.ACTIVATE_ACCOUNT, {
-				expectingInput: token => expect(token).to.be.eq(req.params.token),
+				expectingInput: token => expect(token).to.be.eq(req.query.token),
 				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.SESSION_NOT_FOUND, '')
 			});
 
@@ -450,13 +450,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
-					token: string.generateString(10)
+				query: {
+					token: string.generateStringOfLength(10)
 				}
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.ACTIVATE_ACCOUNT, {
-				expectingInput: token => expect(token).to.be.eq(req.params.token),
+				expectingInput: token => expect(token).to.be.eq(req.query.token),
 				throws: new Error('Some I/O error')
 			});
 
@@ -479,13 +479,14 @@ describe('controller spec', () => {
 		it('returns 204 No Content on successful enabling of multi factor authentication', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					// @ts-ignore
 					enable: true
 				},
+				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(10)
+						sub: string.generateStringOfLength(10)
 					}
 				}
 			};
@@ -494,7 +495,7 @@ describe('controller spec', () => {
 				expectingInput: (accountId, enable) => {
 					// @ts-ignore
 					expect(accountId).to.be.eq(req.pipeline.jwtPayload.sub);
-					expect(enable).to.be.eq(req.params.enable);
+					expect(enable).to.be.eq(req.query.enable);
 				},
 				returns: undefined
 			});
@@ -520,7 +521,7 @@ describe('controller spec', () => {
 		it('throws when jwt payload not present in express object', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					// @ts-ignore
 					enable: true
 				}
@@ -543,13 +544,14 @@ describe('controller spec', () => {
 		it('throws when auth engine enable multi factor authentication fails', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
+				query: {
 					// @ts-ignore
 					enable: true
 				},
+				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(10)
+						sub: string.generateStringOfLength(10)
 					}
 				}
 			};
@@ -558,7 +560,7 @@ describe('controller spec', () => {
 				expectingInput: (accountId, enable) => {
 					// @ts-ignore
 					expect(accountId).to.be.eq(req.pipeline.jwtPayload.sub);
-					expect(enable).to.be.eq(req.params.enable);
+					expect(enable).to.be.eq(req.query.enable);
 				},
 				throws: new Error('Database I/O error')
 			});
@@ -582,19 +584,19 @@ describe('controller spec', () => {
 		it('returns 200 Ok with array of active sessions json into body', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5)
+				query: {
+					accountId: string.generateStringOfLength(5)
 				}
 			};
 			const activeSession = {
-				accountId: req.params.accountId,
+				accountId: req.query.accountId,
 				timestamp: new Date().getTime(),
 				devices: ['Chrome'],
 				ips: [defaultIp]
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_ACTIVE_SESSIONS, {
-				expectingInput: accountId => expect(accountId).to.be.eq(req.params.accountId),
+				expectingInput: accountId => expect(accountId).to.be.eq(req.query.accountId),
 				returns: [activeSession]
 			});
 
@@ -620,13 +622,13 @@ describe('controller spec', () => {
 		it('throws when auth engine get active sessions fails', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5)
+				query: {
+					accountId: string.generateStringOfLength(5)
 				}
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_ACTIVE_SESSIONS, {
-				expectingInput: accountId => expect(accountId).to.be.eq(req.params.accountId),
+				expectingInput: accountId => expect(accountId).to.be.eq(req.query.accountId),
 				throws: new Error('Database I/O error')
 			});
 
@@ -649,8 +651,8 @@ describe('controller spec', () => {
 		it('returns 200 Ok with array of failed auth attempts as json body', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5),
+				query: {
+					accountId: string.generateStringOfLength(5),
 					// @ts-ignore
 					from: new Date().getTime() - 1000 * 60,
 					// @ts-ignore
@@ -658,8 +660,8 @@ describe('controller spec', () => {
 				}
 			};
 			const failedAuthAttempt = {
-				id: string.generateString(5),
-				accountId: req.params.accountId,
+				id: string.generateStringOfLength(5),
+				accountId: req.query.accountId,
 				timestamp: new Date().getTime() - 1000,
 				devices: ['Chrome'],
 				ips: [defaultIp]
@@ -667,9 +669,9 @@ describe('controller spec', () => {
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_FAILED_AUTH_ATTEMPTS, {
 				expectingInput: (accountId, from, to) => {
-					expect(accountId).to.be.eq(req.params.accountId);
-					expect(from).to.be.eq(req.params.from);
-					expect(to).to.be.eq(req.params.to);
+					expect(accountId).to.be.eq(req.query.accountId);
+					expect(from).to.be.eq(req.query.from);
+					expect(to).to.be.eq(req.query.to);
 				},
 				returns: [failedAuthAttempt]
 			});
@@ -696,8 +698,8 @@ describe('controller spec', () => {
 		it('throws when auth engine get failed auth attempts fails', async () => {
 			// @ts-ignore
 			const req: Request = {
-				params: {
-					accountId: string.generateString(5),
+				query: {
+					accountId: string.generateStringOfLength(5),
 					// @ts-ignore
 					from: new Date().getTime() - 1000 * 60,
 					// @ts-ignore
@@ -707,9 +709,9 @@ describe('controller spec', () => {
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_FAILED_AUTH_ATTEMPTS, {
 				expectingInput: (accountId, from, to) => {
-					expect(accountId).to.be.eq(req.params.accountId);
-					expect(from).to.be.eq(req.params.from);
-					expect(to).to.be.eq(req.params.to);
+					expect(accountId).to.be.eq(req.query.accountId);
+					expect(from).to.be.eq(req.query.from);
+					expect(to).to.be.eq(req.query.to);
 				},
 				throws: new Error('Database I/O error')
 			});
@@ -739,8 +741,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5)
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5)
 				}
 			};
 
@@ -776,8 +778,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5),
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5),
 					// @ts-ignore
 					logAllOtherSessionsOut: true
 				}
@@ -815,8 +817,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5),
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5),
 					// @ts-ignore
 					logAllOtherSessionsOut: false
 				}
@@ -854,8 +856,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5)
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5)
 				}
 			};
 
@@ -891,8 +893,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5),
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5),
 					// @ts-ignore
 					logAllOtherSessionsOut: true
 				}
@@ -930,8 +932,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5)
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5)
 				}
 			};
 
@@ -967,8 +969,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5)
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1000,8 +1002,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					old: string.generateString(5),
-					new: string.generateString(5)
+					old: string.generateStringOfLength(5),
+					new: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1030,7 +1032,7 @@ describe('controller spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					username: string.generateString(5),
+					username: string.generateStringOfLength(5),
 					'side-channel': 'SMS'
 				}
 			};
@@ -1062,7 +1064,7 @@ describe('controller spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				body: {
-					username: string.generateString(5),
+					username: string.generateStringOfLength(5),
 					'side-channel': 'EMAIL'
 				}
 			};
@@ -1095,8 +1097,8 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					token: string.generateString(5),
-					newPassword: string.generateString(5)
+					token: string.generateStringOfLength(5),
+					newPassword: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1130,8 +1132,8 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					token: string.generateString(5),
-					newPassword: string.generateString(5)
+					token: string.generateStringOfLength(5),
+					newPassword: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1165,8 +1167,8 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					token: string.generateString(5),
-					newPassword: string.generateString(5)
+					token: string.generateStringOfLength(5),
+					newPassword: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1202,8 +1204,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					token: string.generateString(5),
-					newPassword: string.generateString(5)
+					token: string.generateStringOfLength(5),
+					newPassword: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1235,8 +1237,8 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					token: string.generateString(5),
-					newPassword: string.generateString(5)
+					token: string.generateStringOfLength(5),
+					newPassword: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1268,9 +1270,9 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					accountId: string.generateString(5),
-					username: string.generateString(5),
-					password: string.generateString(5)
+					accountId: string.generateStringOfLength(5),
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1307,9 +1309,9 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				body: {
-					accountId: string.generateString(5),
-					username: string.generateString(5),
-					password: string.generateString(5)
+					accountId: string.generateStringOfLength(5),
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1348,9 +1350,9 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				body: {
-					accountId: string.generateString(5),
-					username: string.generateString(5),
-					password: string.generateString(5)
+					accountId: string.generateStringOfLength(5),
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1384,13 +1386,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					// @ts-ignore
 					enable: true
 				},
 				body: {
-					accountId: string.generateString(5),
-					cause: string.generateString(5)
+					accountId: string.generateStringOfLength(5),
+					cause: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1428,12 +1430,12 @@ describe('controller spec', () => {
 					remoteAddress: defaultIp
 				},
 				headers: {},
-				params: {
+				query: {
 					// @ts-ignore
 					enable: false
 				},
 				body: {
-					accountId: string.generateString(5)
+					accountId: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1468,12 +1470,12 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					// @ts-ignore
 					enable: false
 				},
 				body: {
-					accountId: string.generateString(5)
+					accountId: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1510,12 +1512,12 @@ describe('controller spec', () => {
 					remoteAddress: defaultIp
 				},
 				headers: {},
-				params: {
+				query: {
 					// @ts-ignore
 					enable: false
 				},
 				body: {
-					accountId: string.generateString(5)
+					accountId: string.generateStringOfLength(5)
 				}
 			};
 
@@ -1548,13 +1550,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					type: LogoutType.CURRENT_SESSION
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1591,13 +1593,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					type: LogoutType.ALL_SESSIONS
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1634,13 +1636,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					type: LogoutType.ALL_SESSIONS_EXCEPT_CURRENT
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1684,13 +1686,13 @@ describe('controller spec', () => {
 					remoteAddress: defaultIp
 				},
 				headers: {},
-				params: {
+				query: {
 					type: LogoutType.ALL_SESSIONS
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1727,13 +1729,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					type: LogoutType.CURRENT_SESSION
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1766,13 +1768,13 @@ describe('controller spec', () => {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
-				params: {
+				query: {
 					type: LogoutType.CURRENT_SESSION
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}
@@ -1807,13 +1809,13 @@ describe('controller spec', () => {
 					remoteAddress: defaultIp
 				},
 				headers: {},
-				params: {
+				query: {
 					type: LogoutType.CURRENT_SESSION
 				},
 				// @ts-ignore
 				pipeline: {
 					jwtPayload: {
-						sub: string.generateString(5),
+						sub: string.generateStringOfLength(5),
 						aud: AccountRole.USER,
 						iat: chrono.dateToUNIX()
 					}

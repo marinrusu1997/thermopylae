@@ -1,4 +1,4 @@
-import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
+import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { expect } from 'chai';
 import { ResponseMock } from './mocks/response';
 

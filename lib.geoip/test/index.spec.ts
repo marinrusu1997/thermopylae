@@ -4,7 +4,7 @@ import { config as dotEnvConfig } from 'dotenv';
 import LoggerInstance from '@marin/lib.logger';
 import { chrono } from '@marin/lib.utils';
 // eslint-disable-next-line import/no-unresolved
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Libraries } from '@marin/lib.utils/dist/declarations';
 import Exception from '@marin/lib.error';
 import { GeoIP, ExternalService, ErrorCodes } from '../lib';
 import { HttpClientMock, ServiceFailureType } from './http-client-mock';
@@ -28,6 +28,31 @@ describe('geoip spec', () => {
 	});
 
 	const externalServiceLoadBalancerMock = () => [ExternalService.IPSTACK, ExternalService.IPLOCATE];
+
+	// fixme this needs to be first test
+	it.skip('loads lazily geoip lite only when external services are failing', async () => {
+		function checkMemoryUsage(expectedMB: number): void {
+			expect(Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100).to.be.lte(expectedMB);
+		}
+
+		const httpClient = new HttpClientMock();
+		const geoip = new GeoIP(ipstackAccessKey!, httpClient);
+
+		checkMemoryUsage(30);
+
+		// get location from ipstack, memory consumption must remain the same
+		let location = await geoip.locate('8.8.8.8');
+		expect(location.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
+		checkMemoryUsage(30);
+
+		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK;
+		httpClient.serviceFailures.ipLocate = ServiceFailureType.NETWORK;
+
+		// lazy load geoip lite
+		location = await geoip.locate('8.8.8.8');
+		expect(location!.countryCode).to.be.eq('US');
+		checkMemoryUsage(130);
+	});
 
 	it('retrieves location', async () => {
 		const geoip = new GeoIP(ipstackAccessKey!);
@@ -80,7 +105,7 @@ describe('geoip spec', () => {
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('emitter', Libraries.GEO_IP);
 		expect(err).to.haveOwnProperty('code', ErrorCodes.IP_LOCATION_NOT_FOUND);
-		expect(err).to.haveOwnProperty('message', `Couldn't locate ip ${ip}.`);
+		expect(err).to.haveOwnProperty('message', `Couldn't locate ip ${ip}. `);
 	});
 
 	it('does fallback to iplocate if ipstack service call failed (unavailable)', async () => {

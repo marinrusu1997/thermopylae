@@ -1,5 +1,4 @@
 import { http, chrono } from '@marin/lib.utils';
-import geoip from 'geoip-lite';
 import { getLogger } from './logger';
 import { createException, ErrorCodes } from './error';
 
@@ -45,6 +44,8 @@ class GeoIP {
 	private readonly externalServiceLoadBalancer: ExternalServiceLoadBalancer;
 
 	private readonly whenLimitsWillExpire: { ipStack: number; ipLocate: number };
+
+	private static geoipLite: any;
 
 	// @ts-ignore
 	private static readonly requestLocationFromExternalServices = new Map([
@@ -106,11 +107,15 @@ class GeoIP {
 	 * Refresh in-memory database which contains geoip-lite locations.
 	 * CAUTION! This needs to be called after updating local geoip-lite db.
 	 */
-	public static refresh(): Promise<void> {
+	public static async refresh(): Promise<void> {
+		if (!GeoIP.geoipLite) {
+			GeoIP.geoipLite = await import('geoip-lite');
+		}
+
 		// see https://www.npmjs.com/package/geoip-lite
 		return new Promise<void>((resolve, reject) => {
 			// @ts-ignore
-			geoip.reloadData(err => {
+			GeoIP.geoipLite.reloadData(err => {
 				if (err) {
 					return reject(err);
 				}
@@ -155,8 +160,12 @@ class GeoIP {
 		});
 	}
 
-	private static retrieveLocationFromGeoIpLite(ip: string): IpLocation | null {
-		const geo = geoip.lookup(ip);
+	private static async retrieveLocationFromGeoIpLite(ip: string): Promise<IpLocation | null> {
+		if (!GeoIP.geoipLite) {
+			GeoIP.geoipLite = await import('geoip-lite');
+		}
+
+		const geo = GeoIP.geoipLite.lookup(ip);
 		if (!geo) {
 			return null;
 		}

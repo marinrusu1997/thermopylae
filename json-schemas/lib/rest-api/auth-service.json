@@ -5,17 +5,17 @@
     "authenticate": {
       "method": "post",
       "path": "/session/user",
-      "unauthorized": true
+      "unauthorized": "/session/user[/]?$"
     },
     "register": {
       "method": "post",
       "path": "/account",
-      "unauthorized": true
+      "unauthorized": "/account[/]?$"
     },
     "activateAccount": {
       "method": "put",
       "path": "/account/activate",
-      "unauthorized": true
+      "unauthorized": "/account/activate[/]?$"
     },
     "enableMultiFactorAuthentication": {
       "method": "put",
@@ -36,12 +36,12 @@
     "createForgotPasswordSession": {
       "method": "post",
       "path": "/session/forgot_password",
-      "unauthorized": true
+      "unauthorized": "/session/forgot_password[/]?$"
     },
     "changeForgottenPassword": {
       "method": "put",
       "path": "/account/password/reset",
-      "unauthorized": true
+      "unauthorized": "/account/password/reset[/]?$"
     },
     "changeAccountLockStatus": {
       "method": "put",

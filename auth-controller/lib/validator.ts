@@ -3,7 +3,7 @@ import { boolean, number } from '@marin/lib.utils';
 import { GeoIP } from '@marin/lib.geoip';
 import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
 import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
-import { HttpStatusCode } from '@marin/lib.utils/dist/enums';
+import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
@@ -71,7 +71,7 @@ class AuthValidator {
 	 */
 	static async activateAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			await Firewall.validate(Services.AUTH, AuthServiceMethods.ACTIVATE_ACCOUNT, { activateAccountToken: req.params.token });
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.ACTIVATE_ACCOUNT, { activateAccountToken: req.query.token });
 
 			next();
 		} catch (e) {
@@ -85,7 +85,7 @@ class AuthValidator {
 	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
 		try {
 			// @ts-ignore
-			req.params.enable = boolean.toBoolean(req.params.enable, true);
+			req.query.enable = boolean.toBoolean(req.query.enable, true);
 			next();
 		} catch (e) {
 			AuthValidator.handleError(' enable multi factor authentication', e, res, {
@@ -103,20 +103,20 @@ class AuthValidator {
 	static async getActiveSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
 		const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj);
 
-		if (req.params.accountId) {
+		if (req.query.accountId) {
 			if (!AuthValidator.validateAdminPermissions('get user active sessions', req, jwtPayload)) {
 				res.status(HttpStatusCode.FORBIDDEN).send();
 				return;
 			}
 
 			try {
-				await Firewall.validate(Services.AUTH, AuthServiceMethods.GET_ACTIVE_SESSIONS, { accountId: req.params.accountId });
+				await Firewall.validate(Services.AUTH, AuthServiceMethods.GET_ACTIVE_SESSIONS, { accountId: req.query.accountId });
 			} catch (e) {
 				return AuthValidator.handleError(`get active sessions (by ${AccountRole.ADMIN})`, e, res);
 			}
 		} else {
 			// @ts-ignore
-			req.params.accountId = jwtPayload.sub;
+			req.query.accountId = jwtPayload.sub;
 		}
 
 		next();
@@ -133,11 +133,11 @@ class AuthValidator {
 			}
 
 			// @ts-ignore
-			req.params.from = number.toNumber(req.params.from);
+			req.query.from = number.toNumber(req.query.from);
 			// @ts-ignore
-			req.params.to = number.toNumber(req.params.to);
+			req.query.to = number.toNumber(req.query.to);
 
-			const query = { accountId: req.params.accountId, startingFrom: req.params.from, endingTo: req.params.to };
+			const query = { accountId: req.query.accountId, startingFrom: req.query.from, endingTo: req.query.to };
 			await Firewall.validate(Services.AUTH, AuthServiceMethods.GET_FAILED_AUTH_ATTEMPTS, query);
 
 			next();
@@ -222,8 +222,8 @@ class AuthValidator {
 			}
 
 			// @ts-ignore
-			req.params.enable = boolean.toBoolean(req.params.enable, true);
-			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, { ...req.body, enable: req.params.enable });
+			req.query.enable = boolean.toBoolean(req.query.enable, true);
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, { ...req.body, enable: req.query.enable });
 			req.body.cause = req.body.cause ? Firewall.sanitize(req.body.cause) : req.body.cause;
 
 			next();
@@ -237,7 +237,7 @@ class AuthValidator {
 	 */
 	static logout(req: Request, res: Response, next: NextFunction): void {
 		// @ts-ignore
-		if (!LogoutTypes.includes(req.params.type)) {
+		if (!LogoutTypes.includes(req.query.type)) {
 			res.status(HttpStatusCode.BAD_REQUEST).json({ type: ErrorCodes.INVALID_LOGOUT_TYPE });
 			return;
 		}
@@ -286,7 +286,7 @@ class AuthValidator {
 		if (jwtPayload.aud !== AccountRole.ADMIN) {
 			const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 			getLogger().warning(
-				`Detected an attempt to ${action} for  account with id ${req.params.accountId || req.body.accountId} by an user without ${
+				`Detected an attempt to ${action} for  account with id ${req.query.accountId || req.body.accountId} by an user without ${
 					AccountRole.ADMIN
 				} role. His jwt: ${JSON.stringify(jwtPayload)}. Request originated from: ${remoteIp}.`
 			);
