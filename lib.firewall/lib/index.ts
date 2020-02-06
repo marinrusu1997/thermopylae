@@ -13,14 +13,14 @@ class Firewall {
 
 	private static readonly xssFilter: FilterXSS = new FilterXSS();
 
-	public static async init(jsonSchemaDir?: string, excludeDirs?: Array<string>): Promise<void> {
-		jsonSchemaDir = jsonSchemaDir || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/validation`;
+	public static async init(validationSchemasDir?: string, excludeDirs?: Array<string>): Promise<void> {
+		validationSchemasDir = validationSchemasDir || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/validation`;
 
 		Firewall.validator = new Ajv({
-			loadSchema: uri => fs.readJsonFromFile(`${jsonSchemaDir}/${uri}`)
+			loadSchema: uri => fs.readJsonFromFile(`${validationSchemasDir}/${uri}`)
 		});
 
-		let servicesSchemasDirs = await readDir(jsonSchemaDir);
+		let servicesSchemasDirs = await readDir(validationSchemasDir);
 		if (excludeDirs && excludeDirs.length !== 0) {
 			servicesSchemasDirs = servicesSchemasDirs.filter(schemaDir => !excludeDirs.includes(schemaDir));
 		}
@@ -28,11 +28,11 @@ class Firewall {
 		const servicesSchemasPromises = [];
 		for (let i = 0; i < servicesSchemasDirs.length; i++) {
 			servicesSchemasPromises.push(
-				readDir(`${jsonSchemaDir}/${servicesSchemasDirs[i]}`).then(schemas => {
+				readDir(`${validationSchemasDir}/${servicesSchemasDirs[i]}`).then(schemas => {
 					const schemasPromises = [];
 					for (let j = 0; j < schemas.length; j++) {
 						schemasPromises.push(
-							fs.readJsonFromFile(`${jsonSchemaDir}/${servicesSchemasDirs[i]}/${schemas[j]}`).then(schema => {
+							fs.readJsonFromFile(`${validationSchemasDir}/${servicesSchemasDirs[i]}/${schemas[j]}`).then(schema => {
 								// @ts-ignore
 								schema.$async = true;
 								Firewall.validator.addSchema(schema);

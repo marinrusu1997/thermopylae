@@ -1,29 +1,19 @@
 import { Jwt, VerifyOptions, JwtAuthMiddleware } from '@marin/lib.jwt';
-import { fs } from '@marin/lib.utils';
 import { Router, IRouter, Request, RequestHandler } from 'express';
-import { readdir } from 'fs';
-import { promisify } from 'util';
 import { createException, ErrorCodes } from './error';
 import { getLogger } from './logger';
 import { ServiceMethodSchema, ServiceName, ServiceRequestHandlers, ServiceRESTApiSchema, UnauthorizedEndpoint } from './types';
 
 type JwtVerifyOptsProvider = (req: Request) => VerifyOptions | undefined;
 
-const readDir = promisify(readdir);
-
 class RestApiRouterFactory {
-	static async createRouter(
+	static createRouter(
 		jwt: Jwt,
 		servicesRequestHandlers: Map<ServiceName, ServiceRequestHandlers>,
-		pathToServicesRESTApiSchemas?: string,
+		servicesRESTApiSchemas: Array<ServiceRESTApiSchema>,
 		requestPropNameWhereToAttachJwtPayload = 'pipeline.jwtPayload',
 		jwtVerifyOptsProvider?: JwtVerifyOptsProvider
-	): Promise<IRouter> {
-		pathToServicesRESTApiSchemas =
-			pathToServicesRESTApiSchemas || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/rest-api`;
-
-		const servicesRESTApiSchemas = await RestApiRouterFactory.readServicesRestApiSchemas(pathToServicesRESTApiSchemas);
-
+	): IRouter {
 		const RestAPIRouter: IRouter = Router();
 
 		const unauthorizedEndpoints: Array<UnauthorizedEndpoint> = [];
@@ -84,15 +74,6 @@ class RestApiRouterFactory {
 		}
 
 		return RestAPIRouter;
-	}
-
-	private static async readServicesRestApiSchemas(pathToSchemas: string): Promise<Array<ServiceRESTApiSchema>> {
-		const serviceSchemasFiles = await readDir(pathToSchemas);
-		const restApiSchemasPromises = [];
-		for (const serviceSchemaFile of serviceSchemasFiles) {
-			restApiSchemasPromises.push(fs.readJsonFromFile(`${pathToSchemas}/${serviceSchemaFile}`));
-		}
-		return ((await Promise.all(restApiSchemasPromises)) as unknown) as Promise<Array<ServiceRESTApiSchema>>;
 	}
 }
 

@@ -7,7 +7,7 @@ import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
-import { IIssuedJWTPayload } from '../../lib.jwt/lib';
+import { IIssuedJWTPayload } from '../../lib.jwt';
 import { ErrorCodes } from './error';
 
 type ExpressResponseMethod = 'json' | 'send';

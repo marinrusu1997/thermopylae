@@ -519,7 +519,7 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 		entities: options.entities,
 		ttl: {
 			authSession: options.ttl.authSession || 2, // minutes, this needs to be as short as possible
-			failedAuthAttemptsSession: options.ttl.failedAuthAttemptsSession || 5, // minutes,
+			failedAuthAttemptsSession: options.ttl.failedAuthAttemptsSession || 10, // minutes
 			activateAccountSession: options.ttl.activateAccountSession || 60, // minutes
 			forgotPasswordSession: options.ttl.forgotPasswordSession || 5, // minutes
 			totp: options.ttl.totp || 30 // seconds

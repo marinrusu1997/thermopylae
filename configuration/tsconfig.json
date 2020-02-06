@@ -2,8 +2,9 @@
     "compilerOptions": {
         "incremental": true,
         "target": "esnext",
-        "module": "CommonJS",
+        "module": "esnext",
         "allowJs": true,
+        "checkJs": true,
         "declaration": true,
         "rootDir": ".",
         "outDir": "dist",

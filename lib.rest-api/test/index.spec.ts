@@ -5,9 +5,12 @@ import { Server } from 'http';
 import express, { Application } from 'express';
 import { json } from 'body-parser';
 import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
+
 import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
 import Exception from '@marin/lib.error';
-import { RestApiRouterFactory, ServiceName, ServiceRequestHandlers, ErrorCodes } from '../lib';
+import { promisify } from 'util';
+import { readdir } from 'fs';
+import { RestApiRouterFactory, ServiceName, ServiceRequestHandlers, ServiceRESTApiSchema, ErrorCodes } from '../lib';
 import { AccountRole, addJwtToBlacklist, defaultJwtInstance, issueJWT, rolesTtlMap } from './fixtures/jwt';
 import {
 	User,
@@ -17,6 +20,8 @@ import {
 	UserServiceUpdateMiddlewareFactory,
 	UserServiceReadMiddlewareFactory
 } from './fixtures/middlewares';
+
+const readDir = promisify(readdir);
 
 const servicesReqHandlers = new Map<ServiceName, ServiceRequestHandlers>();
 servicesReqHandlers.set('USER_SERVICE', {
@@ -32,6 +37,15 @@ before(() => {
 	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
 });
 
+async function readJsonSchemas(pathToSchemas: string): Promise<Array<ServiceRESTApiSchema>> {
+	const serviceSchemasFiles = await readDir(pathToSchemas);
+	const restApiSchemasPromises = [];
+	for (const serviceSchemaFile of serviceSchemasFiles) {
+		restApiSchemasPromises.push(fs.readJsonFromFile(`${pathToSchemas}/${serviceSchemaFile}`));
+	}
+	return ((await Promise.all(restApiSchemasPromises)) as unknown) as Promise<Array<ServiceRESTApiSchema>>;
+}
+
 describe('rest spi spec', () => {
 	const port = 4567;
 	const baseUrl = `http://127.0.0.1:${port}`;
@@ -46,8 +60,10 @@ describe('rest spi spec', () => {
 	before(done => {
 		app = express();
 		app.use(json());
-		RestApiRouterFactory.createRouter(defaultJwtInstance, servicesReqHandlers, 'test/fixtures/rest-api')
-			.then(router => {
+
+		readJsonSchemas('test/fixtures/rest-api')
+			.then(schemas => {
+				const router = RestApiRouterFactory.createRouter(defaultJwtInstance, servicesReqHandlers, schemas);
 				app.use(basePath, router);
 				server = app.listen(port, e => done(e));
 			})
@@ -341,6 +357,17 @@ describe('rest spi spec', () => {
 });
 
 describe('rest api router create method spec', () => {
+	let schemas: Array<ServiceRESTApiSchema>;
+
+	before(done => {
+		readJsonSchemas('test/fixtures/rest-api')
+			.then(restApiSchemas => {
+				schemas = restApiSchemas;
+				done();
+			})
+			.catch(e => done(e));
+	});
+
 	beforeEach(() => {
 		process.env = {};
 	});
@@ -350,7 +377,7 @@ describe('rest api router create method spec', () => {
 
 		let err;
 		try {
-			await RestApiRouterFactory.createRouter(defaultJwtInstance, emptyServicesReqHandlers, 'test/fixtures/rest-api');
+			await RestApiRouterFactory.createRouter(defaultJwtInstance, emptyServicesReqHandlers, schemas);
 		} catch (e) {
 			err = e;
 		}
@@ -367,7 +394,7 @@ describe('rest api router create method spec', () => {
 
 		let err;
 		try {
-			await RestApiRouterFactory.createRouter(defaultJwtInstance, noMethodsServicesReqHandlers, 'test/fixtures/rest-api');
+			await RestApiRouterFactory.createRouter(defaultJwtInstance, noMethodsServicesReqHandlers, schemas);
 		} catch (e) {
 			err = e;
 		}
@@ -376,24 +403,5 @@ describe('rest api router create method spec', () => {
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.MISCONFIGURATION_METHOD_REQUEST_HANDLERS_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Couldn't find request handlers for create method.`);
-	});
-
-	it('tries to read config from XDB_CONFIG_HOME if no explicit config path provided', async () => {
-		process.env.XDG_CONFIG_HOME = 'test';
-		process.env.APP_NAME = 'fixtures';
-
-		const router = await RestApiRouterFactory.createRouter(defaultJwtInstance, servicesReqHandlers);
-		expect(router).to.not.be.eq(undefined);
-	});
-
-	it('tries to read config from HOME when no XDB_CONFIG_HOME set if no explicit config path provided', async () => {
-		process.env.HOME = 'test/fixtures';
-		process.env.APP_NAME = 'app_name';
-
-		const config = await fs.readJsonFromFile('test/fixtures/rest-api/user-service.json');
-		await fs.writeJsonToFile('test/fixtures/.config/app_name/rest-api/user-service.json', config);
-
-		const router = await RestApiRouterFactory.createRouter(defaultJwtInstance, servicesReqHandlers);
-		expect(router).to.not.be.eq(undefined);
 	});
 });
