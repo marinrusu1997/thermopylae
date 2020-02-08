@@ -14,4 +14,5 @@ function getDefaultEmailClientInstance(): EmailClient {
 }
 
 export * from './email-client';
+export * from './types';
 export { getDefaultEmailClientInstance, ErrorCodes };

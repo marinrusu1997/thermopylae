@@ -1,9 +1,9 @@
 export interface AppConfigLocations {
-	basePath: string;
+	basePath?: string;
 	libs: {
 		authEngine: string;
 		firewall: string;
-		geo_ip: string;
+		geoIp: string;
 		jwt: string;
 		logger: string;
 		restApi: string;

@@ -1,0 +1,9 @@
+{
+  "libs": {
+    "geoIp": "geo-ip.json",
+    "restApi": "rest-api"
+  },
+  "dataRepositories": {
+    "redis": "redis.json"
+  }
+}

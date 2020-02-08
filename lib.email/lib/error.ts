@@ -1,5 +1,5 @@
 import { Exception } from '@marin/lib.error';
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Libraries } from '@marin/lib.utils/dist/declarations';
 
 const enum ErrorCodes {
 	EMAIL_CLIENT_NOT_INITIALIZED = 'EMAIL_CLIENT_NOT_INITIALIZED',

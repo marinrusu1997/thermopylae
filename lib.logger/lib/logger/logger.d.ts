@@ -1,5 +1,5 @@
 import { Logger as WinstonLogger } from 'winston';
-import { FormattingManager } from "../formatting/formatting-manager";
+import { FormattingManager } from '..';
 import { ConsoleLogsManager } from "../transports/consolelogs-manager";
 import { FileLogsManager } from "../transports/filelogs-manager";
 import { GrayLogsManager } from "../transports/graylogs-manager";

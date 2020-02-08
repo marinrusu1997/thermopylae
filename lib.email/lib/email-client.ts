@@ -17,7 +17,7 @@ class EmailClient {
 			throw createException(ErrorCodes.EMAIL_CLIENT_ALREADY_INITIALIZED, 'Email client was initialized before. ');
 		}
 		this.transport = createTransport(options, defaults);
-		this.transport.on('error', err => getLogger().error(err));
+		this.transport.on('error', err => getLogger().error('Error occurred in email transport. ', err));
 		this.transport.on('idle', () => getLogger().info('email transport is idle'));
 	}
 
@@ -41,7 +41,7 @@ class EmailClient {
 	}
 
 	/**
-	 * Unloads the module, by closing undelying transport.
+	 * Unloads the module, by closing underlying transport.
 	 * After this method, init can be called again.
 	 */
 	unload(): void {
@@ -53,4 +53,4 @@ class EmailClient {
 	}
 }
 
-export { EmailClient, EmailTransportOptions, EmailTransportDefaults, SendMailOptions, SentMessageInfo };
+export { EmailClient, SendMailOptions };

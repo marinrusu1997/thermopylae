@@ -2,33 +2,39 @@ import { fs } from '@marin/lib.utils';
 import { ServiceRESTApiSchema } from '@marin/lib.rest-api';
 import { readdir } from 'fs';
 import { promisify } from 'util';
-import { AppConfigLocations, ConfigurableModule } from './types';
+import { dirname } from 'path';
+import { AppConfigLocations, ConfigurableModule } from './typings';
 
 const readDir = promisify(readdir);
 
 class Configuration {
-	private basePathForConfigLocations?: string;
+	private readonly pathToAppConfigLocations: string;
 
-	private modulesConfigLocations = new Map<ConfigurableModule, string>();
+	private basePathForConfigLocations: string | undefined;
 
-	public async init(pathToAppConfigLocations?: string): Promise<void> {
-		pathToAppConfigLocations =
+	private readonly modulesConfigLocations = new Map<ConfigurableModule, string>();
+
+	constructor(pathToAppConfigLocations?: string) {
+		this.pathToAppConfigLocations =
 			pathToAppConfigLocations || `${process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`}/${process.env.APP_NAME}/app-config.json`;
-		const appConfigLocations = (await fs.readJsonFromFile(pathToAppConfigLocations)) as AppConfigLocations;
+	}
 
-		this.basePathForConfigLocations = appConfigLocations.basePath;
+	public async init(): Promise<void> {
+		const appConfigLocations = (await fs.readJsonFromFile(this.pathToAppConfigLocations)) as AppConfigLocations;
 
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_AUTH_ENGINE, appConfigLocations.libs.authEngine);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_FIREWALL, appConfigLocations.libs.firewall);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_GEO_IP, appConfigLocations.libs.geo_ip);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_LOGGER, appConfigLocations.libs.logger);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_JWT, appConfigLocations.libs.jwt);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_REST_API, appConfigLocations.libs.restApi);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_EMAIL, appConfigLocations.libs.email);
-		this.modulesConfigLocations.set(ConfigurableModule.LIB_SMS, appConfigLocations.libs.sms);
+		this.basePathForConfigLocations = appConfigLocations.basePath || dirname(this.pathToAppConfigLocations);
 
-		this.modulesConfigLocations.set(ConfigurableModule.MYSQL, appConfigLocations.dataRepositories.mysql);
-		this.modulesConfigLocations.set(ConfigurableModule.REDIS, appConfigLocations.dataRepositories.redis);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_AUTH_ENGINE, `${this.basePathForConfigLocations}/${appConfigLocations.libs.authEngine}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_FIREWALL, `${this.basePathForConfigLocations}/${appConfigLocations.libs.firewall}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_GEO_IP, `${this.basePathForConfigLocations}/${appConfigLocations.libs.geoIp}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_LOGGER, `${this.basePathForConfigLocations}/${appConfigLocations.libs.logger}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_JWT, `${this.basePathForConfigLocations}/${appConfigLocations.libs.jwt}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_REST_API, `${this.basePathForConfigLocations}/${appConfigLocations.libs.restApi}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_EMAIL, `${this.basePathForConfigLocations}/${appConfigLocations.libs.email}`);
+		this.modulesConfigLocations.set(ConfigurableModule.LIB_SMS, `${this.basePathForConfigLocations}/${appConfigLocations.libs.sms}`);
+
+		this.modulesConfigLocations.set(ConfigurableModule.MYSQL, `${this.basePathForConfigLocations}/${appConfigLocations.dataRepositories.mysql}`);
+		this.modulesConfigLocations.set(ConfigurableModule.REDIS, `${this.basePathForConfigLocations}/${appConfigLocations.dataRepositories.redis}`);
 	}
 
 	public for(module: ConfigurableModule): Promise<any> {
@@ -36,7 +42,7 @@ class Configuration {
 			return Configuration.readServicesRestApiSchemas(this.modulesConfigLocations.get(module)!);
 		}
 
-		return fs.readJsonFromFile(`${this.basePathForConfigLocations}/${this.modulesConfigLocations.get(module)}`);
+		return fs.readJsonFromFile(this.modulesConfigLocations.get(module)!);
 	}
 
 	private static async readServicesRestApiSchemas(pathToSchemas: string): Promise<Array<ServiceRESTApiSchema>> {

@@ -11,6 +11,34 @@ export interface LibAuthEngineConfig {
 	};
 }
 
+export interface LibEmailConfig {
+	defaults: {
+		from: string;
+	};
+	options: {
+		service: string;
+		auth: {
+			type: 'OAuth2';
+			user: string;
+			clientId: string;
+			clientSecret: string;
+			refreshToken: string;
+			accessToken: string;
+		};
+		port: number;
+
+		secure: boolean;
+		requireTLS: boolean;
+
+		pool: boolean;
+		maxConnections: number;
+		maxMessages: number;
+
+		disableFileAccess: boolean;
+		disableUrlAccess: boolean;
+	};
+}
+
 export interface LibFirewallConfig {
 	validationSchemasDir: string;
 	excludeDirs: Array<string>;
@@ -18,4 +46,124 @@ export interface LibFirewallConfig {
 
 export interface LibGeoIpConfig {
 	ipStackAPIKey: string;
+}
+
+export type JwtAlgType = 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512' | 'ES256' | 'ES384' | 'ES512';
+
+export interface LibJwtConfig {
+	secret: {
+		pub: string;
+		priv: string;
+	};
+	signVerifyOpts: {
+		sign: {
+			algorithm: JwtAlgType;
+			issuer: string;
+			mutatePayload: boolean;
+		};
+		verify: {
+			algorithms: Array<JwtAlgType>;
+			audience: Array<string>;
+			issuer: string;
+		};
+	};
+	redisStorage: {
+		keyPrefix: boolean;
+		cleanExpiredTokensOnBlacklisting: boolean;
+	};
+}
+
+export type SysLogLevel = 'emerg' | 'alert' | 'crit' | 'error' | 'warning' | 'notice' | 'info' | 'debug';
+
+export interface LibLoggerConfig {
+	formatting: {
+		output: 'PRINTF' | 'JSON' | 'PRETTY_PRINT';
+		colorize: true;
+	};
+	console?: {
+		level: SysLogLevel;
+	};
+	file?: {
+		level: SysLogLevel;
+		zippedArchive: boolean;
+		filename: string; // can include the %DATE% placeholder which will include the formatted datePattern at that point in the filename
+		dirname: string;
+		auditFile: string; // needs to contain `dirname` in his path
+		extension: string;
+		createSymlink: boolean;
+		symlinkName: string;
+	};
+	graylog2?: {
+		inputs: Array<{ name: string; server: { host: string; port: number } }>;
+		recipes: Array<{ system: string | '@all'; recipe: { level: string; input: string } }>;
+	};
+}
+
+export interface LibSmsConfig {
+	accountSid: string;
+	authToken: string;
+	fromNumber: string;
+}
+
+export interface MySqlConnectionConfig {
+	host: string;
+	port: number;
+	localAddress?: number;
+	socketPath?: string;
+	user: string;
+	password: string;
+	database: string;
+	stringifyObjects: boolean; // see https://github.com/mysqljs/mysql/issues/501
+	debug: boolean;
+	trace: boolean;
+	supportBigNumbers: boolean;
+	bigNumberStrings: boolean;
+}
+
+export interface MySqlPoolConfig extends MySqlConnectionConfig {
+	acquireTimeout?: number; // milliseconds
+	waitForConnections?: boolean;
+	connectionLimit?: number;
+	queueLimit?: number;
+}
+
+export interface MySqlConfig {
+	// see https://www.npmjs.com/package/mysql
+	pool?: MySqlPoolConfig;
+	poolCluster?: {
+		options?: {
+			canRetry?: boolean;
+			removeNodeErrorCount?: number;
+			restoreNodeTimeout?: number;
+			defaultSelector?: 'RR' | 'RANDOM' | 'ORDER';
+		};
+		configs: {
+			[name: string]: MySqlPoolConfig;
+		};
+	};
+}
+
+export interface RedisConfig {
+	// see https://www.npmjs.com/package/redis
+	host: string;
+	port: number;
+	path?: string;
+	url?: string;
+	string_numbers?: boolean;
+	return_buffers?: boolean;
+	detect_buffers?: boolean;
+	socket_keepalive?: boolean;
+	no_ready_check?: boolean;
+	enable_offline_queue?: boolean;
+	retry_max_delay: number; // milliseconds
+	connect_timeout: number; // milliseconds
+	max_attempts: number;
+	retry_unfulfilled_commands?: boolean;
+	password: string;
+	db?: string;
+	family?: string;
+	disable_resubscribing?: boolean;
+	rename_commands?: object;
+	tls?: object;
+	prefix?: string;
 }

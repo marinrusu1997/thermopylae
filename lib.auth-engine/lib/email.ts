@@ -27,7 +27,8 @@ function sendNotificationAccountLockedToUserEmail(template: NotificationAccountL
 			{
 				to: email,
 				subject: 'Account has been locked',
-				html: template({ cause })
+				html: template({ cause }),
+				priority: 'high'
 			},
 			true
 		)
@@ -35,7 +36,7 @@ function sendNotificationAccountLockedToUserEmail(template: NotificationAccountL
 }
 
 function sendNotificationAccountLockedToAdminEmail(mailer: EmailClient, email: string, accountId: string, cause: string): Promise<SentMessageInfo> {
-	return mailer.send({ to: email, subject: `Account ${accountId} was locked.`, text: `Cause: ${cause}.` }, true);
+	return mailer.send({ to: email, subject: `Account ${accountId} was locked.`, text: `Cause: ${cause}.`, priority: 'high' }, true);
 }
 
 function sendNotificationAuthFromDifferentDevice(
@@ -50,7 +51,8 @@ function sendNotificationAuthFromDifferentDevice(
 			{
 				to: email,
 				subject: 'Authentication from different device',
-				html: template({ ip, device })
+				html: template({ ip, device }),
+				priority: 'high'
 			},
 			true
 		)

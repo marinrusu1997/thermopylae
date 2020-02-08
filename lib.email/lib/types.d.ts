@@ -6,7 +6,7 @@ import JSONTransport from 'nodemailer/lib/json-transport';
 import SESTransport from 'nodemailer/lib/ses-transport';
 import { Transport, TransportOptions } from 'nodemailer';
 
-interface SMTPEnvelope {
+export interface SMTPEnvelope {
 	/** the first address gets used as MAIL FROM address in SMTP */
 	from?: string;
 	/** addresses from this value get added to RCPT TO list */

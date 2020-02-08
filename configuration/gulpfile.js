@@ -8,7 +8,7 @@ const clean = require('@marin/lib.module-builder/lib/clean');
 const gulp = require('gulp');
 
 module.exports = {
-  build: build.buildFactory('TS', gulp),
+  build: build.buildWithDeclarationsFileFactory('TS', gulp),
   test,
   clean: clean.clean,
   purge: clean.purge,
