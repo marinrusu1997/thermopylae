@@ -1,8 +1,9 @@
 {
-    "name": "@marin/configuration",
-    "description": "Configuration for API Server",
+    "name": "@marin/loader",
+    "description": "Loader which boots api server",
     "keywords": [
-        "config"
+        "boot",
+        "loader"
     ],
     "version": "0.0.1-beta",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
@@ -31,15 +32,26 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "@marin/lib.utils": "file:../lib.utils"
+        "@marin/data-repositories": "file:../data-repositories",
+        "@marin/lib.email": "file:../lib.email",
+        "@marin/lib.firewall": "file:../lib.firewall",
+        "@marin/lib.geoip": "file:../lib.geoip",
+        "@marin/lib.jwt": "file:../lib.jwt",
+        "@marin/lib.logger": "file:../lib.logger",
+        "@marin/lib.rest-api": "file:../lib.rest-api",
+        "@marin/lib.sms": "file:../lib.sms",
+        "cron": "^1.8.2"
     },
     "devDependencies": {
-        "@marin/lib.logger": "file:../lib.logger",
+        "@marin/configuration": "file:../configuration",
+        "@marin/declarations": "file:../declarations",
         "@marin/lib.module-builder": "file:../lib.module-builder",
-        "@marin/lib.rest-api": "file:../lib.rest-api",
+        "@types/bluebird": "^3.5.29",
         "@types/chai": "^4.2.8",
+        "@types/cron": "^1.7.1",
         "@types/mocha": "^7.0.1",
         "@types/node": "^13.7.0",
+        "@types/redis": "^2.8.14",
         "@typescript-eslint/eslint-plugin": "^2.19.0",
         "@typescript-eslint/parser": "^2.19.0",
         "chai": "^4.2.0",

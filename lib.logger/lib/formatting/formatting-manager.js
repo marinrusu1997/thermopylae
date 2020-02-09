@@ -44,7 +44,7 @@ function defineFormatters(formatters) {
 				// eslint-disable-next-line no-param-reassign
 				info.message = `${info.message}; Emitter: ${emitter}; Code: ${code}; Data: ${JSON.stringify(data)}`;
 			}
-			return `${timestamp} [${label}] ${level}:${info.message || ''}${stack ? `\n${stack}` : ''}`;
+			return `${timestamp} (${process.pid}) [${label}] ${level}:${info.message || ''}${stack ? `\n${stack}` : ''}`;
 		})
 	);
 	formatters.set('json', json({ space: 4 }));

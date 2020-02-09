@@ -35,6 +35,8 @@ class Configuration {
 
 		this.modulesConfigLocations.set(ConfigurableModule.MYSQL, `${this.basePathForConfigLocations}/${appConfigLocations.dataRepositories.mysql}`);
 		this.modulesConfigLocations.set(ConfigurableModule.REDIS, `${this.basePathForConfigLocations}/${appConfigLocations.dataRepositories.redis}`);
+
+		this.modulesConfigLocations.set(ConfigurableModule.GENERAL, `${this.basePathForConfigLocations}/${appConfigLocations.general}`);
 	}
 
 	public for(module: ConfigurableModule): Promise<any> {

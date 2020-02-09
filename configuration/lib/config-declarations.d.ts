@@ -1,3 +1,11 @@
+import { FormattingManager, GrayLogsManager } from '@marin/lib.logger';
+
+export interface GeneralConfig {
+	contacts: {
+		adminEmail: string;
+	};
+}
+
 export interface LibAuthEngineConfig {
 	jwt: {
 		rolesTtl: Map<string, number>; // role -> seconds
@@ -5,9 +13,6 @@ export interface LibAuthEngineConfig {
 	secrets: {
 		pepper: string;
 		totp: string;
-	};
-	contacts: {
-		adminEmail: string;
 	};
 }
 
@@ -46,6 +51,7 @@ export interface LibFirewallConfig {
 
 export interface LibGeoIpConfig {
 	ipStackAPIKey: string;
+	reloadLocalDbCronPattern?: string; // according to https://www.npmjs.com/package/cron
 }
 
 export type JwtAlgType = 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512' | 'ES256' | 'ES384' | 'ES512';
@@ -68,7 +74,7 @@ export interface LibJwtConfig {
 		};
 	};
 	redisStorage: {
-		keyPrefix: boolean;
+		keyPrefix: string;
 		cleanExpiredTokensOnBlacklisting: boolean;
 	};
 }
@@ -77,7 +83,7 @@ export type SysLogLevel = 'emerg' | 'alert' | 'crit' | 'error' | 'warning' | 'no
 
 export interface LibLoggerConfig {
 	formatting: {
-		output: 'PRINTF' | 'JSON' | 'PRETTY_PRINT';
+		output: FormattingManager.OutputFormat;
 		colorize: true;
 	};
 	console?: {
@@ -94,8 +100,8 @@ export interface LibLoggerConfig {
 		symlinkName: string;
 	};
 	graylog2?: {
-		inputs: Array<{ name: string; server: { host: string; port: number } }>;
-		recipes: Array<{ system: string | '@all'; recipe: { level: string; input: string } }>;
+		inputs: Array<{ name: string; server: GrayLogsManager.IGraylogServer }>;
+		recipes: Array<{ system: string | '@all'; recipe: GrayLogsManager.IRecipe }>;
 	};
 }
 
@@ -135,7 +141,7 @@ export interface MySqlConfig {
 			canRetry?: boolean;
 			removeNodeErrorCount?: number;
 			restoreNodeTimeout?: number;
-			defaultSelector?: 'RR' | 'RANDOM' | 'ORDER';
+			defaultSelector?: string; // 'RR' | 'RANDOM' | 'ORDER'
 		};
 		configs: {
 			[name: string]: MySqlPoolConfig;
@@ -145,25 +151,29 @@ export interface MySqlConfig {
 
 export interface RedisConfig {
 	// see https://www.npmjs.com/package/redis
-	host: string;
-	port: number;
+	host?: string;
+	port?: number;
 	path?: string;
 	url?: string;
+	parser?: string;
 	string_numbers?: boolean;
 	return_buffers?: boolean;
 	detect_buffers?: boolean;
 	socket_keepalive?: boolean;
+	socket_initialdelay?: number;
 	no_ready_check?: boolean;
 	enable_offline_queue?: boolean;
-	retry_max_delay: number; // milliseconds
-	connect_timeout: number; // milliseconds
-	max_attempts: number;
+	retry_max_delay?: number;
+	connect_timeout?: number;
+	max_attempts?: number;
 	retry_unfulfilled_commands?: boolean;
-	password: string;
-	db?: string;
+	auth_pass?: string;
+	password?: string;
+	db?: string | number;
 	family?: string;
-	disable_resubscribing?: boolean;
-	rename_commands?: object;
-	tls?: object;
+	rename_commands?: { [command: string]: string } | null;
+	tls?: any;
 	prefix?: string;
+	debug?: boolean;
+	monitor?: boolean;
 }

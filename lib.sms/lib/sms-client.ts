@@ -8,23 +8,17 @@ interface Options {
 }
 
 class SmsClient {
-	private from: string | undefined;
+	private readonly from: string;
 
-	private client: Twilio | undefined;
+	private readonly client: Twilio;
 
-	public init(options: Options): void {
-		if (this.client) {
-			throw createException(ErrorCodes.SMS_CLIENT_ALREADY_INITIALIZED, '');
-		}
+	constructor(options: Options) {
 		this.from = options.fromNumber;
 		this.client = twilio(options.accountSid, options.authToken);
 	}
 
-	public async send(to: string, sms: string): Promise<string> {
-		if (!this.client) {
-			throw createException(ErrorCodes.SMS_CLIENT_NOT_INITIALIZED, '');
-		}
-		const message = await this.client.messages.create({ from: this.from, to, body: sms });
+	public async send(to: string, body: string): Promise<string> {
+		const message = await this.client.messages.create({ from: this.from, to, body });
 		if (message.errorCode) {
 			throw createException(ErrorCodes.SMS_DELIVERY_FAILED, message.errorMessage, message);
 		}

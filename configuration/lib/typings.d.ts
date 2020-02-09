@@ -1,19 +1,22 @@
 export interface AppConfigLocations {
 	basePath?: string;
 	libs: {
-		authEngine: string;
-		firewall: string;
-		geoIp: string;
-		jwt: string;
 		logger: string;
-		restApi: string;
 		email: string;
 		sms: string;
+		firewall: string;
+		geoIp: string;
+		restApi: string;
+
+		authEngine: string;
+
+		jwt: string;
 	};
 	dataRepositories: {
 		mysql: string;
 		redis: string;
 	};
+	general: string;
 }
 
 export const enum ConfigurableModule {
@@ -27,5 +30,7 @@ export const enum ConfigurableModule {
 	LIB_SMS = 'LIB_SMS',
 
 	MYSQL = 'MYSQL',
-	REDIS = 'REDIS'
+	REDIS = 'REDIS',
+
+	GENERAL = 'GENERAL'
 }
