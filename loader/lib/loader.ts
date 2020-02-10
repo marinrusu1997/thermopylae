@@ -8,9 +8,10 @@ import {
 	LibJwtConfig,
 	LibLoggerConfig,
 	LibSmsConfig,
+	MySqlConfig,
 	RedisConfig
 } from '@marin/configuration';
-import { getRedisClient, initRedisClient, RedisClient } from '@marin/data-repositories';
+import { getRedisClient, initMySQL, initRedisClient } from '@marin/data-repositories';
 import LoggerInstance from '@marin/lib.logger';
 import { EmailClient } from '@marin/lib.email';
 import { SmsClient } from '@marin/lib.sms';
@@ -34,18 +35,17 @@ class Loader {
 		// logger is the first who needs to be loaded, other modules might need it in order to report init failures
 		await this.initLogger();
 
-		// connect to data repositories in parallel
-		const [redisClient] = await Promise.all([this.initRedis.bind(this)]);
-
 		// if connected successfully, load other systems
 		const [emailClient, smsClient, jwtInstance] = await Promise.all([
 			this.initEmail.bind(this),
 			this.initSms.bind(this),
 			this.initJwt.bind(this),
-			this.initFirewall.bind(this)
+			this.initFirewall.bind(this),
+			this.initRedis.bind(this),
+			this.initMySql.bind(this)
 		]);
 
-		const geoIp = await this.initGeoIp(emailClient, generalConfig.contacts.adminEmail);
+		const geoIp = await this.initGeoIp((emailClient as unknown) as EmailClient, generalConfig.contacts.adminEmail);
 	}
 
 	private async initLogger(): Promise<void> {
@@ -116,10 +116,19 @@ class Loader {
 		return geoIp;
 	}
 
-	private async initRedis(): Promise<RedisClient> {
+	private async initRedis(): Promise<void> {
 		const redisConfig = (await this.config.for(ConfigurableModule.REDIS)) as RedisConfig;
 		await initRedisClient(redisConfig, redisConfig.debug, redisConfig.monitor);
-		return getRedisClient();
+	}
+
+	private async initMySql(): Promise<void> {
+		const mySqlConfig = (await this.config.for(ConfigurableModule.MYSQL)) as MySqlConfig;
+		initMySQL({
+			poolConfigs: mySqlConfig.pool ? { MASTER: mySqlConfig.pool } : mySqlConfig.poolCluster!.configs,
+			poolClusterConfig: mySqlConfig.poolCluster ? mySqlConfig.poolCluster.options : undefined,
+			debugMode: mySqlConfig.debugMode,
+			pingInterval: mySqlConfig.pingInterval
+		});
 	}
 
 	private async initJwt(): Promise<Jwt> {

@@ -114,7 +114,7 @@ export interface LibSmsConfig {
 export interface MySqlConnectionConfig {
 	host: string;
 	port: number;
-	localAddress?: number;
+	localAddress?: string;
 	socketPath?: string;
 	user: string;
 	password: string;
@@ -127,26 +127,28 @@ export interface MySqlConnectionConfig {
 }
 
 export interface MySqlPoolConfig extends MySqlConnectionConfig {
-	acquireTimeout?: number; // milliseconds
-	waitForConnections?: boolean;
-	connectionLimit?: number;
-	queueLimit?: number;
+	acquireTimeout: number; // milliseconds
+	waitForConnections: boolean;
+	connectionLimit: number;
+	queueLimit: number;
 }
 
 export interface MySqlConfig {
 	// see https://www.npmjs.com/package/mysql
 	pool?: MySqlPoolConfig;
 	poolCluster?: {
-		options?: {
-			canRetry?: boolean;
-			removeNodeErrorCount?: number;
-			restoreNodeTimeout?: number;
-			defaultSelector?: string; // 'RR' | 'RANDOM' | 'ORDER'
+		options: {
+			canRetry: boolean;
+			removeNodeErrorCount: number;
+			restoreNodeTimeout: number;
+			defaultSelector: string; // 'RR' | 'RANDOM' | 'ORDER'
 		};
 		configs: {
 			[name: string]: MySqlPoolConfig;
 		};
 	};
+	debugMode?: boolean;
+	pingInterval?: number; // minutes
 }
 
 export interface RedisConfig {

@@ -1,4 +1,3 @@
-
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { multiply, sum } from '../lib';
@@ -9,4 +8,3 @@ describe('test', () => {
 		expect(multiply(2, 2)).equals(4);
 	});
 });
-	

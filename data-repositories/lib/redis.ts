@@ -70,19 +70,10 @@ function initRedisClient(options: ClientOpts, debug?: boolean, monitor?: boolean
 					});
 				}
 
-				if (debug) {
-					getLogger(Modules.REDIS_CLIENT).debug(`Server info: ${JSON.stringify(redisClient.server_info)}. `);
-				}
+				getLogger(Modules.REDIS_CLIENT).debug(`Server info: ${JSON.stringify(redisClient.server_info)}. `);
 
 				connectedAfterInitialization = true;
 				resolve();
-			});
-			redisClient.on('connect', () => getLogger(Modules.REDIS_CLIENT).debug('Stream is connected. '));
-			redisClient.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
-				getLogger(Modules.REDIS_CLIENT).info(`Reconnecting... Delay: ${reconnect.delay}. Attempt: ${reconnect.attempt}. `);
-				if (reconnect.error) {
-					handleRedisError(reconnect.error);
-				}
 			});
 			redisClient.on('error', err => {
 				if (!connectedAfterInitialization) {
@@ -90,8 +81,18 @@ function initRedisClient(options: ClientOpts, debug?: boolean, monitor?: boolean
 				}
 				return handleRedisError(err);
 			});
-			redisClient.on('end', () => getLogger(Modules.REDIS_CLIENT).debug('Connection closed. '));
 			redisClient.on('warning', (msg: string) => getLogger(Modules.REDIS_CLIENT).warning(`Warning: ${msg}. `));
+
+			if (debug) {
+				redisClient.on('connect', () => getLogger(Modules.REDIS_CLIENT).debug('Stream is connected. '));
+				redisClient.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
+					getLogger(Modules.REDIS_CLIENT).debug(`Reconnecting... Delay: ${reconnect.delay}. Attempt: ${reconnect.attempt}. `);
+					if (reconnect.error) {
+						handleRedisError(reconnect.error);
+					}
+				});
+				redisClient.on('end', () => getLogger(Modules.REDIS_CLIENT).debug('Connection closed. '));
+			}
 		});
 	}
 	return Promise.resolve();
