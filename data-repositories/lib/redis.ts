@@ -9,12 +9,8 @@ bluebird.promisifyAll(redis);
 let redisClient: RedisClient;
 
 function handleRedisError(error: RedisError): void {
-	let errMsg = 'Error encountered. ';
 	// @ts-ignore
-	if (error.origin) {
-		// @ts-ignore
-		errMsg += `Origin: ${JSON.stringify(error.origin)}. `;
-	}
+	let errMsg = `Error encountered. Code: ${error.code}. Origin: ${error.origin}. `;
 	if (error instanceof ReplyError) {
 		// @ts-ignore
 		errMsg += `Command: ${error.command}. Arguments: ${JSON.stringify(error.args)}. `;
@@ -77,6 +73,7 @@ function initRedisClient(options: ClientOpts, debug?: boolean, monitor?: boolean
 			});
 			redisClient.on('error', err => {
 				if (!connectedAfterInitialization) {
+					handleRedisError(err);
 					return reject(err);
 				}
 				return handleRedisError(err);
