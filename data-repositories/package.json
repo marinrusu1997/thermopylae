@@ -32,6 +32,7 @@
         "node": "12.8.0"
     },
     "dependencies": {
+        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.logger": "file:../lib.logger",
         "bluebird": "^3.7.2",
         "mysql": "^2.18.1",

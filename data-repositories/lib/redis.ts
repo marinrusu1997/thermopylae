@@ -1,16 +1,23 @@
 import { Modules } from '@marin/declarations/lib/modules';
 import bluebird from 'bluebird';
 import redis, { AggregateError, ClientOpts, RedisClient, RedisError, ReplyError } from 'redis';
+import { number } from '@marin/lib.utils';
 import { getLogger } from './logger';
 
 // FIXME remove this bluebird!
 bluebird.promisifyAll(redis);
 
-let redisClient: RedisClient;
+let redisClient: RedisClient | null = null;
+let connectedAfterInitialization = false;
 
-function handleRedisError(error: RedisError): void {
+function resetRedisClient(): void {
+	redisClient = null;
+	connectedAfterInitialization = false;
+}
+
+function logRedisError(error: RedisError): void {
 	// @ts-ignore
-	let errMsg = `Error encountered. Code: ${error.code}. Origin: ${error.origin}. `;
+	let errMsg = `Code: ${error.code}. Origin: ${error.origin}. `;
 	if (error instanceof ReplyError) {
 		// @ts-ignore
 		errMsg += `Command: ${error.command}. Arguments: ${JSON.stringify(error.args)}. `;
@@ -22,8 +29,6 @@ function handleRedisError(error: RedisError): void {
 	getLogger(Modules.REDIS_CLIENT).error(errMsg, error);
 }
 
-let connectedAfterInitialization = false;
-
 function initRedisClient(options: ClientOpts, debug?: boolean, monitor?: boolean): Promise<void> {
 	if (!redisClient) {
 		return new Promise((resolve, reject) => {
@@ -33,59 +38,59 @@ function initRedisClient(options: ClientOpts, debug?: boolean, monitor?: boolean
 				...options,
 				retry_strategy: retryOptions => {
 					if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
-						// End reconnecting on a specific error and flush all commands with a individual error
-						return new Error(`Reconnecting... The server refused the connection. Cause: ${JSON.stringify(retryOptions.error)}. `);
+						return new Error(`Reconnecting... The server refused the connection. Cause: ${JSON.stringify(retryOptions.error)}.`);
 					}
 					if (retryOptions.total_retry_time > options.connect_timeout!) {
-						// End reconnecting after a specific timeout and flush all commands with a individual error
-						return new Error(`Reconnecting... Giving up. Total retry time: ${retryOptions.total_retry_time}. Retry time exhausted. `);
+						return new Error(`Reconnecting... Giving up. Total retry time: ${retryOptions.total_retry_time}. Retry time exhausted.`);
 					}
 					if (retryOptions.attempt > options.max_attempts!) {
-						// End reconnecting with built in error
-						return new Error(`Reconnecting... Maximum reconnect attempts of ${options.max_attempts!} has been reached. `);
+						return new Error(`Reconnecting... Maximum reconnect attempts of ${options.max_attempts!} have been reached.`);
 					}
-					// reconnect after
-					return Math.min(retryOptions.attempt * 100, options.retry_max_delay!);
+
+					// retry after x milliseconds
+					return Math.min(number.generateRandom(2 ** (retryOptions.attempt - 1), 2 ** retryOptions.attempt) * 1000, options.retry_max_delay!);
 				}
 			});
 			redisClient.on('ready', () => {
-				getLogger(Modules.REDIS_CLIENT).debug('Connection established. ');
+				getLogger(Modules.REDIS_CLIENT).debug(`Connection established. Server info: ${JSON.stringify(redisClient!.server_info)}. `);
 
 				if (monitor) {
-					redisClient.on('monitor', (timestamp: string, args: any[], replyStr: string) => {
+					redisClient!.on('monitor', (timestamp: string, args: any[], replyStr: string) => {
 						getLogger(Modules.REDIS_CLIENT).debug(
-							`Monitoring... Timestamp: ${new Date(Number(timestamp) * 1000)}. Args: ${JSON.stringify(args)}. Raw reply: ${replyStr}. `
+							`Monitored: Raw reply: ${replyStr}. Args: ${JSON.stringify(args)}. Timestamp: ${new Date(Number(timestamp) * 1000)}. `
 						);
 					});
 
-					redisClient.MONITOR(err => {
+					redisClient!.MONITOR(err => {
 						if (err) {
-							return handleRedisError(err);
+							return reject(err);
 						}
-						return getLogger(Modules.REDIS_CLIENT).debug('Entering monitor mode.');
+						getLogger(Modules.REDIS_CLIENT).debug('Entering monitor mode.');
+						connectedAfterInitialization = true;
+						return resolve();
 					});
+				} else {
+					connectedAfterInitialization = true;
+					resolve();
 				}
-
-				getLogger(Modules.REDIS_CLIENT).debug(`Server info: ${JSON.stringify(redisClient.server_info)}. `);
-
-				connectedAfterInitialization = true;
-				resolve();
 			});
 			redisClient.on('error', err => {
 				if (!connectedAfterInitialization) {
-					handleRedisError(err);
 					return reject(err);
 				}
-				return handleRedisError(err);
+				if (err.code === 'CONNECTION_BROKEN') {
+					throw err;
+				}
+				return logRedisError(err);
 			});
 			redisClient.on('warning', (msg: string) => getLogger(Modules.REDIS_CLIENT).warning(`Warning: ${msg}. `));
 
 			if (debug) {
-				redisClient.on('connect', () => getLogger(Modules.REDIS_CLIENT).debug('Stream is connected. '));
+				redisClient.on('connect', () => getLogger(Modules.REDIS_CLIENT).debug('Stream is connecting... '));
 				redisClient.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
-					getLogger(Modules.REDIS_CLIENT).debug(`Reconnecting... Delay: ${reconnect.delay}. Attempt: ${reconnect.attempt}. `);
+					getLogger(Modules.REDIS_CLIENT).debug(`Reconnecting... Delay: ${reconnect.delay} ms. Attempt: ${reconnect.attempt}. `);
 					if (reconnect.error) {
-						handleRedisError(reconnect.error);
+						logRedisError(reconnect.error);
 					}
 				});
 				redisClient.on('end', () => getLogger(Modules.REDIS_CLIENT).debug('Connection closed. '));
@@ -103,25 +108,32 @@ function shutdownRedisClient(graceful = true): Promise<void> {
 		reject = _reject;
 	});
 	if (graceful) {
-		redisClient.quit((err, res) => {
+		redisClient!.quit((err, res) => {
+			resetRedisClient();
+
 			if (err) {
 				return reject(err);
 			}
+
 			if (res !== 'OK') {
 				return reject(new Error(`Redis client, unexpected quit result: ${res}. `));
 			}
+
 			return resolve();
 		});
 	} else {
-		redisClient.end(true);
-		process.nextTick(resolve!);
+		redisClient!.end(true);
+		process.nextTick(() => {
+			resetRedisClient();
+			resolve();
+		});
 	}
 
 	return promise;
 }
 
 function getRedisClient(): RedisClient {
-	return redisClient;
+	return redisClient!;
 }
 
 export { initRedisClient, shutdownRedisClient, getRedisClient, RedisClient, ClientOpts };
