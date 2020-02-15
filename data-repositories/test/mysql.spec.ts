@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { chrono } from '@marin/lib.utils';
 import { MySqlClientInstance } from '../lib';
 
-describe.only('mysql spec', () => {
+describe.skip('mysql spec', () => {
 	const mySqlIp = '127.0.0.1';
 	const mySqlPort = 3306;
 
@@ -40,7 +40,7 @@ describe.only('mysql spec', () => {
 		await MySqlClientInstance.shutdown();
 	}).timeout(126000);
 
-	it.only('connects to mysql with a cluster config', async () => {
+	it('connects to mysql with a cluster config', async () => {
 		MySqlClientInstance.init({
 			poolCluster: {
 				cluster: {
@@ -73,6 +73,38 @@ describe.only('mysql spec', () => {
 			sessionVariablesQueries: ['SET SESSION auto_increment_increment=1;']
 		});
 
+		MySqlClientInstance.init({
+			poolCluster: {
+				cluster: {
+					removeNodeErrorCount: 3
+				},
+				pools: {
+					MASTER: {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					},
+					'SLAVE-1': {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					},
+					'SLAVE-2': {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					}
+				}
+			},
+			sessionVariablesQueries: ['SET SESSION auto_increment_increment=1;']
+		}); // should have no effect
+
 		function doQueries(): void {
 			for (let i = 0; i < 5; i++) {
 				MySqlClientInstance.readPool.query('SELECT 1+1 AS solution;', (error, results) => {
@@ -86,6 +118,40 @@ describe.only('mysql spec', () => {
 		}
 
 		doQueries();
+
+		await chrono.sleep(3000);
+		await MySqlClientInstance.shutdown();
+		MySqlClientInstance.init({
+			poolCluster: {
+				cluster: {
+					removeNodeErrorCount: 3
+				},
+				pools: {
+					MASTER: {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					},
+					'SLAVE-1': {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					},
+					'SLAVE-2': {
+						host: mySqlIp,
+						port: mySqlPort,
+						user: 'root',
+						password: 'secret',
+						connectionLimit: 2
+					}
+				}
+			},
+			sessionVariablesQueries: ['SET SESSION auto_increment_increment=1;']
+		}); // should have no effect
 
 		setTimeout(doQueries, 30000); // should generate error, node are removed
 

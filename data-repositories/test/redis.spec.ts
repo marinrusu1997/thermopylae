@@ -2,8 +2,8 @@ import { before, after, beforeEach, afterEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { Container } from 'dockerode';
 import { chrono } from '@marin/lib.utils';
-import { initRedisClient, shutdownRedisClient } from '../lib';
-import { docker, assertImageAvailability } from './setup.spec';
+import { RedisClientInstance } from '../lib';
+import { docker, assertImageAvailability, expectErrCodeOnUncaughtException } from './setup.spec';
 
 describe('redis spec', () => {
 	const redisIp = '127.0.0.1';
@@ -12,18 +12,6 @@ describe('redis spec', () => {
 
 	let container: Container;
 	let containerNeedsToBeStopped = true;
-
-	let expectedErrCodeOnUncaughtException: string | null = null;
-
-	process
-		.on('unhandledRejection', (reason, p) => {
-			console.error(reason, 'Unhandled Rejection at Promise', p);
-		})
-		.on('uncaughtException', error => {
-			console.error('uncaught exception', error, 'expected code', expectedErrCodeOnUncaughtException);
-			// @ts-ignore
-			expect(error.code).to.be.eq(expectedErrCodeOnUncaughtException);
-		});
 
 	before(async function() {
 		this.timeout(10000);
@@ -66,7 +54,7 @@ describe('redis spec', () => {
 			await container.stop();
 		}
 		containerNeedsToBeStopped = true;
-		expectedErrCodeOnUncaughtException = null;
+		expectErrCodeOnUncaughtException(null);
 	});
 
 	it('fails to connect to redis when server is down', async () => {
@@ -75,9 +63,11 @@ describe('redis spec', () => {
 
 		let err;
 		try {
-			await initRedisClient({
-				host: redisIp,
-				port: redisExternalPort
+			await RedisClientInstance.init({
+				client: {
+					host: redisIp,
+					port: redisExternalPort
+				}
 			});
 		} catch (e) {
 			err = e;
@@ -85,37 +75,35 @@ describe('redis spec', () => {
 		expect(err.code).to.be.eq('CONNECTION_BROKEN');
 		expect(err.message).to.be.eq('Redis connection in broken state: retry aborted.');
 
-		await shutdownRedisClient();
+		await RedisClientInstance.shutdown();
 		containerNeedsToBeStopped = false;
 	}).timeout(3500);
 
 	it('tries to reconnect when connection dropped', async () => {
-		expectedErrCodeOnUncaughtException = 'CONNECTION_BROKEN';
+		expectErrCodeOnUncaughtException('CONNECTION_BROKEN');
 
-		await initRedisClient(
-			{
+		await RedisClientInstance.init({
+			client: {
 				host: redisIp,
 				port: redisExternalPort,
 				connect_timeout: 1000 * 60 * 60,
 				max_attempts: 10,
 				retry_max_delay: 3000
 			},
-			true,
-			true
-		);
+			monitor: true
+		});
 
 		// second has no effect
-		await initRedisClient(
-			{
+		await RedisClientInstance.init({
+			client: {
 				host: redisIp,
 				port: redisExternalPort,
 				connect_timeout: 1000 * 60 * 60,
 				max_attempts: 10,
 				retry_max_delay: 3000
 			},
-			true,
-			true
-		);
+			monitor: true
+		});
 		await chrono.sleep(1000);
 
 		await container.stop();
@@ -123,6 +111,6 @@ describe('redis spec', () => {
 
 		await chrono.sleep(2000);
 
-		await shutdownRedisClient(false);
+		await RedisClientInstance.shutdown(false);
 	}).timeout(10000);
 });

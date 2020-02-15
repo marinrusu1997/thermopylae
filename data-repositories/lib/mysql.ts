@@ -19,14 +19,13 @@ interface MySqlClientOptions {
 }
 
 const enum ErrorCodes {
-	FATAL_ERROR = 'FATAL_ERROR',
 	PING_FAILED = 'PING_FAILED',
 	SESSION_VARIABLE_QUERY_FAILED = 'SESSION_VARIABLE_QUERY_FAILED',
 	MISCONFIGURATION_POOL_CONFIG_NAME = 'MISCONFIGURATION_POOL_CONFIG_NAME',
 	MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG = 'MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG'
 }
 
-// @ts-ignore
+// @ts-ignore, maybe will be used in future, although I don't see a clear use case
 class PingingTracker {
 	private readonly connectionPingTimeouts: Map<ConnectionId, NodeJS.Timeout> = new Map<ConnectionId, NodeJS.Timeout>();
 
@@ -139,12 +138,14 @@ class MySqlClient {
 		});
 
 		const shutdownCallback = (err: MysqlError): void => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve();
-			}
 			this.reset();
+
+			if (err) {
+				return reject(err);
+			}
+
+			getLogger(Modules.MYSQL_CLIENT).notice('MySQL client has been shut down.');
+			return resolve();
 		};
 
 		if (this.poolCluster) {
@@ -177,7 +178,7 @@ class MySqlClient {
 	}
 
 	private static createPollConnectionEventHandler(sessionVariablesQueries?: Array<string>): (con: Connection) => void {
-		return (connection: Connection) => {
+		return (connection: Connection): void => {
 			getLogger(Modules.MYSQL_CLIENT).info(`Connected as id ${connection.threadId}. `);
 
 			if (sessionVariablesQueries) {

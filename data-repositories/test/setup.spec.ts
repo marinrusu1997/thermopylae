@@ -1,6 +1,7 @@
 import { before } from 'mocha';
 import LoggerInstance, { FormattingManager } from '@marin/lib.logger/lib';
 import Dockerode from 'dockerode';
+import { expect } from 'chai';
 
 // eslint-disable-next-line import/no-mutable-exports
 let docker: Dockerode;
@@ -21,4 +22,19 @@ async function assertImageAvailability(imageName: string): Promise<void> {
 	}
 }
 
-export { docker, assertImageAvailability };
+let expectedErrCodeOnUncaughtException: string | null = null;
+function expectErrCodeOnUncaughtException(code: string | null): void {
+	expectedErrCodeOnUncaughtException = code;
+}
+
+process
+	.on('unhandledRejection', (reason, p) => {
+		console.error(reason, 'Unhandled Rejection at Promise', p);
+	})
+	.on('uncaughtException', error => {
+		console.error('uncaught exception', error, 'expected code', expectedErrCodeOnUncaughtException);
+		// @ts-ignore
+		expect(error.code).to.be.eq(expectedErrCodeOnUncaughtException);
+	});
+
+export { docker, assertImageAvailability, expectErrCodeOnUncaughtException };
