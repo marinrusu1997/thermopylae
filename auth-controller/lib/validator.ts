@@ -66,7 +66,7 @@ class AuthValidator {
 	 * PUT /api/rest/v1/auth/account/activate?token=hfhfhhfhf
 	 *
 	 * Flow: req to this endpoint from email link, web server intercepts response
-	 * and redirects to endpoint with prepared httl page based on response success
+	 * and redirects to endpoint with prepared html page based on response success
 	 * This way Referer header won't be present
 	 */
 	static async activateAccount(req: Request, res: Response, next: NextFunction): Promise<void> {

@@ -133,25 +133,24 @@ export interface MySqlPoolConfig extends MySqlConnectionConfig {
 	queueLimit: number;
 }
 
-export interface MySqlConfig {
+export interface MySqlClientConfig {
 	// see https://www.npmjs.com/package/mysql
 	pool?: MySqlPoolConfig;
+	sessionVariablesQueries?: Array<string>;
 	poolCluster?: {
-		options: {
+		cluster: {
 			canRetry: boolean;
 			removeNodeErrorCount: number;
-			restoreNodeTimeout: number;
+			restoreNodeTimeout: number; // milliseconds, setting this will cause node to never be removed!!!
 			defaultSelector: string; // 'RR' | 'RANDOM' | 'ORDER'
 		};
-		configs: {
+		pools: {
 			[name: string]: MySqlPoolConfig;
 		};
 	};
-	debugMode?: boolean;
-	pingInterval?: number; // minutes
 }
 
-export interface RedisConfig {
+export interface RedisClientConfig {
 	// see https://www.npmjs.com/package/redis
 	host?: string;
 	port?: number;

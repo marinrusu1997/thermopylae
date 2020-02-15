@@ -1,14 +1,11 @@
 import { before, after, beforeEach, afterEach, describe, it } from 'mocha';
 import { expect } from 'chai';
-import Dockerode, { Container } from 'dockerode';
-import LoggerInstance, { FormattingManager } from '@marin/lib.logger/lib';
+import { Container } from 'dockerode';
 import { chrono } from '@marin/lib.utils';
 import { initRedisClient, shutdownRedisClient } from '../lib';
+import { docker, assertImageAvailability } from './setup.spec';
 
 describe('redis spec', () => {
-	const docker = new Dockerode({
-		socketPath: '/var/run/docker.sock'
-	});
 	const redisIp = '127.0.0.1';
 	const redisExternalPort = 7001;
 	const redisInternalPort = 6379;
@@ -31,13 +28,7 @@ describe('redis spec', () => {
 	before(async function() {
 		this.timeout(10000);
 
-		const images = await docker.listImages();
-		if (images.findIndex(image => image.RepoTags.includes('redis:latest')) === -1) {
-			throw new Error('Redis image not found. Install it then rerun tests');
-		}
-
-		LoggerInstance.console.setConfig({ level: 'debug' });
-		LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
+		await assertImageAvailability('redis:latest');
 
 		container = await docker.createContainer({
 			Image: 'redis',
@@ -64,7 +55,7 @@ describe('redis spec', () => {
 		await container.remove();
 	});
 
-	beforeEach(async function(): Promise<void> {
+	beforeEach(async function() {
 		this.timeout(10000);
 		await container.start();
 	});
