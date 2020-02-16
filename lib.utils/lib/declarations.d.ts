@@ -1,12 +1,17 @@
 export const enum Libraries {
 	AUTH_ENGINE = 'LIB_AUTH_ENGINE',
-	EMAIL = 'LIB_EMAIL',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
 	MEM_CACHE = 'LIB_MEM_CACHE',
-	SMS = 'LIB_SMS',
 	REST_API = 'LIB_REST_API',
 	UTILS = 'LIB_UTILS'
+}
+
+export const enum Clients {
+	SMS = 'SMS_CLIENT',
+	EMAIL = 'EMAIL_CLIENT',
+	REDIS = 'REDIS_CLIENT',
+	MYSQL = 'MYSQL_CLIENT'
 }
 
 export const enum AuthTokenType {

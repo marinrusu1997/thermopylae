@@ -1,17 +1,17 @@
 import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
-import { Modules } from '@marin/declarations/lib/modules';
+import { Clients } from '@marin/lib.utils/dist/declarations';
 
 let redisLogger: WinstonLogger | undefined;
 let mysqlLogger: WinstonLogger | undefined;
 
-function getLogger(_for: Modules): WinstonLogger {
+function getLogger(_for: Clients): WinstonLogger {
 	switch (_for) {
-		case Modules.REDIS_CLIENT:
+		case Clients.REDIS:
 			if (!redisLogger) {
 				redisLogger = LoggerInstance.for(_for);
 			}
 			return redisLogger;
-		case Modules.MYSQL_CLIENT:
+		case Clients.MYSQL:
 			if (!mysqlLogger) {
 				mysqlLogger = LoggerInstance.for(_for);
 			}

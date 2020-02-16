@@ -1,7 +1,7 @@
-import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig } from 'mysql';
-import { Modules } from '@marin/declarations/lib/modules';
+import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig, TypeCast } from 'mysql';
+import { Clients } from '@marin/lib.utils/dist/declarations';
 import Exception from '@marin/lib.error';
-import { getLogger } from './logger';
+import { getLogger } from '../logger';
 
 type ConnectionId = number;
 
@@ -33,26 +33,26 @@ class PingingTracker {
 		const doPing = (): void => {
 			connection.ping((error: MysqlError | null) => {
 				if (error) {
-					throw new Exception(Modules.MYSQL_CLIENT, ErrorCodes.PING_FAILED, formatConnectionDetails(connection), error); // fatal error
+					throw new Exception(Clients.MYSQL, ErrorCodes.PING_FAILED, formatConnectionDetails(connection), error); // fatal error
 				}
-				getLogger(Modules.MYSQL_CLIENT).info(`Ping confirmed. ${formatConnectionDetails(connection)}`);
+				getLogger(Clients.MYSQL).info(`Ping confirmed. ${formatConnectionDetails(connection)}`);
 				this.connectionPingTimeouts.set(connection.threadId!, setTimeout(doPing, intervalInMs));
 			});
 		};
 
-		getLogger(Modules.MYSQL_CLIENT).debug(`Started pinging. ${formatConnectionDetails(connection)}`);
+		getLogger(Clients.MYSQL).debug(`Started pinging. ${formatConnectionDetails(connection)}`);
 		this.connectionPingTimeouts.set(connection.threadId!, setTimeout(doPing, intervalInMs));
 	}
 
 	public unTrackSingle(connectionId: ConnectionId): void {
-		getLogger(Modules.MYSQL_CLIENT).debug(`Stopping pinging for connection with id ${connectionId}.`);
+		getLogger(Clients.MYSQL).debug(`Stopping pinging for connection with id ${connectionId}.`);
 		clearTimeout(this.connectionPingTimeouts.get(connectionId)!);
 		this.connectionPingTimeouts.delete(connectionId);
 	}
 
 	public unTrackAll(): void {
 		this.connectionPingTimeouts.forEach((timeoutId, connectionId) => {
-			getLogger(Modules.MYSQL_CLIENT).debug(`Stopping pinging for connection with id ${connectionId}.`);
+			getLogger(Clients.MYSQL).debug(`Stopping pinging for connection with id ${connectionId}.`);
 			clearTimeout(timeoutId);
 		});
 	}
@@ -89,7 +89,7 @@ class MySqlClient {
 					if (!/^(?:MASTER|SLAVE)/.test(poolConfigName)) {
 						this.poolCluster.end(err => {
 							if (err) {
-								getLogger(Modules.MYSQL_CLIENT).error(
+								getLogger(Clients.MYSQL).error(
 									`Failed to shutdown pool cluster after invalid pool config name detection. Error: ${formatMySqlError(err)}`,
 									err
 								);
@@ -98,18 +98,14 @@ class MySqlClient {
 
 						this.poolCluster = null;
 
-						throw new Exception(
-							Modules.MYSQL_CLIENT,
-							ErrorCodes.MISCONFIGURATION_POOL_CONFIG_NAME,
-							`${poolConfigName} should begin with MASTER or SLAVE`
-						);
+						throw new Exception(Clients.MYSQL, ErrorCodes.MISCONFIGURATION_POOL_CONFIG_NAME, `${poolConfigName} should begin with MASTER or SLAVE`);
 					}
 					this.poolCluster.add(poolConfigName, options.poolCluster.pools[poolConfigName]);
 				}
 
-				this.poolCluster.on('online', nodeId => getLogger(Modules.MYSQL_CLIENT).notice(`Node with id ${nodeId} is online. `));
-				this.poolCluster.on('offline', nodeId => getLogger(Modules.MYSQL_CLIENT).warning(`Node with id ${nodeId} went offline. `));
-				this.poolCluster.on('remove', nodeId => getLogger(Modules.MYSQL_CLIENT).crit(`Node with id ${nodeId} has been removed. `));
+				this.poolCluster.on('online', nodeId => getLogger(Clients.MYSQL).notice(`Node with id ${nodeId} is online. `));
+				this.poolCluster.on('offline', nodeId => getLogger(Clients.MYSQL).warning(`Node with id ${nodeId} went offline. `));
+				this.poolCluster.on('remove', nodeId => getLogger(Clients.MYSQL).crit(`Node with id ${nodeId} has been removed. `));
 
 				this.internalWritePool = this.poolCluster.of('MASTER*');
 				this.internalReadPool = this.poolCluster.of('SLAVE*');
@@ -125,7 +121,7 @@ class MySqlClient {
 				return;
 			}
 
-			throw new Exception(Modules.MYSQL_CLIENT, ErrorCodes.MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG, '', options);
+			throw new Exception(Clients.MYSQL, ErrorCodes.MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG, '', options);
 		}
 	}
 
@@ -144,7 +140,7 @@ class MySqlClient {
 				return reject(err);
 			}
 
-			getLogger(Modules.MYSQL_CLIENT).notice('MySQL client has been shut down.');
+			getLogger(Clients.MYSQL).notice('MySQL client has been shut down.');
 			return resolve();
 		};
 
@@ -173,21 +169,21 @@ class MySqlClient {
 
 	private static createMySqlErrorHandler(): (err: MysqlError) => void {
 		return (error: MysqlError): void => {
-			getLogger(Modules.MYSQL_CLIENT).alert(`Connection Error: ${formatMySqlError(error)}`, error);
+			getLogger(Clients.MYSQL).alert(`Connection Error: ${formatMySqlError(error)}`, error);
 		};
 	}
 
 	private static createPollConnectionEventHandler(sessionVariablesQueries?: Array<string>): (con: Connection) => void {
 		return (connection: Connection): void => {
-			getLogger(Modules.MYSQL_CLIENT).info(`Connected as id ${connection.threadId}. `);
+			getLogger(Clients.MYSQL).info(`Connected as id ${connection.threadId}. `);
 
 			if (sessionVariablesQueries) {
 				for (let i = sessionVariablesQueries.length - 1; i >= 0; i--) {
 					connection.query(sessionVariablesQueries![i], err => {
 						if (err) {
-							throw new Exception(Modules.MYSQL_CLIENT, ErrorCodes.SESSION_VARIABLE_QUERY_FAILED, formatConnectionDetails(connection), err); // fatal error
+							throw new Exception(Clients.MYSQL, ErrorCodes.SESSION_VARIABLE_QUERY_FAILED, formatConnectionDetails(connection), err); // fatal error
 						}
-						getLogger(Modules.MYSQL_CLIENT).notice(`Session variable query '${sessionVariablesQueries![i]}' completed successfully.`);
+						getLogger(Clients.MYSQL).notice(`Session variable query '${sessionVariablesQueries![i]}' completed successfully.`);
 					});
 				}
 			}
@@ -198,9 +194,9 @@ class MySqlClient {
 
 	private static configurePool(pool: Pool, sessionVariablesQueries?: Array<string>): void {
 		pool.on('connection', MySqlClient.createPollConnectionEventHandler(sessionVariablesQueries));
-		pool.on('acquire', connection => getLogger(Modules.MYSQL_CLIENT).debug(`Connection ${connection.threadId} acquired. `));
-		pool.on('release', connection => getLogger(Modules.MYSQL_CLIENT).debug(`Connection ${connection.threadId} released. `));
-		pool.on('enqueue', () => getLogger(Modules.MYSQL_CLIENT).debug('Waiting for available connection slot. '));
+		pool.on('acquire', connection => getLogger(Clients.MYSQL).debug(`Connection ${connection.threadId} acquired. `));
+		pool.on('release', connection => getLogger(Clients.MYSQL).debug(`Connection ${connection.threadId} released. `));
+		pool.on('enqueue', () => getLogger(Clients.MYSQL).debug('Waiting for available connection slot. '));
 	}
 }
 
@@ -214,6 +210,13 @@ function formatMySqlError(error: MysqlError): string {
 	return `Code: ${error.code}; Errno: ${error.errno}; Sql state marker: ${error.sqlStateMarker}; Sql state: ${error.sqlState}; Field count: ${error.fieldCount}; Fatal: ${error.fatal}; Sql: ${error.sql}; Sql message: ${error.sqlMessage}. `;
 }
 
+const typeCastBooleans: TypeCast = (field, next) => {
+	if (field.type === 'TINY' && field.length === 1) {
+		return field.string() === '1'; // 1 = true, 0 = false
+	}
+	return next();
+};
+
 const MySqlClientInstance = new MySqlClient();
 
-export { MySqlClientInstance, ErrorCodes, Pool, PoolClusterConfig, PoolConfig, MySqlPoolClusterConfigs, MySqlClientOptions, MysqlError };
+export { MySqlClientInstance, typeCastBooleans, ErrorCodes, Pool, PoolClusterConfig, PoolConfig, MySqlPoolClusterConfigs, MySqlClientOptions, MysqlError };

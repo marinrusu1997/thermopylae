@@ -1,10 +1,10 @@
-import { Modules } from '@marin/declarations/lib/modules';
+import { Clients } from '@marin/lib.utils/dist/declarations';
 import bluebird from 'bluebird';
 import redis, { AggregateError, ClientOpts, RedisClient as RedisLibraryClient, RedisError, ReplyError } from 'redis';
 import { number } from '@marin/lib.utils';
-import { getLogger } from './logger';
+import { getLogger } from '../logger';
 
-// FIXME remove this bluebird!8
+// FIXME remove this bluebird!
 bluebird.promisifyAll(redis);
 
 interface RedisClientOptions {
@@ -45,11 +45,11 @@ class RedisClient {
 				});
 
 				this.redisClient.on('ready', () => {
-					getLogger(Modules.REDIS_CLIENT).info(`Connection established. Server info: ${JSON.stringify(this.redisClient!.server_info)}. `);
+					getLogger(Clients.REDIS).info(`Connection established. Server info: ${JSON.stringify(this.redisClient!.server_info)}. `);
 
 					if (options.monitor) {
 						this.redisClient!.on('monitor', (timestamp: string, args: any[], replyStr: string) => {
-							getLogger(Modules.REDIS_CLIENT).debug(
+							getLogger(Clients.REDIS).debug(
 								`Monitored: Raw reply: ${replyStr}. Args: ${JSON.stringify(args)}. Timestamp: ${new Date(Number(timestamp) * 1000)}. `
 							);
 						});
@@ -58,7 +58,7 @@ class RedisClient {
 							if (err) {
 								return reject(err);
 							}
-							getLogger(Modules.REDIS_CLIENT).debug('Entering monitor mode.');
+							getLogger(Clients.REDIS).debug('Entering monitor mode.');
 							this.connectedAfterInitialization = true;
 							return resolve();
 						});
@@ -80,18 +80,18 @@ class RedisClient {
 					return RedisClient.logRedisError(err);
 				});
 
-				this.redisClient.on('warning', (msg: string) => getLogger(Modules.REDIS_CLIENT).warning(`Warning: ${msg}. `));
+				this.redisClient.on('warning', (msg: string) => getLogger(Clients.REDIS).warning(`Warning: ${msg}. `));
 
-				this.redisClient.on('connect', () => getLogger(Modules.REDIS_CLIENT).info('Stream is connecting... '));
+				this.redisClient.on('connect', () => getLogger(Clients.REDIS).info('Stream is connecting... '));
 
 				this.redisClient.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
-					getLogger(Modules.REDIS_CLIENT).info(`Reconnecting... Delay: ${reconnect.delay} ms. Attempt: ${reconnect.attempt}. `);
+					getLogger(Clients.REDIS).info(`Reconnecting... Delay: ${reconnect.delay} ms. Attempt: ${reconnect.attempt}. `);
 					if (reconnect.error) {
 						RedisClient.logRedisError(reconnect.error);
 					}
 				});
 
-				this.redisClient.on('end', () => getLogger(Modules.REDIS_CLIENT).warning('Connection closed. '));
+				this.redisClient.on('end', () => getLogger(Clients.REDIS).warning('Connection closed. '));
 			});
 		}
 		return Promise.resolve();
@@ -116,7 +116,7 @@ class RedisClient {
 				return reject(new Error(`Redis client, unexpected quit result: ${res}. `));
 			}
 
-			getLogger(Modules.REDIS_CLIENT).notice('Redis client has been shut down.');
+			getLogger(Clients.REDIS).notice('Redis client has been shut down.');
 			return resolve();
 		};
 
@@ -152,7 +152,7 @@ class RedisClient {
 			// @ts-ignore
 			errMsg += `Aggregated errors: ${JSON.stringify(error.errors)}. `;
 		}
-		getLogger(Modules.REDIS_CLIENT).error(errMsg, error);
+		getLogger(Clients.REDIS).error(errMsg, error);
 	}
 }
 
