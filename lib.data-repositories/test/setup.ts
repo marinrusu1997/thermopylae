@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import { streamWrite, streamEnd, onExit } from '@rauschma/stringio';
 import { number } from '@marin/lib.utils';
 import { config as dotEnvConfig } from 'dotenv';
+import { MySqlClientInstance } from '../lib/clients/mysql';
 
 interface MySqlEnv {
 	host: string;
@@ -160,22 +161,7 @@ async function newMySqlContainerNeedsToBeCreated(portOfExistingContainer: number
 	});
 }
 
-let mySqlContainer: Container | null = null;
-const mySqlContainerName = 'sql_test_data_repositories';
-let logger: WinstonLogger;
-
-before(async function(): Promise<void> {
-	this.timeout(3000000);
-
-	const dotEnv = dotEnvConfig();
-	if (dotEnv.error) {
-		throw dotEnv.error;
-	}
-
-	LoggerInstance.console.setConfig({ level: 'debug' });
-	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
-	logger = LoggerInstance.for('MOCHA');
-
+async function bootMySqlContainer(): Promise<void> {
 	const containers = await docker.listContainers();
 	for (let i = containers.length - 1; i >= 0; i--) {
 		if (containers[i].Names.includes(`/${mySqlContainerName}`)) {
@@ -183,6 +169,12 @@ before(async function(): Promise<void> {
 			if (containers[i].State !== 'running') {
 				// eslint-disable-next-line no-await-in-loop
 				await (await docker.getContainer(containers[i].Id)).start();
+			}
+			for (let j = containers[i].Ports.length - 1; j >= 0; j--) {
+				if (containers[i].Ports[j].PrivatePort === 3306 && typeof containers[i].Ports[j].PublicPort === 'number') {
+					MySqlEnv.port = containers[i].Ports[j].PublicPort;
+					break;
+				}
 			}
 			return;
 		}
@@ -212,6 +204,35 @@ before(async function(): Promise<void> {
 
 	logger.debug('Waiting till MySql container will boot...');
 	await waitMySqlContainerToBoot();
+}
+
+let mySqlContainer: Container | null = null;
+const mySqlContainerName = 'sql_test_data_repositories';
+let logger: WinstonLogger;
+
+before(async function(): Promise<void> {
+	this.timeout(3000000);
+
+	const dotEnv = dotEnvConfig();
+	if (dotEnv.error) {
+		throw dotEnv.error;
+	}
+
+	LoggerInstance.console.setConfig({ level: 'debug' });
+	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
+	logger = LoggerInstance.for('MOCHA');
+
+	await bootMySqlContainer();
+
+	MySqlClientInstance.init({
+		pool: {
+			host: MySqlEnv.host,
+			port: MySqlEnv.port,
+			user: MySqlEnv.user,
+			password: MySqlEnv.password,
+			database: MySqlEnv.database
+		}
+	});
 });
 
 after(async function(): Promise<void> {

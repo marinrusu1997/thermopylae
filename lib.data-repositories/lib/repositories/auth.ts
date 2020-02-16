@@ -187,4 +187,4 @@ class AuthRepository {
 	}
 }
 
-export { AuthRepository };
+export { AuthRepository, GenerateEntityOptions, Seconds };
