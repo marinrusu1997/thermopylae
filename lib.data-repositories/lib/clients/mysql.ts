@@ -3,8 +3,6 @@ import { Clients } from '@marin/lib.utils/dist/declarations';
 import Exception from '@marin/lib.error';
 import { getLogger } from '../logger';
 
-type ConnectionId = number;
-
 interface MySqlPoolClusterConfigs {
 	[name: string]: PoolConfig;
 }
@@ -19,47 +17,9 @@ interface MySqlClientOptions {
 }
 
 const enum ErrorCodes {
-	PING_FAILED = 'PING_FAILED',
 	SESSION_VARIABLE_QUERY_FAILED = 'SESSION_VARIABLE_QUERY_FAILED',
 	MISCONFIGURATION_POOL_CONFIG_NAME = 'MISCONFIGURATION_POOL_CONFIG_NAME',
 	MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG = 'MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG'
-}
-
-// @ts-ignore, maybe will be used in future, although I don't see a clear use case
-class PingingTracker {
-	private readonly connectionPingTimeouts: Map<ConnectionId, NodeJS.Timeout> = new Map<ConnectionId, NodeJS.Timeout>();
-
-	public track(connection: Connection, intervalInMs: number): void {
-		const doPing = (): void => {
-			connection.ping((error: MysqlError | null) => {
-				if (error) {
-					throw new Exception(Clients.MYSQL, ErrorCodes.PING_FAILED, formatConnectionDetails(connection), error); // fatal error
-				}
-				getLogger(Clients.MYSQL).info(`Ping confirmed. ${formatConnectionDetails(connection)}`);
-				this.connectionPingTimeouts.set(connection.threadId!, setTimeout(doPing, intervalInMs));
-			});
-		};
-
-		getLogger(Clients.MYSQL).debug(`Started pinging. ${formatConnectionDetails(connection)}`);
-		this.connectionPingTimeouts.set(connection.threadId!, setTimeout(doPing, intervalInMs));
-	}
-
-	public unTrackSingle(connectionId: ConnectionId): void {
-		getLogger(Clients.MYSQL).debug(`Stopping pinging for connection with id ${connectionId}.`);
-		clearTimeout(this.connectionPingTimeouts.get(connectionId)!);
-		this.connectionPingTimeouts.delete(connectionId);
-	}
-
-	public unTrackAll(): void {
-		this.connectionPingTimeouts.forEach((timeoutId, connectionId) => {
-			getLogger(Clients.MYSQL).debug(`Stopping pinging for connection with id ${connectionId}.`);
-			clearTimeout(timeoutId);
-		});
-	}
-
-	public reset(): void {
-		this.connectionPingTimeouts.clear();
-	}
 }
 
 class MySqlClient {
@@ -140,9 +100,10 @@ class MySqlClient {
 				return reject(err);
 			}
 
-			getLogger(Clients.MYSQL).notice('MySQL client has been shut down.');
 			return resolve();
 		};
+
+		getLogger(Clients.MYSQL).notice('Shutting down...');
 
 		if (this.poolCluster) {
 			this.poolCluster.end(shutdownCallback);

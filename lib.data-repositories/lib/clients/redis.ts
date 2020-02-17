@@ -24,7 +24,7 @@ class RedisClient {
 				redis.debug_mode = options.debug || false;
 
 				this.redisClient = redis.createClient({
-					...options,
+					...options.client,
 					retry_strategy: retryOptions => {
 						if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
 							return new Error(`Reconnecting... The server refused the connection. Cause: ${JSON.stringify(retryOptions.error)}.`);
@@ -116,9 +116,10 @@ class RedisClient {
 				return reject(new Error(`Redis client, unexpected quit result: ${res}. `));
 			}
 
-			getLogger(Clients.REDIS).notice('Redis client has been shut down.');
 			return resolve();
 		};
+
+		getLogger(Clients.REDIS).notice(`Shutting down ${graceful ? 'gracefully' : 'forcibly'}...`);
 
 		if (graceful) {
 			this.redisClient!.quit(shutdownCallback);

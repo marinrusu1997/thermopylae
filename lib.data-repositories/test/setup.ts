@@ -1,23 +1,29 @@
 import { before, after } from 'mocha';
-import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger/lib';
-import Dockerode, { Container } from 'dockerode';
+import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger';
+import Dockerode, { Container, ContainerInfo, Port } from 'dockerode';
 import { Connection, createConnection, MysqlError } from 'mysql';
 import { spawn } from 'child_process';
 import { streamWrite, streamEnd, onExit } from '@rauschma/stringio';
-import { number } from '@marin/lib.utils';
+import { chrono, number } from '@marin/lib.utils';
 import { config as dotEnvConfig } from 'dotenv';
 import { MySqlClientInstance } from '../lib/clients/mysql';
+import { RedisClientInstance } from '../lib/clients/redis';
 
-interface MySqlEnv {
+interface Env {
 	host: string;
 	port: number;
-	user: string;
 	password: string;
+}
+
+interface MySqlEnv extends Env {
+	user: string;
 	database: string;
 	tables: {
 		account: string;
 	};
 }
+
+type AdjustPortsFun = (port: Port) => boolean;
 
 const MySqlEnv: MySqlEnv = {
 	host: '127.0.0.1',
@@ -30,19 +36,55 @@ const MySqlEnv: MySqlEnv = {
 	}
 };
 
-// eslint-disable-next-line import/no-mutable-exports
+const RedisEnv: Env = {
+	host: '127.0.0.1',
+	port: number.generateRandom(6400, 7000),
+	password: 'secret'
+};
+
 const docker: Dockerode = new Dockerode({
 	socketPath: '/var/run/docker.sock'
 });
 
+const mySqlContainerName = 'sql_test_data_repositories';
+let mySqlContainer: Container | null = null;
+
+const redisContainerName = 'redis_test_data_repositories';
+let redisContainer: Container | null = null;
+
+let logger: WinstonLogger;
+
+let mySqlSetupConnection: Connection;
+
 async function assertImageAvailability(imageName: string): Promise<void> {
 	const images = await docker.listImages();
 	if (images.findIndex(image => image.RepoTags.includes(imageName)) === -1) {
-		throw new Error(`${imageName} image not found. Install it then rerun tests.`);
+		logger.debug(`Pulling image ${imageName}...`);
+		const image = await docker.pull(imageName, {});
+		logger.debug(`Image created with id ${image.id}. Waiting 200 ms...`);
+		await chrono.sleep(200);
 	}
 }
 
-let mySqlSetupConnection: Connection;
+async function isContainerAlreadyAvailable(containerInfos: Array<ContainerInfo>, containerName: string, adjustPorts: AdjustPortsFun): Promise<boolean> {
+	for (let i = containerInfos.length - 1; i >= 0; i--) {
+		if (containerInfos[i].Names.includes(`/${containerName}`)) {
+			logger.debug(`Found container ${containerName} created in previous run in ${containerInfos[i].State} state.`);
+			if (containerInfos[i].State !== 'running') {
+				// eslint-disable-next-line no-await-in-loop
+				await (await docker.getContainer(containerInfos[i].Id)).start();
+			}
+			for (let j = containerInfos[i].Ports.length - 1; j >= 0; j--) {
+				if (adjustPorts(containerInfos[i].Ports[j])) {
+					break;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 function createNewMySqlConnectionForSetUp(env?: Partial<MySqlEnv>): Connection {
 	mySqlSetupConnection = createConnection({
 		host: (env && env.host) || MySqlEnv.host,
@@ -139,45 +181,17 @@ async function waitMySqlContainerToBoot(): Promise<void> {
 	return promise;
 }
 
-// @ts-ignore
-async function newMySqlContainerNeedsToBeCreated(portOfExistingContainer: number): Promise<boolean> {
-	return new Promise<boolean>(resolve => {
-		createNewMySqlConnectionForSetUp({ port: portOfExistingContainer }).connect(err => {
-			if (err) {
-				if (err.code === 'ER_NOT_SUPPORTED_AUTH_MODE') {
-					// @ts-ignore
-					return setUpMySqlContainer(
-						() => resolve(false),
-						(setUpError: Error) => {
-							logger.error('Failed to set up already created MySql container. ', setUpError);
-							resolve(true);
-						}
-					);
-				}
-				return resolve(true);
-			}
-			return resolve(false);
-		});
-	});
-}
-
-async function bootMySqlContainer(): Promise<void> {
-	const containers = await docker.listContainers();
-	for (let i = containers.length - 1; i >= 0; i--) {
-		if (containers[i].Names.includes(`/${mySqlContainerName}`)) {
-			logger.debug(`Found container created in previous run in ${containers[i].State} state.`);
-			if (containers[i].State !== 'running') {
-				// eslint-disable-next-line no-await-in-loop
-				await (await docker.getContainer(containers[i].Id)).start();
-			}
-			for (let j = containers[i].Ports.length - 1; j >= 0; j--) {
-				if (containers[i].Ports[j].PrivatePort === 3306 && typeof containers[i].Ports[j].PublicPort === 'number') {
-					MySqlEnv.port = containers[i].Ports[j].PublicPort;
-					break;
-				}
-			}
-			return;
+async function bootMySqlContainer(containerInfos: Array<ContainerInfo>): Promise<void> {
+	const adjustMySqlPorts: AdjustPortsFun = containerPort => {
+		if (containerPort.PrivatePort === 3306 && typeof containerPort.PublicPort === 'number') {
+			MySqlEnv.port = containerPort.PublicPort;
+			return true;
 		}
+		return false;
+	};
+
+	if (await isContainerAlreadyAvailable(containerInfos, mySqlContainerName, adjustMySqlPorts)) {
+		return;
 	}
 
 	await assertImageAvailability('mysql:latest');
@@ -206,9 +220,41 @@ async function bootMySqlContainer(): Promise<void> {
 	await waitMySqlContainerToBoot();
 }
 
-let mySqlContainer: Container | null = null;
-const mySqlContainerName = 'sql_test_data_repositories';
-let logger: WinstonLogger;
+async function bootRedisContainer(containerInfos: Array<ContainerInfo>): Promise<void> {
+	const adjustRedisPorts: AdjustPortsFun = containerPort => {
+		if (containerPort.PrivatePort === 6379 && typeof containerPort.PublicPort === 'number') {
+			RedisEnv.port = containerPort.PublicPort;
+			return true;
+		}
+		return false;
+	};
+
+	if (await isContainerAlreadyAvailable(containerInfos, redisContainerName, adjustRedisPorts)) {
+		return;
+	}
+
+	await assertImageAvailability('bitnami/redis:latest');
+
+	logger.debug('Creating Redis container...');
+	redisContainer = await docker.createContainer({
+		Image: 'bitnami/redis:latest',
+		name: redisContainerName,
+		ExposedPorts: { '6379/tcp': {} },
+		HostConfig: {
+			PortBindings: {
+				'6379/tcp': [
+					{
+						HostPort: `${RedisEnv.port}`
+					}
+				]
+			}
+		},
+		Env: [`REDIS_PASSWORD=${RedisEnv.password}`, `ALLOW_EMPTY_PASSWORD=false`]
+	});
+
+	logger.debug(`Starting Redis container ${redisContainer!.id} ...`);
+	await redisContainer!.start();
+}
 
 before(async function(): Promise<void> {
 	this.timeout(3000000);
@@ -222,7 +268,13 @@ before(async function(): Promise<void> {
 	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
 	logger = LoggerInstance.for('MOCHA');
 
-	await bootMySqlContainer();
+	const containerInfos = await docker.listContainers({
+		all: true
+	});
+
+	await bootRedisContainer(containerInfos);
+
+	await bootMySqlContainer(containerInfos);
 
 	MySqlClientInstance.init({
 		pool: {
@@ -233,16 +285,33 @@ before(async function(): Promise<void> {
 			database: MySqlEnv.database
 		}
 	});
+
+	await RedisClientInstance.init({
+		client: RedisEnv
+	});
 });
 
 after(async function(): Promise<void> {
+	this.timeout(20000);
+
+	await MySqlClientInstance.shutdown();
+	await RedisClientInstance.shutdown();
+
 	if (mySqlContainer) {
-		this.timeout(20000);
 		logger.debug(`Stopping created MySql container ${mySqlContainer.id} ...`);
 		await mySqlContainer.stop();
 		if (typeof process.env.DELETE_MY_SQL_CONTAINER_AFTER_TESTS === 'undefined' || process.env.DELETE_MY_SQL_CONTAINER_AFTER_TESTS === 'true') {
 			logger.debug('Removing created MySql container...');
 			await mySqlContainer.remove();
+		}
+	}
+
+	if (redisContainer) {
+		logger.debug(`Stopping created Redis container ${redisContainer.id} ...`);
+		await redisContainer.stop();
+		if (typeof process.env.DELETE_REDIS_CONTAINER_AFTER_TESTS === 'undefined' || process.env.DELETE_REDIS_CONTAINER_AFTER_TESTS === 'true') {
+			logger.debug('Removing created Redis container...');
+			await redisContainer.remove();
 		}
 	}
 });
