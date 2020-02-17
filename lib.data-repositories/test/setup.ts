@@ -124,7 +124,7 @@ function setUpMySqlContainer(resolve: Function, reject: Function): Promise<void>
 
 				logger.debug(`Creating ${MySqlEnv.tables.account} table...`);
 				mySqlSetupConnection.query(
-					`CREATE TABLE IF NOT EXISTS ${MySqlEnv.tables.account} (id ${stringType}, username ${stringType}, password VARCHAR(100), salt ${stringType}, telephone ${stringType}, email ${stringType}, locked ${boolType}, activated ${boolType}, mfa ${boolType}, role ${stringType}, pubKey ${boolType});`,
+					`CREATE TABLE IF NOT EXISTS ${MySqlEnv.tables.account} (id INT AUTO_INCREMENT PRIMARY KEY, username ${stringType}, password VARCHAR(100), salt ${stringType}, telephone ${stringType}, email ${stringType}, locked ${boolType}, activated ${boolType}, mfa ${boolType}, role ${stringType}, pubKey ${stringType});`,
 					createAccountTableErr => {
 						if (createAccountTableErr) {
 							return reject(createAccountTableErr);
@@ -264,7 +264,7 @@ before(async function(): Promise<void> {
 		throw dotEnv.error;
 	}
 
-	LoggerInstance.console.setConfig({ level: 'debug' });
+	LoggerInstance.console.setConfig({ level: process.env.LOG_LEVEL || 'debug' });
 	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
 	logger = LoggerInstance.for('MOCHA');
 
@@ -277,13 +277,7 @@ before(async function(): Promise<void> {
 	await bootMySqlContainer(containerInfos);
 
 	MySqlClientInstance.init({
-		pool: {
-			host: MySqlEnv.host,
-			port: MySqlEnv.port,
-			user: MySqlEnv.user,
-			password: MySqlEnv.password,
-			database: MySqlEnv.database
-		}
+		pool: MySqlEnv
 	});
 
 	await RedisClientInstance.init({

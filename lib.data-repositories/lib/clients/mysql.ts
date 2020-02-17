@@ -155,9 +155,6 @@ class MySqlClient {
 
 	private static configurePool(pool: Pool, sessionVariablesQueries?: Array<string>): void {
 		pool.on('connection', MySqlClient.createPollConnectionEventHandler(sessionVariablesQueries));
-		pool.on('acquire', connection => getLogger(Clients.MYSQL).debug(`Connection ${connection.threadId} acquired. `));
-		pool.on('release', connection => getLogger(Clients.MYSQL).debug(`Connection ${connection.threadId} released. `));
-		pool.on('enqueue', () => getLogger(Clients.MYSQL).debug('Waiting for available connection slot. '));
 	}
 }
 

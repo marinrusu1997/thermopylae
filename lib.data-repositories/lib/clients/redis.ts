@@ -54,11 +54,11 @@ class RedisClient {
 							);
 						});
 
+						getLogger(Clients.REDIS).debug('Entering monitor mode...');
 						this.redisClient!.MONITOR(err => {
 							if (err) {
 								return reject(err);
 							}
-							getLogger(Clients.REDIS).debug('Entering monitor mode.');
 							this.connectedAfterInitialization = true;
 							return resolve();
 						});

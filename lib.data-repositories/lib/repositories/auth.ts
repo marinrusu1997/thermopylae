@@ -30,6 +30,26 @@ class AuthRepository {
 			});
 		}
 
+		function doReadSingleAccount(sql: string, values: Array<any> | any, resolve: Function, reject: Function): void {
+			MySqlClientInstance.readPool.query(
+				{
+					sql,
+					values,
+					typeCast: typeCastBooleans
+				},
+				(err, result) => {
+					if (err) {
+						return reject(err);
+					}
+					if (result.length !== 1) {
+						return resolve(null); // not found
+					}
+					result[0].id = String(result[0].id); // convert to string if is auto-generated
+					return resolve(result[0]);
+				}
+			);
+		}
+
 		return {
 			async create(account: models.AccountModel): Promise<models.AccountModel> {
 				if (!account.id && !options['auto-generated-key']) {
@@ -74,7 +94,7 @@ class AuthRepository {
 						if (err) {
 							return reject(err);
 						}
-						account.id = account.id || results.insertId;
+						account.id = String(account.id || results.insertId); // convert to string if is auto-generated
 						return resolve(account);
 					});
 				});
@@ -82,43 +102,13 @@ class AuthRepository {
 			read(username: string): Promise<models.AccountModel | null> {
 				return new Promise<models.AccountModel | null>((resolve, reject) => {
 					const selectSQL = `SELECT * FROM ${options['table-name']} WHERE username = ?;`;
-					MySqlClientInstance.readPool.query(
-						{
-							sql: selectSQL,
-							values: username,
-							typeCast: typeCastBooleans
-						},
-						(err, result) => {
-							if (err) {
-								return reject(err);
-							}
-							if (result.length !== 1) {
-								return resolve(null); // not found
-							}
-							return resolve(result[0]);
-						}
-					);
+					doReadSingleAccount(selectSQL, username, resolve, reject);
 				});
 			},
 			readById(id: string): Promise<models.AccountModel | null> {
 				return new Promise<models.AccountModel | null>((resolve, reject) => {
 					const selectSQL = `SELECT * FROM ${options['table-name']} WHERE id = ?;`;
-					MySqlClientInstance.readPool.query(
-						{
-							sql: selectSQL,
-							values: id,
-							typeCast: typeCastBooleans
-						},
-						(err, result) => {
-							if (err) {
-								return reject(err);
-							}
-							if (result.length !== 1) {
-								return resolve(null); // not found
-							}
-							return resolve(result[0]);
-						}
-					);
+					doReadSingleAccount(selectSQL, id, resolve, reject);
 				});
 			},
 			lock(id: string): Promise<void> {
