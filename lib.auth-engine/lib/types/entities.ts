@@ -2,15 +2,15 @@ import { AccessPointModel, AccountModel, FailedAuthAttemptsModel } from './model
 import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
 export interface AccountEntity {
-	create(account: AccountModel): Promise<AccountModel>;
+	create(account: AccountModel): Promise<string>;
 	read(username: string): Promise<AccountModel | null>;
 	readById(id: string): Promise<AccountModel | null>;
-	delete(id: string): Promise<void>;
-	activate(id: string): Promise<void>;
-	lock(id: string): Promise<void>;
-	unlock(id: string): Promise<void>;
-	enableMFA(id: string, enabled: boolean): Promise<void>;
+	enable(id: string): Promise<void>;
+	disable(id: string): Promise<void>;
+	enableMultiFactorAuth(id: string): Promise<void>;
+	disableMultiFactorAuth(id: string): Promise<void>;
 	changePassword(id: string, passwordHash: string, salt: string): Promise<void>;
+	delete(id: string): Promise<void>;
 }
 
 export interface FailedAuthAttemptsEntity {
@@ -33,16 +33,16 @@ export interface ActiveUserSessionEntity {
 }
 
 export interface AuthSessionEntity {
-	create(username: string, deviceId: string, ttl: number): Promise<AuthSession>;
-	update(username: string, deviceId: string, session: AuthSession): Promise<void>;
+	create(username: string, deviceId: string, session: AuthSession, ttl: number): Promise<void>;
 	read(username: string, deviceId: string): Promise<AuthSession | null>;
+	update(username: string, deviceId: string, session: AuthSession): Promise<void>;
 	delete(username: string, deviceId: string): Promise<void>;
 }
 
 export interface FailedAuthAttemptSessionEntity {
 	create(username: string, session: FailedAuthAttemptSession, ttl: number): Promise<void>;
-	update(username: string, session: FailedAuthAttemptSession): Promise<void>;
 	read(username: string): Promise<FailedAuthAttemptSession | null>;
+	update(username: string, session: FailedAuthAttemptSession): Promise<void>;
 	delete(username: string): Promise<void>;
 }
 

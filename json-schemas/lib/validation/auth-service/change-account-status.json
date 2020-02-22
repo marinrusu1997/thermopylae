@@ -1,12 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#AUTH_SERVICE-CHANGE_ACCOUNT_LOCK_STATUS",
+  "$id": "#AUTH_SERVICE-CHANGE_ACCOUNT_STATUS",
   "type": "object",
-  "title": "AuthService lock account method",
-  "description": "Method used by the admins in order to lock user account.",
+  "title": "AuthService change account status method",
+  "description": "Method used by the admins in order to change user account status.",
   "properties": {
-    "enable": {
-      "type": "boolean"
+    "status": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
     },
     "accountId": {
       "$ref": "../core/core.json#/definitions/id"
@@ -18,13 +21,15 @@
     }
   },
   "required": [
-    "enable",
+    "status",
     "accountId"
   ],
   "if": {
     "properties": {
-      "enable": {
-        "const": true
+      "status": {
+        "enum": [
+          "disabled"
+        ]
       }
     }
   },
@@ -32,6 +37,5 @@
     "required": [
       "cause"
     ]
-  },
-  "additionalProperties": false
+  }
 }

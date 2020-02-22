@@ -137,7 +137,7 @@ async function testAdditionalProperties(service: Services, method: string, data:
 	expect(err.errors[0].message).to.be.eq('should NOT have additional properties');
 }
 
-const { generateString } = string;
+const generateString = string.generateStringOfLength;
 
 export {
 	generateString,

@@ -1,17 +1,14 @@
 import { chrono, token, totp } from '@marin/lib.utils';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { SmsClient } from '@marin/lib.sms';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { EmailClient } from '@marin/lib.email';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 
 import {
 	AuthRequest,
-	RegistrationRequest,
 	ChangeForgottenPasswordRequest,
 	ChangePasswordRequest,
 	CreateForgotPasswordSessionRequest,
+	RegistrationRequest,
 	SIDE_CHANNEL
 } from './types/requests';
 import { BasicCredentials } from './types/basic-types';
@@ -36,39 +33,36 @@ import { GenerateTotpStep } from './authentication/steps/generate-totp-step';
 import { RecaptchaStep, RecaptchaValidator } from './authentication/steps/recaptcha-step';
 import { ErrorStep } from './authentication/steps/error-step';
 import { UserSessionsManager } from './managers/user-sessions-manager';
-import { AccountLockingManager } from './managers/account-locking-manager';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager } from './managers/passwords-manager';
-import {
-	// eslint-disable-next-line import/named
-	ActivateAccountTemplate,
-	// eslint-disable-next-line import/named
-	ForgotPasswordTemplate,
-	NotificationAccountLockedTemplate,
-	NotificationAuthFromDiffDeviceTemplate,
-	NotificationMFAFailedTemplate,
-	sendActivateAccountLinkToUserEmail,
-	// eslint-disable-next-line import/named
-	sendForgotPasswordTokenToUserEmail
-} from './email';
+import { EmailSender, EmailSendOptions } from './side-channels/email-sender';
 import { ActiveUserSession } from './types/sessions';
-import { AccessPointModel, FailedAuthAttemptsModel } from './types/models';
+import { AccessPointModel, AccountModel, FailedAuthAttemptsModel } from './types/models';
 import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './types/schedulers';
 import { getLogger } from './logger';
 import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
 import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
+import { AccountStatusManager } from './managers/account-status-manager';
+import { SmsSender, SmsSendOptions } from './side-channels/sms-sender';
 
 class AuthenticationEngine {
 	private readonly config: InternalUsageOptions;
+	private readonly emailSender: EmailSender;
+	private readonly smsSender: SmsSender;
+	private readonly accountStatusManager: AccountStatusManager;
 	private readonly authOrchestrator: AuthOrchestrator;
 	private readonly totpManager: totp.Totp;
 	private readonly userSessionsManager: UserSessionsManager;
 	private readonly passwordsManager: PasswordsManager;
-	private readonly accountLocker: AccountLockingManager;
 
 	constructor(options: AuthEngineOptions) {
 		this.config = fillWithDefaults(options);
-		this.totpManager = new totp.Totp({ ttl: this.config.ttl.totp, secret: this.config.secrets.totp });
+
+		this.emailSender = new EmailSender(this.config['side-channels'].email.client, this.config['side-channels'].email['send-options']);
+		this.smsSender = new SmsSender(this.config['side-channels'].sms.client, this.config['side-channels'].sms['send-options']);
+
+		this.totpManager = new totp.Totp({ ttl: this.config.ttl.totpSeconds, secret: this.config.secrets.totp });
+
 		this.userSessionsManager = new UserSessionsManager(
 			this.config.schedulers.deleteActiveUserSession,
 			this.config.jwt.instance,
@@ -76,57 +70,43 @@ class AuthenticationEngine {
 			this.config.entities.accessPoint,
 			this.config.jwt.rolesTtl
 		);
-		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
-		this.accountLocker = new AccountLockingManager(
+
+		this.accountStatusManager = new AccountStatusManager(
+			this.config.contacts.adminEmail,
+			this.emailSender,
 			this.config.entities.account,
-			this.userSessionsManager,
-			this.config['side-channels'].email,
-			this.config.templates.accountLocked
+			this.userSessionsManager
 		);
+
+		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
 
 		this.authOrchestrator = new AuthOrchestrator();
 		this.authOrchestrator.register(AUTH_STEP.DISPATCH, new DispatchStep());
 		this.authOrchestrator.register(AUTH_STEP.PASSWORD, new PasswordStep(this.config.secrets.pepper));
-		this.authOrchestrator.register(
-			AUTH_STEP.GENERATE_TOTP,
-			new GenerateTotpStep(this.totpManager, this.config['side-channels'].sms, this.config.templates.totpTokenSms)
-		);
-		this.authOrchestrator.register(
-			AUTH_STEP.TOTP,
-			new TotpStep(this.totpManager, this.config['side-channels'].email, this.config.templates.multiFactorAuthFailed)
-		);
+		this.authOrchestrator.register(AUTH_STEP.GENERATE_TOTP, new GenerateTotpStep(this.smsSender, this.totpManager));
+		this.authOrchestrator.register(AUTH_STEP.TOTP, new TotpStep(this.emailSender, this.totpManager));
 		this.authOrchestrator.register(AUTH_STEP.RECAPTCHA, new RecaptchaStep(this.config.validators.recaptcha));
 		this.authOrchestrator.register(
 			AUTH_STEP.ERROR,
 			new ErrorStep(
-				this.config.contacts.adminEmail,
 				this.config.thresholds.maxFailedAuthAttempts,
 				this.config.thresholds.recaptcha,
-				this.config.ttl.failedAuthAttemptsSession,
+				this.config.ttl.failedAuthAttemptsSessionMinutes,
+				this.accountStatusManager,
 				this.config.entities.failedAuthAttemptsSession,
-				this.config.entities.failedAuthAttempts,
-				this.accountLocker
+				this.config.entities.failedAuthAttempts
 			)
 		);
 		this.authOrchestrator.register(
 			AUTH_STEP.AUTHENTICATED,
-			new AuthenticatedStep(
-				this.config['side-channels'].email,
-				this.config.templates.authFromDiffDevice,
-				this.userSessionsManager,
-				this.config.entities.accessPoint,
-				this.config.entities.failedAuthAttemptsSession
-			)
+			new AuthenticatedStep(this.emailSender, this.userSessionsManager, this.config.entities.accessPoint, this.config.entities.failedAuthAttemptsSession)
 		);
 		if (this.config.validators.challengeResponse) {
-			this.authOrchestrator.register(AUTH_STEP.GENERATE_CHALLENGE, new GenerateChallengeStep(this.config.sizes.token));
+			this.authOrchestrator.register(AUTH_STEP.GENERATE_CHALLENGE, new GenerateChallengeStep(this.config.tokensLength.token));
 			this.authOrchestrator.register(AUTH_STEP.CHALLENGE_RESPONSE, new ChallengeResponseStep(this.config.validators.challengeResponse));
 		}
 	}
 
-	/**
-	 * @access public
-	 */
 	public async authenticate(authRequest: AuthRequest): Promise<AuthStatus> {
 		const account = await this.config.entities.account.read(authRequest.username);
 
@@ -134,17 +114,17 @@ class AuthenticationEngine {
 			return { error: { hard: createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account ${authRequest.username} not found. `) } };
 		}
 
-		if (account.locked) {
-			return { error: { hard: createException(ErrorCodes.ACCOUNT_LOCKED, `Account ${account.username} is locked. `) } };
-		}
-		if (!account.activated) {
-			return { error: { hard: createException(ErrorCodes.ACCOUNT_NOT_ACTIVATED, `Account ${account.username} is not activated. `) } };
+		if (!account.enabled) {
+			return { error: { hard: createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `) } };
 		}
 
 		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
 		let authSession = await this.config.entities.authSession.read(authRequest.username, authRequest.device);
 		if (!authSession) {
-			authSession = await this.config.entities.authSession.create(authRequest.username, authRequest.device, this.config.ttl.authSession);
+			authSession = {
+				recaptchaRequired: false
+			};
+			await this.config.entities.authSession.create(authRequest.username, authRequest.device, authSession, this.config.ttl.authSessionMinutes);
 		}
 
 		const result = await this.authOrchestrator.authenticate(authRequest, account, authSession);
@@ -160,13 +140,10 @@ class AuthenticationEngine {
 		return result;
 	}
 
-	/**
-	 * @access public
-	 */
 	public async register(registrationInfo: RegistrationRequest, options?: Partial<RegistrationOptions>): Promise<string> {
 		options = options || {};
 		options.enableMultiFactorAuth = (options && options.enableMultiFactorAuth) || false;
-		options.isActivated = (options && options.isActivated) || false;
+		options.enabled = (options && options.enabled) || false;
 
 		const account = await this.config.entities.account.read(registrationInfo.username);
 		if (account) {
@@ -174,49 +151,44 @@ class AuthenticationEngine {
 		}
 
 		await this.passwordsManager.validateStrengthness(registrationInfo.password);
-		const salt = await PasswordsManager.generateSalt(this.config.sizes.salt);
+		const salt = await PasswordsManager.generateSalt(this.config.tokensLength.salt);
 		const passwordHash = await PasswordsManager.hash(registrationInfo.password, salt, this.config.secrets.pepper);
-		const registeredAccount = await this.config.entities.account.create({
+		const registeredAccount: AccountModel = {
 			username: registrationInfo.username,
 			password: passwordHash,
 			salt,
 			telephone: registrationInfo.telephone,
 			email: registrationInfo.email,
 			role: registrationInfo.role,
-			locked: false,
-			activated: options.isActivated,
-			mfa: options.enableMultiFactorAuth,
+			enabled: options.enabled,
+			usingMfa: options.enableMultiFactorAuth,
 			pubKey: registrationInfo.pubKey
-		});
+		};
+		registeredAccount.id = await this.config.entities.account.create(registeredAccount);
 
-		if (!options.isActivated) {
+		if (!options.enabled) {
 			let activateToken: any;
 			let deleteAccountTaskId;
 			let activateAccountSessionWasCreated = false;
 			try {
-				activateToken = await token.generateToken(this.config.sizes.token);
+				activateToken = await token.generate(this.config.tokensLength.token);
 				deleteAccountTaskId = await this.config.schedulers.account.deleteUnactivated(
-					registeredAccount.id!,
-					chrono.dateFromUNIX(chrono.dateToUNIX() + chrono.minutesToSeconds(this.config.ttl.activateAccountSession))
+					registeredAccount.id,
+					chrono.dateFromUNIX(chrono.dateToUNIX() + chrono.minutesToSeconds(this.config.ttl.activateAccountSessionMinutes))
 				);
 				await this.config.entities.activateAccountSession.create(
 					activateToken.plain,
-					{ accountId: registeredAccount.id!, taskId: deleteAccountTaskId },
-					this.config.ttl.activateAccountSession
+					{ accountId: registeredAccount.id, taskId: deleteAccountTaskId },
+					this.config.ttl.activateAccountSessionMinutes
 				);
 				activateAccountSessionWasCreated = true;
-				await sendActivateAccountLinkToUserEmail(
-					this.config.templates.activateAccount,
-					this.config['side-channels'].email,
-					registeredAccount.email,
-					activateToken.plain
-				);
+				await this.emailSender.sendActivateAccountLink(registeredAccount.email, activateToken.plain);
 			} catch (e) {
 				if (deleteAccountTaskId) {
 					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
 					await this.config.schedulers.account.cancelDelete(deleteAccountTaskId); // task cancelling is not allowed to throw
 				}
-				await this.config.entities.account.delete(registeredAccount.id!);
+				await this.config.entities.account.delete(registeredAccount.id);
 				if (activateAccountSessionWasCreated) {
 					await this.config.entities.activateAccountSession.delete(activateToken.plain);
 				}
@@ -224,12 +196,9 @@ class AuthenticationEngine {
 			}
 		}
 
-		return registeredAccount.id!;
+		return registeredAccount.id;
 	}
 
-	/**
-	 * @access public
-	 */
 	public async activateAccount(activateAccountToken: string): Promise<void> {
 		const session = await this.config.entities.activateAccountSession.read(activateAccountToken);
 		if (!session) {
@@ -240,7 +209,7 @@ class AuthenticationEngine {
 		await this.config.schedulers.account.cancelDelete(session.taskId);
 
 		await Promise.all([
-			this.config.entities.account.activate(session.accountId),
+			this.config.entities.account.enable(session.accountId),
 			this.config.entities.activateAccountSession
 				.delete(activateAccountToken)
 				.catch(err =>
@@ -252,45 +221,42 @@ class AuthenticationEngine {
 		]);
 	}
 
-	/**
-	 * @access private
-	 */
-	public enableMultiFactorAuthentication(accountId: string, enabled: boolean): Promise<void> {
-		return this.config.entities.account.enableMFA(accountId, enabled);
+	public enableMultiFactorAuthentication(accountId: string): Promise<void> {
+		return this.config.entities.account.enableMultiFactorAuth(accountId);
 	}
 
-	/**
-	 * @access private
-	 */
+	public disableMultiFactorAuthentication(accountId: string): Promise<void> {
+		return this.config.entities.account.disableMultiFactorAuth(accountId);
+	}
+
 	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
 		return this.userSessionsManager.read(accountId);
 	}
 
-	/**
-	 * @access private
-	 */
 	public getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
-	/**
-	 * @access private
-	 */
-	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number | undefined> {
+	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number> {
 		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
 		if (!account) {
-			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found. `);
 		}
-		if (account.locked) {
-			// just in case session invalidation failed when account was locked
-			throw createException(ErrorCodes.ACCOUNT_LOCKED, `Account with id ${changePasswordRequest.accountId} is locked.`);
+		if (!account.enabled) {
+			// just in case session invalidation failed when account was disabled
+			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${changePasswordRequest.accountId} is disabled. `);
 		}
 		if (!(await PasswordsManager.isCorrect(changePasswordRequest.old, account.password, account.salt, this.config.secrets.pepper))) {
-			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match.");
+			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
 		}
-		// additional checks are not made, as we rely on authenticate step, e.g. for locked accounts all sessions are invalidated
+		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 
-		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.new, this.config.sizes.salt, this.config.secrets.pepper);
+		await this.passwordsManager.change(
+			changePasswordRequest.accountId,
+			changePasswordRequest.new,
+			this.config.tokensLength.salt,
+			this.config.secrets.pepper
+		);
 
 		if (typeof changePasswordRequest.logAllOtherSessionsOut !== 'boolean') {
 			// by default logout from all devices, needs to be be done, as usually jwt will be long lived
@@ -301,12 +267,9 @@ class AuthenticationEngine {
 			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
 		}
 
-		return undefined;
+		return 0; // no sessions were invalidated
 	}
 
-	/**
-	 * @access public
-	 */
 	public async createForgotPasswordSession(forgotPasswordRequest: CreateForgotPasswordSessionRequest): Promise<void> {
 		const account = await this.config.entities.account.read(forgotPasswordRequest.username);
 		if (!account) {
@@ -314,25 +277,25 @@ class AuthenticationEngine {
 			return;
 		}
 
-		const sessionToken = await token.generateToken(this.config.sizes.token);
+		if (!account.enabled) {
+			// it's pointless to use forgot password sequence for a disabled account
+			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `);
+		}
+
+		const sessionToken = await token.generate(this.config.tokensLength.token);
 		await this.config.entities.forgotPasswordSession.create(
 			sessionToken.plain,
 			{ accountId: account.id!, accountRole: account.role },
-			this.config.ttl.forgotPasswordSession
+			this.config.ttl.forgotPasswordSessionMinutes
 		);
 
 		try {
 			switch (forgotPasswordRequest['side-channel']) {
 				case SIDE_CHANNEL.EMAIL:
-					await sendForgotPasswordTokenToUserEmail(
-						this.config.templates.forgotPasswordTokenEmail,
-						this.config['side-channels'].email,
-						account.email,
-						sessionToken.plain
-					);
+					await this.emailSender.sendForgotPasswordToken(account.email, sessionToken.plain);
 					break;
 				case SIDE_CHANNEL.SMS:
-					await this.config['side-channels'].sms.send(account.telephone, this.config.templates.forgotPasswordTokenSms(sessionToken.plain));
+					await this.smsSender.sendForgotPasswordToken(account.telephone, sessionToken.plain);
 					break;
 				default:
 					throw new Error('Unknown side channel');
@@ -344,9 +307,6 @@ class AuthenticationEngine {
 		}
 	}
 
-	/**
-	 * @access public
-	 */
 	public async changeForgottenPassword(changeForgottenPasswordRequest: ChangeForgottenPasswordRequest): Promise<void> {
 		const forgotPasswordSession = await this.config.entities.forgotPasswordSession.read(changeForgottenPasswordRequest.token);
 		if (!forgotPasswordSession) {
@@ -358,7 +318,7 @@ class AuthenticationEngine {
 		await this.passwordsManager.change(
 			forgotPasswordSession.accountId,
 			changeForgottenPasswordRequest.newPassword,
-			this.config.sizes.salt,
+			this.config.tokensLength.salt,
 			this.config.secrets.pepper
 		);
 
@@ -372,59 +332,49 @@ class AuthenticationEngine {
 		}
 	}
 
-	/**
-	 * @access internal
-	 */
 	public async areAccountCredentialsValid(accountId: string, credentials: BasicCredentials): Promise<boolean> {
 		const account = await this.config.entities.account.readById(accountId);
+
 		if (!account) {
-			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found. `);
 		}
+
+		if (!account.enabled) {
+			// disabled account can't be used in order to invoke other operations
+			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `);
+		}
+
 		if (!(credentials.username === account.username)) {
 			return false;
 		}
+
 		return PasswordsManager.isCorrect(credentials.password, account.password, account.salt, this.config.secrets.pepper);
 	}
 
-	/**
-	 * @access private by admins only
-	 */
-	public async lockAccount(accountId: string, cause: string): Promise<void> {
+	public async enableAccount(accountId: string): Promise<void> {
+		await this.accountStatusManager.enable(accountId);
+	}
+
+	public async disableAccount(accountId: string, cause: string): Promise<void> {
 		const account = await this.config.entities.account.readById(accountId);
 		if (!account) {
-			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found. `);
 		}
-		return this.accountLocker.lock(account, this.config.contacts.adminEmail, cause);
+		await this.accountStatusManager.disable(account, cause);
 	}
 
-	/**
-	 * @access private by admins only
-	 */
-	public unlockAccount(accountId: string): Promise<void> {
-		return this.accountLocker.unlock(accountId);
-	}
-
-	/**
-	 * @access private
-	 */
-	public async logout(payload: IIssuedJWTPayload): Promise<void> {
+	public logout(payload: IIssuedJWTPayload): Promise<number> {
 		return this.userSessionsManager.delete(payload);
 	}
 
-	/**
-	 * @access private
-	 */
 	public logoutFromAllDevices(payload: { sub: string; aud?: string }): Promise<number> {
 		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
 	}
 
-	/**
-	 * @access private
-	 */
 	public logoutFromAllDevicesExceptFromCurrent(accountId: string, sessionId: number): Promise<number> {
 		return this.config.entities.account.readById(accountId).then(account => {
 			if (!account) {
-				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found.`);
+				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found. `);
 			}
 			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, sessionId);
 		});
@@ -433,15 +383,15 @@ class AuthenticationEngine {
 
 interface RegistrationOptions {
 	enableMultiFactorAuth: boolean;
-	isActivated: boolean; // based on user role, account can be activated or not at the registration time
+	enabled: boolean; // based on user role, account can be activated or not at the registration time
 }
 
 interface TTLOptions {
-	authSession?: number; // minutes
-	failedAuthAttemptsSession?: number; // minutes
-	activateAccountSession?: number; // minutes
-	forgotPasswordSession?: number; // minutes
-	totp?: number; // seconds
+	authSessionMinutes?: number;
+	failedAuthAttemptsSessionMinutes?: number;
+	activateAccountSessionMinutes?: number;
+	forgotPasswordSessionMinutes?: number;
+	totpSeconds?: number;
 }
 
 interface ThresholdsOptions {
@@ -450,15 +400,18 @@ interface ThresholdsOptions {
 	passwordBreach?: number;
 }
 
-interface SizesOptions {
+interface TokensLengthOptions {
 	salt?: number; // bytes
 	token?: number; // bytes
 }
 
+type Seconds = number;
+type Role = string;
+
 interface AuthEngineOptions {
 	jwt: {
 		instance: Jwt;
-		rolesTtl?: Map<string, number>; // role -> seconds
+		rolesTtl?: Map<Role, Seconds>;
 	};
 	entities: {
 		account: AccountEntity;
@@ -471,17 +424,14 @@ interface AuthEngineOptions {
 		forgotPasswordSession: ForgotPasswordSessionEntity;
 	};
 	'side-channels': {
-		email: EmailClient;
-		sms: SmsClient;
-	};
-	templates: {
-		totpTokenSms: (totp: string) => string;
-		multiFactorAuthFailed: NotificationMFAFailedTemplate;
-		accountLocked: NotificationAccountLockedTemplate;
-		authFromDiffDevice: NotificationAuthFromDiffDeviceTemplate;
-		activateAccount: ActivateAccountTemplate;
-		forgotPasswordTokenSms: (token: string) => string;
-		forgotPasswordTokenEmail: ForgotPasswordTemplate;
+		email: {
+			client: EmailClient;
+			'send-options': EmailSendOptions;
+		};
+		sms: {
+			client: SmsClient;
+			'send-options': SmsSendOptions;
+		};
 	};
 	schedulers: {
 		deleteActiveUserSession: ScheduleActiveUserSessionDeletion;
@@ -496,7 +446,7 @@ interface AuthEngineOptions {
 	};
 	ttl?: TTLOptions;
 	thresholds?: ThresholdsOptions;
-	sizes?: SizesOptions;
+	tokensLength?: TokensLengthOptions;
 	secrets: {
 		pepper: string;
 		totp: string;
@@ -507,34 +457,33 @@ interface AuthEngineOptions {
 }
 
 type InternalUsageOptions = Required<
-	AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { sizes: Required<SizesOptions> }
+	AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { tokensLength: Required<TokensLengthOptions> }
 >;
 
 function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOptions> {
 	options.ttl = options.ttl || {};
 	options.thresholds = options.thresholds || {};
-	options.sizes = options.sizes || {};
+	options.tokensLength = options.tokensLength || {};
 	return {
 		jwt: options.jwt,
 		entities: options.entities,
 		ttl: {
-			authSession: options.ttl.authSession || 2, // minutes, this needs to be as short as possible
-			failedAuthAttemptsSession: options.ttl.failedAuthAttemptsSession || 10, // minutes
-			activateAccountSession: options.ttl.activateAccountSession || 60, // minutes
-			forgotPasswordSession: options.ttl.forgotPasswordSession || 5, // minutes
-			totp: options.ttl.totp || 30 // seconds
+			authSessionMinutes: options.ttl.authSessionMinutes || 2, // this needs to be as short as possible
+			failedAuthAttemptsSessionMinutes: options.ttl.failedAuthAttemptsSessionMinutes || 10,
+			activateAccountSessionMinutes: options.ttl.activateAccountSessionMinutes || 60,
+			forgotPasswordSessionMinutes: options.ttl.forgotPasswordSessionMinutes || 5,
+			totpSeconds: options.ttl.totpSeconds || 30
 		},
 		thresholds: {
 			maxFailedAuthAttempts: options.thresholds.maxFailedAuthAttempts || 20,
 			recaptcha: options.thresholds.recaptcha || 10,
 			passwordBreach: options.thresholds.passwordBreach || 5
 		},
-		sizes: {
-			salt: options.sizes.salt || 10,
-			token: options.sizes.token || 20
+		tokensLength: {
+			salt: options.tokensLength.salt || 10,
+			token: options.tokensLength.token || 20
 		},
 		secrets: options.secrets,
-		templates: options.templates,
 		contacts: options.contacts,
 		'side-channels': options['side-channels'],
 		schedulers: options.schedulers,
@@ -542,5 +491,4 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 	};
 }
 
-// eslint-disable-next-line no-undef
-export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, SizesOptions, RegistrationOptions };
+export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, TokensLengthOptions, RegistrationOptions };

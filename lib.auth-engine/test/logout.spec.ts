@@ -3,17 +3,17 @@ import { expect } from 'chai';
 import { hostname } from 'os';
 import { chrono } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
-import { AuthenticationEngine } from '../lib';
+import { AuthEngineOptions, AuthenticationEngine } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthRequest } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';
 
 describe('Logout spec', () => {
-	const AuthenticationEngineConfig = {
+	const AuthenticationEngineConfig: AuthEngineOptions = {
 		...basicAuthEngineConfig,
 		ttl: {
-			totp: 1, // second,
-			authSession: 0.01 // in minutes, equals 1 second
+			totpSeconds: 1,
+			authSessionMinutes: 0.01 // 1 second
 		},
 		thresholds: {
 			passwordBreach: 1,
@@ -49,7 +49,7 @@ describe('Logout spec', () => {
 	};
 
 	it('logs out from one device, expecting to delete existing session and invalidate token', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatusFirstDevice = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
 		await chrono.sleep(1000);
@@ -68,7 +68,7 @@ describe('Logout spec', () => {
 	});
 
 	it('logs out from all devices, expecting to delete all existing sessions and invalidate issued tokens', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
 		await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
@@ -85,7 +85,7 @@ describe('Logout spec', () => {
 	});
 
 	it('logs out from all devices, except from the connected one from where logout was requested', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus1 = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
 		await chrono.sleep(1000);
@@ -105,7 +105,7 @@ describe('Logout spec', () => {
 	}).timeout(3000);
 
 	it('logs out from no devices, except one, when there is only 1 session', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
 

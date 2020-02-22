@@ -13,11 +13,11 @@
       "unauthorized": "/account[/]?$"
     },
     "activateAccount": {
-      "method": "put",
+      "method": "post",
       "path": "/account/activate",
       "unauthorized": "/account/activate[/]?$"
     },
-    "enableMultiFactorAuthentication": {
+    "changeMultiFactorAuthenticationStatus": {
       "method": "put",
       "path": "/multi_factor"
     },
@@ -27,11 +27,11 @@
     },
     "getFailedAuthenticationAttempts": {
       "method": "get",
-      "path": "/failed_auth_attempts"
+      "path": "/failed_attempts"
     },
     "changePassword": {
       "method": "put",
-      "path": "/account/password/change"
+      "path": "/account/password"
     },
     "createForgotPasswordSession": {
       "method": "post",
@@ -40,12 +40,12 @@
     },
     "changeForgottenPassword": {
       "method": "put",
-      "path": "/account/password/reset",
-      "unauthorized": "/account/password/reset[/]?$"
+      "path": "/account/password/forgotten",
+      "unauthorized": "/account/password/forgotten[/]?$"
     },
-    "changeAccountLockStatus": {
+    "changeAccountStatus": {
       "method": "put",
-      "path": "/account/lock"
+      "path": "/account/status"
     },
     "logout": {
       "method": "delete",

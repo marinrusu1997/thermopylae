@@ -21,7 +21,7 @@ import memcache, {
 import { EmailMockInstance } from './mocks/email';
 import { SmsMockInstance } from './mocks/sms';
 import {
-	AccountLockedTemplate,
+	AccountDisabledTemplate,
 	ActivateAccountTemplate,
 	AuthFromDiffDeviceTemplate,
 	ForgotPasswordTemplateEmail,
@@ -37,8 +37,9 @@ import {
 } from './schedulers';
 import { getLogger } from '../../lib/logger';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
+import { AuthEngineOptions } from '../../lib';
 
-const basicAuthEngineConfig = {
+const basicAuthEngineConfig: AuthEngineOptions = {
 	jwt: {
 		instance: defaultJwtInstance,
 		rolesTtl: rolesTtlMap
@@ -54,17 +55,33 @@ const basicAuthEngineConfig = {
 		forgotPasswordSession: ForgotPasswordSessionEntityMemCache
 	},
 	'side-channels': {
-		email: EmailMockInstance,
-		sms: SmsMockInstance
-	},
-	templates: {
-		totpTokenSms: TotpTokenSmsTemplate,
-		activateAccount: ActivateAccountTemplate,
-		authFromDiffDevice: AuthFromDiffDeviceTemplate,
-		accountLocked: AccountLockedTemplate,
-		multiFactorAuthFailed: MultiFactorAuthFailedTemplate,
-		forgotPasswordTokenSms: ForgotPasswordTemplateSms,
-		forgotPasswordTokenEmail: ForgotPasswordTemplateEmail
+		email: {
+			client: EmailMockInstance,
+			'send-options': {
+				activateAccount: {
+					htmlTemplate: ActivateAccountTemplate
+				},
+				authenticationFromDifferentDevice: {
+					htmlTemplate: AuthFromDiffDeviceTemplate
+				},
+				accountDisabled: {
+					htmlTemplate: AccountDisabledTemplate
+				},
+				multiFactorAuthenticationFailed: {
+					htmlTemplate: MultiFactorAuthFailedTemplate
+				},
+				forgotPasswordToken: {
+					htmlTemplate: ForgotPasswordTemplateEmail
+				}
+			}
+		},
+		sms: {
+			client: SmsMockInstance,
+			'send-options': {
+				totpTokenTemplate: TotpTokenSmsTemplate,
+				forgotPasswordTokenTemplate: ForgotPasswordTemplateSms
+			}
+		}
 	},
 	schedulers: {
 		account: {
@@ -84,7 +101,7 @@ const basicAuthEngineConfig = {
 	contacts: {
 		adminEmail: 'admin@product.com'
 	},
-	sizes: {
+	tokensLength: {
 		token: 20,
 		salt: 10
 	}

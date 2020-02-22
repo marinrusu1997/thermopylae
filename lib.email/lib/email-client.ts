@@ -12,7 +12,7 @@ class EmailClient {
 		this.transport.on('idle', () => getLogger().info('Email transport is idle. '));
 	}
 
-	public async send(message: SendMailOptions, strictDelivery?: boolean): Promise<SentMessageInfo> {
+	public async send(message: SendMailOptions, strictDelivery = true): Promise<SentMessageInfo> {
 		const info = await this.transport!.sendMail(message);
 		if (strictDelivery && info.accepted.length !== (message.to as []).length) {
 			throw createException(ErrorCodes.EMAIL_DELIVERY_FAILED, 'Email was not delivered to all recipients', info);

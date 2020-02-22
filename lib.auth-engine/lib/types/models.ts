@@ -3,12 +3,11 @@ import { BasicCredentials, BasicLocation } from './basic-types';
 export interface AccountModel extends BasicCredentials {
 	id?: string;
 	salt: string;
-	role?: string;
 	email: string;
 	telephone: string;
-	activated: boolean;
-	locked: boolean;
-	mfa: boolean;
+	enabled: boolean;
+	usingMfa: boolean;
+	role?: string;
 	pubKey?: string | Buffer;
 }
 

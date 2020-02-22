@@ -48,7 +48,7 @@ class PasswordsManager {
 	}
 
 	public static generateSalt(size: number): Promise<string> {
-		return token.generateToken(size).then(tokens => tokens.plain);
+		return token.generate(size).then(tokens => tokens.plain);
 	}
 
 	public static hash(password: string, salt: string, pepper: string): Promise<string> {

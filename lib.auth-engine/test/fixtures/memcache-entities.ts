@@ -15,15 +15,13 @@ const AuthSessionEntityMemCache: AuthSessionEntity = {
 	/**
 	 * @param username
 	 * @param deviceId
+	 * @param session
 	 * @param ttl 		Time to live in minutes
 	 */
-	create: (username, deviceId, ttl) => {
+	create: (username, deviceId, session, ttl) => {
 		const key = `auths:${username}:${deviceId}`;
-		const session: AuthSession = {
-			recaptchaRequired: false
-		};
 		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
-		return Promise.resolve(session);
+		return Promise.resolve();
 	},
 	read: (username, deviceId) => {
 		const key = `auths:${username}:${deviceId}`;

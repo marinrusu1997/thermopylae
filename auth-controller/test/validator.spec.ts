@@ -4,7 +4,7 @@ import { Request } from 'express';
 import { Firewall } from '@marin/lib.firewall';
 import { IpLocation } from '@marin/lib.geoip';
 import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
-import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
+import { AccountRole, AccountStatus, LogoutType, MultiFactorAuthenticationStatus } from '@marin/declarations/lib/auth';
 import { chrono, object, string } from '@marin/lib.utils';
 import { AuthValidator } from '../lib';
 import { GeoIpMethods, GeoIpMock } from './mocks/geo-ip';
@@ -336,31 +336,23 @@ describe('validator spec', () => {
 		});
 	});
 
-	describe('enable multi factor authentication spec', () => {
-		it('accepts valid requests with query param of string type', async () => {
+	describe('change enable multi factor authentication status', () => {
+		it('accepts valid requests with query param', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'true'
+					status: MultiFactorAuthenticationStatus.ENABLED
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						sub: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
+					}
 				}
 			};
 
 			// @ts-ignore
-			await AuthValidator.enableMultiFactorAuthentication(req, responseMock, expressNextFunctionMock.next);
-
-			checkValidationPassed();
-		});
-
-		it('accepts valid requests with query param of number type', async () => {
-			// @ts-ignore
-			const req: Request = {
-				query: {
-					enable: '0'
-				}
-			};
-
-			// @ts-ignore
-			await AuthValidator.enableMultiFactorAuthentication(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeMultiFactorAuthenticationStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationPassed();
 		});
@@ -368,40 +360,52 @@ describe('validator spec', () => {
 		it('rejects request when enable query param not found', async () => {
 			// @ts-ignore
 			const req: Request = {
-				query: {}
+				query: {},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						sub: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
+					}
+				}
 			};
 
 			// @ts-ignore
-			await AuthValidator.enableMultiFactorAuthentication(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeMultiFactorAuthenticationStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
 				{
 					called: true,
 					with: {
-						enable: 'query param is required and needs to be a boolean'
+						status: `status query param is required and needs to take one of the values: ${MultiFactorAuthenticationStatus.ENABLED}, ${MultiFactorAuthenticationStatus.DISABLED}`
 					}
 				}
 			);
 		});
 
-		it("rejects request when enable query param has a value which can't be converted to boolean", async () => {
+		it('rejects request when enable query param is different than accepted one values', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'enable'
+					status: 1
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						sub: string.generateStringOfLength(10, /[a-zA-Z0-9]/)
+					}
 				}
 			};
 
 			// @ts-ignore
-			await AuthValidator.enableMultiFactorAuthentication(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeMultiFactorAuthenticationStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
 				{
 					called: true,
 					with: {
-						enable: 'query param is required and needs to be a boolean'
+						status: `status query param is required and needs to take one of the values: ${MultiFactorAuthenticationStatus.ENABLED}, ${MultiFactorAuthenticationStatus.DISABLED}`
 					}
 				}
 			);
@@ -895,12 +899,12 @@ describe('validator spec', () => {
 		});
 	});
 
-	describe('change account lock status', () => {
-		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when enabling lock`, async () => {
+	describe('change account status', () => {
+		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when disabling account`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'true'
+					status: AccountStatus.DISABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(10),
@@ -915,16 +919,16 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationPassed();
 		});
 
-		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when disabling lock`, async () => {
+		it(`accepts valid requests only from users with ${AccountRole.ADMIN} role when enabling account`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'false'
+					status: AccountStatus.ENABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(10)
@@ -938,7 +942,7 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationPassed();
 		});
@@ -948,7 +952,7 @@ describe('validator spec', () => {
 			const req: Request = {};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
@@ -982,7 +986,7 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.FORBIDDEN },
@@ -995,7 +999,7 @@ describe('validator spec', () => {
 			);
 		});
 
-		it('rejects requests which do not contain lock status', async () => {
+		it('rejects requests which do not contain status', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {},
@@ -1008,24 +1012,27 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
 				{
-					called: false
+					called: true,
+					with: {
+						'': 'should have required property status'
+					}
 				},
 				{
-					called: true
+					called: false
 				}
 			);
 		});
 
-		it('rejects requests which contain invalid lock status', async () => {
+		it('rejects requests which contain invalid status', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enabled: 'yep'
+					status: 1
 				},
 				// @ts-ignore
 				pipeline: {
@@ -1036,15 +1043,18 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
 				{
-					called: false
+					called: true,
+					with: {
+						'.status': 'should be equal to one of predefined values'
+					}
 				},
 				{
-					called: true
+					called: false
 				}
 			);
 		});
@@ -1053,7 +1063,7 @@ describe('validator spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'true'
+					status: AccountStatus.DISABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(10)
@@ -1067,7 +1077,7 @@ describe('validator spec', () => {
 			};
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			checkValidationFailed(
 				{ called: true, with: HttpStatusCode.BAD_REQUEST },
@@ -1080,11 +1090,11 @@ describe('validator spec', () => {
 			);
 		});
 
-		it('sanitizes cause when enabling lock', async () => {
+		it('sanitizes cause when disabling account', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					enable: 'true'
+					status: AccountStatus.ENABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(10),
@@ -1101,7 +1111,7 @@ describe('validator spec', () => {
 			const bodyCopy = object.clone(req.body);
 
 			// @ts-ignore
-			await AuthValidator.changeAccountLockStatus(req, responseMock, expressNextFunctionMock.next);
+			await AuthValidator.changeAccountStatus(req, responseMock, expressNextFunctionMock.next);
 
 			expect(req.body.cause).to.not.be.eq(bodyCopy.cause);
 			expect(req.body.cause).to.be.eq('&lt;script&gt;does not matter for tests&lt;/script&gt;');

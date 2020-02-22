@@ -1,6 +1,6 @@
 import { Libraries, HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { AuthenticationEngine, ErrorCodes as AuthEngineErrorCodes } from '@marin/lib.auth-engine';
-import { LogoutType } from '@marin/declarations/lib/auth';
+import { AccountStatus, LogoutType, MultiFactorAuthenticationStatus } from '@marin/declarations/lib/auth';
 import { Request, Response } from 'express';
 import get from 'lodash.get';
 import { AuthServiceMethods } from '@marin/declarations/lib/services';
@@ -60,7 +60,7 @@ class AuthController {
 	static async register(req: Request, res: Response): Promise<void> {
 		try {
 			await AuthController.authenticationEngine.register(req.body, {
-				isActivated: false,
+				enabled: false,
 				enableMultiFactorAuth: req.body.enableMultiFactorAuth
 			});
 			res.status(HttpStatusCode.ACCEPTED).send();
@@ -96,11 +96,18 @@ class AuthController {
 		}
 	}
 
-	static async enableMultiFactorAuthentication(req: Request, res: Response): Promise<void> {
+	static async changeMultiFactorAuthenticationStatus(req: Request, res: Response): Promise<void> {
 		// @ts-ignore
 		const accountId: string = get(req, AuthController.jwtPayloadPathInReqObj).sub;
-		// @ts-ignore
-		await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId, req.query.enable);
+
+		if (req.query.status === MultiFactorAuthenticationStatus.ENABLED) {
+			await AuthController.authenticationEngine.enableMultiFactorAuthentication(accountId);
+		}
+
+		if (req.query.status === MultiFactorAuthenticationStatus.DISABLED) {
+			await AuthController.authenticationEngine.disableMultiFactorAuthentication(accountId);
+		}
+
 		res.status(HttpStatusCode.NO_CONTENT).send();
 	}
 
@@ -136,7 +143,7 @@ class AuthController {
 					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:
 						httpResponseStatus = HttpStatusCode.NOT_FOUND;
 						break;
-					case AuthEngineErrorCodes.ACCOUNT_LOCKED:
+					case AuthEngineErrorCodes.ACCOUNT_DISABLED:
 						httpResponseStatus = HttpStatusCode.GONE;
 						break;
 					case AuthEngineErrorCodes.INCORRECT_PASSWORD:
@@ -161,8 +168,17 @@ class AuthController {
 	}
 
 	static async createForgotPasswordSession(req: Request, res: Response): Promise<void> {
-		await AuthController.authenticationEngine.createForgotPasswordSession(req.body);
-		res.status(HttpStatusCode.ACCEPTED).send();
+		try {
+			await AuthController.authenticationEngine.createForgotPasswordSession(req.body);
+			res.status(HttpStatusCode.ACCEPTED).send();
+		} catch (e) {
+			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_DISABLED) {
+				res.status(HttpStatusCode.GONE).json({ code: e.code });
+				return;
+			}
+
+			throw e;
+		}
 	}
 
 	static async changeForgottenPassword(req: Request, res: Response): Promise<void> {
@@ -206,7 +222,7 @@ class AuthController {
 			const valid = await AuthController.authenticationEngine.areAccountCredentialsValid(req.body.accountId, req.body);
 			res.status(HttpStatusCode.OK).json({ valid });
 		} catch (e) {
-			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
+			if (e.emitter === Libraries.AUTH_ENGINE) {
 				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				getLogger().error(
 					`${AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS} failed. Request body: ${JSON.stringify(
@@ -215,7 +231,23 @@ class AuthController {
 					e
 				);
 
-				res.status(HttpStatusCode.NOT_FOUND).json({ code: e.code });
+				let httpResponseStatus;
+				switch (e.code) {
+					case AuthEngineErrorCodes.ACCOUNT_NOT_FOUND:
+						httpResponseStatus = HttpStatusCode.NOT_FOUND;
+						break;
+					case AuthEngineErrorCodes.ACCOUNT_DISABLED:
+						httpResponseStatus = HttpStatusCode.GONE;
+						break;
+					default:
+						// will be processed by global handled with a 500 Server Error
+						throw createException(
+							ErrorCodes.MISCONFIGURATION_STATUS_CODE_COULD_NOT_BE_DETERMINED,
+							"Could't determine http response code from Exception thrown by AuthEngine.areAccountCredentialsValid method."
+						);
+				}
+
+				res.status(httpResponseStatus).json({ code: e.code });
 				return;
 			}
 
@@ -223,19 +255,22 @@ class AuthController {
 		}
 	}
 
-	static async changeAccountLockStatus(req: Request, res: Response): Promise<void> {
+	static async changeAccountStatus(req: Request, res: Response): Promise<void> {
 		try {
-			if (req.query.enable) {
-				await AuthController.authenticationEngine.lockAccount(req.body.accountId, req.body.cause);
-			} else {
-				await AuthController.authenticationEngine.unlockAccount(req.body.accountId);
+			if (req.query.status === AccountStatus.ENABLED) {
+				await AuthController.authenticationEngine.enableAccount(req.body.accountId);
 			}
+
+			if (req.query.status === AccountStatus.DISABLED) {
+				await AuthController.authenticationEngine.disableAccount(req.body.accountId, req.body.cause);
+			}
+
 			res.status(HttpStatusCode.NO_CONTENT).send();
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE && e.code === AuthEngineErrorCodes.ACCOUNT_NOT_FOUND) {
 				const remoteIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 				getLogger().error(
-					`${AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS} failed. Request body: ${JSON.stringify(req.body)}. Query params: ${JSON.stringify(
+					`${AuthServiceMethods.CHANGE_ACCOUNT_STATUS} failed. Request body: ${JSON.stringify(req.body)}. Query params: ${JSON.stringify(
 						req.query
 					)}. Request origin: ${remoteIp}. Cause: `,
 					e
@@ -253,10 +288,11 @@ class AuthController {
 		const jwtPayload = get(req, AuthController.jwtPayloadPathInReqObj);
 
 		try {
-			let loggedOutSessions = 1;
+			let loggedOutSessions;
+			// eslint-disable-next-line default-case
 			switch (req.query.type as LogoutType) {
 				case LogoutType.CURRENT_SESSION:
-					await AuthController.authenticationEngine.logout(jwtPayload);
+					loggedOutSessions = await AuthController.authenticationEngine.logout(jwtPayload);
 					break;
 				case LogoutType.ALL_SESSIONS:
 					loggedOutSessions = await AuthController.authenticationEngine.logoutFromAllDevices(jwtPayload);
@@ -265,6 +301,7 @@ class AuthController {
 					loggedOutSessions = await AuthController.authenticationEngine.logoutFromAllDevicesExceptFromCurrent(jwtPayload.sub, jwtPayload.iat);
 					break;
 			}
+
 			res.status(HttpStatusCode.OK).json({ loggedOutSessions });
 		} catch (e) {
 			if (e.emitter === Libraries.AUTH_ENGINE) {

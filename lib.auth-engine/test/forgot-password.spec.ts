@@ -40,7 +40,7 @@ describe('forgot password spec', () => {
 	};
 
 	it('recovers forgotten password via email side channel, removes session and logs out from all devices', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		// log in from some devices
 		expect((await AuthEngineInstance.authenticate(validAuthInput)).error).to.be.eq(undefined);
@@ -71,7 +71,7 @@ describe('forgot password spec', () => {
 	});
 
 	it('recovers forgotten password via sms side channel', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
@@ -90,8 +90,27 @@ describe('forgot password spec', () => {
 		expect(EmailMockInstance.outboxFor(defaultRegistrationInfo.email)[0]).to.be.eq(undefined);
 	});
 
+	it("doesn't create forgot password session if account is disabled", async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
+
+		let err;
+		try {
+			await AuthEngineInstance.createForgotPasswordSession({
+				username: defaultRegistrationInfo.username,
+				'side-channel': SIDE_CHANNEL.EMAIL
+			});
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
+	});
+
 	it('aborts the create forgot password session if token delivery fails', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		EmailMockInstance.deliveryWillFail(true);
 		let err;
@@ -133,7 +152,7 @@ describe('forgot password spec', () => {
 	});
 
 	it('fails to change forgotten password when providing new weak password', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
@@ -154,7 +173,7 @@ describe('forgot password spec', () => {
 	});
 
 	it('recovers forged account by using forgot password functionality', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		// valid user authenticated
 		const firstAccountOwnerAuthStatus = await AuthEngineInstance.authenticate(validAuthInput);

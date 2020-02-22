@@ -1,11 +1,9 @@
 import { Exception } from '@marin/lib.error';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Libraries } from '@marin/lib.utils/dist/declarations';
 
 const enum ErrorCodes {
 	ACCOUNT_ALREADY_REGISTERED = 'ACCOUNT_ALREADY_REGISTERED',
-	ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
-	ACCOUNT_NOT_ACTIVATED = 'ACCOUNT_NOT_ACTIVATED',
+	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
 	ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
 
 	INCORRECT_CREDENTIALS = 'INCORRECT_CREDENTIALS',

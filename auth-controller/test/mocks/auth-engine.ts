@@ -12,7 +12,7 @@ import { AccessPointModel, FailedAuthAttemptsModel } from '@marin/lib.auth-engin
 import { BasicCredentials } from '@marin/lib.auth-engine/dist/types/basic-types';
 import Exception from '@marin/lib.error';
 import { AuthServiceMethods } from '@marin/declarations/lib/services';
-import { IIssuedJWTPayload } from '../../../lib.jwt/lib';
+import { IIssuedJWTPayload } from '@marin/lib.jwt';
 
 interface MethodBehaviour {
 	expectingInput: (...args: any[]) => void;
@@ -58,9 +58,18 @@ class AuthenticationEngineMock {
 		return behaviour.returns as void;
 	}
 
-	async enableMultiFactorAuthentication(accountId: string, enabled: boolean): Promise<void> {
-		const behaviour = this.getMethodBehaviour(AuthServiceMethods.ENABLE_MULTI_FACTOR_AUTHENTICATION);
-		behaviour.expectingInput(accountId, enabled);
+	async enableMultiFactorAuthentication(...args: any[]): Promise<void> {
+		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS);
+		behaviour.expectingInput(...args);
+		if (behaviour.throws) {
+			throw behaviour.throws;
+		}
+		return behaviour.returns as void;
+	}
+
+	async disableMultiFactorAuthentication(...args: any[]): Promise<void> {
+		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS);
+		behaviour.expectingInput(...args);
 		if (behaviour.throws) {
 			throw behaviour.throws;
 		}
@@ -94,8 +103,8 @@ class AuthenticationEngineMock {
 		return behaviour.returns as boolean;
 	}
 
-	async lockAccount(accountId: string, cause: string): Promise<void> {
-		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS);
+	async disableAccount(accountId: string, cause: string): Promise<void> {
+		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS);
 		behaviour.expectingInput(accountId, cause);
 		if (behaviour.throws) {
 			throw behaviour.throws;
@@ -103,8 +112,8 @@ class AuthenticationEngineMock {
 		return behaviour.returns as void;
 	}
 
-	async unlockAccount(accountId: string): Promise<void> {
-		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS);
+	async enableAccount(accountId: string): Promise<void> {
+		const behaviour = this.getMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS);
 		behaviour.expectingInput(accountId);
 		if (behaviour.throws) {
 			throw behaviour.throws;

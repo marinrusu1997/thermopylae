@@ -45,6 +45,7 @@
         "@marin/json-schemas": "file:../json-schemas",
         "@marin/lib.auth-engine": "file:../lib.auth-engine",
         "@marin/lib.geoip": "file:../lib.geoip",
+        "@marin/lib.jwt": "file:../lib.jwt",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@types/chai": "^4.2.7",
         "@types/express": "^4.17.1",

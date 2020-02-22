@@ -4,36 +4,33 @@ import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AuthSession } from '../../types/sessions';
 import { FailedAuthAttemptsEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
-import { AccountLockingManager } from '../../managers/account-locking-manager';
+import { AccountStatusManager } from '../../managers/account-status-manager';
 import { getLogger } from '../../logger';
 import { createException, ErrorCodes } from '../../error';
 import { AUTH_STEP } from '../../types/enums';
 
 class ErrorStep implements AuthStep {
-	private readonly adminEmail: string;
 	private readonly failedAuthAttemptsThreshold: number;
 	private readonly recaptchaThreshold: number;
 	private readonly failedAuthAttemptSessionTtl: number;
+	private readonly accountStatusManager: AccountStatusManager;
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 	private readonly failedAuthAttemptsEntity: FailedAuthAttemptsEntity;
-	private readonly accountLocker: AccountLockingManager;
 
 	constructor(
-		adminEmail: string,
 		failedAuthAttemptsThreshold: number,
 		recaptchaThreshold: number,
 		failedAuthAttemptSessionTtl: number,
+		accountStatusManager: AccountStatusManager,
 		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity,
-		failedAuthAttemptsEntity: FailedAuthAttemptsEntity,
-		accountLocker: AccountLockingManager
+		failedAuthAttemptsEntity: FailedAuthAttemptsEntity
 	) {
-		this.adminEmail = adminEmail;
 		this.failedAuthAttemptsThreshold = failedAuthAttemptsThreshold;
 		this.recaptchaThreshold = recaptchaThreshold;
 		this.failedAuthAttemptSessionTtl = failedAuthAttemptSessionTtl;
+		this.accountStatusManager = accountStatusManager;
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 		this.failedAuthAttemptsEntity = failedAuthAttemptsEntity;
-		this.accountLocker = accountLocker;
 	}
 
 	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput> {
@@ -57,19 +54,15 @@ class ErrorStep implements AuthStep {
 		if (failedAuthAttemptSession.counter >= this.failedAuthAttemptsThreshold) {
 			const promises: Array<Promise<any>> = [];
 			promises.push(
-				this.accountLocker.lock(
-					account,
-					this.adminEmail,
-					`Threshold of failed authentication attempts (${this.failedAuthAttemptsThreshold}) was reached.`
-				)
+				this.accountStatusManager.disable(account, `Threshold of failed authentication attempts (${this.failedAuthAttemptsThreshold}) was reached.`)
 			);
 			promises.push(
 				this.failedAuthAttemptsEntity
 					.create({
 						accountId: account.id!,
 						timestamp: nowInMilliseconds,
-						ips: array.extractUniqueItems(failedAuthAttemptSession.ip),
-						devices: array.extractUniqueItems(failedAuthAttemptSession.device)
+						ips: array.extractUnique(failedAuthAttemptSession.ip),
+						devices: array.extractUnique(failedAuthAttemptSession.device)
 					})
 					.catch(error => getLogger().error(`Failed to persist failed auth attempts for account ${account.id}. `, error))
 			);
@@ -84,8 +77,8 @@ class ErrorStep implements AuthStep {
 				done: {
 					error: {
 						hard: createException(
-							ErrorCodes.ACCOUNT_LOCKED,
-							`Account was locked due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}). `
+							ErrorCodes.ACCOUNT_DISABLED,
+							`Account was disabled due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}). `
 						)
 					}
 				}

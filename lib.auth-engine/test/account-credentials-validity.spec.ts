@@ -18,7 +18,7 @@ describe('Validate account credentials spec', () => {
 	};
 
 	it('fails to validate account credentials when account does not exist', async () => {
-		let accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		let accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		accountId = string.replaceAt('0', accountId.length - 1, accountId);
 		let err;
 		try {
@@ -29,11 +29,27 @@ describe('Validate account credentials spec', () => {
 		expect(err)
 			.to.be.instanceOf(Exception)
 			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
-		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found.`);
+		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
+	});
+
+	it('fails to validate account credentials when it is disabled', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo);
+		await AuthEngineInstance.disableAccount(accountId, 'For test');
+
+		let err;
+		try {
+			await AuthEngineInstance.areAccountCredentialsValid(accountId, { username: 'does not matter', password: 'does not matter' });
+		} catch (e) {
+			err = e;
+		}
+		expect(err)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
 	it('validates correct account credentials', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const areValid = await AuthEngineInstance.areAccountCredentialsValid(accountId, {
 			username: defaultRegistrationInfo.username,
 			password: defaultRegistrationInfo.password
@@ -42,7 +58,7 @@ describe('Validate account credentials spec', () => {
 	});
 
 	it('validates correctly credentials when username is not valid', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const areValid = await AuthEngineInstance.areAccountCredentialsValid(accountId, {
 			username: 'invalid',
 			password: defaultRegistrationInfo.password
@@ -51,7 +67,7 @@ describe('Validate account credentials spec', () => {
 	});
 
 	it('validates correctly credentials when password is not valid', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const areValid = await AuthEngineInstance.areAccountCredentialsValid(accountId, {
 			username: defaultRegistrationInfo.username,
 			password: 'invalid'

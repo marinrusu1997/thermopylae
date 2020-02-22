@@ -5,10 +5,10 @@ import { hostname } from 'os';
 import { createSign } from 'crypto';
 import { chrono } from '@marin/lib.utils';
 // eslint-disable-next-line import/extensions, import/no-unresolved
-import { AuthTokenType } from '@marin/lib.utils/dist/enums';
+import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 // @ts-ignore
 import keypair from 'keypair';
-import { AuthenticationEngine, ErrorCodes } from '../lib';
+import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthRequest } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AUTH_STEP } from '../lib/types/enums';
@@ -22,11 +22,11 @@ describe('Authenticate spec', () => {
 	const primaryKeyPair = keypair();
 	const secondaryKeyPair = keypair();
 
-	const AuthenticationEngineConfig = {
+	const AuthenticationEngineConfig: AuthEngineOptions = {
 		...basicAuthEngineConfig,
 		ttl: {
-			totp: 1, // second,
-			authSession: 0.01 // minute
+			totpSeconds: 1,
+			authSessionMinutes: 0.01
 		},
 		thresholds: {
 			passwordBreach: 1,
@@ -82,9 +82,9 @@ describe('Authenticate spec', () => {
 		});
 	});
 
-	it('fails to authenticate users with locked accounts', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		await AuthEngineInstance.lockAccount(accountId, 'For test');
+	it('fails to authenticate users with disabled accounts', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		await AuthEngineInstance.disableAccount(accountId, 'For test');
 		const networkInput = { username: defaultRegistrationInfo.username };
 		// @ts-ignore
 		return AuthEngineInstance.authenticate(networkInput).then(authStatus => {
@@ -93,27 +93,13 @@ describe('Authenticate spec', () => {
 			expect(authStatus.error!.soft).to.be.eq(undefined);
 			expect(authStatus.error!.hard)
 				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} is locked. `);
+				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 		});
 	});
 
-	it('fails to authenticate users with non activated accounts', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo); // by default, account is not activated
-		const networkInput = { username: defaultRegistrationInfo.username };
-		// @ts-ignore
-		const authStatus = await AuthEngineInstance.authenticate(networkInput);
-		expect(authStatus.token).to.be.eq(undefined);
-		expect(authStatus.nextStep).to.be.eq(undefined);
-		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_ACTIVATED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} is not activated. `);
-	});
-
 	it('fails to authenticate user when wrong secret provided, user gives up, expect not to leak disk memory for auth temp session', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
@@ -121,7 +107,7 @@ describe('Authenticate spec', () => {
 			.to.be.instanceOf(Exception)
 			.and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
-		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl.authSession) * 1000 + 50; // 1050 ms
+		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authSessionMinutes!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
 		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
@@ -129,7 +115,8 @@ describe('Authenticate spec', () => {
 	});
 
 	it('fails to authenticate user when challenge response nonce not found in session (i.e. never generated or generated but deleted)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo);
+		await AuthEngineInstance.enableAccount(accountId);
 
 		const signatureOfTokenWhichWasNeverIssued = signChallengeNonce('token-which-was-never-issued');
 		let authStatus = await AuthEngineInstance.authenticate({
@@ -165,7 +152,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('fails to authenticate user when challenge nonce is signed with invalid private key', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
@@ -183,7 +170,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('fails to authenticate user when invalid challenge nonce is signed with valid private key (unlikely to happen in real scenario)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
@@ -201,7 +188,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it("doesn't allow to bypass multi factor step, if not providing totp token", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const firstTOTP = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
@@ -220,7 +207,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it("can't use same totp twice (prevents replay attacks)", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
@@ -234,11 +221,11 @@ describe('Authenticate spec', () => {
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 	});
 
-	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can lock account on threshold", async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can disable account on threshold", async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
 		// activate recaptcha
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -246,11 +233,11 @@ describe('Authenticate spec', () => {
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: undefined });
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('failed auth attempts are shared between auth sessions', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const DEVICE1 = 'device1';
 		const DEVICE2 = 'device2';
@@ -258,7 +245,7 @@ describe('Authenticate spec', () => {
 		let numberOfAuthAttempts = 0;
 
 		// increase failure counter from one session till recaptcha
-		let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha - 1;
+		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha! - 1;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE1, password: 'invalid' });
@@ -269,8 +256,8 @@ describe('Authenticate spec', () => {
 			numberOfAuthAttempts += 1;
 		}
 
-		// from another session increase till account lock
-		let numberOfTriesTillAccountLock = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - AuthenticationEngineConfig.thresholds.recaptcha;
+		// from another session increase till account is disabled
+		let numberOfTriesTillAccountLock = AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - AuthenticationEngineConfig.thresholds!.recaptcha!;
 		// eslint-disable-next-line no-plusplus
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE2, password: 'invalid' });
@@ -281,21 +268,21 @@ describe('Authenticate spec', () => {
 			numberOfAuthAttempts += 1;
 		}
 
-		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds.recaptcha);
+		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds!.recaptcha);
 
 		const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE3, password: 'invalid' });
 		expect(status.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
-	it('locks account on failed auth attempts threshold, even if sending notification email and logging user out from all devices failed', async () => {
+	it('disables account on failed auth attempts threshold, even if sending notification email and logging user out from all devices failed', async () => {
 		EmailMockInstance.deliveryWillFail(true);
 		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL);
 
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -305,14 +292,14 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
-	it('locks the user account when providing invalid response to challenge', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+	it('disables the user account when providing invalid response to challenge', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		for (let i = 1; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = 1; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 			const authStatus = await AuthEngineInstance.authenticate({
 				...validAuthRequest,
@@ -329,14 +316,16 @@ describe('Authenticate spec', () => {
 			if (!(e instanceof Exception)) {
 				throw e;
 			}
-			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		}
 	});
 
-	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa not required)", async () => {
+	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa disabled)", async () => {
 		// expected flow: dispatch -> secret -> authenticated
 
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: false });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo);
+		await AuthEngineInstance.enableAccount(accountId);
+		await AuthEngineInstance.disableMultiFactorAuthentication(accountId);
 		const authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
 
 		// check issued valid jwt
@@ -361,16 +350,16 @@ describe('Authenticate spec', () => {
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
-		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl.get(defaultRegistrationInfo.role)! * 1000);
+		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
 		activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(0);
 	});
 
-	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa is required)", async () => {
+	it("authenticates the user, registers active session, schedules it's deletion, deletes auth temp session (mfa enabled)", async () => {
 		// expected flow: dispatch -> secret -> generate totp => dispatch -> totp -> authenticated
 
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
-		await AuthEngineInstance.enableMultiFactorAuthentication(accountId, true);
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		await AuthEngineInstance.enableMultiFactorAuthentication(accountId);
 
 		const authStatusSecretStep = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatusSecretStep.nextStep!).to.be.eq(AUTH_STEP.TOTP);
@@ -400,7 +389,7 @@ describe('Authenticate spec', () => {
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
-		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl.get(defaultRegistrationInfo.role)! * 1000);
+		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
 		activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(0);
 	});
@@ -410,13 +399,13 @@ describe('Authenticate spec', () => {
 		// @ts-ignore
 		config.jwt.rolesTtl = undefined;
 		const AuthEngine = new AuthenticationEngine(config);
-		await AuthEngine.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngine.register(defaultRegistrationInfo, { enabled: true });
 		const authStatus = await AuthEngine.authenticate(validAuthRequest);
 		expect(authStatus.token).to.not.be.eq(undefined);
 	});
 
 	it('authenticates user after soft error occurred in secret step, expect failed auth session to be cleared', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
 		// second time will work, also needs to reset failed auth attempts
@@ -424,7 +413,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		// now retry again till hard error, counter needs to be 0 again
-		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - 1; // on last it will lock account
+		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - 1; // on last it will disable account
 		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
 			authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -437,7 +426,7 @@ describe('Authenticate spec', () => {
 	});
 
 	it('authenticates user after soft error occurred in totp multi factor auth step, expect failed auth session to be cleared', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
@@ -450,7 +439,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		// now retry again till hard error, counter needs to be 0 again
-		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts - 1; // on last it will lock account
+		let maxAllowedFailedAuthAttempts = AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - 1; // on last it will disable account
 		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
 			authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -462,11 +451,11 @@ describe('Authenticate spec', () => {
 		expect(failedAuthAttemptsSession!.counter).to.be.eq(2);
 	});
 
-	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth not required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth disabled)', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		async function authenticateAfterSoftErrorInRecaptchaStep() {
-			let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha;
+			let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha!;
 			// eslint-disable-next-line no-plusplus
 			while (recaptchaThreshold--) {
 				await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -484,11 +473,11 @@ describe('Authenticate spec', () => {
 		await authenticateAfterSoftErrorInRecaptchaStep();
 	});
 
-	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth enabled)', async () => {
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
 		// trigger recaptcha
-		let recaptchaThreshold = AuthenticationEngineConfig.thresholds.recaptcha;
+		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha!;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -503,17 +492,17 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.not.be.eq(undefined);
 	});
 
-	it('aborts authentication after hard error occurred in secret step (recaptcha and mfa not required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+	it('aborts authentication after hard error occurred in secret step (recaptcha not required and mfa disabled)', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let lastAuthStatus: any;
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			lastAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
 		expect(lastAuthStatus!.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
@@ -521,18 +510,18 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
-	it('aborts authentication after hard error occurred in recaptcha step (mfa not required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+	it('aborts authentication after hard error occurred in recaptcha step (mfa disabled)', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
-		for (let i = AuthenticationEngineConfig.thresholds.recaptcha; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = AuthenticationEngineConfig.thresholds!.recaptcha!; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'invalid' });
 		}
 
@@ -542,14 +531,14 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.recaptcha; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -557,7 +546,7 @@ describe('Authenticate spec', () => {
 		expect(recaptchaAuthStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.not.be.eq(undefined);
 
-		for (let i = AuthenticationEngineConfig.thresholds.recaptcha; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = AuthenticationEngineConfig.thresholds!.recaptcha!; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, totp: 'invalid' });
 		}
 
@@ -567,14 +556,14 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
-	it('stores failed auth attempts after account was locked when failure threshold reached', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+	it('stores failed auth attempts after account was disabled when failure threshold reached', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -587,13 +576,13 @@ describe('Authenticate spec', () => {
 		expect(failedAuthAttempts[0].ips.includes(validAuthRequest.ip)).to.be.eq(true);
 	});
 
-	it('locks account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
+	it('disables account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
 		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE);
 		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE);
 
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true, enableMultiFactorAuth: true });
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds.maxFailedAuthAttempts; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -606,12 +595,12 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.soft).to.be.eq(undefined);
 		expect(authStatus.error!.hard)
 			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_LOCKED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${validAuthRequest.username} is locked. `);
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
 	it('authenticates the user using challenge response authentication method', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { isActivated: true });
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);

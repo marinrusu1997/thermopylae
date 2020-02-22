@@ -1,13 +1,13 @@
 import { Firewall } from '@marin/lib.firewall';
-import { boolean, number } from '@marin/lib.utils';
+import { number } from '@marin/lib.utils';
 import { GeoIP } from '@marin/lib.geoip';
+import { IIssuedJWTPayload } from '@marin/lib.jwt';
 import { AuthServiceMethods, Services } from '@marin/declarations/lib/services';
-import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
+import { AccountRole, LogoutType, MultiFactorAuthenticationStatus } from '@marin/declarations/lib/auth';
 import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 import { NextFunction, Request, Response } from 'express';
 import get from 'lodash.get';
 import { getLogger } from './logger';
-import { IIssuedJWTPayload } from '../../lib.jwt';
 import { ErrorCodes } from './error';
 
 type ExpressResponseMethod = 'json' | 'send';
@@ -80,18 +80,22 @@ class AuthValidator {
 	}
 
 	/**
-	 * PUT /api/rest/v1/auth/account/multi_factor?enable=boolean
+	 * PUT /api/rest/v1/auth/multi_factor?status=enabled
 	 */
-	static enableMultiFactorAuthentication(req: Request, res: Response, next: NextFunction): void {
+	static async changeMultiFactorAuthenticationStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			// @ts-ignore
-			req.query.enable = boolean.toBoolean(req.query.enable, true);
+			const jwtPayload = get(req, AuthValidator.jwtPayloadPathInReqObj);
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS, {
+				accountId: jwtPayload.sub,
+				status: req.query.status
+			});
+
 			next();
 		} catch (e) {
-			AuthValidator.handleError(' enable multi factor authentication', e, res, {
+			AuthValidator.handleError('change multi factor authentication status', e, res, {
 				method: 'json',
 				body: {
-					enable: 'query param is required and needs to be a boolean'
+					status: `status query param is required and needs to take one of the values: ${MultiFactorAuthenticationStatus.ENABLED}, ${MultiFactorAuthenticationStatus.DISABLED}`
 				}
 			});
 		}
@@ -211,24 +215,22 @@ class AuthValidator {
 	}
 
 	/**
-	 * PUT /api/rest/v1/auth/account/lock?enable=boolean
+	 * PUT /api/rest/v1/auth/account/status?status=enabled
 	 * Body { accountId: string, cause?: string }
 	 */
-	static async changeAccountLockStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+	static async changeAccountStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			if (!AuthValidator.validateAdminPermissions('change account lock status', req)) {
+			if (!AuthValidator.validateAdminPermissions('change account status', req)) {
 				res.status(HttpStatusCode.FORBIDDEN).send();
 				return;
 			}
 
-			// @ts-ignore
-			req.query.enable = boolean.toBoolean(req.query.enable, true);
-			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, { ...req.body, enable: req.query.enable });
+			await Firewall.validate(Services.AUTH, AuthServiceMethods.CHANGE_ACCOUNT_STATUS, { ...req.body, status: req.query.status });
 			req.body.cause = req.body.cause ? Firewall.sanitize(req.body.cause) : req.body.cause;
 
 			next();
 		} catch (e) {
-			AuthValidator.handleError('changed account lock status', e, res);
+			AuthValidator.handleError('change account status', e, res);
 		}
 	}
 

@@ -7,7 +7,7 @@ import { Request } from 'express';
 import { HttpStatusCode, Libraries } from '@marin/lib.utils/dist/declarations';
 import { AUTH_STEP } from '@marin/lib.auth-engine/dist/types/enums';
 import Exception from '@marin/lib.error';
-import { AccountRole, LogoutType } from '@marin/declarations/lib/auth';
+import { AccountRole, AccountStatus, LogoutType, MultiFactorAuthenticationStatus } from '@marin/declarations/lib/auth';
 import { AuthenticationEngineMock } from './mocks/auth-engine';
 import { AuthController } from '../lib';
 import { ResponseMock } from './mocks/response';
@@ -177,7 +177,7 @@ describe('controller spec', () => {
 			);
 		});
 
-		it('returns 410 Gone on hard error with no body, such as account locking, or account not activated', async () => {
+		it('returns 410 Gone on hard error with no body, such as account disabled, or account not activated', async () => {
 			// @ts-ignore
 			const req: Request = {
 				headers: {
@@ -475,13 +475,12 @@ describe('controller spec', () => {
 		});
 	});
 
-	describe('enable multi factor authentication spec', () => {
+	describe('change multi factor authentication status', () => {
 		it('returns 204 No Content on successful enabling of multi factor authentication', async () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					// @ts-ignore
-					enable: true
+					status: MultiFactorAuthenticationStatus.ENABLED
 				},
 				// @ts-ignore
 				pipeline: {
@@ -491,17 +490,58 @@ describe('controller spec', () => {
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.ENABLE_MULTI_FACTOR_AUTHENTICATION, {
-				expectingInput: (accountId, enable) => {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS, {
+				expectingInput: (...args: any[]) => {
+					expect(args.length).to.be.eq(1);
 					// @ts-ignore
-					expect(accountId).to.be.eq(req.pipeline.jwtPayload.sub);
-					expect(enable).to.be.eq(req.query.enable);
+					expect(args[0]).to.be.eq(req.pipeline.jwtPayload.sub);
 				},
 				returns: undefined
 			});
 
 			// @ts-ignore
-			await AuthController.enableMultiFactorAuthentication(req, responseMock);
+			await AuthController.changeMultiFactorAuthenticationStatus(req, responseMock);
+
+			checkHttpResponse(
+				responseMock,
+				{
+					called: true,
+					with: HttpStatusCode.NO_CONTENT
+				},
+				{
+					called: false
+				},
+				{
+					called: true
+				}
+			);
+		});
+
+		it('returns 204 No Content on successful disabling of multi factor authentication', async () => {
+			// @ts-ignore
+			const req: Request = {
+				query: {
+					status: MultiFactorAuthenticationStatus.DISABLED
+				},
+				// @ts-ignore
+				pipeline: {
+					jwtPayload: {
+						sub: string.generateStringOfLength(10)
+					}
+				}
+			};
+
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS, {
+				expectingInput: (...args: any[]) => {
+					expect(args.length).to.be.eq(1);
+					// @ts-ignore
+					expect(args[0]).to.be.eq(req.pipeline.jwtPayload.sub);
+				},
+				returns: undefined
+			});
+
+			// @ts-ignore
+			await AuthController.changeMultiFactorAuthenticationStatus(req, responseMock);
 
 			checkHttpResponse(
 				responseMock,
@@ -522,15 +562,14 @@ describe('controller spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					// @ts-ignore
-					enable: true
+					status: MultiFactorAuthenticationStatus.DISABLED
 				}
 			};
 
 			let err;
 			try {
 				// @ts-ignore
-				await AuthController.enableMultiFactorAuthentication(req, responseMock);
+				await AuthController.changeMultiFactorAuthenticationStatus(req, responseMock);
 			} catch (e) {
 				err = e;
 			}
@@ -545,8 +584,7 @@ describe('controller spec', () => {
 			// @ts-ignore
 			const req: Request = {
 				query: {
-					// @ts-ignore
-					enable: true
+					status: MultiFactorAuthenticationStatus.DISABLED
 				},
 				// @ts-ignore
 				pipeline: {
@@ -556,11 +594,11 @@ describe('controller spec', () => {
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.ENABLE_MULTI_FACTOR_AUTHENTICATION, {
-				expectingInput: (accountId, enable) => {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS, {
+				expectingInput: (...args: any[]) => {
+					expect(args.length).to.be.eq(1);
 					// @ts-ignore
-					expect(accountId).to.be.eq(req.pipeline.jwtPayload.sub);
-					expect(enable).to.be.eq(req.query.enable);
+					expect(args[0]).to.be.eq(req.pipeline.jwtPayload.sub);
 				},
 				throws: new Error('Database I/O error')
 			});
@@ -568,7 +606,7 @@ describe('controller spec', () => {
 			let err;
 			try {
 				// @ts-ignore
-				await AuthController.enableMultiFactorAuthentication(req, responseMock);
+				await AuthController.changeMultiFactorAuthenticationStatus(req, responseMock);
 			} catch (e) {
 				err = e;
 			}
@@ -847,7 +885,7 @@ describe('controller spec', () => {
 			);
 		});
 
-		it(`returns ${HttpStatusCode.GONE} when account is locked`, async () => {
+		it(`returns ${HttpStatusCode.GONE} when account is disabled`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				// @ts-ignore
@@ -863,7 +901,7 @@ describe('controller spec', () => {
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_PASSWORD, {
 				expectingInput: body => expect(body).to.be.deep.eq(req.body),
-				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.ACCOUNT_LOCKED, '')
+				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.ACCOUNT_DISABLED, '')
 			});
 
 			// @ts-ignore
@@ -878,7 +916,7 @@ describe('controller spec', () => {
 				{
 					called: true,
 					with: {
-						code: AuthEngineErrorCodes.ACCOUNT_LOCKED
+						code: AuthEngineErrorCodes.ACCOUNT_DISABLED
 					}
 				}
 			);
@@ -1056,6 +1094,41 @@ describe('controller spec', () => {
 				},
 				{
 					called: true
+				}
+			);
+		});
+
+		it(`returns ${HttpStatusCode.GONE} when account is disabled (logical delete)`, async () => {
+			// @ts-ignore
+			const req: Request = {
+				body: {
+					username: string.generateStringOfLength(5),
+					'side-channel': 'SMS'
+				}
+			};
+
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CREATE_FORGOT_PASSWORD_SESSION, {
+				expectingInput: body => expect(body).to.be.deep.eq(req.body),
+				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.ACCOUNT_DISABLED, '')
+			});
+
+			// @ts-ignore
+			await AuthController.createForgotPasswordSession(req, responseMock);
+
+			checkHttpResponse(
+				responseMock,
+				{
+					called: true,
+					with: HttpStatusCode.GONE
+				},
+				{
+					called: true,
+					with: {
+						code: AuthEngineErrorCodes.ACCOUNT_DISABLED
+					}
+				},
+				{
+					called: false
 				}
 			);
 		});
@@ -1302,6 +1375,45 @@ describe('controller spec', () => {
 			);
 		});
 
+		it(`returns ${HttpStatusCode.GONE} when account is disabled`, async () => {
+			// @ts-ignore
+			const req: Request = {
+				headers: {
+					'x-forwarded-for': defaultIp
+				},
+				body: {
+					accountId: string.generateStringOfLength(5),
+					username: string.generateStringOfLength(5),
+					password: string.generateStringOfLength(5)
+				}
+			};
+
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.VALIDATE_ACCOUNT_CREDENTIALS, {
+				expectingInput: (accountId, credentials) => {
+					expect(accountId).to.be.deep.eq(req.body.accountId);
+					expect(credentials).to.be.deep.eq(req.body);
+				},
+				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.ACCOUNT_DISABLED, '')
+			});
+
+			// @ts-ignore
+			await AuthController.validateAccountCredentials(req, responseMock);
+
+			checkHttpResponse(
+				responseMock,
+				{
+					called: true,
+					with: HttpStatusCode.GONE
+				},
+				{
+					called: true,
+					with: {
+						code: AuthEngineErrorCodes.ACCOUNT_DISABLED
+					}
+				}
+			);
+		});
+
 		it(`returns ${HttpStatusCode.NOT_FOUND} when account not found`, async () => {
 			// @ts-ignore
 			const req: Request = {
@@ -1379,16 +1491,15 @@ describe('controller spec', () => {
 		});
 	});
 
-	describe('change account lock status spec', () => {
-		it(`returns ${HttpStatusCode.NO_CONTENT} when locking account successfully`, async () => {
+	describe('change account status spec', () => {
+		it(`returns ${HttpStatusCode.NO_CONTENT} when disabling account`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				headers: {
 					'x-forwarded-for': defaultIp
 				},
 				query: {
-					// @ts-ignore
-					enable: true
+					status: AccountStatus.DISABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(5),
@@ -1396,7 +1507,7 @@ describe('controller spec', () => {
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS, {
 				expectingInput: (accountId, cause) => {
 					expect(accountId).to.be.eq(req.body.accountId);
 					expect(cause).to.be.eq(req.body.cause);
@@ -1405,7 +1516,7 @@ describe('controller spec', () => {
 			});
 
 			// @ts-ignore
-			await AuthController.changeAccountLockStatus(req, responseMock);
+			await AuthController.changeAccountStatus(req, responseMock);
 
 			checkHttpResponse(
 				responseMock,
@@ -1422,7 +1533,7 @@ describe('controller spec', () => {
 			);
 		});
 
-		it(`returns ${HttpStatusCode.NO_CONTENT} when unlocking account successfully`, async () => {
+		it(`returns ${HttpStatusCode.NO_CONTENT} when enabling account`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				// @ts-ignore
@@ -1431,15 +1542,14 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				query: {
-					// @ts-ignore
-					enable: false
+					status: AccountStatus.ENABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(5)
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS, {
 				expectingInput: accountId => {
 					expect(accountId).to.be.eq(req.body.accountId);
 				},
@@ -1447,7 +1557,7 @@ describe('controller spec', () => {
 			});
 
 			// @ts-ignore
-			await AuthController.changeAccountLockStatus(req, responseMock);
+			await AuthController.changeAccountStatus(req, responseMock);
 
 			checkHttpResponse(
 				responseMock,
@@ -1471,15 +1581,14 @@ describe('controller spec', () => {
 					'x-forwarded-for': defaultIp
 				},
 				query: {
-					// @ts-ignore
-					enable: false
+					status: AccountStatus.ENABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(5)
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS, {
 				expectingInput: accountId => {
 					expect(accountId).to.be.eq(req.body.accountId);
 				},
@@ -1487,7 +1596,7 @@ describe('controller spec', () => {
 			});
 
 			// @ts-ignore
-			await AuthController.changeAccountLockStatus(req, responseMock);
+			await AuthController.changeAccountStatus(req, responseMock);
 
 			checkHttpResponse(
 				responseMock,
@@ -1513,15 +1622,14 @@ describe('controller spec', () => {
 				},
 				headers: {},
 				query: {
-					// @ts-ignore
-					enable: false
+					status: AccountStatus.ENABLED
 				},
 				body: {
 					accountId: string.generateStringOfLength(5)
 				}
 			};
 
-			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_LOCK_STATUS, {
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_ACCOUNT_STATUS, {
 				expectingInput: accountId => {
 					expect(accountId).to.be.eq(req.body.accountId);
 				},
@@ -1531,7 +1639,7 @@ describe('controller spec', () => {
 			let err;
 			try {
 				// @ts-ignore
-				await AuthController.changeAccountLockStatus(req, responseMock);
+				await AuthController.changeAccountStatus(req, responseMock);
 			} catch (e) {
 				err = e;
 			}
@@ -1566,7 +1674,7 @@ describe('controller spec', () => {
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.LOGOUT, {
 				// @ts-ignore
 				expectingInput: jwtPayload => expect(jwtPayload).to.be.eq(req.pipeline.jwtPayload),
-				returns: undefined
+				returns: 1
 			});
 
 			// @ts-ignore

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { AccountEntityMongo, FailedAuthAttemptsEntityMongo, AccessPointEntityMongo, ActiveUserSessionEntityMongo } from './fixtures/mongo-entities';
+import { models } from '../lib';
 
 describe('entities', () => {
 	const location = {
@@ -14,26 +15,29 @@ describe('entities', () => {
 	};
 
 	it('account', async () => {
-		const account = await AccountEntityMongo.create({
+		const account: models.AccountModel = {
 			username: 'gigel',
 			password: '123',
 			salt: 'salt',
 			role: 'admin',
 			email: 'email',
 			telephone: 'mobile',
-			activated: false,
-			locked: false,
-			mfa: false,
+			enabled: false,
+			usingMfa: false,
 			pubKey: 'does not matter now this key, just testing that account works'
-		});
-		expect(await AccountEntityMongo.readById(account.id!)).to.be.deep.equal(account);
+		};
+
+		account.id = await AccountEntityMongo.create(account);
+		expect(await AccountEntityMongo.readById(account.id)).to.be.deep.equal(account);
 		expect(await AccountEntityMongo.read(account.username)).to.be.deep.equal(account);
-		await AccountEntityMongo.lock(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.locked).to.be.equal(true);
-		await AccountEntityMongo.activate(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.activated).to.be.equal(true);
-		await AccountEntityMongo.enableMFA(account.id!, true);
-		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(true);
+		await AccountEntityMongo.disable(account.id!);
+		expect((await AccountEntityMongo.read(account.username))!.enabled).to.be.equal(false);
+		await AccountEntityMongo.enable(account.id!);
+		expect((await AccountEntityMongo.read(account.username))!.enabled).to.be.equal(true);
+		await AccountEntityMongo.enableMultiFactorAuth(account.id!);
+		expect((await AccountEntityMongo.read(account.username))!.usingMfa).to.be.equal(true);
+		await AccountEntityMongo.disableMultiFactorAuth(account.id!);
+		expect((await AccountEntityMongo.read(account.username))!.usingMfa).to.be.equal(false);
 	});
 
 	it('failed auth attempts', async () => {

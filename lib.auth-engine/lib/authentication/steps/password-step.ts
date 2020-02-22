@@ -21,7 +21,7 @@ class PasswordStep implements AuthStep {
 			return { nextStep: AUTH_STEP.RECAPTCHA };
 		}
 
-		if (account.mfa) {
+		if (account.usingMfa) {
 			return { nextStep: AUTH_STEP.GENERATE_TOTP };
 		}
 

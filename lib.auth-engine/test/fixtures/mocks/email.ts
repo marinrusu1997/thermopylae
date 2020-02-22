@@ -38,5 +38,5 @@ class EmailMock extends EmailClient {
 	}
 }
 
-const instance = new EmailMock();
+const instance = new EmailMock({}, {});
 export { instance as EmailMockInstance, EmailMock };

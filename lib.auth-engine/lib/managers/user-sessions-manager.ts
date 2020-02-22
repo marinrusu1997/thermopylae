@@ -1,8 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
+import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 import { chrono } from '@marin/lib.utils';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { AuthTokenType } from '@marin/lib.utils/dist/enums';
 import { AccessPointEntity, ActiveUserSessionEntity } from '../types/entities';
 import { ActiveUserSession } from '../types/sessions';
 import { createException, ErrorCodes } from '../error';
@@ -62,12 +60,11 @@ class UserSessionsManager {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 
-	public delete(payload: IIssuedJWTPayload): Promise<void> {
+	public async delete(payload: IIssuedJWTPayload): Promise<number> {
 		const ttl = this.jwtRolesTtl && payload.aud ? this.jwtRolesTtl.get(payload.aud) : undefined;
-		return this.jwt
-			.blacklist()
-			.revoke(payload, ttl)
-			.then(() => this.activeUserSessionEntity.delete(payload.sub, payload.iat));
+		await this.jwt.blacklist().revoke(payload, ttl);
+		await this.activeUserSessionEntity.delete(payload.sub, payload.iat);
+		return 1; // 1 session deleted
 	}
 
 	public async deleteAllButCurrent(accountId: string, accountRole: string | undefined, tokenIssuedAtTime: number): Promise<number> {

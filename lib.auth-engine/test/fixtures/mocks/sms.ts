@@ -37,5 +37,9 @@ class SmsMock extends SmsClient {
 	}
 }
 
-const instance = new SmsMock();
+const instance = new SmsMock({
+	accountSid: 'ACdoes not matter',
+	authToken: 'does not matter',
+	fromNumber: 'does not matter'
+});
 export { instance as SmsMockInstance, SmsMock };

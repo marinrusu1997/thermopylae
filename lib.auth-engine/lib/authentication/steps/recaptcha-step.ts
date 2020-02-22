@@ -23,7 +23,7 @@ class RecaptchaStep implements AuthStep {
 		}
 
 		session.recaptchaRequired = false;
-		if (account.mfa) {
+		if (account.usingMfa) {
 			return { nextStep: AUTH_STEP.GENERATE_TOTP };
 		}
 		return { nextStep: AUTH_STEP.AUTHENTICATED };
