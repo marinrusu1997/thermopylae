@@ -187,7 +187,7 @@ describe('forgot password spec', () => {
 		expect(
 			await AuthEngineInstance.changePassword({
 				accountId,
-				sessionId: forgedActiveSessions[1].timestamp, // invalidate all, except the last one
+				sessionId: forgedActiveSessions[1].authenticatedAtUNIX, // invalidate all, except the last one
 				old: defaultRegistrationInfo.password,
 				new: forgedNewPassword
 			})

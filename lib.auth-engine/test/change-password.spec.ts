@@ -48,7 +48,7 @@ describe('Change password spec', () => {
 		expect(
 			await AuthEngineInstance.changePassword({
 				accountId,
-				sessionId: activeSessions[0].timestamp,
+				sessionId: activeSessions[0].authenticatedAtUNIX,
 				old: defaultRegistrationInfo.password,
 				new: newPassword
 			})
@@ -75,7 +75,7 @@ describe('Change password spec', () => {
 		expect(
 			await AuthEngineInstance.changePassword({
 				accountId,
-				sessionId: activeSessionsBeforeChangePassword[0].timestamp,
+				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
 				old: defaultRegistrationInfo.password,
 				new: newPassword
 			})
@@ -83,7 +83,7 @@ describe('Change password spec', () => {
 
 		const activeSessionsAfterChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessionsAfterChangePassword.length).to.be.eq(1);
-		expect(activeSessionsAfterChangePassword[0].timestamp).to.be.eq(activeSessionsBeforeChangePassword[0].timestamp);
+		expect(activeSessionsAfterChangePassword[0].authenticatedAtUNIX).to.be.eq(activeSessionsBeforeChangePassword[0].authenticatedAtUNIX);
 
 		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
 		await checkIfJWTWasInvalidated(authStatus2.token!, basicAuthEngineConfig.jwt.instance);
@@ -103,7 +103,7 @@ describe('Change password spec', () => {
 		expect(
 			await AuthEngineInstance.changePassword({
 				accountId,
-				sessionId: activeSessionsBeforeChangePassword[0].timestamp,
+				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
 				old: defaultRegistrationInfo.password,
 				new: newPassword,
 				logAllOtherSessionsOut: false

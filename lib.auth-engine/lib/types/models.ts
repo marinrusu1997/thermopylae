@@ -11,18 +11,24 @@ export interface AccountModel extends BasicCredentials {
 	pubKey?: string | Buffer;
 }
 
-export interface AccessPointModel {
-	timestamp: number;
+export interface AuthenticationEntryPointModel {
+	authenticatedAtUNIX: number; // UNIX seconds
 	accountId: string;
 	ip: string;
 	device: string;
 	location: BasicLocation;
 }
 
+export interface ActiveUserSession {
+	authenticatedAtUNIX: number; // UNIX seconds
+	accountId: string;
+	// https://security.stackexchange.com/questions/170388/do-i-need-csrf-token-if-im-using-bearer-jwt
+}
+
 export interface FailedAuthAttemptsModel {
 	id?: string;
 	accountId: string;
-	timestamp: number;
-	devices: Array<string>;
-	ips: Array<string>;
+	detectedAt: Date;
+	device: string;
+	ip: string;
 }

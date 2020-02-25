@@ -1,9 +1,15 @@
-import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from '../../lib/types/schedulers';
+import {
+	CancelScheduledUnactivatedAccountDeletion,
+	ScheduleAccountEnabling,
+	ScheduleActiveUserSessionDeletion,
+	ScheduleUnactivatedAccountDeletion
+} from '../../lib/types/schedulers';
 import { AccountEntityMongo, ActiveUserSessionEntityMongo } from './mongo-entities';
 // eslint-disable-next-line no-undef
 import Timeout = NodeJS.Timeout;
 
 enum SCHEDULING_OP {
+	ENABLE_ACCOUNT,
 	DELETE_ACTIVE_USER_SESSION,
 	DELETE_UNACTIVATED_ACCOUNT,
 	CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT
@@ -11,50 +17,67 @@ enum SCHEDULING_OP {
 
 const failures = new Map<number, boolean>();
 
-const timeouts = new Map<number, Timeout>();
+const scheduledTasks = new Map<number, Timeout>();
 let counter = 0;
 
-const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDeletion = (accountId, sessionTimestamp, whenToDelete) => {
+function registerTask(task: (...args: any[]) => void, whenToExecute: Date): string {
+	// eslint-disable-next-line no-plusplus
+	const currentTaskId = counter++;
+	scheduledTasks.set(
+		currentTaskId,
+		setTimeout(() => {
+			scheduledTasks.delete(currentTaskId);
+			task();
+		}, whenToExecute.getTime() - new Date().getTime())
+	);
+	return String(currentTaskId);
+}
+
+const ScheduleAccountEnablingFromMongo: ScheduleAccountEnabling = async (accountId, whenToEnable) => {
+	if (failures.get(SCHEDULING_OP.ENABLE_ACCOUNT)) {
+		throw new Error('Scheduling account enabling was configured to fail');
+	}
+
+	return registerTask(() => {
+		AccountEntityMongo.enable(accountId).catch(err => console.error('Error occured in scheduling account enabling', err));
+	}, whenToEnable);
+};
+
+const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDeletion = async (accountId, sessionTimestamp, whenToDelete) => {
 	if (failures.get(SCHEDULING_OP.DELETE_ACTIVE_USER_SESSION)) {
 		throw new Error('Scheduling delete active user session was configured to fail');
 	}
 
-	setTimeout(() => {
+	return registerTask(() => {
 		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch(err =>
 			console.error('Error occurred in scheduling delete active user session', err)
 		);
-	}, whenToDelete.getTime() - new Date().getTime());
+	}, whenToDelete);
 };
 
-const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDeletion = (accountId, whenToDelete) => {
+const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDeletion = async (accountId, whenToDelete) => {
 	if (failures.get(SCHEDULING_OP.DELETE_UNACTIVATED_ACCOUNT)) {
 		throw new Error('Scheduling delete unactivated account was configured to fail');
 	}
 
-	// eslint-disable-next-line no-plusplus
-	const currentTaskId = counter++;
-	timeouts.set(
-		currentTaskId,
-		setTimeout(() => {
-			timeouts.delete(currentTaskId);
-			return AccountEntityMongo.delete(accountId);
-		}, whenToDelete.getTime() - new Date().getTime())
+	return registerTask(
+		() => AccountEntityMongo.delete(accountId).catch(err => console.error('Error occurred while scheduling unactivated account deletion', err)),
+		whenToDelete
 	);
-	return String(currentTaskId);
 };
 
-const CancelScheduledUnactivatedAccountDeletionFromMongo: CancelScheduledUnactivatedAccountDeletion = taskId => {
+const CancelScheduledUnactivatedAccountDeletionFromMongo: CancelScheduledUnactivatedAccountDeletion = async taskId => {
 	if (failures.get(SCHEDULING_OP.CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT)) {
 		throw new Error('Canceling deletion of unactivated account was configured to fail');
 	}
 
 	const numericTaskId = Number(taskId);
-	clearTimeout(timeouts.get(numericTaskId)!);
-	timeouts.delete(numericTaskId);
+	clearTimeout(scheduledTasks.get(numericTaskId)!);
+	scheduledTasks.delete(numericTaskId);
 };
 
 function hasActiveTimers(): boolean {
-	return timeouts.size !== 0;
+	return scheduledTasks.size !== 0;
 }
 
 function failureWillBeGeneratedWhenScheduling(operation: SCHEDULING_OP, willBeGenerated = true): void {
@@ -62,12 +85,13 @@ function failureWillBeGeneratedWhenScheduling(operation: SCHEDULING_OP, willBeGe
 }
 
 function cleanUpSchedulers(): void {
-	timeouts.forEach(timeout => clearTimeout(timeout));
-	timeouts.clear();
+	scheduledTasks.forEach(timeout => clearTimeout(timeout));
+	scheduledTasks.clear();
 	failures.clear();
 }
 
 export {
+	ScheduleAccountEnablingFromMongo,
 	ScheduleActiveUserSessionDeletionFromMongo,
 	ScheduleUnactivatedAccountDeletionFromMongo,
 	CancelScheduledUnactivatedAccountDeletionFromMongo,

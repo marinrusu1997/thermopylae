@@ -96,7 +96,7 @@ describe('Logout spec', () => {
 		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(3);
 
-		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].timestamp);
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(activeSessions.length - 1);
 
 		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
@@ -112,7 +112,7 @@ describe('Logout spec', () => {
 		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
 
-		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].timestamp);
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(0);
 
 		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!)).to.not.be.eq(undefined);

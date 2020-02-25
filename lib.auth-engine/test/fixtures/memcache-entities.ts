@@ -1,6 +1,6 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
 import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity, ForgotPasswordSessionEntity } from '../../lib/types/entities';
-import { AuthSession, FailedAuthAttemptSession } from '../../lib/types/sessions';
+import { OnGoingAuthenticationSession, FailedAuthenticationAttemptSession } from '../../lib/types/sessions';
 
 const memcache = getDefaultMemCache();
 
@@ -25,7 +25,7 @@ const AuthSessionEntityMemCache: AuthSessionEntity = {
 	},
 	read: (username, deviceId) => {
 		const key = `auths:${username}:${deviceId}`;
-		const session = memcache.get(key) as AuthSession;
+		const session = memcache.get(key) as OnGoingAuthenticationSession;
 		return Promise.resolve(session || null);
 	},
 	update: (username, deviceId, session) => {
@@ -57,7 +57,7 @@ const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
 	},
 	read: username => {
 		const key = `faas:${username}`;
-		const session = memcache.get(key) as FailedAuthAttemptSession;
+		const session = memcache.get(key) as FailedAuthenticationAttemptSession;
 		return Promise.resolve(session || null);
 	},
 	update: (username, session) => {

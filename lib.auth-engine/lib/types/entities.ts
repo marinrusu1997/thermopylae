@@ -1,5 +1,5 @@
-import { AccessPointModel, AccountModel, FailedAuthAttemptsModel } from './models';
-import { AuthSession, FailedAuthAttemptSession, ActiveUserSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
+import { AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel, ActiveUserSession } from './models';
+import { OnGoingAuthenticationSession, FailedAuthenticationAttemptSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
 export interface AccountEntity {
 	create(account: AccountModel): Promise<string>;
@@ -13,36 +13,36 @@ export interface AccountEntity {
 	delete(id: string): Promise<void>;
 }
 
-export interface FailedAuthAttemptsEntity {
+export interface FailedAuthenticationAttemptsEntity {
 	create(attempts: FailedAuthAttemptsModel): Promise<string>;
-	readRange(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>>;
+	readRange(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthAttemptsModel>>;
 }
 
-export interface AccessPointEntity {
-	create(accessPoint: AccessPointModel): Promise<void>;
+export interface AuthenticationEntryPointEntity {
+	create(authenticationEntryPoint: AuthenticationEntryPointModel): Promise<void>;
 	authBeforeFromThisDevice(accountId: string, device: string): Promise<boolean>;
 }
 
 export interface ActiveUserSessionEntity {
 	create(session: ActiveUserSession): Promise<void>;
-	readAll(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>>;
-	readAllButOne(accountId: string, exceptedSessionId: number): Promise<Array<ActiveUserSession & AccessPointModel>>;
+	readAll(accountId: string): Promise<Array<ActiveUserSession & AuthenticationEntryPointModel>>;
+	readAllButOne(accountId: string, exceptedSessionId: number): Promise<Array<ActiveUserSession & AuthenticationEntryPointModel>>;
 	delete(accountId: string, timestamp: number): Promise<void>;
 	deleteAll(accountId: string): Promise<number>;
 	deleteAllButOne(accountId: string, exceptedSessionId: number): Promise<number>;
 }
 
 export interface AuthSessionEntity {
-	create(username: string, deviceId: string, session: AuthSession, ttl: number): Promise<void>;
-	read(username: string, deviceId: string): Promise<AuthSession | null>;
-	update(username: string, deviceId: string, session: AuthSession): Promise<void>;
+	create(username: string, deviceId: string, session: OnGoingAuthenticationSession, ttl: number): Promise<void>;
+	read(username: string, deviceId: string): Promise<OnGoingAuthenticationSession | null>;
+	update(username: string, deviceId: string, session: OnGoingAuthenticationSession): Promise<void>;
 	delete(username: string, deviceId: string): Promise<void>;
 }
 
 export interface FailedAuthAttemptSessionEntity {
-	create(username: string, session: FailedAuthAttemptSession, ttl: number): Promise<void>;
-	read(username: string): Promise<FailedAuthAttemptSession | null>;
-	update(username: string, session: FailedAuthAttemptSession): Promise<void>;
+	create(username: string, session: FailedAuthenticationAttemptSession, ttl: number): Promise<void>;
+	read(username: string): Promise<FailedAuthenticationAttemptSession | null>;
+	update(username: string, session: FailedAuthenticationAttemptSession): Promise<void>;
 	delete(username: string): Promise<void>;
 }
 

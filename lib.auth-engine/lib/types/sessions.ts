@@ -1,19 +1,13 @@
-export interface ActiveUserSession {
-	timestamp: number;
-	accountId: string;
-	// https://security.stackexchange.com/questions/170388/do-i-need-csrf-token-if-im-using-bearer-jwt
-}
-
-export interface AuthSession {
+export interface OnGoingAuthenticationSession {
 	recaptchaRequired: boolean;
 	mfaToken?: string; // preventing replay attacks
 	challengeResponseNonce?: string; // preventing replay attacks
 }
 
-export interface FailedAuthAttemptSession {
-	timestamp: number;
-	ip: Array<string>;
-	device: Array<string>;
+export interface FailedAuthenticationAttemptSession {
+	detectedAt: Date;
+	ip: string;
+	device: string;
 	counter: number;
 }
 

@@ -1,25 +1,24 @@
 import { IIssuedJWTPayload, Jwt } from '@marin/lib.jwt';
 import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 import { chrono } from '@marin/lib.utils';
-import { AccessPointEntity, ActiveUserSessionEntity } from '../types/entities';
-import { ActiveUserSession } from '../types/sessions';
+import { AuthenticationEntryPointEntity, ActiveUserSessionEntity } from '../types/entities';
 import { createException, ErrorCodes } from '../error';
 import { ScheduleActiveUserSessionDeletion } from '../types/schedulers';
 import { BasicLocation } from '../types/basic-types';
-import { AccessPointModel } from '../types/models';
+import { ActiveUserSession, AuthenticationEntryPointModel } from '../types/models';
 
 class UserSessionsManager {
 	private readonly scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion;
 	private readonly jwt: Jwt;
 	private readonly jwtRolesTtl?: Map<string, number>;
 	private readonly activeUserSessionEntity: ActiveUserSessionEntity;
-	private readonly accessPointEntity: AccessPointEntity;
+	private readonly accessPointEntity: AuthenticationEntryPointEntity;
 
 	constructor(
 		scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion,
 		jwt: Jwt,
 		activeUserSessionEntity: ActiveUserSessionEntity,
-		accessPointEntity: AccessPointEntity,
+		accessPointEntity: AuthenticationEntryPointEntity,
 		jwtRolesTtl?: Map<string, number>
 	) {
 		this.scheduleActiveUserSessionDeletion = scheduleActiveUserSessionDeletion;
@@ -47,16 +46,15 @@ class UserSessionsManager {
 		);
 
 		await Promise.all([
-			this.accessPointEntity.create({ timestamp: iat, accountId, ip, device, location }),
-			this.activeUserSessionEntity.create({ timestamp: iat, accountId })
+			this.accessPointEntity.create({ authenticatedAtUNIX: iat, accountId, ip, device, location }),
+			this.activeUserSessionEntity.create({ authenticatedAtUNIX: iat, accountId }),
+			this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromUNIX(iat + ttl))
 		]);
-
-		this.scheduleActiveUserSessionDeletion(accountId, iat, chrono.dateFromUNIX(iat + ttl));
 
 		return jwt;
 	}
 
-	public read(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
+	public read(accountId: string): Promise<Array<ActiveUserSession & AuthenticationEntryPointModel>> {
 		return this.activeUserSessionEntity.readAll(accountId);
 	}
 
@@ -77,7 +75,15 @@ class UserSessionsManager {
 		const revokeTokenPromises = [];
 		for (let i = 0; i < activeSessions.length; i++) {
 			revokeTokenPromises.push(
-				this.jwt.blacklist().revoke({ sub: accountId, aud: accountRole, iat: activeSessions[i].timestamp, exp: activeSessions[i].timestamp + ttl }, ttl)
+				this.jwt.blacklist().revoke(
+					{
+						sub: accountId,
+						aud: accountRole,
+						iat: activeSessions[i].authenticatedAtUNIX,
+						exp: activeSessions[i].authenticatedAtUNIX + ttl
+					},
+					ttl
+				)
 			);
 		}
 		await Promise.all(revokeTokenPromises);

@@ -3,7 +3,7 @@ import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AUTH_STEP } from '../../types/enums';
-import { AuthSession } from '../../types/sessions';
+import { OnGoingAuthenticationSession } from '../../types/sessions';
 
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
@@ -20,11 +20,11 @@ class ChallengeResponseStep implements AuthStep {
 		this.validator = validator;
 	}
 
-	async process(networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
+	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
 		if (!session.challengeResponseNonce) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}
-		const response = networkInput.responseForChallenge!;
+		const response = authRequest.responseForChallenge!;
 		if (!(await this.validator(account.pubKey!, session.challengeResponseNonce, response.signature, response.signAlgorithm, response.signEncoding))) {
 			return { nextStep: AUTH_STEP.ERROR }; // follow common auth attempt failure handling
 		}

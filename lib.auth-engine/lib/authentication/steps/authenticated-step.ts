@@ -1,7 +1,7 @@
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
-import { AccessPointEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
+import { AuthenticationEntryPointEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
 import { EmailSender } from '../../side-channels/email-sender';
 import { UserSessionsManager } from '../../managers/user-sessions-manager';
 import { getLogger } from '../../logger';
@@ -9,13 +9,13 @@ import { getLogger } from '../../logger';
 class AuthenticatedStep implements AuthStep {
 	private readonly emailSender: EmailSender;
 	private readonly userSessionsManager: UserSessionsManager;
-	private readonly accessPointEntity: AccessPointEntity;
+	private readonly accessPointEntity: AuthenticationEntryPointEntity;
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 
 	constructor(
 		emailSender: EmailSender,
 		userSessionsManager: UserSessionsManager,
-		accessPointEntity: AccessPointEntity,
+		accessPointEntity: AuthenticationEntryPointEntity,
 		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity
 	) {
 		this.emailSender = emailSender;
@@ -24,16 +24,16 @@ class AuthenticatedStep implements AuthStep {
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 	}
 
-	async process(networkInput: AuthRequest, account: AccountModel): Promise<AuthStepOutput> {
-		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, networkInput.device))) {
-			this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, networkInput.ip, networkInput.device);
+	async process(authRequest: AuthRequest, account: AccountModel): Promise<AuthStepOutput> {
+		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, authRequest.device))) {
+			this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authRequest.ip, authRequest.device);
 		}
 		// reset failed auth attempts on successful authentication (in detached mode)
 		this.failedAuthAttemptSessionEntity
 			.delete(account.username)
 			.catch(e => getLogger().error(`Failed to delete failed auth attempts session for account id ${account.id!}. `, e));
 
-		const sessionToken = await this.userSessionsManager.create(networkInput.ip, networkInput.device, networkInput.location, account.id!, account.role);
+		const sessionToken = await this.userSessionsManager.create(authRequest.ip, authRequest.device, authRequest.location, account.id!, account.role);
 
 		return {
 			done: { token: sessionToken }

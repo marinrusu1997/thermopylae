@@ -3,7 +3,7 @@ import { createException, ErrorCodes } from '../error';
 import { AuthRequest } from '../types/requests';
 import { AccountModel } from '../types/models';
 import { AUTH_STEP } from '../types/enums';
-import { AuthSession } from '../types/sessions';
+import { OnGoingAuthenticationSession } from '../types/sessions';
 
 class AuthOrchestrator {
 	private readonly startStepName: AUTH_STEP;
@@ -17,12 +17,12 @@ class AuthOrchestrator {
 		this.steps.set(name, step);
 	}
 
-	public async authenticate(data: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStatus> {
+	public async authenticate(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStatus> {
 		let currentStepName = this.startStepName;
 		let prevStepName = AUTH_STEP.UNKNOWN;
 		let currentStep = this.steps.get(currentStepName);
 		while (true) {
-			const output = await currentStep!.process(data, account, session, prevStepName);
+			const output = await currentStep!.process(authRequest, account, session, prevStepName);
 			prevStepName = currentStepName;
 			currentStepName = output.nextStep!;
 			if (currentStepName && !output.done) {

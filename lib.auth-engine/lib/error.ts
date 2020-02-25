@@ -20,7 +20,9 @@ const enum ErrorCodes {
 
 	SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
 
-	WEAK_PASSWORD = 'WEAK_PASSWORD'
+	WEAK_PASSWORD = 'WEAK_PASSWORD',
+
+	MISCONFIGURATION = 'MISCONFIGURATION'
 }
 
 function createException(code: string, message: string, data?: any): Exception {

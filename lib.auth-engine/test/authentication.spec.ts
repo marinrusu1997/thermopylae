@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { hostname } from 'os';
 import { createSign } from 'crypto';
-import { chrono } from '@marin/lib.utils';
+import { chrono, number } from '@marin/lib.utils';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 // @ts-ignore
@@ -17,6 +17,7 @@ import basicAuthEngineConfig from './fixtures';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
 import { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
 import { EmailMockInstance } from './fixtures/mocks/email';
+import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 
 describe('Authenticate spec', () => {
 	const primaryKeyPair = keypair();
@@ -26,12 +27,13 @@ describe('Authenticate spec', () => {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1,
-			authSessionMinutes: 0.01
+			authSessionMinutes: 0.01 // 1 second
 		},
 		thresholds: {
 			passwordBreach: 1,
 			recaptcha: 2,
-			maxFailedAuthAttempts: 3
+			maxFailedAuthAttempts: 3,
+			enableAccountAfterAuthFailureDelayMinutes: 0.03 // 3 seconds
 		}
 	};
 
@@ -110,7 +112,7 @@ describe('Authenticate spec', () => {
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authSessionMinutes!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 	});
 
@@ -195,7 +197,7 @@ describe('Authenticate spec', () => {
 		expect(firstTOTP).to.not.be.eq(undefined);
 
 		SmsMockInstance.clearOutboxFor(defaultRegistrationInfo.telephone);
-		await chrono.sleep(1000); // totp is based on timestamps, need another timestamp in order to issue different token
+		await chrono.sleep(1000); // totp is based on timestamps, need another authenticatedAt in order to issue different token
 
 		// subsequent calls should resolve to totp step
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
@@ -338,7 +340,7 @@ describe('Authenticate spec', () => {
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
 		expect(activeSessions[0]).to.be.deep.eq({
-			timestamp: jwtPayload.iat,
+			authenticatedAtUNIX: jwtPayload.iat,
 			accountId,
 			ip: '158.56.89.230',
 			device: hostname(),
@@ -346,7 +348,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -377,7 +379,7 @@ describe('Authenticate spec', () => {
 		let activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
 		expect(activeSessions[0]).to.be.deep.eq({
-			timestamp: jwtPayload.iat,
+			authenticatedAtUNIX: jwtPayload.iat,
 			accountId,
 			ip: '158.56.89.230',
 			device: hostname(),
@@ -385,7 +387,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.authSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -560,20 +562,35 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
-	it('stores failed auth attempts after account was disabled when failure threshold reached', async () => {
+	it('stores failed auth attempts after account was disabled when failure threshold reached (only the last one ip and device)', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
+		const POOL_SIZE = 100;
+		const ipPool = [];
+		const devicePool = [];
+		for (let i = 0; i < POOL_SIZE; i++) {
+			ipPool.push(`ip${i}`);
+			devicePool.push(`device${i}`);
+		}
+
+		let lastIp;
+		let lastDevice;
 		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
-			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
+			lastIp = ipPool[number.generateArbitrary(0, POOL_SIZE)];
+			lastDevice = devicePool[number.generateArbitrary(0, POOL_SIZE)];
+			await AuthEngineInstance.authenticate({
+				...validAuthRequest,
+				password: 'invalid',
+				ip: lastIp,
+				device: lastDevice
+			});
 		}
 
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
 		expect(failedAuthAttempts.length).to.be.eq(1);
-		expect(failedAuthAttempts[0].devices.length).to.be.eq(1);
-		expect(failedAuthAttempts[0].ips.length).to.be.eq(1);
 
-		expect(failedAuthAttempts[0].devices.includes(validAuthRequest.device)).to.be.eq(true);
-		expect(failedAuthAttempts[0].ips.includes(validAuthRequest.ip)).to.be.eq(true);
+		expect(failedAuthAttempts[0].ip).to.be.eq(lastIp);
+		expect(failedAuthAttempts[0].device).to.be.eq(lastDevice);
 	});
 
 	it('disables account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
@@ -599,6 +616,94 @@ describe('Authenticate spec', () => {
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
+	it('schedules account enabling when failed auth attempts threshold has been reached', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
+		}
+
+		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthAttempts(accountId);
+		expect(failedAuthAttempts.length).to.be.eq(1);
+
+		const expectedFailAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
+		expect(expectedFailAuthStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+
+		await chrono.sleep(chrono.minutesToSeconds(AuthenticationEngineConfig.thresholds!.enableAccountAfterAuthFailureDelayMinutes!) * 1000);
+
+		const expectedPositiveAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
+		expect(expectedPositiveAuthStatus.token).to.not.be.eq(undefined);
+		expect(expectedPositiveAuthStatus.error).to.be.eq(undefined);
+		expect(expectedPositiveAuthStatus.nextStep).to.be.eq(undefined);
+	}).timeout(5000);
+
+	it('schedules account enabling when failed auth attempts threshold has been reached only after disabling succeeded', async () => {
+		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.ACCOUNT_DISABLE);
+
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+
+		let thrownError;
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+			try {
+				await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
+			} catch (e) {
+				thrownError = e;
+			}
+		}
+
+		expect(hasActiveTimers()).to.be.eq(false);
+		expect(thrownError).to.haveOwnProperty('message', 'Account disable was scheduled to fail');
+	});
+
+	it('keeps account disabled if account enabling failed after failed auth attempts threshold reached', async () => {
+		failureWillBeGeneratedWhenScheduling(SCHEDULING_OP.ENABLE_ACCOUNT);
+
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+
+		let thrownError;
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+			try {
+				await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
+			} catch (e) {
+				thrownError = e;
+			}
+		}
+
+		expect(hasActiveTimers()).to.be.eq(false);
+		expect(thrownError).to.haveOwnProperty('message', 'Scheduling account enabling was configured to fail');
+
+		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
+		expect(authStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+	});
+
+	it('keeps account disabled if creating failed auth attempt model failed', async () => {
+		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE);
+
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
+		}
+
+		expect(hasActiveTimers()).to.be.eq(true);
+
+		const expectedNegativeAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
+		expect(expectedNegativeAuthStatus.error!.hard)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+
+		await chrono.sleep(chrono.minutesToSeconds(AuthenticationEngineConfig.thresholds!.enableAccountAfterAuthFailureDelayMinutes!) * 1000);
+
+		const expectedPositiveAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
+		expect(expectedPositiveAuthStatus.token).to.not.be.eq(undefined);
+		expect(expectedPositiveAuthStatus.error).to.be.eq(undefined);
+		expect(expectedPositiveAuthStatus.nextStep).to.be.eq(undefined);
+	}).timeout(5000);
+
 	it('authenticates the user using challenge response authentication method', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
@@ -615,6 +720,6 @@ describe('Authenticate spec', () => {
 		expect(authStatus.nextStep).to.be.eq(undefined);
 
 		// session was deletion, prevent replay attacks with already emitted nonce
-		expect(await AuthenticationEngineConfig.entities.authSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
+		expect(await AuthenticationEngineConfig.entities.onGoingAuthSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
 	});
 });

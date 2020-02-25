@@ -3,7 +3,7 @@ import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AUTH_STEP } from '../../types/enums';
-import { AuthSession } from '../../types/sessions';
+import { OnGoingAuthenticationSession } from '../../types/sessions';
 import { SmsSender } from '../../side-channels/sms-sender';
 
 class GenerateTotpStep implements AuthStep {
@@ -15,7 +15,7 @@ class GenerateTotpStep implements AuthStep {
 		this.totpManager = totpManager;
 	}
 
-	async process(_networkInput: AuthRequest, account: AccountModel, session: AuthSession): Promise<AuthStepOutput> {
+	async process(_authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
 		const totpToken = this.totpManager.generate();
 		session.mfaToken = totpToken; // save token for later verification
 		await this.smsSender.sendTotpToken(account.telephone, totpToken);

@@ -14,12 +14,12 @@ import {
 import { BasicCredentials } from './types/basic-types';
 import { AuthStatus } from './authentication/auth-step';
 import {
-	AccessPointEntity,
+	AuthenticationEntryPointEntity,
 	AccountEntity,
 	ActivateAccountSessionEntity,
 	ActiveUserSessionEntity,
 	AuthSessionEntity,
-	FailedAuthAttemptsEntity,
+	FailedAuthenticationAttemptsEntity,
 	FailedAuthAttemptSessionEntity,
 	ForgotPasswordSessionEntity
 } from './types/entities';
@@ -36,9 +36,13 @@ import { UserSessionsManager } from './managers/user-sessions-manager';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager } from './managers/passwords-manager';
 import { EmailSender, EmailSendOptions } from './side-channels/email-sender';
-import { ActiveUserSession } from './types/sessions';
-import { AccessPointModel, AccountModel, FailedAuthAttemptsModel } from './types/models';
-import { CancelScheduledUnactivatedAccountDeletion, ScheduleActiveUserSessionDeletion, ScheduleUnactivatedAccountDeletion } from './types/schedulers';
+import { ActiveUserSession, AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel } from './types/models';
+import {
+	CancelScheduledUnactivatedAccountDeletion,
+	ScheduleAccountEnabling,
+	ScheduleActiveUserSessionDeletion,
+	ScheduleUnactivatedAccountDeletion
+} from './types/schedulers';
 import { getLogger } from './logger';
 import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
 import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
@@ -73,9 +77,11 @@ class AuthenticationEngine {
 
 		this.accountStatusManager = new AccountStatusManager(
 			this.config.contacts.adminEmail,
+			this.config.thresholds.enableAccountAfterAuthFailureDelayMinutes,
 			this.emailSender,
 			this.config.entities.account,
-			this.userSessionsManager
+			this.userSessionsManager,
+			this.config.schedulers.account.enable
 		);
 
 		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
@@ -119,22 +125,27 @@ class AuthenticationEngine {
 		}
 
 		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
-		let authSession = await this.config.entities.authSession.read(authRequest.username, authRequest.device);
-		if (!authSession) {
-			authSession = {
+		let onGoingAuthSession = await this.config.entities.onGoingAuthSession.read(authRequest.username, authRequest.device);
+		if (!onGoingAuthSession) {
+			onGoingAuthSession = {
 				recaptchaRequired: false
 			};
-			await this.config.entities.authSession.create(authRequest.username, authRequest.device, authSession, this.config.ttl.authSessionMinutes);
+			await this.config.entities.onGoingAuthSession.create(
+				authRequest.username,
+				authRequest.device,
+				onGoingAuthSession,
+				this.config.ttl.authSessionMinutes
+			);
 		}
 
-		const result = await this.authOrchestrator.authenticate(authRequest, account, authSession);
+		const result = await this.authOrchestrator.authenticate(authRequest, account, onGoingAuthSession);
 
 		if (result.nextStep) {
 			// will be reused on auth continuation from previous step
-			await this.config.entities.authSession.update(authRequest.username, authRequest.device, authSession);
+			await this.config.entities.onGoingAuthSession.update(authRequest.username, authRequest.device, onGoingAuthSession);
 		} else {
 			// on success or hard error not needed anymore
-			await this.config.entities.authSession.delete(authRequest.username, authRequest.device);
+			await this.config.entities.onGoingAuthSession.delete(authRequest.username, authRequest.device);
 		}
 
 		return result;
@@ -186,7 +197,7 @@ class AuthenticationEngine {
 			} catch (e) {
 				if (deleteAccountTaskId) {
 					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
-					await this.config.schedulers.account.cancelDelete(deleteAccountTaskId); // task cancelling is not allowed to throw
+					await this.config.schedulers.account.cancelDeleteUnactivated(deleteAccountTaskId); // task cancelling is not allowed to throw
 				}
 				await this.config.entities.account.delete(registeredAccount.id);
 				if (activateAccountSessionWasCreated) {
@@ -206,7 +217,7 @@ class AuthenticationEngine {
 		}
 
 		// it's pointless to activate users account if canceling it's scheduled deletion fails
-		await this.config.schedulers.account.cancelDelete(session.taskId);
+		await this.config.schedulers.account.cancelDeleteUnactivated(session.taskId);
 
 		await Promise.all([
 			this.config.entities.account.enable(session.accountId),
@@ -229,11 +240,11 @@ class AuthenticationEngine {
 		return this.config.entities.account.disableMultiFactorAuth(accountId);
 	}
 
-	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
+	public getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AuthenticationEntryPointModel>> {
 		return this.userSessionsManager.read(accountId);
 	}
 
-	public getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>> {
+	public getFailedAuthAttempts(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthAttemptsModel>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
@@ -398,6 +409,7 @@ interface ThresholdsOptions {
 	maxFailedAuthAttempts?: number;
 	recaptcha?: number;
 	passwordBreach?: number;
+	enableAccountAfterAuthFailureDelayMinutes?: number;
 }
 
 interface TokensLengthOptions {
@@ -416,10 +428,10 @@ interface AuthEngineOptions {
 	entities: {
 		account: AccountEntity;
 		activeUserSession: ActiveUserSessionEntity;
-		authSession: AuthSessionEntity;
-		accessPoint: AccessPointEntity;
+		onGoingAuthSession: AuthSessionEntity;
+		accessPoint: AuthenticationEntryPointEntity;
 		failedAuthAttemptsSession: FailedAuthAttemptSessionEntity;
-		failedAuthAttempts: FailedAuthAttemptsEntity;
+		failedAuthAttempts: FailedAuthenticationAttemptsEntity;
 		activateAccountSession: ActivateAccountSessionEntity;
 		forgotPasswordSession: ForgotPasswordSessionEntity;
 	};
@@ -436,8 +448,9 @@ interface AuthEngineOptions {
 	schedulers: {
 		deleteActiveUserSession: ScheduleActiveUserSessionDeletion;
 		account: {
+			enable: ScheduleAccountEnabling;
 			deleteUnactivated: ScheduleUnactivatedAccountDeletion;
-			cancelDelete: CancelScheduledUnactivatedAccountDeletion;
+			cancelDeleteUnactivated: CancelScheduledUnactivatedAccountDeletion;
 		};
 	};
 	validators: {
@@ -477,7 +490,8 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 		thresholds: {
 			maxFailedAuthAttempts: options.thresholds.maxFailedAuthAttempts || 20,
 			recaptcha: options.thresholds.recaptcha || 10,
-			passwordBreach: options.thresholds.passwordBreach || 5
+			passwordBreach: options.thresholds.passwordBreach || 5,
+			enableAccountAfterAuthFailureDelayMinutes: options.thresholds.enableAccountAfterAuthFailureDelayMinutes || 120
 		},
 		tokensLength: {
 			salt: options.tokensLength.salt || 10,

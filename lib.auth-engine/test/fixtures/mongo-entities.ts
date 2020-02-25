@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { AccessPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthAttemptsEntity } from '../../lib/types/entities';
+import { AuthenticationEntryPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthenticationAttemptsEntity } from '../../lib/types/entities';
 
 const mongod = new MongoMemoryServer();
 
@@ -16,14 +16,15 @@ function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mo
 
 enum ENTITIES_OP {
 	FAILED_AUTH_ATTEMPTS_CREATE,
-	ACTIVE_USER_SESSION_DELETE_ALL
+	ACTIVE_USER_SESSION_DELETE_ALL,
+	ACCOUNT_DISABLE
 }
 const failures = new Map<ENTITIES_OP, boolean>();
 
 const Models = {
 	ACCOUNT: 'account',
 	FAILED_AUTH_ATTEMPT: 'failed_auth_attempt',
-	ACCESS_POINT: 'access_point',
+	AUTHENTICATION_ENTRY_POINT: 'access_point',
 	ACTIVE_USER_SESSION: 'active_user_session'
 };
 
@@ -109,10 +110,15 @@ const AccountEntityMongo: AccountEntity = {
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { enabled: true })
 			.exec(),
-	disable: _id =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
+	disable: async _id => {
+		if (failures.get(ENTITIES_OP.ACCOUNT_DISABLE)) {
+			throw new Error('Account disable was scheduled to fail');
+		}
+
+		return getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { enabled: false })
-			.exec(),
+			.exec();
+	},
 	enableMultiFactorAuth: _id =>
 		getMongoModel(Models.ACCOUNT, AccountSchema)
 			.updateOne({ _id }, { usingMfa: true })
@@ -140,14 +146,14 @@ const AccountEntityMongo: AccountEntity = {
 /* Failed Auth Attempts */
 const FailedAuthAttemptSchema = new mongoose.Schema({
 	accountId: { type: String, required: true },
-	timestamp: { type: Number, required: true, unique: true },
-	devices: [String],
-	ips: [String]
+	detectedAt: { type: Date, required: true, unique: true },
+	device: String,
+	ip: String
 });
-const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
-	create: attempts => {
+const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
+	create: async attempts => {
 		if (failures.get(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE)) {
-			return new Promise((_resolve, reject) => reject(new Error('Creation of failed auth attempts was configured to fail.')));
+			throw new Error('Creation of failed auth attempts was configured to fail.');
 		}
 
 		return getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
@@ -161,7 +167,7 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 
 		const documentQuery = getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema).find({ accountId });
 		if (startingFrom || endingTo) {
-			documentQuery.where('timestamp');
+			documentQuery.where('detectedAt');
 			if (startingFrom) {
 				documentQuery.gte(startingFrom);
 			}
@@ -176,19 +182,19 @@ const FailedAuthAttemptsEntityMongo: FailedAuthAttemptsEntity = {
 			// @ts-ignore
 			accountId: doc.accountId,
 			// @ts-ignore
-			timestamp: doc.timestamp,
+			detectedAt: doc.detectedAt,
 			// @ts-ignore
-			devices: doc.devices,
+			device: doc.device,
 			// @ts-ignore
-			ips: doc.ips
+			ip: doc.ip
 		}));
 	}
 };
 
 /* Access Point */
 // FIXME it would be nice if this can be stored in ES
-const AccessPointSchema = new mongoose.Schema({
-	timestamp: { type: Number, required: true },
+const AuthenticationEntryPointSchema = new mongoose.Schema({
+	authenticatedAtUNIX: { type: Number, required: true },
 	accountId: { type: String, required: true },
 	ip: { type: String, required: true },
 	device: { type: String, required: true },
@@ -202,12 +208,12 @@ const AccessPointSchema = new mongoose.Schema({
 		longitude: { type: Number, required: true }
 	}
 });
-const AccessPointEntityMongo: AccessPointEntity = {
+const AuthenticationEntryPointEntityMongo: AuthenticationEntryPointEntity = {
 	create: async accessPoint => {
-		await getMongoModel(Models.ACCESS_POINT, AccessPointSchema).create(accessPoint);
+		await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema).create(accessPoint);
 	},
 	authBeforeFromThisDevice: async (accountId, device) => {
-		const prevAuth = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
+		const prevAuth = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
 			.find({ accountId })
 			.exec();
 		if (prevAuth.length === 0) {
@@ -227,7 +233,7 @@ const AccessPointEntityMongo: AccessPointEntity = {
 
 /* Active User Session */
 const ActiveUserSessionSchema = new mongoose.Schema({
-	timestamp: { type: Number, required: true },
+	authenticatedAtUNIX: { type: Number, required: true },
 	accountId: { type: String, required: true }
 });
 const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
@@ -242,14 +248,14 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			return [];
 		}
 		// @ts-ignore
-		const sessionTimestamps = sessionsDocs.map(session => session.timestamp);
-		const accessPointsDocs = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
-			.find({ timestamp: { $in: sessionTimestamps }, accountId })
+		const sessionTimestamps = sessionsDocs.map(session => session.authenticatedAtUNIX);
+		const accessPointsDocs = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
+			.find({ authenticatedAtUNIX: { $in: sessionTimestamps }, accountId })
 			.exec();
 		return accessPointsDocs.map(accessPointDoc => {
 			return {
 				// @ts-ignore
-				timestamp: accessPointDoc.timestamp,
+				authenticatedAtUNIX: accessPointDoc.authenticatedAtUNIX,
 				// @ts-ignore
 				accountId: accessPointDoc.accountId,
 				// @ts-ignore
@@ -278,20 +284,20 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 	},
 	readAllButOne: async (accountId, exceptedSessionId) => {
 		const sessionsDocs = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
-			.find({ accountId, timestamp: { $ne: exceptedSessionId } })
+			.find({ accountId, authenticatedAtUNIX: { $ne: exceptedSessionId } })
 			.exec();
 		if (sessionsDocs.length === 0) {
 			return [];
 		}
 		// @ts-ignore
-		const sessionTimestamps = sessionsDocs.map(session => session.timestamp);
-		const accessPointsDocs = await getMongoModel(Models.ACCESS_POINT, AccessPointSchema)
-			.find({ timestamp: { $in: sessionTimestamps }, accountId })
+		const sessionTimestamps = sessionsDocs.map(session => session.authenticatedAtUNIX);
+		const accessPointsDocs = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
+			.find({ authenticatedAtUNIX: { $in: sessionTimestamps }, accountId })
 			.exec();
 		return accessPointsDocs.map(accessPointDoc => {
 			return {
 				// @ts-ignore
-				timestamp: accessPointDoc.timestamp,
+				authenticatedAtUNIX: accessPointDoc.authenticatedAtUNIX,
 				// @ts-ignore
 				accountId: accessPointDoc.accountId,
 				// @ts-ignore
@@ -318,13 +324,13 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			};
 		});
 	},
-	delete: async (accountId, timestamp) => {
+	delete: async (accountId, authenticatedAtUNIX) => {
 		const deleteStatus = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
-			.deleteOne({ timestamp, accountId })
+			.deleteOne({ authenticatedAtUNIX, accountId })
 			.exec();
 
 		if (!deleteStatus.ok || deleteStatus.deletedCount !== 1) {
-			throw new Error(`Deleting one delete active session for account ${accountId} with timestamp ${timestamp} failed.`);
+			throw new Error(`Deleting one active session for account ${accountId} with authenticatedAtUNIX ${authenticatedAtUNIX} failed.`);
 		}
 	},
 	deleteAll: async accountId => {
@@ -341,7 +347,7 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 	deleteAllButOne: async (accountId: string, exceptedSessionId: number) => {
 		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({
 			accountId,
-			timestamp: { $ne: exceptedSessionId }
+			authenticatedAtUNIX: { $ne: exceptedSessionId }
 		});
 		if (!bulkDelete.ok) {
 			throw new Error('Failed to delete all sessions');
@@ -403,7 +409,7 @@ export {
 	ENTITIES_OP,
 	AccountEntityMongo,
 	FailedAuthAttemptsEntityMongo,
-	AccessPointEntityMongo,
+	AuthenticationEntryPointEntityMongo,
 	ActiveUserSessionEntityMongo,
 	connectToMongoServer,
 	clearMongoDatabase,

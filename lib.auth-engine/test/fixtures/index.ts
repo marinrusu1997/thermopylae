@@ -2,7 +2,7 @@ import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
 import { after, afterEach, before } from 'mocha';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
 import {
-	AccessPointEntityMongo,
+	AuthenticationEntryPointEntityMongo,
 	AccountEntityMongo,
 	ActiveUserSessionEntityMongo,
 	FailedAuthAttemptsEntityMongo,
@@ -32,6 +32,7 @@ import {
 import {
 	CancelScheduledUnactivatedAccountDeletionFromMongo,
 	cleanUpSchedulers,
+	ScheduleAccountEnablingFromMongo,
 	ScheduleActiveUserSessionDeletionFromMongo,
 	ScheduleUnactivatedAccountDeletionFromMongo
 } from './schedulers';
@@ -48,8 +49,8 @@ const basicAuthEngineConfig: AuthEngineOptions = {
 		account: AccountEntityMongo,
 		activeUserSession: ActiveUserSessionEntityMongo,
 		activateAccountSession: ActivateAccountSessionEntityMemCache,
-		accessPoint: AccessPointEntityMongo,
-		authSession: AuthSessionEntityMemCache,
+		accessPoint: AuthenticationEntryPointEntityMongo,
+		onGoingAuthSession: AuthSessionEntityMemCache,
 		failedAuthAttempts: FailedAuthAttemptsEntityMongo,
 		failedAuthAttemptsSession: FailedAuthAttemptSessionEntityMemCache,
 		forgotPasswordSession: ForgotPasswordSessionEntityMemCache
@@ -85,8 +86,9 @@ const basicAuthEngineConfig: AuthEngineOptions = {
 	},
 	schedulers: {
 		account: {
+			enable: ScheduleAccountEnablingFromMongo,
 			deleteUnactivated: ScheduleUnactivatedAccountDeletionFromMongo,
-			cancelDelete: CancelScheduledUnactivatedAccountDeletionFromMongo
+			cancelDeleteUnactivated: CancelScheduledUnactivatedAccountDeletionFromMongo
 		},
 		deleteActiveUserSession: ScheduleActiveUserSessionDeletionFromMongo
 	},
