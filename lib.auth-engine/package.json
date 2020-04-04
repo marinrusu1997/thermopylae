@@ -22,8 +22,7 @@
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",
         "clean": "gulp clean",
-        "purge": "gulp purge",
-        "postinstall": "node scripts/postinstall.js"
+        "purge": "gulp purge"
     },
     "lint-staged": {
         "*.ts": [

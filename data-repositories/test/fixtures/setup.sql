@@ -2,13 +2,13 @@
 
 -- Table declarations
 
-CREATE TABLE Account (
+CREATE TABLE IF NOT EXISTS Account (
     ID UNSIGNED INT PRIMARY KEY AUTO_INCREMENT, -- surrogate key
     Enabled BOOLEAN, -- null means it's not enabled
     RelatedCreatorID VARCHAR(20) NOT NULL UNIQUE -- account needs to have a creator; user can create only 1 account
 );
 
-CREATE TABLE User (
+CREATE TABLE IF NOT EXISTS User (
     ID VARCHAR(20) PRIMARY KEY, -- key with encoded info or random hash
     FirstName VARCHAR(50) NOT NULL, -- each user has a first name
     LastName VARCHAR(50) NOT NULL, -- and last name
@@ -17,7 +17,7 @@ CREATE TABLE User (
     RelatedRoleID UNSIGNED TINYINT -- null means it has no role -> no access to global shared resources
 );
 
-CREATE TABLE Authentication (
+CREATE TABLE IF NOT EXISTS Authentication (
     ID UNSIGNED INT PRIMARY KEY AUTO_INCREMENT, -- surrogate key
     UserName VARCHAR(25) NOT NULL UNIQUE, -- username must be unique
     PasswordHash VARCHAR(250) NOT NULL, -- it's pointless not to have password
@@ -27,33 +27,33 @@ CREATE TABLE Authentication (
                                                    -- account can't use multiple authentication in the same time
 );
 
-CREATE TABLE UserGroup (
+CREATE TABLE IF NOT EXISTS UserGroup (
     ID UNSIGNED TINYINT PRIMARY KEY AUTO_INCREMENT, -- surrogate key
     Name VARCHAR(25) NOT NULL UNIQUE, -- each name must be unique
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL -- each group needs to have a creation timestamp
 );
 
-CREATE TABLE UserGroupMembers (
+CREATE TABLE IF NOT EXISTS UserGroupMembers (
     RelatedUserGroupID UNSIGNED TINYINT,
     RelatedUserID VARCHAR(20),
 
     PRIMARY KEY (RelatedUserGroupID, RelatedUserID) -- unique combinations
 );
 
-CREATE TABLE UserGroupPermissions (
+CREATE TABLE IF NOT EXISTS UserGroupPermissions (
     RelatedUserGroupID UNSIGNED TINYINT,
     RelatedPermissionID UNSIGNED SMALLINT,
 
     PRIMARY KEY (RelatedUserGroupID, RelatedPermissionID) -- unique combinations
 );
 
-CREATE TABLE Role (
+CREATE TABLE IF NOT EXISTS Role (
     ID UNSIGNED TINYINT PRIMARY KEY AUTO_INCREMENT, -- surrogate key
     Name VARCHAR(25) NOT NULL UNIQUE, -- each role name must be unique
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL -- each role needs to have a creation timestamp
 );
 
-CREATE TABLE Permission (
+CREATE TABLE IF NOT EXISTS Permission (
     ID UNSIGNED SMALLINT PRIMARY KEY AUTO_INCREMENT,
     Category VARCHAR(50) NOT NULL, -- having it null is pointless
     Resource VARCHAR(50) NOT NULL, -- having it null is pointless
@@ -62,14 +62,14 @@ CREATE TABLE Permission (
     UNIQUE KEY 'perm_uri' (Category, Resource, Operation) -- each permission is unique
 );
 
-CREATE TABLE RolePermissions (
+CREATE TABLE IF NOT EXISTS RolePermissions (
     RelatedRoleID UNSIGNED TINYINT,
     RelatedPermissionID UNSIGNED SMALLINT,
 
     PRIMARY KEY (RelatedRoleID, RelatedPermissionID) -- unique combinations
 );
 
-CREATE TABLE Contact (
+CREATE TABLE IF NOT EXISTS Contact (
     ID UNSIGNED INT PRIMARY KEY AUTO_INCREMENT,
     Class VARCHAR(50) NOT NULL, -- having it null is pointless
     Type VARCHAR(50) NOT NULL, -- having it null is pointless
@@ -79,7 +79,7 @@ CREATE TABLE Contact (
     UNIQUE KEY 'contact_uri' (Class, Type, RelatedUserID) -- user can have only 1 type of contact from a certain class
 );
 
-CREATE TABLE FailedAuthenticationAttempt (
+CREATE TABLE IF NOT EXISTS FailedAuthenticationAttempt (
     ID UNSIGNED INT PRIMARY KEY AUTO_INCREMENT,
     DetectedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, -- obviously it has a detection timestamp
     Ip VARCHAR(45) NOT NULL, -- failed auth attempt needs to take place from a ip; IPv6 max length
@@ -87,7 +87,7 @@ CREATE TABLE FailedAuthenticationAttempt (
     RelatedAuthenticationID UNSIGNED INT NOT NULL -- obviously it needs to be associated with an authentication
 );
 
-CREATE TABLE Device (
+CREATE TABLE IF NOT EXISTS Device (
     ID VARCHAR(20) PRIMARY KEY, -- SHA-1 of the Source
     OperatingSystem VARCHAR(50),
     Platform VARCHAR(50),
@@ -96,7 +96,7 @@ CREATE TABLE Device (
     Source VARCHAR(300)
 );
 
-CREATE TABLE UserSession (
+CREATE TABLE IF NOT EXISTS UserSession (
    CreatedAtUNIXTimestamp UNSIGNED INT,
    RelatedUserID VARCHAR(20),
    Ip VARCHAR(45) NOT NULL, -- session needs to be established from an ip; IPv6 max length
@@ -107,7 +107,7 @@ CREATE TABLE UserSession (
    PRIMARY KEY (CreatedAtUNIXTimestamp, RelatedUserID) -- user can have multiple sessions, so we identify them also with creation timestamp
 );
 
-CREATE TABLE Location (
+CREATE TABLE IF NOT EXISTS Location (
    ID VARCHAR(20) PRIMARY KEY, -- SHA-1 of all the columns
    CountryCode VARCHAR(3),
    RegionCode VARCHAR(5),

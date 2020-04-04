@@ -1,7 +1,7 @@
+import { number } from '@marin/lib.utils';
 import { Clients } from '@marin/lib.utils/dist/declarations';
 import bluebird from 'bluebird';
 import redis, { AggregateError, ClientOpts, RedisClient as RedisLibraryClient, RedisError, ReplyError } from 'redis';
-import { number } from '@marin/lib.utils';
 import { getLogger } from './logger';
 
 // FIXME remove this bluebird!

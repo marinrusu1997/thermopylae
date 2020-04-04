@@ -1,9 +1,10 @@
 {
-    "name": "@marin/lib.data-access",
-    "description": "Clients used for accessing external data",
+    "name": "@marin/data-repositories",
+    "description": "Repositories of the data",
     "keywords": [
-        "data",
-        "repository"
+        "repository",
+        "sql",
+        "cache"
     ],
     "version": "0.0.1-beta",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
@@ -31,35 +32,33 @@
     "engines": {
         "node": "12.8.0"
     },
-    "dependencies": {
-        "@marin/lib.error": "file:../lib.error",
+    "devDependencies": {
+        "@marin/lib.auth-engine": "file:../lib.auth-engine",
+        "@marin/lib.data-access": "file:../lib.data-access",
         "@marin/lib.logger": "file:../lib.logger",
         "@marin/lib.utils": "file:../lib.utils",
-        "bluebird": "^3.7.2",
-        "mysql": "^2.18.1",
-        "redis": "^3.0.2"
-    },
-    "devDependencies": {
         "@marin/lib.module-builder": "file:../lib.module-builder",
-        "@types/bluebird": "^3.5.29",
-        "@types/chai": "^4.2.8",
-        "@types/mocha": "^7.0.1",
-        "@types/mysql": "^2.15.8",
-        "@types/node": "^13.7.0",
-        "@types/redis": "^2.8.14",
-        "@typescript-eslint/eslint-plugin": "^2.19.0",
-        "@typescript-eslint/parser": "^2.19.0",
+        "@rauschma/stringio": "^1.4.0",
+        "@types/chai": "^4.2.11",
+        "@types/mocha": "^7.0.2",
+        "@types/dockerode": "^2.5.22",
+        "@types/dotenv": "^8.2.0",
+        "dockerode": "^3.1.0",
+        "dotenv": "^8.2.0",
+        "@types/node": "^13.11.0",
+        "@typescript-eslint/eslint-plugin": "^2.26.0",
+        "@typescript-eslint/parser": "^2.26.0",
         "chai": "^4.2.0",
         "eslint": "^6.8.0",
-        "eslint-config-airbnb-base": "^14.0.0",
-        "eslint-config-prettier": "^6.10.0",
-        "eslint-plugin-import": "^2.20.1",
+        "eslint-config-airbnb-base": "^14.1.0",
+        "eslint-config-prettier": "^6.10.1",
+        "eslint-plugin-import": "^2.20.2",
         "eslint-plugin-prettier": "^3.1.2",
         "esm": "^3.2.25",
-        "mocha": "^7.0.1",
-        "nyc": "^15.0.0",
-        "prettier": "^1.19.1",
-        "ts-node": "^8.6.2",
-        "typescript": "^3.7.5"
+        "mocha": "^7.1.1",
+        "nyc": "^15.0.1",
+        "prettier": "^2.0.2",
+        "ts-node": "^8.8.1",
+        "typescript": "^3.8.3"
     }
 }

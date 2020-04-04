@@ -1,13 +1,12 @@
-import { before, after } from 'mocha';
-import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger';
-import Dockerode, { Container, ContainerInfo, Port } from 'dockerode';
-import { Connection, createConnection, MysqlError } from 'mysql';
-import { spawn } from 'child_process';
-import { streamWrite, streamEnd, onExit } from '@rauschma/stringio';
 import { chrono, number } from '@marin/lib.utils';
+import { Connection, createConnection, MySqlClientInstance, MysqlError, RedisClientInstance } from '@marin/lib.data-access';
+import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger';
+import { after, before } from 'mocha';
+import Dockerode, { Container, ContainerInfo, Port } from 'dockerode';
+import { ChildProcessByStdio, spawn, exec } from 'child_process';
+import { onExit, streamEnd, streamWrite } from '@rauschma/stringio';
 import { config as dotEnvConfig } from 'dotenv';
-import { MySqlClientInstance } from '../lib/mysql';
-import { RedisClientInstance } from '../lib/redis';
+import { Writable } from 'stream';
 
 interface Env {
 	host: string;
@@ -21,6 +20,7 @@ interface MySqlEnv extends Env {
 	tables: {
 		account: string;
 	};
+	schemaLocation: string;
 }
 
 type AdjustPortsFun = (port: Port) => boolean;
@@ -33,7 +33,8 @@ const MySqlEnv: MySqlEnv = {
 	database: 'test_data_repositories',
 	tables: {
 		account: 'account'
-	}
+	},
+	schemaLocation: '/test/fixtures/setup.sql'
 };
 
 const RedisEnv: Env = {
@@ -58,7 +59,7 @@ let mySqlSetupConnection: Connection;
 
 async function assertImageAvailability(imageName: string): Promise<void> {
 	const images = await docker.listImages();
-	if (images.findIndex(image => image.RepoTags.includes(imageName)) === -1) {
+	if (images.findIndex((image) => image.RepoTags.includes(imageName)) === -1) {
 		logger.debug(`Pulling image ${imageName}...`);
 		const image = await docker.pull(imageName, {});
 		logger.debug(`Image created with id ${image.id}. Waiting 200 ms...`);
@@ -96,11 +97,15 @@ function createNewMySqlConnectionForSetUp(env?: Partial<MySqlEnv>): Connection {
 	return mySqlSetupConnection;
 }
 
-async function changeMySqlAuthToNativePassword(): Promise<void> {
+function spawnMySqlClient(): ChildProcessByStdio<Writable, null, null> {
 	logger.debug('Spawning mysql client...');
-	const mysql = spawn(`mysql`, ['-h', MySqlEnv.host, `-P${MySqlEnv.port}`, `-u${MySqlEnv.user}`, `-p${MySqlEnv.password}`], {
+	return spawn(`mysql`, ['-h', MySqlEnv.host, `-P${MySqlEnv.port}`, `-u${MySqlEnv.user}`, `-p${MySqlEnv.password}`], {
 		stdio: ['pipe', process.stdout, process.stderr]
 	});
+}
+
+async function changeMySqlAuthToNativePassword(): Promise<void> {
+	const mysql = spawnMySqlClient();
 
 	(async () => {
 		logger.debug('Executing query to change auth type to native password...');
@@ -111,37 +116,28 @@ async function changeMySqlAuthToNativePassword(): Promise<void> {
 	await onExit(mysql);
 }
 
+async function createMySqlStorageSchema(): Promise<void> {
+	return new Promise((resolve, reject) => {
+		exec(
+			`mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} ${MySqlEnv.database} < ${MySqlEnv.schemaLocation}`,
+			(error, stdout, stderr) => {
+				if (error) {
+					reject(error);
+				} else {
+					logger.debug(`Create MySql storage schema stdout:\n${stdout}`);
+					logger.debug(`Create MySql storage schema stderr:\n${stderr}`);
+					resolve();
+				}
+			}
+		);
+	});
+}
+
 function setUpMySqlContainer(resolve: Function, reject: Function): Promise<void> {
 	return changeMySqlAuthToNativePassword()
-		.then(() => {
-			createNewMySqlConnectionForSetUp().connect(setupConnectionError => {
-				if (setupConnectionError) {
-					reject(setupConnectionError);
-				}
-
-				const boolType = 'TINYINT(1)';
-				const stringType = 'VARCHAR(20)';
-
-				logger.debug(`Creating ${MySqlEnv.tables.account} table...`);
-				mySqlSetupConnection.query(
-					`CREATE TABLE IF NOT EXISTS ${MySqlEnv.tables.account} (id INT AUTO_INCREMENT PRIMARY KEY, username ${stringType}, password VARCHAR(100), salt ${stringType}, telephone ${stringType}, email ${stringType}, locked ${boolType}, activated ${boolType}, mfa ${boolType}, role ${stringType}, pubKey ${stringType});`,
-					createAccountTableErr => {
-						if (createAccountTableErr) {
-							return reject(createAccountTableErr);
-						}
-
-						logger.debug('Closing MySql set-up connection...');
-						return mySqlSetupConnection.end(endErr => {
-							if (endErr) {
-								return reject(endErr);
-							}
-							return resolve();
-						});
-					}
-				);
-			});
-		})
-		.catch(changeMySqlAuthTypeErr => reject(changeMySqlAuthTypeErr));
+		.then(() => createMySqlStorageSchema())
+		.then(() => resolve())
+		.catch((changeMySqlAuthTypeErr) => reject(changeMySqlAuthTypeErr));
 }
 
 async function waitMySqlContainerToBoot(): Promise<void> {
@@ -182,7 +178,7 @@ async function waitMySqlContainerToBoot(): Promise<void> {
 }
 
 async function bootMySqlContainer(containerInfos: Array<ContainerInfo>): Promise<void> {
-	const adjustMySqlPorts: AdjustPortsFun = containerPort => {
+	const adjustMySqlPorts: AdjustPortsFun = (containerPort) => {
 		if (containerPort.PrivatePort === 3306 && typeof containerPort.PublicPort === 'number') {
 			MySqlEnv.port = containerPort.PublicPort;
 			return true;
@@ -221,7 +217,7 @@ async function bootMySqlContainer(containerInfos: Array<ContainerInfo>): Promise
 }
 
 async function bootRedisContainer(containerInfos: Array<ContainerInfo>): Promise<void> {
-	const adjustRedisPorts: AdjustPortsFun = containerPort => {
+	const adjustRedisPorts: AdjustPortsFun = (containerPort) => {
 		if (containerPort.PrivatePort === 6379 && typeof containerPort.PublicPort === 'number') {
 			RedisEnv.port = containerPort.PublicPort;
 			return true;
@@ -256,7 +252,7 @@ async function bootRedisContainer(containerInfos: Array<ContainerInfo>): Promise
 	await redisContainer!.start();
 }
 
-before(async function(): Promise<void> {
+before(async function (): Promise<void> {
 	this.timeout(3000000);
 
 	const dotEnv = dotEnvConfig();
@@ -285,7 +281,7 @@ before(async function(): Promise<void> {
 	});
 });
 
-after(async function(): Promise<void> {
+after(async function (): Promise<void> {
 	this.timeout(20000);
 
 	await MySqlClientInstance.shutdown();

@@ -1,7 +1,7 @@
-import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig, TypeCast } from 'mysql';
 import { Clients } from '@marin/lib.utils/dist/declarations';
-import Exception from '@marin/lib.error';
+import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig, TypeCast, createConnection } from 'mysql';
 import { getLogger } from './logger';
+import { ErrorCodes, createException } from './error';
 
 interface MySqlPoolClusterConfigs {
 	[name: string]: PoolConfig;
@@ -14,12 +14,6 @@ interface MySqlClientOptions {
 		cluster?: PoolClusterConfig;
 		pools: MySqlPoolClusterConfigs;
 	};
-}
-
-const enum ErrorCodes {
-	SESSION_VARIABLE_QUERY_FAILED = 'SESSION_VARIABLE_QUERY_FAILED',
-	MISCONFIGURATION_POOL_CONFIG_NAME = 'MISCONFIGURATION_POOL_CONFIG_NAME',
-	MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG = 'MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG'
 }
 
 class MySqlClient {
@@ -58,7 +52,11 @@ class MySqlClient {
 
 						this.poolCluster = null;
 
-						throw new Exception(Clients.MYSQL, ErrorCodes.MISCONFIGURATION_POOL_CONFIG_NAME, `${poolConfigName} should begin with MASTER or SLAVE`);
+						throw createException(
+							Clients.MYSQL,
+							ErrorCodes.MYSQL_MISCONFIGURATION_POOL_CONFIG_NAME,
+							`${poolConfigName} should begin with MASTER or SLAVE`
+						);
 					}
 					this.poolCluster.add(poolConfigName, options.poolCluster.pools[poolConfigName]);
 				}
@@ -81,7 +79,7 @@ class MySqlClient {
 				return;
 			}
 
-			throw new Exception(Clients.MYSQL, ErrorCodes.MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG, '', options);
+			throw createException(Clients.MYSQL, ErrorCodes.MYSQL_MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG, '', options);
 		}
 	}
 
@@ -142,7 +140,7 @@ class MySqlClient {
 				for (let i = sessionVariablesQueries.length - 1; i >= 0; i--) {
 					connection.query(sessionVariablesQueries![i], err => {
 						if (err) {
-							throw new Exception(Clients.MYSQL, ErrorCodes.SESSION_VARIABLE_QUERY_FAILED, formatConnectionDetails(connection), err); // fatal error
+							throw createException(Clients.MYSQL, ErrorCodes.MYSQL_SESSION_VARIABLE_QUERY_FAILED, formatConnectionDetails(connection), err); // fatal error
 						}
 						getLogger(Clients.MYSQL).notice(`Session variable query '${sessionVariablesQueries![i]}' completed successfully.`);
 					});
@@ -177,4 +175,15 @@ const typeCastBooleans: TypeCast = (field, next) => {
 
 const MySqlClientInstance = new MySqlClient();
 
-export { MySqlClientInstance, typeCastBooleans, ErrorCodes, Pool, PoolClusterConfig, PoolConfig, MySqlPoolClusterConfigs, MySqlClientOptions, MysqlError };
+export {
+	MySqlClientInstance,
+	typeCastBooleans,
+	Pool,
+	PoolClusterConfig,
+	PoolConfig,
+	MySqlPoolClusterConfigs,
+	MySqlClientOptions,
+	MysqlError,
+	createConnection,
+	Connection
+};

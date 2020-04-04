@@ -14,7 +14,7 @@
 /coverage
 
 # environment
-../data-repositories/.env
+.env
 
 # dependencies
 /node_modules
@@ -77,3 +77,4 @@ Thumbs.db
 .Spotlight*
 .Trashes
 
+	
