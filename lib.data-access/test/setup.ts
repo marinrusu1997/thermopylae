@@ -6,8 +6,8 @@ import { spawn } from 'child_process';
 import { streamWrite, streamEnd, onExit } from '@rauschma/stringio';
 import { chrono, number } from '@marin/lib.utils';
 import { config as dotEnvConfig } from 'dotenv';
-import { MySqlClientInstance } from '../lib/clients/mysql';
-import { RedisClientInstance } from '../lib/clients/redis';
+import { MySqlClientInstance } from '../lib/mysql';
+import { RedisClientInstance } from '../lib/redis';
 
 interface Env {
 	host: string;

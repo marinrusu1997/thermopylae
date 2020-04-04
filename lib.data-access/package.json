@@ -1,6 +1,6 @@
 {
-    "name": "@marin/lib.data-repositories",
-    "description": "External data repositories used by the app",
+    "name": "@marin/lib.data-access",
+    "description": "Clients used for accessing external data",
     "keywords": [
         "data",
         "repository"

@@ -5,6 +5,7 @@
   "author": "Rusu Marin <dimarusu2000@gmail.com>",
   "license": "ISC",
   "scripts": {
+    "lint": "eslint \"test/**/*.ts\" --fix",
     "test": "gulp test"
   },
   "devDependencies": {

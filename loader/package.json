@@ -32,7 +32,7 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "@marin/data-repositories": "file:../data-repositories",
+        "@marin/data-repositories": "file:../data-repositories",asdasd
         "@marin/lib.email": "file:../lib.email",
         "@marin/lib.firewall": "file:../lib.firewall",
         "@marin/lib.geoip": "file:../lib.geoip",

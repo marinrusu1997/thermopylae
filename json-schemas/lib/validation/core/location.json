@@ -33,6 +33,7 @@
     },
     "postalCode": {
       "type": "string",
+      "maxLength": 16,
       "pattern": "^(.*)$"
     }
   },

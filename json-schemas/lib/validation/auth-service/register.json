@@ -12,15 +12,10 @@
       "$ref": "../core/credentials.json#/properties/password"
     },
     "email": {
-      "type": "string",
-      "description": "Email of the user.",
-      "maxLength": 254,
-      "format": "email"
+      "$ref": "../core/core.json#/definitions/email"
     },
     "telephone": {
-      "type": "string",
-      "description": "Telephone number of the user.",
-      "pattern": "^\\+[1-9]\\d{1,14}$"
+      "$ref": "../core/core.json#/definitions/telephone"
     },
     "role": {
       "type": "string",

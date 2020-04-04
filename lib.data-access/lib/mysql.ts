@@ -1,7 +1,7 @@
 import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig, TypeCast } from 'mysql';
 import { Clients } from '@marin/lib.utils/dist/declarations';
 import Exception from '@marin/lib.error';
-import { getLogger } from '../logger';
+import { getLogger } from './logger';
 
 interface MySqlPoolClusterConfigs {
 	[name: string]: PoolConfig;

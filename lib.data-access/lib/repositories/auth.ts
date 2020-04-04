@@ -1,6 +1,6 @@
 import { entities, models } from '@marin/lib.auth-engine';
 import { token } from '@marin/lib.utils';
-import { MySqlClientInstance, typeCastBooleans } from '../clients/mysql';
+import { MySqlClientInstance, typeCastBooleans } from '../mysql';
 
 // FIXME !!! store serialized stuff in binary format to Redis! no JSON, it sucks
 

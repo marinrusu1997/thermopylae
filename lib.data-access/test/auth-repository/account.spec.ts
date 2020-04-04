@@ -4,7 +4,7 @@ import { string } from '@marin/lib.utils';
 import { models } from '@marin/lib.auth-engine';
 import { MySqlEnv } from '../setup';
 import { AuthRepository } from '../../lib';
-import { MySqlClientInstance } from '../../lib/clients/mysql';
+import { MySqlClientInstance } from '../../lib/mysql';
 
 describe('account spec', () => {
 	const AccountEntity = AuthRepository.generateAccountEntity({
