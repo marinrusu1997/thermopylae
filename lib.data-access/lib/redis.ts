@@ -23,6 +23,8 @@ class RedisClient {
 			return new Promise((resolve, reject) => {
 				redis.debug_mode = options.debug || false;
 
+				getLogger(Clients.REDIS).debug(`Redis client connecting to ${options.client.host}:${options.client.port} ...`);
+
 				this.redisClient = redis.createClient({
 					...options.client,
 					retry_strategy: retryOptions => {
@@ -45,7 +47,8 @@ class RedisClient {
 				});
 
 				this.redisClient.on('ready', () => {
-					getLogger(Clients.REDIS).info(`Connection established. Server info:\n${JSON.stringify(this.redisClient!.server_info, null, 4)}. `);
+					getLogger(Clients.REDIS).info('Connection established. ');
+					getLogger(Clients.REDIS).debug(`Server info:\n${JSON.stringify(this.redisClient!.server_info, null, 4)}. `);
 
 					if (options.monitor) {
 						this.redisClient!.on('monitor', (timestamp: string, args: any[], replyStr: string) => {

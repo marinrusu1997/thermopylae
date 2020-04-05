@@ -114,7 +114,7 @@ class MySqlClient {
 			return resolve();
 		};
 
-		getLogger(Clients.MYSQL).notice('Shutting down...');
+		getLogger(Clients.MYSQL).notice('Shutting down gracefully...');
 
 		if (this.poolCluster) {
 			this.poolCluster.end(shutdownCallback);
@@ -191,7 +191,7 @@ interface QueryResult {
 	fields?: FieldInfo[];
 }
 
-function queryAsync(connection: Connection, options: string | QueryOptions, values?: any): Promise<QueryResult> {
+function queryAsync(connection: Connection | Pool, options: string | QueryOptions, values?: any): Promise<QueryResult> {
 	return new Promise<QueryResult>((resolve, reject) => {
 		function queryHandler(err: MysqlError | null, results?: any, fields?: FieldInfo[]): void {
 			if (err) {
@@ -204,13 +204,25 @@ function queryAsync(connection: Connection, options: string | QueryOptions, valu
 	});
 }
 
-async function insertWithAssertion(connection: Connection, insertSQL: string, values?: any, errMsg = 'Failed to INSERT', noOfExpectedRows = 1): Promise<void> {
+async function insertWithAssertion(
+	connection: Connection | Pool,
+	insertSQL: string,
+	values?: any,
+	errMsg = 'Failed to INSERT',
+	noOfExpectedRows = 1
+): Promise<void> {
 	if ((await queryAsync(connection, insertSQL, values)).results.affectedRows !== noOfExpectedRows) {
 		throw new Error(errMsg);
 	}
 }
 
-async function updateWithAssertion(connection: Connection, updateSQL: string, values?: any, errMsg = 'Failed to UPDATE', noOfExpectedRows = 1): Promise<void> {
+async function updateWithAssertion(
+	connection: Connection | Pool,
+	updateSQL: string,
+	values?: any,
+	errMsg = 'Failed to UPDATE',
+	noOfExpectedRows = 1
+): Promise<void> {
 	if ((await queryAsync(connection, updateSQL, values)).results.changedRows !== noOfExpectedRows) {
 		throw new Error(errMsg);
 	}
