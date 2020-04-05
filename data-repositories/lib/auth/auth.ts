@@ -1,12 +1,10 @@
+import { token } from '@marin/lib.utils';
+import { MySqlClientInstance, typeCastBooleans } from '@marin/lib.data-access';
 import { entities, models } from '@marin/lib.auth-engine';
-import { token } from '../lib.utils/dist';
-import { MySqlClientInstance, typeCastBooleans } from '../../../lib.data-access/lib/mysql';
 
 // FIXME !!! store serialized stuff in binary format to Redis! no JSON, it sucks
 
 // TODO mysql upsert https://chartio.com/resources/tutorials/how-to-insert-if-row-does-not-exist-upsert-in-mysql/
-
-// FIXME store ip as integer https://stackoverflow.com/questions/4982701/best-way-to-store-ip-in-database
 
 type Seconds = number;
 

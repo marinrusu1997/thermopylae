@@ -32,11 +32,13 @@
     "engines": {
         "node": "12.8.0"
     },
+    "dependencies": {
+        "@marin/lib.utils": "file:../lib.utils",
+        "@marin/lib.data-access": "file:../lib.data-access"
+    },
     "devDependencies": {
         "@marin/lib.auth-engine": "file:../lib.auth-engine",
-        "@marin/lib.data-access": "file:../lib.data-access",
         "@marin/lib.logger": "file:../lib.logger",
-        "@marin/lib.utils": "file:../lib.utils",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@rauschma/stringio": "^1.4.0",
         "@types/chai": "^4.2.11",

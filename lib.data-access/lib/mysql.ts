@@ -1,5 +1,18 @@
 import { Clients } from '@marin/lib.utils/dist/declarations';
-import { Connection, createPool, createPoolCluster, MysqlError, Pool, PoolCluster, PoolClusterConfig, PoolConfig, TypeCast, createConnection } from 'mysql';
+import {
+	Connection,
+	createPool,
+	createPoolCluster,
+	MysqlError,
+	Pool,
+	PoolCluster,
+	PoolClusterConfig,
+	PoolConfig,
+	TypeCast,
+	createConnection,
+	QueryOptions,
+	FieldInfo
+} from 'mysql';
 import { getLogger } from './logger';
 import { ErrorCodes, createException } from './error';
 
@@ -173,17 +186,36 @@ const typeCastBooleans: TypeCast = (field, next) => {
 	return next();
 };
 
+interface QueryResult {
+	results?: any;
+	fields?: FieldInfo[];
+}
+
+function queryAsync(connection: Connection, options: string | QueryOptions, values?: any): Promise<QueryResult> {
+	return new Promise<QueryResult>((resolve, reject) => {
+		function queryHandler(err: MysqlError | null, results?: any, fields?: FieldInfo[]): void {
+			if (err) {
+				return reject(err);
+			}
+			return resolve({ results, fields });
+		}
+
+		return typeof values === 'undefined' ? connection.query(options, queryHandler) : connection.query(options as string, values, queryHandler);
+	});
+}
+
 const MySqlClientInstance = new MySqlClient();
 
 export {
 	MySqlClientInstance,
 	typeCastBooleans,
+	queryAsync,
+	createConnection,
 	Pool,
 	PoolClusterConfig,
 	PoolConfig,
 	MySqlPoolClusterConfigs,
 	MySqlClientOptions,
 	MysqlError,
-	createConnection,
 	Connection
 };
