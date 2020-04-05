@@ -45,7 +45,7 @@ class RedisClient {
 				});
 
 				this.redisClient.on('ready', () => {
-					getLogger(Clients.REDIS).info(`Connection established. Server info: ${JSON.stringify(this.redisClient!.server_info)}. `);
+					getLogger(Clients.REDIS).info(`Connection established. Server info:\n${JSON.stringify(this.redisClient!.server_info, null, 4)}. `);
 
 					if (options.monitor) {
 						this.redisClient!.on('monitor', (timestamp: string, args: any[], replyStr: string) => {

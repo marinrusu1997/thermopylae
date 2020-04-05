@@ -34,7 +34,7 @@ const MySqlEnv: MySqlEnv = {
 	tables: {
 		account: 'account'
 	},
-	schemaLocation: '/test/fixtures/setup.sql'
+	schemaLocation: 'test/fixtures/setup.sql'
 };
 
 const RedisEnv: Env = {
@@ -118,18 +118,18 @@ async function changeMySqlAuthToNativePassword(): Promise<void> {
 
 async function createMySqlStorageSchema(): Promise<void> {
 	return new Promise((resolve, reject) => {
-		exec(
-			`mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} ${MySqlEnv.database} < ${MySqlEnv.schemaLocation}`,
-			(error, stdout, stderr) => {
-				if (error) {
-					reject(error);
-				} else {
-					logger.debug(`Create MySql storage schema stdout:\n${stdout}`);
-					logger.debug(`Create MySql storage schema stderr:\n${stderr}`);
-					resolve();
-				}
+		const cmd = `mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} ${MySqlEnv.database} < ${MySqlEnv.schemaLocation}`;
+		logger.debug(`Executing: ${cmd}`);
+
+		exec(cmd, (error, stdout, stderr) => {
+			if (error) {
+				reject(error);
+			} else {
+				logger.debug(`Create MySql storage schema stdout:\n${stdout}`);
+				logger.debug(`Create MySql storage schema stderr:\n${stderr}`);
+				resolve();
 			}
-		);
+		});
 	});
 }
 

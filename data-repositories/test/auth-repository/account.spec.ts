@@ -1,13 +1,17 @@
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { describe, it/*, beforeEach, afterEach*/ } from 'mocha';
 import { expect } from 'chai';
-import { string } from '../lib.utils/dist';
-import { models } from '@marin/lib.auth-engine';
+/*import { string } from '../lib.utils/dist';
+import { models } from '@marin/lib.auth-engine';*/
 import { MySqlEnv } from '../setup';
-import { AuthRepository } from '../../../lib.data-access/lib';
-import { MySqlClientInstance } from '../../../lib.data-access/lib/mysql';
+/*import { AuthRepository } from '../../../lib.data-access/lib';
+import { MySqlClientInstance } from '../../../lib.data-access/lib/mysql';*/
 
 describe('account spec', () => {
-	const AccountEntity = AuthRepository.generateAccountEntity({
+	it('test env', () => {
+		expect(MySqlEnv.user).to.be.eq('root');
+	});
+
+	/*const AccountEntity = AuthRepository.generateAccountEntity({
 		'table-name': MySqlEnv.tables.account,
 		'auto-generated-key': true
 	});
@@ -268,5 +272,5 @@ describe('account spec', () => {
 			}
 			expect(err).to.not.be.eq(undefined);
 		});
-	});
+	});*/
 });
