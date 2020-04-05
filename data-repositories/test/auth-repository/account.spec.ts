@@ -1,38 +1,74 @@
-import { describe, it/*, beforeEach, afterEach*/ } from 'mocha';
+/* import { string } from '@marin/lib.utils'; */
+import { models } from '@marin/lib.auth-engine';
+import { MySqlClientInstance } from '@marin/lib.data-access';
+
+import { describe, it, before, afterEach } from 'mocha';
 import { expect } from 'chai';
-/*import { string } from '../lib.utils/dist';
-import { models } from '@marin/lib.auth-engine';*/
-import { MySqlEnv } from '../setup';
-/*import { AuthRepository } from '../../../lib.data-access/lib';
-import { MySqlClientInstance } from '../../../lib.data-access/lib/mysql';*/
+import { MySqlEnv, truncateAllTables } from '../setup';
+
+import { AuthRepository } from '../../lib';
+import { AccountEntity } from '../../lib/auth/account';
 
 describe('account spec', () => {
-	it('test env', () => {
-		expect(MySqlEnv.user).to.be.eq('root');
-	});
-
-	/*const AccountEntity = AuthRepository.generateAccountEntity({
-		'table-name': MySqlEnv.tables.account,
-		'auto-generated-key': true
-	});
-
 	let reconnectAfterTestCase = false;
 
-	async function shutdownMySqlClient(): Promise<void> {
+	/*	async function shutdownMySqlClient(): Promise<void> {
 		await MySqlClientInstance.shutdown();
 		reconnectAfterTestCase = true;
-	}
+	} */
 
-	afterEach(done => {
+	const DEFAULT_ACCOUNT_ROLE = 'USER';
+
+	before(function (done) {
+		this.timeout(30000);
+
+		truncateAllTables((err) => {
+			if (err) {
+				return done(err);
+			}
+
+			return MySqlClientInstance.writePool.query(`INSERT INTO Role (Name) VALUES ('${DEFAULT_ACCOUNT_ROLE}');`, (insertErr, results) => {
+				if (insertErr) {
+					return done(insertErr);
+				}
+
+				if (results.affectedRows !== 1) {
+					return done(new Error(`Failed to INSERT default role with name ${DEFAULT_ACCOUNT_ROLE}`));
+				}
+
+				return done();
+			});
+		});
+	});
+
+	afterEach((done) => {
 		if (reconnectAfterTestCase) {
 			MySqlClientInstance.init({ pool: MySqlEnv });
 			reconnectAfterTestCase = false;
 		}
-		MySqlClientInstance.writePool.query(`DELETE FROM ${MySqlEnv.tables.account} WHERE 1=1;`, done);
+		MySqlClientInstance.writePool.query('DELETE FROM Account;', done);
 	});
 
 	describe('create spec', () => {
-		it('creates an account (no role, no pubKey)', async () => {
+		it('creates an account', async () => {
+			const account: models.AccountModel = {
+				username: 'username',
+				password: 'password',
+				salt: 'salt',
+				telephone: 'telephone',
+				email: 'email',
+				usingMfa: true,
+				enabled: true,
+				role: DEFAULT_ACCOUNT_ROLE
+			};
+			account.id = await AuthRepository.accountEntity.create(account);
+
+			expect(account.id.length).to.be.eq(AccountEntity.ACCOUNT_ID_LENGTH);
+		});
+
+		// FIXME insert multiple users, different scenarios
+
+		/* it('creates an account (no role, no pubKey)', async () => {
 			const account = await AccountEntity.create({
 				username: 'username',
 				password: 'password',
@@ -149,10 +185,10 @@ describe('account spec', () => {
 				err = e;
 			}
 			expect(err).to.not.be.eq(undefined);
-		});
+		}); */
 	});
 
-	describe('read by username', () => {
+	/*	describe('read by username', () => {
 		it('reads an existing account', async () => {
 			const account = await AccountEntity.create({
 				username: 'username',
@@ -272,5 +308,5 @@ describe('account spec', () => {
 			}
 			expect(err).to.not.be.eq(undefined);
 		});
-	});*/
+	}); */
 });

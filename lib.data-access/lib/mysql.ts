@@ -204,12 +204,26 @@ function queryAsync(connection: Connection, options: string | QueryOptions, valu
 	});
 }
 
+async function insertWithAssertion(connection: Connection, insertSQL: string, values?: any, errMsg = 'Failed to INSERT', noOfExpectedRows = 1): Promise<void> {
+	if ((await queryAsync(connection, insertSQL, values)).results.affectedRows !== noOfExpectedRows) {
+		throw new Error(errMsg);
+	}
+}
+
+async function updateWithAssertion(connection: Connection, updateSQL: string, values?: any, errMsg = 'Failed to UPDATE', noOfExpectedRows = 1): Promise<void> {
+	if ((await queryAsync(connection, updateSQL, values)).results.changedRows !== noOfExpectedRows) {
+		throw new Error(errMsg);
+	}
+}
+
 const MySqlClientInstance = new MySqlClient();
 
 export {
 	MySqlClientInstance,
 	typeCastBooleans,
 	queryAsync,
+	insertWithAssertion,
+	updateWithAssertion,
 	createConnection,
 	Pool,
 	PoolClusterConfig,

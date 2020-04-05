@@ -8,6 +8,8 @@ import { onExit, streamEnd, streamWrite } from '@rauschma/stringio';
 import { config as dotEnvConfig } from 'dotenv';
 import { Writable } from 'stream';
 
+import Func = Mocha.Func;
+
 interface Env {
 	host: string;
 	port: number;
@@ -17,9 +19,6 @@ interface Env {
 interface MySqlEnv extends Env {
 	user: string;
 	database: string;
-	tables: {
-		account: string;
-	};
 	schemaLocation: string;
 }
 
@@ -31,9 +30,6 @@ const MySqlEnv: MySqlEnv = {
 	user: 'root',
 	password: 'secret',
 	database: 'test_data_repositories',
-	tables: {
-		account: 'account'
-	},
 	schemaLocation: 'test/fixtures/setup.sql'
 };
 
@@ -252,6 +248,26 @@ async function bootRedisContainer(containerInfos: Array<ContainerInfo>): Promise
 	await redisContainer!.start();
 }
 
+function truncateAllTables(done: Func): void {
+	const cmd = `
+					mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} -Nse 'SHOW TABLES;' ${MySqlEnv.database} | 
+					while read table; do mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} -e "DELETE FROM $table;" ${MySqlEnv.database}; done
+				`;
+	logger.debug(`Executing: ${cmd}`);
+
+	exec(cmd, (error, stdout, stderr) => {
+		if (error) {
+			// @ts-ignore
+			done(error);
+		} else {
+			logger.debug(`Truncate all tables stdout:\n${stdout}`);
+			logger.debug(`Truncate all tables stderr:\n${stderr}`);
+			// @ts-ignore
+			done();
+		}
+	});
+}
+
 before(async function (): Promise<void> {
 	this.timeout(3000000);
 
@@ -306,4 +322,4 @@ after(async function (): Promise<void> {
 	}
 });
 
-export { MySqlEnv };
+export { MySqlEnv, truncateAllTables };

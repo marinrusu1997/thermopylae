@@ -1,10 +1,14 @@
 import { token } from '@marin/lib.utils';
-import { MySqlClientInstance, queryAsync, MysqlError } from '@marin/lib.data-access';
+import { MySqlClientInstance, insertWithAssertion, updateWithAssertion, MysqlError, typeCastBooleans } from '@marin/lib.data-access';
 import { entities, models } from '@marin/lib.auth-engine';
 
 class AccountEntity implements entities.AccountEntity {
-	create(account: models.AccountModel): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
+	public static readonly ACCOUNT_ID_LENGTH = 10;
+
+	public static readonly CONTACT_TYPE_USED_BY_SYSTEM = 'primary';
+
+	public create(account: models.AccountModel): Promise<string> {
+		return new Promise((resolve, reject) => {
 			MySqlClientInstance.writePool.getConnection((getConnErr, connection) => {
 				if (getConnErr) {
 					return reject(getConnErr);
@@ -37,23 +41,31 @@ class AccountEntity implements entities.AccountEntity {
 					}
 
 					try {
-						accountId = (await token.generate(10)).plain;
+						accountId = (await token.generate(AccountEntity.ACCOUNT_ID_LENGTH)).plain;
 
 						const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID)
-												SELECT ${accountId}, ${accountId}, ID FROM Role WHERE Name = ${connection.escape(account.role!)};`;
-						await queryAsync(connection, insertUserSQL);
+												SELECT '${accountId}', NULL, ID FROM Role WHERE Name = ${connection.escape(account.role!)};`;
+						await insertWithAssertion(connection, insertUserSQL, undefined, 'Failed to INSERT User');
 
-						const insertAccountSQL = `INSERT INTO Account (ID, Enabled) VALUES (${accountId}, ?);`;
-						await queryAsync(connection, insertAccountSQL, account.enabled);
+						const insertAccountSQL = `INSERT INTO Account (ID, Enabled) VALUES ('${accountId}', ?);`;
+						await insertWithAssertion(connection, insertAccountSQL, account.enabled, 'Failed to INSERT Account');
+
+						const updateUserSQL = `UPDATE User SET RelatedAccountID = '${accountId}' WHERE ID = '${accountId}';`;
+						await updateWithAssertion(connection, updateUserSQL, undefined, 'Failed to UPDATE User');
 
 						const insertAuthenticationSQL = `INSERT INTO Authentication (ID, UserName, PasswordHash, PasswordSalt, MultiFactor)
-														  VALUES (${accountId}, ?, ?, ?, ?);`;
-						await queryAsync(connection, insertAuthenticationSQL, [account.username, account.password, account.salt, account.usingMfa]);
+														  VALUES ('${accountId}', ?, ?, ?, ?);`;
+						await insertWithAssertion(
+							connection,
+							insertAuthenticationSQL,
+							[account.username, account.password, account.salt, account.usingMfa],
+							'Failed to INSERT Authentication'
+						);
 
 						const insertContactsSQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-													('email', 'primary', ?, ${accountId}),
-													('telephone', 'primary', ?, ${accountId});`;
-						await queryAsync(connection, insertContactsSQL, [account.email, account.telephone]);
+													('email', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}'),
+													('telephone', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}');`;
+						await insertWithAssertion(connection, insertContactsSQL, [account.email, account.telephone], 'Failed to INSERT Contacts', 2);
 
 						connection.commit(handleCommit);
 					} catch (errOccurredWhileRunningTx) {
@@ -68,35 +80,146 @@ class AccountEntity implements entities.AccountEntity {
 		});
 	}
 
-	read(username: string): Promise<models.AccountModel | null> {
-		// join Authentication, Account, User, Contact
+	public read(username: string): Promise<models.AccountModel | null> {
+		return doAccountRead('username', username);
 	}
 
-	readById(id: string): Promise<models.AccountModel | null> {
-		return undefined;
+	public readById(authenticationId: string): Promise<models.AccountModel | null> {
+		return doAccountRead('id', authenticationId);
 	}
 
-	changePassword(id: string, passwordHash: string, salt: string): Promise<void> {
-		return undefined;
+	public changePassword(authenticationId: string, passwordHash: string, salt: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const updateAuthenticationSQL = `UPDATE Authentication
+												SET PasswordHash = ${passwordHash}, PasswordSalt = ${salt}
+												WHERE ID = ${authenticationId};`;
+			MySqlClientInstance.writePool.query(updateAuthenticationSQL, (err, results) => {
+				if (err) {
+					return reject(err);
+				}
+				if (results.changedRows !== 1) {
+					return reject(new Error(`Failed to change password for account id ${authenticationId}. No changes occurred.`));
+				}
+				return resolve();
+			});
+		});
 	}
 
-	disable(id: string): Promise<void> {
-		return undefined;
+	public enable(accountId: string): Promise<void> {
+		return doChangeAccountEnabledStatus(accountId, true);
 	}
 
-	enable(id: string): Promise<void> {
-		return undefined;
+	public disable(accountId: string): Promise<void> {
+		return doChangeAccountEnabledStatus(accountId, false);
 	}
 
-	disableMultiFactorAuth(id: string): Promise<void> {
-		return undefined;
+	public enableMultiFactorAuth(authenticationId: string): Promise<void> {
+		return doChangeMultiFactorAuthenticationEnabledStatus(authenticationId, true);
 	}
 
-	enableMultiFactorAuth(id: string): Promise<void> {
-		return undefined;
+	public disableMultiFactorAuth(authenticationId: string): Promise<void> {
+		return doChangeMultiFactorAuthenticationEnabledStatus(authenticationId, false);
 	}
 
-	delete(id: string): Promise<void> {
-		return undefined;
+	public delete(accountId: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const deleteAccountSQL = `DELETE FROM Account WHERE ID = ?;`;
+			MySqlClientInstance.writePool.query(deleteAccountSQL, accountId, (err, results) => {
+				if (err) {
+					return reject(err);
+				}
+				if (results.affectedRows !== 1) {
+					return reject(new Error(`Failed to delete account with id ${accountId}. No affected rows.`));
+				}
+				return resolve();
+			});
+		});
 	}
 }
+
+function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountModel | null> {
+	return new Promise((resolve, reject) => {
+		const selectAccountSQL = `
+					SELECT 	Account.ID as id, 
+							Authentication.UserName as username, 
+							Authentication.PasswordHash as password,
+							Authentication.PasswordSalt as salt,
+							CASE 
+								WHEN Contact.Class = 'email' 		THEN Contact.Contact as email 
+								WHEN Contact.Class = 'telephone' 	THEN Contact.Contact as telephone
+								ELSE 'UNKNOWN' as unknown
+							END,
+							Account.Enabled as enabled,
+							Authentication.MultiFactor as usingMfa,
+							Role.Name as role
+					FROM User
+						INNER JOIN Contact 			ON User.ID 					= Contact.RelatedUserID
+						INNER JOIN Role 			ON Role.ID 					= User.RelatedRoleID
+						INNER JOIN Account			ON Account.ID 				= User.RelatedAccountID
+						INNER JOIN Authentication 	ON User.RelatedAccountID 	= Authentication.ID
+					WHERE 
+						Authentication.${by === 'id' ? 'ID' : 'UserName'} = ? AND
+						Contact.Type = '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}';
+				`;
+		const query = {
+			sql: selectAccountSQL,
+			values: valueOfBy,
+			typeCast: typeCastBooleans
+		};
+		MySqlClientInstance.readPool.query(query, (err, result) => {
+			if (err) {
+				return reject(err);
+			}
+			if (result.length !== 2) {
+				return resolve(null);
+			}
+
+			let account: models.AccountModel;
+			if (result[0].email == null) {
+				result[0].email = result[1].email;
+				account = result[0] as models.AccountModel;
+			} else {
+				result[1].email = result[0].email;
+				account = result[1] as models.AccountModel;
+			}
+
+			return resolve(account);
+		});
+	});
+}
+
+function doChangeAccountEnabledStatus(accountId: string, isEnabled: boolean): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const updateAccountSQL = `UPDATE Account SET Enabled = ${isEnabled} WHERE ID = ?;`;
+		MySqlClientInstance.writePool.query(updateAccountSQL, accountId, (err, results) => {
+			if (err) {
+				return reject(err);
+			}
+			if (results.changedRows !== 1) {
+				return reject(new Error(`Failed to update enabled status for account id ${accountId} to ${isEnabled}. No changes occurred.`));
+			}
+			return resolve();
+		});
+	});
+}
+
+function doChangeMultiFactorAuthenticationEnabledStatus(authenticationId: string, isEnabled: boolean): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const updateAuthenticationSQL = `UPDATE Authentication SET MultiFactor = ${isEnabled} WHERE ID = ?;`;
+		MySqlClientInstance.writePool.query(updateAuthenticationSQL, authenticationId, (err, results) => {
+			if (err) {
+				return reject(err);
+			}
+			if (results.changedRows !== 1) {
+				return reject(
+					new Error(
+						`Failed to update multi factor authentication enabled status for account id ${authenticationId} to ${isEnabled}. No changes occurred.`
+					)
+				);
+			}
+			return resolve();
+		});
+	});
+}
+
+export { AccountEntity };

@@ -35,6 +35,10 @@ class AccountStatusManager {
 		this.enableAccountAfterFailedAuthAttemptDelay = enableAccountAfterFailedAuthAttemptDelayMinutes;
 	}
 
+	public async enable(accountId: string): Promise<void> {
+		await this.accountEntity.enable(accountId);
+	}
+
 	public async disable(account: AccountModel, cause: string): Promise<void> {
 		await this.accountEntity.disable(account.id!);
 		this.emailSender.notifyAccountDisabled(this.adminEmail, `${cause} Account id: ${account.id}`);
@@ -42,10 +46,6 @@ class AccountStatusManager {
 		await this.userSessionsManager.deleteAll(account.id!, account.role).catch(error => {
 			getLogger().crit(`Failed to logout from all devices of the user with id ${account.id}. `, error);
 		});
-	}
-
-	public async enable(accountId: string): Promise<void> {
-		await this.accountEntity.enable(accountId);
 	}
 
 	public async enableAfter(accountId: string, cause: EnableAfterCause): Promise<void> {
