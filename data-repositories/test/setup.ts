@@ -136,7 +136,6 @@ function createNewMySqlConnectionForSetUp(env?: Partial<MySqlEnv>): Connection {
 }
 
 function spawnMySqlClient(): ChildProcessByStdio<Writable, null, null> {
-	logger.debug('Spawning mysql client...');
 	return spawn(`mysql`, ['-h', MySqlEnv.host, `-P${MySqlEnv.port}`, `-u${MySqlEnv.user}`, `-p${MySqlEnv.password}`], {
 		stdio: ['pipe', process.stdout, process.stderr]
 	});
@@ -146,7 +145,7 @@ async function changeMySqlAuthToNativePassword(): Promise<void> {
 	const mysql = spawnMySqlClient();
 
 	(async () => {
-		logger.debug('Executing query to change auth type to native password...');
+		logger.debug('Changing MySql auth type to native password...');
 		await streamWrite(mysql.stdin, `ALTER USER 'root' IDENTIFIED WITH mysql_native_password BY '${MySqlEnv.password}';\n`);
 		await streamEnd(mysql.stdin);
 	})();
@@ -198,7 +197,7 @@ async function waitMySqlServerToBoot(exponentialReconnect?: boolean): Promise<vo
 			reconnectingAfter = Number(RECONNECT_PARAMS.mysql.absoluteTimeout);
 		}
 
-		logger.debug(`Reconnecting to MySQL in ${reconnectingAfter} ms. Remaining attempts ${remainingAttempts}.`);
+		logger.warning(`Reconnecting to MySQL in ${reconnectingAfter} ms. Remaining attempts ${remainingAttempts}.`);
 		setTimeout(connect, reconnectingAfter);
 	}
 
@@ -295,7 +294,7 @@ async function connectToRedis(): Promise<void> {
 		} catch (e) {
 			lastConnectError = e;
 
-			logger.debug(`Reconnecting to Redis in ${reconnectTimeout} ms. Remaining attempts ${remainingAttempts}.`);
+			logger.warning(`Reconnecting to Redis in ${reconnectTimeout} ms. Remaining attempts ${remainingAttempts}.`);
 			// eslint-disable-next-line no-await-in-loop
 			await chrono.sleep(reconnectTimeout);
 
@@ -372,7 +371,7 @@ after(async function (): Promise<void> {
 	await RedisClientInstance.shutdown();
 
 	if (typeof process.env.DELETE_CONTAINERS_AFTER_TESTS === 'undefined' || process.env.DELETE_CONTAINERS_AFTER_TESTS === 'true') {
-		logger.debug(`Removing containers: MySql -> ${DockerContainers.mysql.instance!.id} ; Redis -> ${DockerContainers.redis.instance!.id}`);
+		logger.info(`Removing containers: MySql -> ${DockerContainers.mysql.instance!.id} ; Redis -> ${DockerContainers.redis.instance!.id}`);
 
 		await DockerContainers.mysql.instance!.stop();
 		await DockerContainers.mysql.instance!.remove();
