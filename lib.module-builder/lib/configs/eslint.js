@@ -31,14 +31,14 @@ module.exports = {
 	],
 	"rules": {
 		"prettier/prettier": "error",
-		"import/prefer-default-export": "off",
-		"lines-between-class-members": "off",
+		"import/prefer-default-export": "warn",
+		"lines-between-class-members": "warn",
 		"class-methods-use-this": "warn",
 
+		"no-console": "error",
 		"no-param-reassign": "warn",
 		"no-use-before-define": "warn",
 		"no-await-in-loop": "warn",
-		"no-underscore-dangle": "warn",
 		"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
 
 		"@typescript-eslint/ban-ts-ignore": "warn",

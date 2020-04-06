@@ -5,6 +5,10 @@ import { entities, models } from '@marin/lib.auth-engine';
 class AccountEntity implements entities.AccountEntity {
 	public static readonly ACCOUNT_ID_LENGTH = 10;
 
+	public static readonly EMAIL_CONTACT_CLASS = 'email';
+
+	public static readonly TELEPHONE_CONTACT_CLASS = 'telephone';
+
 	public static readonly CONTACT_TYPE_USED_BY_SYSTEM = 'primary';
 
 	public create(account: models.AccountModel): Promise<string> {
@@ -63,8 +67,8 @@ class AccountEntity implements entities.AccountEntity {
 						);
 
 						const insertContactsSQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-													('email', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}'),
-													('telephone', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}');`;
+													('${AccountEntity.EMAIL_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}'),
+													('${AccountEntity.TELEPHONE_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}');`;
 						await insertWithAssertion(connection, insertContactsSQL, [account.email, account.telephone], 'Failed to INSERT Contacts', 2);
 
 						connection.commit(handleCommit);
@@ -140,25 +144,23 @@ class AccountEntity implements entities.AccountEntity {
 function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountModel | null> {
 	return new Promise((resolve, reject) => {
 		const selectAccountSQL = `
-					SELECT 	Account.ID as id, 
-							Authentication.UserName as username, 
+					SELECT 	Account.ID as id,
+							Authentication.UserName as username,
 							Authentication.PasswordHash as password,
 							Authentication.PasswordSalt as salt,
-							CASE 
-								WHEN Contact.Class = 'email' 		THEN Contact.Contact as email 
-								WHEN Contact.Class = 'telephone' 	THEN Contact.Contact as telephone
-								ELSE 'UNKNOWN' as unknown
-							END,
+							Contact.Class as contactClass,
+							Contact.Contact as contact,
 							Account.Enabled as enabled,
 							Authentication.MultiFactor as usingMfa,
 							Role.Name as role
-					FROM User
+					FROM \`User\`
 						INNER JOIN Contact 			ON User.ID 					= Contact.RelatedUserID
 						INNER JOIN Role 			ON Role.ID 					= User.RelatedRoleID
 						INNER JOIN Account			ON Account.ID 				= User.RelatedAccountID
 						INNER JOIN Authentication 	ON User.RelatedAccountID 	= Authentication.ID
-					WHERE 
+					WHERE
 						Authentication.${by === 'id' ? 'ID' : 'UserName'} = ? AND
+						Account.ID = User.ID AND -- we are retrieving only the user who created the account
 						Contact.Type = '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}';
 				`;
 		const query = {
@@ -170,20 +172,23 @@ function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountMod
 			if (err) {
 				return reject(err);
 			}
+
 			if (result.length !== 2) {
 				return resolve(null);
 			}
 
-			let account: models.AccountModel;
-			if (result[0].email == null) {
-				result[0].email = result[1].email;
-				account = result[0] as models.AccountModel;
+			if (result[0].contactClass === AccountEntity.EMAIL_CONTACT_CLASS) {
+				result[0].email = result[0].contact;
+				result[0].telephone = result[1].contact;
 			} else {
-				result[1].email = result[0].email;
-				account = result[1] as models.AccountModel;
+				result[0].telephone = result[0].contact;
+				result[0].email = result[1].contact;
 			}
 
-			return resolve(account);
+			delete result[0].contactClass;
+			delete result[0].contact;
+
+			return resolve(result[0]);
 		});
 	});
 }
