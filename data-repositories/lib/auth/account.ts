@@ -2,6 +2,8 @@ import { token } from '@marin/lib.utils';
 import { MySqlClientInstance, insertWithAssertion, updateWithAssertion, MysqlError, typeCastBooleans } from '@marin/lib.data-access';
 import { entities, models } from '@marin/lib.auth-engine';
 
+// FIXME replace multiline strings with concatenation for performance reasons
+
 class AccountEntity implements entities.AccountEntity {
 	public static readonly ACCOUNT_ID_LENGTH = 10;
 
@@ -24,8 +26,6 @@ class AccountEntity implements entities.AccountEntity {
 						return reject(beginTxErr);
 					}
 
-					let accountId: string;
-
 					function generateRollbackHandler(originErr: Error) {
 						return function handleRollback(rollbackErr: MysqlError): void {
 							connection.release();
@@ -35,26 +35,36 @@ class AccountEntity implements entities.AccountEntity {
 						};
 					}
 
-					function handleCommit(commitErr: MysqlError): void {
-						if (commitErr) {
-							return connection.rollback(generateRollbackHandler(commitErr));
-						}
+					function generateCommitHandler(accountId: string) {
+						return function handleCommit(commitErr: MysqlError): void {
+							if (commitErr) {
+								return connection.rollback(generateRollbackHandler(commitErr));
+							}
 
-						connection.release();
-						return resolve(accountId);
+							connection.release();
+							return resolve(accountId);
+						};
 					}
 
 					try {
-						accountId = (await token.generate(AccountEntity.ACCOUNT_ID_LENGTH)).plain;
+						const accountId = (await token.generate(AccountEntity.ACCOUNT_ID_LENGTH)).plain;
 
-						const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID)
-												SELECT '${accountId}', NULL, ID FROM Role WHERE Name = ${connection.escape(account.role!)};`;
+						const insertUserSQL = `
+												INSERT INTO User (ID, RelatedAccountID, RelatedRoleID)
+												SELECT '${accountId}', NULL, ID 
+												FROM Role 
+												WHERE Name = ${connection.escape(account.role!)};
+											  `;
 						await insertWithAssertion(connection, insertUserSQL, undefined, 'Failed to INSERT User');
 
 						const insertAccountSQL = `INSERT INTO Account (ID, Enabled) VALUES ('${accountId}', ?);`;
 						await insertWithAssertion(connection, insertAccountSQL, account.enabled, 'Failed to INSERT Account');
 
-						const updateUserSQL = `UPDATE User SET RelatedAccountID = '${accountId}' WHERE ID = '${accountId}';`;
+						const updateUserSQL = `
+												UPDATE User 
+												SET RelatedAccountID = '${accountId}' 
+												WHERE ID = '${accountId}';
+											  `;
 						await updateWithAssertion(connection, updateUserSQL, undefined, 'Failed to UPDATE User');
 
 						const insertAuthenticationSQL = `INSERT INTO Authentication (ID, UserName, PasswordHash, PasswordSalt, MultiFactor)
@@ -71,7 +81,7 @@ class AccountEntity implements entities.AccountEntity {
 													('${AccountEntity.TELEPHONE_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}');`;
 						await insertWithAssertion(connection, insertContactsSQL, [account.email, account.telephone], 'Failed to INSERT Contacts', 2);
 
-						connection.commit(handleCommit);
+						connection.commit(generateCommitHandler(accountId));
 					} catch (errOccurredWhileRunningTx) {
 						connection.rollback(generateRollbackHandler(errOccurredWhileRunningTx));
 					}
@@ -88,21 +98,24 @@ class AccountEntity implements entities.AccountEntity {
 		return doAccountRead('username', username);
 	}
 
-	public readById(authenticationId: string): Promise<models.AccountModel | null> {
-		return doAccountRead('id', authenticationId);
+	public readById(accountId: string): Promise<models.AccountModel | null> {
+		return doAccountRead('id', accountId);
 	}
 
-	public changePassword(authenticationId: string, passwordHash: string, salt: string): Promise<void> {
+	public changePassword(accountId: string, passwordHash: string, salt: string): Promise<void> {
 		return new Promise((resolve, reject) => {
+			// not escaped, trusted source of data, if we escape these, it could cause account loss,
+			// as the right password will never match with the escaped hash
 			const updateAuthenticationSQL = `UPDATE Authentication
-												SET PasswordHash = ${passwordHash}, PasswordSalt = ${salt}
-												WHERE ID = ${authenticationId};`;
+												SET PasswordHash = '${passwordHash}', 
+													PasswordSalt = '${salt}'
+												WHERE ID = '${accountId}';`;
 			MySqlClientInstance.writePool.query(updateAuthenticationSQL, (err, results) => {
 				if (err) {
 					return reject(err);
 				}
 				if (results.changedRows !== 1) {
-					return reject(new Error(`Failed to change password for account id ${authenticationId}. No changes occurred.`));
+					return reject(new Error(`Failed to change password for account id ${accountId} . No changes occurred.`));
 				}
 				return resolve();
 			});
@@ -117,12 +130,12 @@ class AccountEntity implements entities.AccountEntity {
 		return doChangeAccountEnabledStatus(accountId, false);
 	}
 
-	public enableMultiFactorAuth(authenticationId: string): Promise<void> {
-		return doChangeMultiFactorAuthenticationEnabledStatus(authenticationId, true);
+	public enableMultiFactorAuth(accountId: string): Promise<void> {
+		return doChangeMultiFactorAuthenticationEnabledStatus(accountId, true);
 	}
 
-	public disableMultiFactorAuth(authenticationId: string): Promise<void> {
-		return doChangeMultiFactorAuthenticationEnabledStatus(authenticationId, false);
+	public disableMultiFactorAuth(accountId: string): Promise<void> {
+		return doChangeMultiFactorAuthenticationEnabledStatus(accountId, false);
 	}
 
 	public delete(accountId: string): Promise<void> {
@@ -208,18 +221,16 @@ function doChangeAccountEnabledStatus(accountId: string, isEnabled: boolean): Pr
 	});
 }
 
-function doChangeMultiFactorAuthenticationEnabledStatus(authenticationId: string, isEnabled: boolean): Promise<void> {
+function doChangeMultiFactorAuthenticationEnabledStatus(accountId: string, isEnabled: boolean): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const updateAuthenticationSQL = `UPDATE Authentication SET MultiFactor = ${isEnabled} WHERE ID = ?;`;
-		MySqlClientInstance.writePool.query(updateAuthenticationSQL, authenticationId, (err, results) => {
+		MySqlClientInstance.writePool.query(updateAuthenticationSQL, accountId, (err, results) => {
 			if (err) {
 				return reject(err);
 			}
 			if (results.changedRows !== 1) {
 				return reject(
-					new Error(
-						`Failed to update multi factor authentication enabled status for account id ${authenticationId} to ${isEnabled}. No changes occurred.`
-					)
+					new Error(`Failed to update multi factor authentication enabled status for account id ${accountId} to ${isEnabled}. No changes occurred.`)
 				);
 			}
 			return resolve();
