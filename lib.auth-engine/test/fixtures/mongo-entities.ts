@@ -33,6 +33,7 @@ const AccountSchema = new mongoose.Schema({
 	username: { type: String, required: true, unique: true },
 	password: { type: String, required: true, unique: true },
 	salt: { type: String, required: true, unique: true },
+	hashingAlg: { type: Number, required: true },
 	role: { type: String, required: false },
 	email: { type: String, required: true },
 	telephone: { type: String, required: true },
@@ -43,6 +44,7 @@ const AccountSchema = new mongoose.Schema({
 const AccountEntityMongo: AccountEntity = {
 	create: async account => {
 		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).create(account);
+		// eslint-disable-next-line no-underscore-dangle
 		return String(accountModel._id);
 	},
 	read: async username => {
@@ -56,6 +58,7 @@ const AccountEntityMongo: AccountEntity = {
 			throw new Error(`Expected 1 account to be found for username ${username}`);
 		}
 		return {
+			// eslint-disable-next-line no-underscore-dangle
 			id: String(accountModel[0]._id),
 			// @ts-ignore
 			username: accountModel[0].username,
@@ -63,6 +66,8 @@ const AccountEntityMongo: AccountEntity = {
 			password: accountModel[0].password,
 			// @ts-ignore
 			salt: accountModel[0].salt,
+			// @ts-ignore
+			hashingAlg: accountModel[0].hashingAlg,
 			// @ts-ignore
 			role: accountModel[0].role,
 			// @ts-ignore
@@ -85,6 +90,7 @@ const AccountEntityMongo: AccountEntity = {
 			return null;
 		}
 		return {
+			// eslint-disable-next-line no-underscore-dangle
 			id: String(accountModel._id),
 			// @ts-ignore
 			username: accountModel.username,
@@ -92,6 +98,8 @@ const AccountEntityMongo: AccountEntity = {
 			password: accountModel.password,
 			// @ts-ignore
 			salt: accountModel.salt,
+			// @ts-ignore
+			hashingAlg: accountModel.hashingAlg,
 			// @ts-ignore
 			role: accountModel.role,
 			// @ts-ignore
@@ -137,9 +145,9 @@ const AccountEntityMongo: AccountEntity = {
 				}
 			});
 	},
-	changePassword: (_id, password, salt) =>
+	changePassword: (_id, password, salt, hashingAlg) =>
 		getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { password, salt })
+			.updateOne({ _id }, { password, salt, hashingAlg })
 			.exec()
 };
 
@@ -156,9 +164,12 @@ const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
 			throw new Error('Creation of failed auth attempts was configured to fail.');
 		}
 
-		return getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
-			.create(attempts)
-			.then(doc => String(doc._id));
+		return (
+			getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
+				.create(attempts)
+				// eslint-disable-next-line no-underscore-dangle
+				.then(doc => String(doc._id))
+		);
 	},
 	readRange: async (accountId, startingFrom, endingTo) => {
 		if (startingFrom && endingTo && endingTo < startingFrom) {
@@ -178,6 +189,7 @@ const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
 
 		const docs = await documentQuery.exec();
 		return docs.map(doc => ({
+			// eslint-disable-next-line no-underscore-dangle
 			id: String(doc._id),
 			// @ts-ignore
 			accountId: doc.accountId,

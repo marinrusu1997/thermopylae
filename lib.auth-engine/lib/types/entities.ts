@@ -9,7 +9,7 @@ export interface AccountEntity {
 	disable(id: string): Promise<void>;
 	enableMultiFactorAuth(id: string): Promise<void>;
 	disableMultiFactorAuth(id: string): Promise<void>;
-	changePassword(id: string, passwordHash: string, salt: string): Promise<void>;
+	changePassword(id: string, passwordHash: string, salt: string, hashingAlg: number): Promise<void>;
 	delete(id: string): Promise<void>;
 }
 

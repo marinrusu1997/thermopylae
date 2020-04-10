@@ -59,8 +59,8 @@ describe('Account registration spec', () => {
 		}
 		expect(account.id!).to.not.be.equal(undefined);
 		expect(account.password).to.not.be.equal('auirg7q85y1298huwityh289');
-		expect(account.password.length).to.be.equal(96);
-		expect(account.salt).to.have.length(basicAuthEngineConfig.tokensLength!.salt!);
+		expect(account.password.length).to.be.equal(60);
+		expect(account.salt).to.have.length(29);
 		expect(account.telephone).to.be.eq('+568425666');
 		expect(account.email).to.be.eq('user@product.com');
 		expect(account.role).to.be.eq(undefined);
@@ -118,7 +118,7 @@ describe('Account registration spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 		// @ts-ignore
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
-		expect(activationToken.token.length).to.be.equal(basicAuthEngineConfig.tokensLength!.token);
+		expect(activationToken.token.length).to.be.equal(basicAuthEngineConfig.tokensLength!);
 
 		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel delete account timer
 	});

@@ -11,8 +11,11 @@ export interface LibAuthEngineConfig {
 		rolesTtl: Map<string, number>; // role -> seconds
 	};
 	secrets: {
-		pepper: string;
 		totp: string;
+	};
+	passwordHasher: {
+		hashingAlg: number;
+		pepper: string;
 	};
 }
 

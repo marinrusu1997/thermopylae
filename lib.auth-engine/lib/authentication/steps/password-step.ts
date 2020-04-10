@@ -6,14 +6,20 @@ import { OnGoingAuthenticationSession } from '../../types/sessions';
 import { AuthRequest } from '../../types/requests';
 
 class PasswordStep implements AuthStep {
-	private readonly pepper: string;
+	private readonly passwordsManager: PasswordsManager;
 
-	constructor(pepper: string) {
-		this.pepper = pepper;
+	constructor(passwordsManager: PasswordsManager) {
+		this.passwordsManager = passwordsManager;
 	}
 
 	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
-		if (!(await PasswordsManager.isSame(authRequest.password!, account.password, account.salt, this.pepper))) {
+		const passwordHash = {
+			hash: account.password,
+			salt: account.salt,
+			alg: account.hashingAlg
+		};
+
+		if (!(await this.passwordsManager.isSame(authRequest.password!, passwordHash))) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}
 

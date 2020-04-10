@@ -1,18 +1,31 @@
-import { http, token } from '@marin/lib.utils';
+import { http } from '@marin/lib.utils';
 import owasp from 'owasp-password-strength-test';
-import argon2 from 'argon2';
 import crypto from 'crypto';
 import { createException, ErrorCodes } from '../error';
 import { AccountEntity } from '../types/entities';
+
+interface PasswordHash {
+	hash: string;
+	salt: string;
+	alg: number;
+}
+
+interface PasswordHasherInterface {
+	hash(password: string): Promise<PasswordHash>;
+	verify(hash: PasswordHash, plain: string): Promise<boolean>;
+}
 
 class PasswordsManager {
 	private readonly breachThreshold: number;
 
 	private readonly accountEntity: AccountEntity;
 
-	constructor(breachThreshold: number, accountEntity: AccountEntity) {
+	private readonly passwordHasher: PasswordHasherInterface;
+
+	constructor(breachThreshold: number, accountEntity: AccountEntity, passwordHasher: PasswordHasherInterface) {
 		this.breachThreshold = breachThreshold;
 		this.accountEntity = accountEntity;
+		this.passwordHasher = passwordHasher;
 	}
 
 	public async validateStrengthness(password: string): Promise<void> {
@@ -41,32 +54,19 @@ class PasswordsManager {
 		}
 	}
 
-	public async change(accountId: string, newPassword: string, saltSize: number, pepper: string): Promise<void> {
+	public async change(accountId: string, newPassword: string): Promise<void> {
 		await this.validateStrengthness(newPassword);
-		const salt = await PasswordsManager.generateSalt(saltSize);
-		const hash = await PasswordsManager.hash(newPassword, salt, pepper);
-		await this.accountEntity.changePassword(accountId, hash, salt);
+		const passwordHash = await this.hash(newPassword);
+		await this.accountEntity.changePassword(accountId, passwordHash.hash, passwordHash.salt, passwordHash.alg);
 	}
 
-	public static generateSalt(size: number): Promise<string> {
-		return token.generate(size).then(tokens => tokens.plain);
+	public hash(password: string): Promise<PasswordHash> {
+		return this.passwordHasher.hash(password);
 	}
 
-	public static hash(password: string, salt: string, pepper: string): Promise<string> {
-		return argon2.hash(PasswordsManager.padeAndHash(password, salt, pepper), { type: argon2.argon2id });
-	}
-
-	public static isSame(plain: string, hash: string, salt: string, pepper: string): Promise<boolean> {
-		return argon2.verify(hash, PasswordsManager.padeAndHash(plain, salt, pepper), { type: argon2.argon2id });
-	}
-
-	private static padeAndHash(password: string, salt: string, pepper: string): string {
-		const paddedPassword = salt.concat(password, pepper);
-		return crypto
-			.createHash('sha512')
-			.update(paddedPassword, 'utf8')
-			.digest('hex');
+	public isSame(plain: string, hash: PasswordHash): Promise<boolean> {
+		return this.passwordHasher.verify(hash, plain);
 	}
 }
 
-export { PasswordsManager };
+export { PasswordsManager, PasswordHash, PasswordHasherInterface };

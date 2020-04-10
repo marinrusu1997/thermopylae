@@ -11,6 +11,7 @@ import { EmailMockInstance } from './fixtures/mocks/email';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import memcache from './fixtures/memcache-entities';
 import { checkIfJWTWasInvalidated } from './utils';
+import { AUTH_STEP } from '../lib/types/enums';
 
 describe('forgot password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
@@ -61,7 +62,9 @@ describe('forgot password spec', () => {
 
 		// check old password is no longer valid
 		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthInput);
+		expect(oldCredentialsAuthStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(oldCredentialsAuthStatus.token).to.be.eq(undefined);
 
 		// check new credentials are valid
 		const newCredentialsAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthInput, password: newPassword });

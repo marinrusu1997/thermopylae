@@ -2,14 +2,14 @@ import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
 import { after, afterEach, before } from 'mocha';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
 import {
-	AuthenticationEntryPointEntityMongo,
 	AccountEntityMongo,
 	ActiveUserSessionEntityMongo,
-	FailedAuthAttemptsEntityMongo,
+	AuthenticationEntryPointEntityMongo,
 	clearMongoDatabase,
+	clearOperationFailuresForEntities,
 	closeMongoDatabase,
 	connectToMongoServer,
-	clearOperationFailuresForEntities
+	FailedAuthAttemptsEntityMongo
 } from './mongo-entities';
 import memcache, {
 	ActivateAccountSessionEntityMemCache,
@@ -39,6 +39,7 @@ import {
 import { getLogger } from '../../lib/logger';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
 import { AuthEngineOptions } from '../../lib';
+import { HashingAlgorithms, PasswordHasher } from './password-hasher';
 
 const basicAuthEngineConfig: AuthEngineOptions = {
 	jwt: {
@@ -96,17 +97,14 @@ const basicAuthEngineConfig: AuthEngineOptions = {
 		recaptcha: recaptchaValidator,
 		challengeResponse: challengeResponseValidator
 	},
+	passwordHasher: new PasswordHasher('pepper', HashingAlgorithms.BCRYPT),
 	secrets: {
-		pepper: 'pepper',
 		totp: 'totp'
 	},
 	contacts: {
 		adminEmail: 'admin@product.com'
 	},
-	tokensLength: {
-		token: 20,
-		salt: 10
-	}
+	tokensLength: 20
 };
 
 // since this config will be imported from all tests, it's the right place to put some initializations

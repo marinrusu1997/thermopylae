@@ -24,6 +24,7 @@ describe('entities', () => {
 			username: 'gigel',
 			password: '123',
 			salt: 'salt',
+			hashingAlg: 1,
 			role: 'admin',
 			email: 'email',
 			telephone: 'mobile',

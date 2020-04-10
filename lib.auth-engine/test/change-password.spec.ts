@@ -64,12 +64,18 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus1 = await AuthEngineInstance.authenticate(validAuthInput);
+		expect(authStatus1.error).to.be.eq(undefined);
+
 		await chrono.sleep(1000);
 		const authStatus2 = await AuthEngineInstance.authenticate(validAuthInput);
+		expect(authStatus2.error).to.be.eq(undefined);
+
 		await chrono.sleep(1000);
 		const authStatus3 = await AuthEngineInstance.authenticate(validAuthInput);
+		expect(authStatus3.error).to.be.eq(undefined);
 
 		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
+		expect(activeSessionsBeforeChangePassword.length).to.be.eq(3);
 
 		const newPassword = '42asdaffM!asd88';
 		expect(

@@ -34,7 +34,7 @@ import { RecaptchaStep, RecaptchaValidator } from './authentication/steps/recapt
 import { ErrorStep } from './authentication/steps/error-step';
 import { UserSessionsManager } from './managers/user-sessions-manager';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
-import { PasswordsManager } from './managers/passwords-manager';
+import { PasswordHasherInterface, PasswordsManager } from './managers/passwords-manager';
 import { EmailSender, EmailSendOptions } from './side-channels/email-sender';
 import { ActiveUserSession, AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel } from './types/models';
 import {
@@ -91,11 +91,11 @@ class AuthenticationEngine {
 			this.config.schedulers.account.enable
 		);
 
-		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account);
+		this.passwordsManager = new PasswordsManager(this.config.thresholds.passwordBreach, this.config.entities.account, this.config.passwordHasher);
 
 		this.authOrchestrator = new AuthOrchestrator();
 		this.authOrchestrator.register(AUTH_STEP.DISPATCH, new DispatchStep());
-		this.authOrchestrator.register(AUTH_STEP.PASSWORD, new PasswordStep(this.config.secrets.pepper));
+		this.authOrchestrator.register(AUTH_STEP.PASSWORD, new PasswordStep(this.passwordsManager));
 		this.authOrchestrator.register(AUTH_STEP.GENERATE_TOTP, new GenerateTotpStep(this.smsSender, this.totpManager));
 		this.authOrchestrator.register(AUTH_STEP.TOTP, new TotpStep(this.emailSender, this.totpManager));
 		this.authOrchestrator.register(AUTH_STEP.RECAPTCHA, new RecaptchaStep(this.config.validators.recaptcha));
@@ -115,7 +115,7 @@ class AuthenticationEngine {
 			new AuthenticatedStep(this.emailSender, this.userSessionsManager, this.config.entities.accessPoint, this.config.entities.failedAuthAttemptsSession)
 		);
 		if (this.config.validators.challengeResponse) {
-			this.authOrchestrator.register(AUTH_STEP.GENERATE_CHALLENGE, new GenerateChallengeStep(this.config.tokensLength.token));
+			this.authOrchestrator.register(AUTH_STEP.GENERATE_CHALLENGE, new GenerateChallengeStep(this.config.tokensLength));
 			this.authOrchestrator.register(AUTH_STEP.CHALLENGE_RESPONSE, new ChallengeResponseStep(this.config.validators.challengeResponse));
 		}
 	}
@@ -169,12 +169,12 @@ class AuthenticationEngine {
 		}
 
 		await this.passwordsManager.validateStrengthness(registrationInfo.password);
-		const salt = await PasswordsManager.generateSalt(this.config.tokensLength.salt);
-		const passwordHash = await PasswordsManager.hash(registrationInfo.password, salt, this.config.secrets.pepper);
+		const passwordHash = await this.passwordsManager.hash(registrationInfo.password);
 		const registeredAccount: AccountModel = {
 			username: registrationInfo.username,
-			password: passwordHash,
-			salt,
+			password: passwordHash.hash,
+			hashingAlg: passwordHash.alg,
+			salt: passwordHash.salt,
 			telephone: registrationInfo.telephone,
 			email: registrationInfo.email,
 			role: registrationInfo.role,
@@ -189,7 +189,7 @@ class AuthenticationEngine {
 			let deleteAccountTaskId;
 			let activateAccountSessionWasCreated = false;
 			try {
-				activateToken = await token.generate(this.config.tokensLength.token);
+				activateToken = await token.generate(this.config.tokensLength);
 				deleteAccountTaskId = await this.config.schedulers.account.deleteUnactivated(
 					registeredAccount.id,
 					chrono.dateFromUNIX(chrono.dateToUNIX() + chrono.minutesToSeconds(this.config.ttl.activateAccountSessionMinutes))
@@ -266,7 +266,13 @@ class AuthenticationEngine {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${changePasswordRequest.accountId} is disabled. `);
 		}
 
-		if (!(await PasswordsManager.isSame(changePasswordRequest.old, account.password, account.salt, this.config.secrets.pepper))) {
+		const passwordHash = {
+			hash: account.password,
+			salt: account.salt,
+			alg: account.hashingAlg
+		};
+
+		if (!(await this.passwordsManager.isSame(changePasswordRequest.old, passwordHash))) {
 			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
 		}
 
@@ -277,12 +283,7 @@ class AuthenticationEngine {
 
 		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 
-		await this.passwordsManager.change(
-			changePasswordRequest.accountId,
-			changePasswordRequest.new,
-			this.config.tokensLength.salt,
-			this.config.secrets.pepper
-		);
+		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.new);
 
 		if (typeof changePasswordRequest.logAllOtherSessionsOut !== 'boolean') {
 			// by default logout from all devices, needs to be be done, as usually jwt will be long lived
@@ -308,7 +309,7 @@ class AuthenticationEngine {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `);
 		}
 
-		const sessionToken = await token.generate(this.config.tokensLength.token);
+		const sessionToken = await token.generate(this.config.tokensLength);
 		await this.config.entities.forgotPasswordSession.create(
 			sessionToken.plain,
 			{ accountId: account.id!, accountRole: account.role },
@@ -341,12 +342,7 @@ class AuthenticationEngine {
 				`Forgot password session identified by provided token ${changeForgottenPasswordRequest.token} not found. `
 			);
 		}
-		await this.passwordsManager.change(
-			forgotPasswordSession.accountId,
-			changeForgottenPasswordRequest.newPassword,
-			this.config.tokensLength.salt,
-			this.config.secrets.pepper
-		);
+		await this.passwordsManager.change(forgotPasswordSession.accountId, changeForgottenPasswordRequest.newPassword);
 
 		try {
 			// prevent replay attacks
@@ -374,7 +370,13 @@ class AuthenticationEngine {
 			return false;
 		}
 
-		return PasswordsManager.isSame(credentials.password, account.password, account.salt, this.config.secrets.pepper);
+		const passwordHash = {
+			hash: account.password,
+			salt: account.salt,
+			alg: account.hashingAlg
+		};
+
+		return this.passwordsManager.isSame(credentials.password, passwordHash);
 	}
 
 	public async enableAccount(accountId: string): Promise<void> {
@@ -427,11 +429,6 @@ interface ThresholdsOptions {
 	enableAccountAfterAuthFailureDelayMinutes?: number;
 }
 
-interface TokensLengthOptions {
-	salt?: number; // bytes
-	token?: number; // bytes
-}
-
 type Seconds = number;
 type Role = string;
 
@@ -472,11 +469,11 @@ interface AuthEngineOptions {
 		recaptcha: RecaptchaValidator;
 		challengeResponse?: ChallengeResponseValidator;
 	};
+	passwordHasher: PasswordHasherInterface;
 	ttl?: TTLOptions;
 	thresholds?: ThresholdsOptions;
-	tokensLength?: TokensLengthOptions;
+	tokensLength?: number;
 	secrets: {
-		pepper: string;
 		totp: string;
 	};
 	contacts: {
@@ -484,14 +481,12 @@ interface AuthEngineOptions {
 	};
 }
 
-type InternalUsageOptions = Required<
-	AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> } & { tokensLength: Required<TokensLengthOptions> }
->;
+type InternalUsageOptions = Required<AuthEngineOptions & { ttl: Required<TTLOptions> } & { thresholds: Required<ThresholdsOptions> }>;
 
 function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOptions> {
 	options.ttl = options.ttl || {};
 	options.thresholds = options.thresholds || {};
-	options.tokensLength = options.tokensLength || {};
+	options.tokensLength = options.tokensLength || 20;
 	return {
 		jwt: options.jwt,
 		entities: options.entities,
@@ -508,10 +503,8 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 			passwordBreach: options.thresholds.passwordBreach || 5,
 			enableAccountAfterAuthFailureDelayMinutes: options.thresholds.enableAccountAfterAuthFailureDelayMinutes || 120
 		},
-		tokensLength: {
-			salt: options.tokensLength.salt || 10,
-			token: options.tokensLength.token || 20
-		},
+		tokensLength: options.tokensLength,
+		passwordHasher: options.passwordHasher,
 		secrets: options.secrets,
 		contacts: options.contacts,
 		'side-channels': options['side-channels'],
@@ -520,4 +513,4 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 	};
 }
 
-export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, TokensLengthOptions, RegistrationOptions };
+export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, RegistrationOptions };

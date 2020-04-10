@@ -2,6 +2,7 @@ import { BasicCredentials, BasicLocation } from './basic-types';
 
 export interface AccountModel extends BasicCredentials {
 	id?: string;
+	hashingAlg: number;
 	salt: string;
 	email: string;
 	telephone: string;
