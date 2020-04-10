@@ -149,6 +149,7 @@ class AuthController {
 					case AuthEngineErrorCodes.INCORRECT_PASSWORD:
 						httpResponseStatus = HttpStatusCode.UNAUTHORIZED;
 						break;
+					case AuthEngineErrorCodes.SAME_PASSWORD:
 					case AuthEngineErrorCodes.WEAK_PASSWORD:
 						httpResponseStatus = HttpStatusCode.BAD_REQUEST;
 						break;

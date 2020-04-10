@@ -440,23 +440,6 @@ describe('account spec', () => {
 		}).timeout(3000);
 
 		it("users which do not own account can't change it's password", async () => {
-			// FIXME we don't implement it at the SQL level, as it would require a join with the Account and User tables to check for owner user
-			//  the whole point with AuthenticationID = AccountID = OwnerID was to optimise this join, and not to have it at all
-			//  we will rely on the fact that JWT will carry UserID != AccountID, therefore update sql will fail as no account will be found
-			//  conflicts won't occur (i.e. we have a UserID == OtherAccountID) as OwnerUserID == AccountID and UserID are unique,
-			//  this will guarantee us that when a new user will be created, it's generated ID won't conflict with the already existing AccountID's
-			// FIXME this principle applies to all account related operations, as they all will require AccountID,
-			//  and JsonWebToken's with sub equal to AccountID will be issued only to OwnerUser, as they have same ID's,
-			// FIXME it should be possible that other users can make account related operations,
-			//  AUTHORIZATION can authorize such actions by using user role or user system groups,
-			//  however lib.authentication-engine rely on AccountID to authorize such operations, which is bad,
-			//  solution would be to intercept these requests, Authorize based on user role,
-			//  retrieve associated AccountID, and pass it to lib.authentication-engine, it would be transparent to him
-			// FIXME IMPORTANT!!!
-			//  AUTHENTICATION works only with AccountID, the fact that OwnerUserID == AccountID is transparent,
-			//  AUTHORIZATION & Other Services works with UserID, then don't care about Authentication and it's AccountID,
-			//  JsonWebToken's sub property contains UserID, not AccountID
-
 			await setUpEnvAccounts();
 			const newPasswordHash = await hash(generateStringOfLength(10));
 			const newSalt = (await token.generate(10)).plain;
@@ -469,9 +452,24 @@ describe('account spec', () => {
 			}
 			expect(unauthorizedChangePasswordErr).to.haveOwnProperty(
 				'message',
-				`Failed to change password for account id ${ENV.accounts.firstAccount.firstLinkedUserId} . No changes occurred.`
+				`Failed to change password and salt for account id ${ENV.accounts.firstAccount.firstLinkedUserId} . No changes occurred. `
 			);
 		}).timeout(3000);
+
+		it('fails to update password if new password hash and salt are the same as the old ones', async () => {
+			const accountId = await AuthRepository.accountEntity.create(ENV.accounts.firstAccount.owner);
+
+			const newPassword = ENV.accounts.firstAccount.owner.password;
+			const newSalt = ENV.accounts.firstAccount.owner.salt;
+
+			let samePasswordErr;
+			try {
+				await AuthRepository.accountEntity.changePassword(accountId, newPassword, newSalt);
+			} catch (e) {
+				samePasswordErr = e;
+			}
+			expect(samePasswordErr).to.haveOwnProperty('message', `Failed to change password and salt for account id ${accountId} . No changes occurred. `);
+		});
 
 		it('fails to update password to non existing account', async () => {
 			const nonExistingAccountID = generateStringOfLength(10);
@@ -486,7 +484,7 @@ describe('account spec', () => {
 			}
 			expect(nonExistingAccountError).to.haveOwnProperty(
 				'message',
-				`Failed to change password for account id ${nonExistingAccountID} . No changes occurred.`
+				`Failed to change password and salt for account id ${nonExistingAccountID} . No changes occurred. `
 			);
 		});
 

@@ -9,6 +9,7 @@ import { OnGoingAuthenticationSession } from '../../types/sessions';
 
 class TotpStep implements AuthStep {
 	private readonly emailSender: EmailSender;
+
 	private readonly totpManager: totp.Totp;
 
 	constructor(emailSender: EmailSender, totpManager: totp.Totp) {

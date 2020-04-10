@@ -7,6 +7,7 @@ import { AccountEntity } from '../types/entities';
 
 class PasswordsManager {
 	private readonly breachThreshold: number;
+
 	private readonly accountEntity: AccountEntity;
 
 	constructor(breachThreshold: number, accountEntity: AccountEntity) {
@@ -55,7 +56,7 @@ class PasswordsManager {
 		return argon2.hash(PasswordsManager.padeAndHash(password, salt, pepper), { type: argon2.argon2id });
 	}
 
-	public static isCorrect(plain: string, hash: string, salt: string, pepper: string): Promise<boolean> {
+	public static isSame(plain: string, hash: string, salt: string, pepper: string): Promise<boolean> {
 		return argon2.verify(hash, PasswordsManager.padeAndHash(plain, salt, pepper), { type: argon2.argon2id });
 	}
 

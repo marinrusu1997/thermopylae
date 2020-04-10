@@ -13,7 +13,7 @@ class PasswordStep implements AuthStep {
 	}
 
 	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
-		if (!(await PasswordsManager.isCorrect(authRequest.password!, account.password, account.salt, this.pepper))) {
+		if (!(await PasswordsManager.isSame(authRequest.password!, account.password, account.salt, this.pepper))) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}
 

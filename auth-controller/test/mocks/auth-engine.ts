@@ -7,8 +7,8 @@ import {
 	RegistrationRequest
 } from '@marin/lib.auth-engine/dist/types/requests';
 import { AuthStatus } from '@marin/lib.auth-engine/dist/authentication/auth-step';
-import { ActiveUserSession } from '@marin/lib.auth-engine/dist/types/sessions';
-import { AccessPointModel, FailedAuthAttemptsModel } from '@marin/lib.auth-engine/dist/types/models';
+import { ActiveUserSessionEntity } from '@marin/lib.auth-engine/dist/types/entities';
+import { AuthenticationEntryPointModel, FailedAuthAttemptsModel } from '@marin/lib.auth-engine/dist/types/models';
 import { BasicCredentials } from '@marin/lib.auth-engine/dist/types/basic-types';
 import Exception from '@marin/lib.error';
 import { AuthServiceMethods } from '@marin/declarations/lib/services';
@@ -16,7 +16,7 @@ import { IIssuedJWTPayload } from '@marin/lib.jwt';
 
 interface MethodBehaviour {
 	expectingInput: (...args: any[]) => void;
-	returns?: boolean | number | string | void | AuthStatus | Array<ActiveUserSession & AccessPointModel> | Array<FailedAuthAttemptsModel>;
+	returns?: boolean | number | string | void | AuthStatus | Array<ActiveUserSessionEntity & AuthenticationEntryPointModel> | Array<FailedAuthAttemptsModel>;
 	throws?: Error | Exception;
 }
 
@@ -76,13 +76,13 @@ class AuthenticationEngineMock {
 		return behaviour.returns as void;
 	}
 
-	async getActiveSessions(accountId: string): Promise<Array<ActiveUserSession & AccessPointModel>> {
+	async getActiveSessions(accountId: string): Promise<Array<ActiveUserSessionEntity & AuthenticationEntryPointModel>> {
 		const behaviour = this.getMethodBehaviour(AuthServiceMethods.GET_ACTIVE_SESSIONS);
 		behaviour.expectingInput(accountId);
 		if (behaviour.throws) {
 			throw behaviour.throws;
 		}
-		return behaviour.returns as Array<ActiveUserSession & AccessPointModel>;
+		return behaviour.returns as Array<ActiveUserSessionEntity & AuthenticationEntryPointModel>;
 	}
 
 	async getFailedAuthAttempts(accountId: string, startingFrom?: number, endingTo?: number): Promise<Array<FailedAuthAttemptsModel>> {

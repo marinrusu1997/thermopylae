@@ -13,10 +13,15 @@ const enum EnableAfterCause {
 
 class AccountStatusManager {
 	private readonly adminEmail: string;
+
 	private readonly emailSender: EmailSender;
+
 	private readonly accountEntity: AccountEntity;
+
 	private readonly userSessionsManager: UserSessionsManager;
+
 	private readonly enableAccountScheduler: ScheduleAccountEnabling;
+
 	private readonly enableAccountAfterFailedAuthAttemptDelay: number;
 
 	constructor(

@@ -10,10 +10,15 @@ import { AUTH_STEP } from '../../types/enums';
 
 class ErrorStep implements AuthStep {
 	private readonly failedAuthAttemptsThreshold: number;
+
 	private readonly recaptchaThreshold: number;
+
 	private readonly failedAuthAttemptSessionTtl: number;
+
 	private readonly accountStatusManager: AccountStatusManager;
+
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
+
 	private readonly failedAuthAttemptsEntity: FailedAuthenticationAttemptsEntity;
 
 	constructor(

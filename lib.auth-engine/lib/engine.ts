@@ -51,12 +51,19 @@ import { SmsSender, SmsSendOptions } from './side-channels/sms-sender';
 
 class AuthenticationEngine {
 	private readonly config: InternalUsageOptions;
+
 	private readonly emailSender: EmailSender;
+
 	private readonly smsSender: SmsSender;
+
 	private readonly accountStatusManager: AccountStatusManager;
+
 	private readonly authOrchestrator: AuthOrchestrator;
+
 	private readonly totpManager: totp.Totp;
+
 	private readonly userSessionsManager: UserSessionsManager;
+
 	private readonly passwordsManager: PasswordsManager;
 
 	constructor(options: AuthEngineOptions) {
@@ -250,6 +257,7 @@ class AuthenticationEngine {
 
 	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<number> {
 		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
+
 		if (!account) {
 			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found. `);
 		}
@@ -257,9 +265,16 @@ class AuthenticationEngine {
 			// just in case session invalidation failed when account was disabled
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${changePasswordRequest.accountId} is disabled. `);
 		}
-		if (!(await PasswordsManager.isCorrect(changePasswordRequest.old, account.password, account.salt, this.config.secrets.pepper))) {
+
+		if (!(await PasswordsManager.isSame(changePasswordRequest.old, account.password, account.salt, this.config.secrets.pepper))) {
 			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
 		}
+
+		// now that we know that old password is correct, we can safely check for equality with the new one
+		if (changePasswordRequest.old === changePasswordRequest.new) {
+			throw createException(ErrorCodes.SAME_PASSWORD, 'New password is same as the old one. ');
+		}
+
 		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 
 		await this.passwordsManager.change(
@@ -359,7 +374,7 @@ class AuthenticationEngine {
 			return false;
 		}
 
-		return PasswordsManager.isCorrect(credentials.password, account.password, account.salt, this.config.secrets.pepper);
+		return PasswordsManager.isSame(credentials.password, account.password, account.salt, this.config.secrets.pepper);
 	}
 
 	public async enableAccount(accountId: string): Promise<void> {

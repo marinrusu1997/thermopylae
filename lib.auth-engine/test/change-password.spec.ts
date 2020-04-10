@@ -158,6 +158,36 @@ describe('Change password spec', () => {
 		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
 	});
 
+	it('fails to change password if the new one is the same as the old one', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		let err;
+		try {
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: defaultRegistrationInfo.password, new: defaultRegistrationInfo.password });
+		} catch (e) {
+			err = e;
+		}
+		expect(err)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.SAME_PASSWORD);
+		expect(err).to.haveOwnProperty('message', 'New password is same as the old one. ');
+	});
+
+	it('when provided old and new passwords are the same, will trigger an error only after ensuring that they are also equal to the stored one', async () => {
+		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		let err;
+		try {
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: 'same', new: 'same' });
+		} catch (e) {
+			err = e;
+		}
+		// will try to validate firstly against stored one, thus preventing false positives in the following scenario:
+		// old = 'same', new = 'same', stored = 'valid'
+		expect(err)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
+		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
+	});
+
 	it('fails to change password if the new one is weak', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		let err;

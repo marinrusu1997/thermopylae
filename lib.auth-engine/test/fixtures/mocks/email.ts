@@ -3,6 +3,7 @@ import { createException } from '../../../lib/error';
 
 class EmailMock extends EmailClient {
 	private readonly outbox: Map<string, Array<SendMailOptions>> = new Map<string, Array<SendMailOptions>>();
+
 	private failEmailDelivery = false;
 
 	async send(message: SendMailOptions): Promise<SentMessageInfo> {

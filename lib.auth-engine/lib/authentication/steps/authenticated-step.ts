@@ -8,8 +8,11 @@ import { getLogger } from '../../logger';
 
 class AuthenticatedStep implements AuthStep {
 	private readonly emailSender: EmailSender;
+
 	private readonly userSessionsManager: UserSessionsManager;
+
 	private readonly accessPointEntity: AuthenticationEntryPointEntity;
+
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 
 	constructor(

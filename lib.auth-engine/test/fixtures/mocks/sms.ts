@@ -3,6 +3,7 @@ import { createException } from '../../../lib/error';
 
 class SmsMock extends SmsClient {
 	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
+
 	private deliveryFails = false;
 
 	async send(to: string, body: string): Promise<string> {

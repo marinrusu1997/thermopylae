@@ -34,7 +34,7 @@ describe('controller spec', () => {
 	});
 
 	describe('authenticate spec', () => {
-		it('returns 400 Bad Request on any encountered error without body', async () => {
+		it(`returns ${HttpStatusCode.BAD_REQUEST} Bad Request on any encountered error without body`, async () => {
 			// @ts-ignore
 			const req: Request = {
 				// @ts-ignore
@@ -629,8 +629,9 @@ describe('controller spec', () => {
 			const activeSession = {
 				accountId: req.query.accountId,
 				timestamp: new Date().getTime(),
-				devices: ['Chrome'],
-				ips: [defaultIp]
+				device: 'Chrome',
+				ip: defaultIp,
+				detectedAt: new Date()
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_ACTIVE_SESSIONS, {
@@ -701,8 +702,9 @@ describe('controller spec', () => {
 				id: string.generateStringOfLength(5),
 				accountId: req.query.accountId,
 				timestamp: new Date().getTime() - 1000,
-				devices: ['Chrome'],
-				ips: [defaultIp]
+				device: 'Chrome',
+				ip: defaultIp,
+				detectedAt: new Date()
 			};
 
 			authEngineMock.setMethodBehaviour(AuthServiceMethods.GET_FAILED_AUTH_ATTEMPTS, {
@@ -956,6 +958,45 @@ describe('controller spec', () => {
 					called: true,
 					with: {
 						code: AuthEngineErrorCodes.INCORRECT_PASSWORD
+					}
+				}
+			);
+		});
+
+		it(`returns ${HttpStatusCode.BAD_REQUEST} when new password is the same as the old one`, async () => {
+			const password = string.generateStringOfLength(5);
+
+			// @ts-ignore
+			const req: Request = {
+				// @ts-ignore
+				connection: {
+					remoteAddress: defaultIp
+				},
+				headers: {},
+				body: {
+					old: password,
+					new: password
+				}
+			};
+
+			authEngineMock.setMethodBehaviour(AuthServiceMethods.CHANGE_PASSWORD, {
+				expectingInput: body => expect(body).to.be.deep.eq(req.body),
+				throws: new Exception(Libraries.AUTH_ENGINE, AuthEngineErrorCodes.SAME_PASSWORD, '')
+			});
+
+			// @ts-ignore
+			await AuthController.changePassword(req, responseMock);
+
+			checkHttpResponse(
+				responseMock,
+				{
+					called: true,
+					with: HttpStatusCode.BAD_REQUEST
+				},
+				{
+					called: true,
+					with: {
+						code: AuthEngineErrorCodes.SAME_PASSWORD
 					}
 				}
 			);

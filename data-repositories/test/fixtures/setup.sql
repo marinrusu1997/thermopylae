@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS Authentication (
     UserName VARCHAR(25) NOT NULL UNIQUE, -- username must be unique
     PasswordHash VARCHAR(250) NOT NULL, -- it's pointless not to have password
     PasswordSalt VARCHAR(10) NOT NULL, -- hashing passwords with salt is mandatory
+    PasswordAlgo TINYINT(3) NOT NULL,
     MultiFactor BOOLEAN, -- if it's null, it means it doesn't use
+    UpdatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
 
     PRIMARY KEY (ID)
 );

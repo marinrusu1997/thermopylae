@@ -33,6 +33,7 @@ interface EmailSendOptions {
 
 class EmailSender {
 	private readonly emailClient: EmailClient;
+
 	private readonly sendOptions: EmailSendOptions;
 
 	constructor(emailClient: EmailClient, sendOptions: EmailSendOptions) {

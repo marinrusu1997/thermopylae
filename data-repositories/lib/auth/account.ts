@@ -115,7 +115,7 @@ class AccountEntity implements entities.AccountEntity {
 					return reject(err);
 				}
 				if (results.changedRows !== 1) {
-					return reject(new Error(`Failed to change password for account id ${accountId} . No changes occurred.`));
+					return reject(new Error(`Failed to change password and salt for account id ${accountId} . No changes occurred. `));
 				}
 				return resolve();
 			});
@@ -146,7 +146,7 @@ class AccountEntity implements entities.AccountEntity {
 					return reject(err);
 				}
 				if (results.affectedRows !== 1) {
-					return reject(new Error(`Failed to delete account with id ${accountId}. No affected rows.`));
+					return reject(new Error(`Failed to delete account with id ${accountId}. No affected rows. `));
 				}
 				return resolve();
 			});
@@ -214,7 +214,7 @@ function doChangeAccountEnabledStatus(accountId: string, isEnabled: boolean): Pr
 				return reject(err);
 			}
 			if (results.changedRows !== 1) {
-				return reject(new Error(`Failed to update enabled status for account id ${accountId} to ${isEnabled}. No changes occurred.`));
+				return reject(new Error(`Failed to update enabled status for account id ${accountId} to ${isEnabled}. No changes occurred. `));
 			}
 			return resolve();
 		});
@@ -230,7 +230,7 @@ function doChangeMultiFactorAuthenticationEnabledStatus(accountId: string, isEna
 			}
 			if (results.changedRows !== 1) {
 				return reject(
-					new Error(`Failed to update multi factor authentication enabled status for account id ${accountId} to ${isEnabled}. No changes occurred.`)
+					new Error(`Failed to update multi factor authentication enabled status for account id ${accountId} to ${isEnabled}. No changes occurred. `)
 				);
 			}
 			return resolve();

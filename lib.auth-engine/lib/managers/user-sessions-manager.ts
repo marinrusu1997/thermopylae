@@ -9,9 +9,13 @@ import { ActiveUserSession, AuthenticationEntryPointModel } from '../types/model
 
 class UserSessionsManager {
 	private readonly scheduleActiveUserSessionDeletion: ScheduleActiveUserSessionDeletion;
+
 	private readonly jwt: Jwt;
+
 	private readonly jwtRolesTtl?: Map<string, number>;
+
 	private readonly activeUserSessionEntity: ActiveUserSessionEntity;
+
 	private readonly accessPointEntity: AuthenticationEntryPointEntity;
 
 	constructor(

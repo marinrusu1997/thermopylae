@@ -8,6 +8,7 @@ import { SmsSender } from '../../side-channels/sms-sender';
 
 class GenerateTotpStep implements AuthStep {
 	private readonly smsSender: SmsSender;
+
 	private readonly totpManager: totp.Totp;
 
 	constructor(smsSender: SmsSender, totpManager: totp.Totp) {

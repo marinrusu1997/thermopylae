@@ -7,6 +7,7 @@ import { OnGoingAuthenticationSession } from '../types/sessions';
 
 class AuthOrchestrator {
 	private readonly startStepName: AUTH_STEP;
+
 	private readonly steps: Map<AUTH_STEP, AuthStep> = new Map<AUTH_STEP, AuthStep>();
 
 	constructor(startStepName: AUTH_STEP = AUTH_STEP.DISPATCH) {

@@ -9,6 +9,7 @@ interface SmsSendOptions {
 
 class SmsSender {
 	private readonly smsClient: SmsClient;
+
 	private readonly sendOptions: SmsSendOptions;
 
 	constructor(smsClient: SmsClient, sendOptions: SmsSendOptions) {
