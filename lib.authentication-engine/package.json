@@ -1,6 +1,6 @@
 {
-    "name": "@marin/lib.auth-engine",
-    "description": "Authentication engine",
+    "name": "@marin/lib.authentication-engine",
+    "description": "Authentication Engine",
     "keywords": [
         "basic auth",
         "engine",
