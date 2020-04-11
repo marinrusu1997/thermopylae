@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS Account (
     ID VARCHAR(20), -- the same key as of the user which created this account
-    Enabled BOOLEAN, -- null means it's not enabled
+    Status TINYINT(1),
 
     PRIMARY KEY (ID)
 );

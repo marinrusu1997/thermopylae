@@ -1,6 +1,6 @@
 import { token } from '@marin/lib.utils';
 import { MySqlClientInstance, insertWithAssertion, updateWithAssertion, MysqlError, typeCastBooleans } from '@marin/lib.data-access';
-import { entities, models } from '@marin/lib.auth-engine';
+import { entities, models } from '@marin/lib.authentication-engine';
 
 // FIXME replace multiline strings with concatenation for performance reasons
 
@@ -51,13 +51,13 @@ class AccountEntity implements entities.AccountEntity {
 
 						const insertUserSQL = `
 												INSERT INTO User (ID, RelatedAccountID, RelatedRoleID)
-												SELECT '${accountId}', NULL, ID 
-												FROM Role 
+												SELECT '${accountId}', NULL, ID
+												FROM Role
 												WHERE Name = ${connection.escape(account.role!)};
 											  `;
 						await insertWithAssertion(connection, insertUserSQL, undefined, 'Failed to INSERT User');
 
-						const insertAccountSQL = `INSERT INTO Account (ID, Enabled) VALUES ('${accountId}', ?);`;
+						const insertAccountSQL = `INSERT INTO Account (ID, Status) VALUES ('${accountId}', ?);`;
 						await insertWithAssertion(connection, insertAccountSQL, account.enabled, 'Failed to INSERT Account');
 
 						const updateUserSQL = `
@@ -67,12 +67,12 @@ class AccountEntity implements entities.AccountEntity {
 											  `;
 						await updateWithAssertion(connection, updateUserSQL, undefined, 'Failed to UPDATE User');
 
-						const insertAuthenticationSQL = `INSERT INTO Authentication (ID, UserName, PasswordHash, PasswordSalt, MultiFactor)
-														  VALUES ('${accountId}', ?, ?, ?, ?);`;
+						const insertAuthenticationSQL = `INSERT INTO Authentication (ID, UserName, PasswordHash, PasswordSalt, PasswordHashingAlg, MultiFactor)
+														  VALUES ('${accountId}', ?, ?, ?, ?, ?);`;
 						await insertWithAssertion(
 							connection,
 							insertAuthenticationSQL,
-							[account.username, account.password, account.salt, account.usingMfa],
+							[account.username, account.password, account.salt, account.hashingAlg, account.usingMfa],
 							'Failed to INSERT Authentication'
 						);
 
@@ -102,13 +102,14 @@ class AccountEntity implements entities.AccountEntity {
 		return doAccountRead('id', accountId);
 	}
 
-	public changePassword(accountId: string, passwordHash: string, salt: string): Promise<void> {
+	public changePassword(accountId: string, passwordHash: string, salt: string, hashingAlg: number): Promise<void> {
 		return new Promise((resolve, reject) => {
 			// not escaped, trusted source of data, if we escape these, it could cause account loss,
 			// as the right password will never match with the escaped hash
 			const updateAuthenticationSQL = `UPDATE Authentication
 												SET PasswordHash = '${passwordHash}', 
-													PasswordSalt = '${salt}'
+													PasswordSalt = '${salt}',
+													PasswordHashingAlg = ${hashingAlg}
 												WHERE ID = '${accountId}';`;
 			MySqlClientInstance.writePool.query(updateAuthenticationSQL, (err, results) => {
 				if (err) {
@@ -161,9 +162,10 @@ function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountMod
 							Authentication.UserName as username,
 							Authentication.PasswordHash as password,
 							Authentication.PasswordSalt as salt,
+							Authentication.PasswordHashingAlg as hashingAlg,
 							Contact.Class as contactClass,
 							Contact.Contact as contact,
-							Account.Enabled as enabled,
+							Account.Status as enabled,
 							Authentication.MultiFactor as usingMfa,
 							Role.Name as role
 					FROM \`User\`
@@ -208,7 +210,7 @@ function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountMod
 
 function doChangeAccountEnabledStatus(accountId: string, isEnabled: boolean): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const updateAccountSQL = `UPDATE Account SET Enabled = ${isEnabled} WHERE ID = ?;`;
+		const updateAccountSQL = `UPDATE Account SET Status = ${isEnabled} WHERE ID = ?;`;
 		MySqlClientInstance.writePool.query(updateAccountSQL, accountId, (err, results) => {
 			if (err) {
 				return reject(err);

@@ -37,7 +37,7 @@
         "@marin/lib.data-access": "file:../lib.data-access"
     },
     "devDependencies": {
-        "@marin/lib.auth-engine": "file:../lib.auth-engine",
+        "@marin/lib.authentication-engine": "file:../lib.authentication-engine",
         "@marin/lib.logger": "file:../lib.logger",
         "@marin/lib.module-builder": "file:../lib.module-builder",
         "@rauschma/stringio": "^1.4.0",

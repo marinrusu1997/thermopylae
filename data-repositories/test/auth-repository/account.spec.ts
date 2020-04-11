@@ -1,10 +1,12 @@
-import { string, token } from '@marin/lib.utils';
-import { models } from '@marin/lib.auth-engine';
+import { number, string, token } from '@marin/lib.utils';
+import { models } from '@marin/lib.authentication-engine';
 import { insertWithAssertion, MySqlClientInstance, queryAsync } from '@marin/lib.data-access';
 
-import { describe, it, before, afterEach, Done } from 'mocha';
+import { describe, before, afterEach } from 'mocha';
 import { expect } from 'chai';
-import { truncateAllTables, brokeConnectionWithMySql, reconnectToMySql, MySqlEnv } from '../setup';
+import { MySqlEnv } from '../fixtures/setup';
+import { TEST_ENV, setUpDatabase, clearEnvAccounts, HashingAlgorithms, Roles } from '../fixtures/env';
+import { it, brokeConnectionWithMySqlServer, reconnectToMySqlServer } from '../utils';
 
 import { AuthRepository } from '../../lib';
 import { AccountEntity } from '../../lib/auth/account';
@@ -12,126 +14,14 @@ import { AccountEntity } from '../../lib/auth/account';
 const { generateStringOfLength } = string;
 const { hash } = token;
 
-interface EnvForAccountTests {
-	accounts: {
-		firstAccount: {
-			owner: models.AccountModel;
-			firstLinkedUserId: string;
-		};
-		secondAccount: {
-			owner: models.AccountModel;
-			firstLinkedUserId: string;
-		};
-	};
-}
-
-const USER_ROLE = 'USER';
-const MODERATOR_ROLE = 'MODERATOR';
-
-const ENV: EnvForAccountTests = {
-	accounts: {
-		firstAccount: {
-			owner: {
-				username: 'username1',
-				password: 'password1',
-				salt: 'salt1',
-				telephone: 'telephone1',
-				email: 'email1',
-				usingMfa: true,
-				enabled: true,
-				role: MODERATOR_ROLE
-			},
-			firstLinkedUserId: 'user1_rel_acc_1'
-		},
-		secondAccount: {
-			owner: {
-				username: 'username2',
-				password: 'password2',
-				salt: 'salt2',
-				telephone: 'telephone2',
-				email: 'email2',
-				usingMfa: false,
-				enabled: false,
-				role: MODERATOR_ROLE
-			},
-			firstLinkedUserId: 'user1_rel_acc_2'
-		}
-	}
-};
-
-async function setUpEnvAccounts(): Promise<void> {
-	ENV.accounts.firstAccount.owner.id = await AuthRepository.accountEntity.create(ENV.accounts.firstAccount.owner);
-	expect(ENV.accounts.firstAccount.owner.id).to.be.a('string').with.lengthOf(AccountEntity.ACCOUNT_ID_LENGTH);
-
-	ENV.accounts.secondAccount.owner.id = await AuthRepository.accountEntity.create(ENV.accounts.secondAccount.owner);
-	expect(ENV.accounts.secondAccount.owner.id).to.be.a('string').with.lengthOf(AccountEntity.ACCOUNT_ID_LENGTH);
-
-	const insertUserCreatorAcc1AdditionalContacts = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-										('${AccountEntity.TELEPHONE_CONTACT_CLASS}', 'secondary', ?, '${ENV.accounts.firstAccount.owner.id}');`;
-	await insertWithAssertion(
-		MySqlClientInstance.writePool,
-		insertUserCreatorAcc1AdditionalContacts,
-		'telephone12',
-		'Failed to INSERT user creator account 1 additional contacts'
-	);
-
-	const insertUserCreatorAcc2AdditionalContacts = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-										('${AccountEntity.EMAIL_CONTACT_CLASS}', 'secondary', ?, '${ENV.accounts.secondAccount.owner.id}');`;
-	await insertWithAssertion(
-		MySqlClientInstance.writePool,
-		insertUserCreatorAcc2AdditionalContacts,
-		'email22',
-		'Failed to INSERT user creator account 2 additional contacts'
-	);
-
-	const insertUserRelToAcc1SQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) 
-										SELECT '${ENV.accounts.firstAccount.firstLinkedUserId}', '${ENV.accounts.firstAccount.owner.id}', ID 
-										FROM Role 
-										WHERE Name = '${USER_ROLE}';`;
-	await insertWithAssertion(MySqlClientInstance.writePool, insertUserRelToAcc1SQL, undefined, 'Failed to INSERT user related to account 1');
-
-	const insertContactsUserRelToAcc1SQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-										('${AccountEntity.TELEPHONE_CONTACT_CLASS}', 'secondary', ?, '${ENV.accounts.firstAccount.firstLinkedUserId}');`;
-	await insertWithAssertion(
-		MySqlClientInstance.writePool,
-		insertContactsUserRelToAcc1SQL,
-		'telephone32',
-		'Failed to INSERT user related to account 1 contacts'
-	);
-
-	const insertUserRelToAcc2SQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) 
-										SELECT '${ENV.accounts.secondAccount.firstLinkedUserId}', '${ENV.accounts.secondAccount.owner.id}', ID 
-										FROM Role 
-										WHERE Name = '${USER_ROLE}';`;
-	await insertWithAssertion(MySqlClientInstance.writePool, insertUserRelToAcc2SQL, undefined, 'Failed to INSERT user related to account 2');
-
-	const insertContactsUserRelToAcc2SQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
-										('${AccountEntity.EMAIL_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${ENV.accounts.secondAccount.firstLinkedUserId}');`;
-	await insertWithAssertion(MySqlClientInstance.writePool, insertContactsUserRelToAcc2SQL, 'email41', 'Failed to INSERT user related to account 2 contacts');
-}
-
-function clearEnvAccounts(done: Done): void {
-	MySqlClientInstance.writePool.query('DELETE FROM Account;', done);
-}
+const GENERATE_STRING_REGEX = /[a-zA-Z0-9>!@#$%^&*()_+=-}{[\]:;"\\|?/.<,`~]/;
+const TESTS_FOR_CONNECTION_FAILURE_TIMEOUT = 17_000;
 
 describe('account spec', () => {
 	before(function (done) {
 		this.timeout(15000);
 
-		truncateAllTables(async (err: Error) => {
-			if (err) {
-				return done(err);
-			}
-
-			try {
-				await insertWithAssertion(MySqlClientInstance.writePool, `INSERT INTO Role (Name) VALUES ('${USER_ROLE}');`);
-				await insertWithAssertion(MySqlClientInstance.writePool, `INSERT INTO Role (Name) VALUES ('${MODERATOR_ROLE}');`);
-
-				return done();
-			} catch (insertErr) {
-				return done(insertErr);
-			}
-		});
+		setUpDatabase(done);
 	});
 
 	afterEach(function (done) {
@@ -141,69 +31,73 @@ describe('account spec', () => {
 	});
 
 	describe('create spec', () => {
-		it('creates multiple users', async () => {
+		it('creates multiple accounts', async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.BCRYPT,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
 			expect(account.id.length).to.be.eq(AccountEntity.ACCOUNT_ID_LENGTH);
 
+			account.hashingAlg = HashingAlgorithms.ARGON2;
 			account.username = 'username2';
-			account.role = MODERATOR_ROLE;
+			account.role = Roles.MODERATOR;
 			account.usingMfa = false;
 			account.enabled = false;
 			account.id = await AuthRepository.accountEntity.create(account);
 			expect(account.id.length).to.be.eq(AccountEntity.ACCOUNT_ID_LENGTH);
-		});
+		}).schedule();
 
 		it('after account is created, new users can be added to the same account', async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.BCRYPT,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
 			expect(account.id.length).to.be.eq(AccountEntity.ACCOUNT_ID_LENGTH);
 
-			const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) SELECT 'true random', '${account.id}', ID FROM Role WHERE Name = '${MODERATOR_ROLE}';`;
+			const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) SELECT 'true random', '${account.id}', ID FROM Role WHERE Name = '${Roles.MODERATOR}';`;
 			await insertWithAssertion(MySqlClientInstance.writePool, insertUserSQL);
 
 			expect((await queryAsync(MySqlClientInstance.readPool, 'SELECT COUNT(*) as row_count FROM User;')).results[0].row_count).to.be.eq(2);
-		});
+		}).schedule();
 
 		it("rollback's transaction if something goes wrong", async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.ARGON2,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 			account.id = await AuthRepository.accountEntity.create(account);
 			expect(account.id.length).to.be.eq(AccountEntity.ACCOUNT_ID_LENGTH);
 
 			account.username = 'username2';
-			account.email = string.generateStringOfLength(256);
+			account.email = generateStringOfLength(256, GENERATE_STRING_REGEX);
 			account.usingMfa = false;
 			account.enabled = false;
-			account.role = MODERATOR_ROLE;
+			account.role = Roles.MODERATOR;
 
 			let insertContactError;
 			try {
@@ -220,21 +114,24 @@ describe('account spec', () => {
 			expect((await queryAsync(MySqlClientInstance.readPool, 'SELECT COUNT(*) as row_count FROM Authentication;')).results[0].row_count).to.be.eq(1);
 
 			expect((await queryAsync(MySqlClientInstance.readPool, 'SELECT COUNT(*) as row_count FROM Contact;')).results[0].row_count).to.be.eq(2);
-		}).timeout(3000);
+		})
+			.timeout(3000)
+			.schedule();
 
 		it('fails to create account if network or transport error is encountered', async () => {
 			const account: models.AccountModel = {
 				username: 'username',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.ARGON2,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
-			await brokeConnectionWithMySql();
+			await brokeConnectionWithMySqlServer();
 
 			let connectionError: Error;
 			try {
@@ -247,19 +144,22 @@ describe('account spec', () => {
 				`connect ECONNREFUSED ${MySqlEnv.host}:${MySqlEnv.port}`
 			]);
 
-			await reconnectToMySql();
-		}).timeout(30000);
+			await reconnectToMySqlServer();
+		})
+			.timeout(TESTS_FOR_CONNECTION_FAILURE_TIMEOUT)
+			.schedule();
 
 		it('fails to create accounts with the same username', async () => {
 			const account: models.AccountModel = {
 				username: 'username',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.ARGON2,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
@@ -275,15 +175,16 @@ describe('account spec', () => {
 				duplicateErr = e;
 			}
 			expect(duplicateErr).to.haveOwnProperty('message', "ER_DUP_ENTRY: Duplicate entry 'username' for key 'Authentication.UserName'");
-		});
+		}).schedule();
 
-		it('fails to create with a role which does not exist', async () => {
+		it('fails to create account with a role which does not exist', async () => {
 			let err;
 			try {
 				const account: models.AccountModel = {
 					username: 'username',
 					password: 'password',
 					salt: 'salt',
+					hashingAlg: HashingAlgorithms.BCRYPT,
 					telephone: 'telephone',
 					email: 'email',
 					usingMfa: true,
@@ -296,18 +197,19 @@ describe('account spec', () => {
 			}
 
 			expect(err).to.haveOwnProperty('message', 'Failed to INSERT User');
-		});
+		}).schedule();
 
 		it('fails to add duplicate contacts to an existing user', async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password',
 				salt: 'salt',
+				hashingAlg: HashingAlgorithms.BCRYPT,
 				telephone: 'telephone',
 				email: 'email',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
@@ -329,27 +231,31 @@ describe('account spec', () => {
 				insertDuplicateContactsErr = e;
 			}
 			expect(insertDuplicateContactsErr.message).to.match(/ER_DUP_ENTRY: Duplicate entry 'email-primary-(\d|[a-f]){10}' for key 'Contact.UK_ContactURI'/);
-		});
+		}).schedule();
 	});
 
 	function readSpec(readMethod: 'read' | 'readById', readBy: 'username' | 'id'): void {
 		it('reads the right account when there are multiple ones', async () => {
-			await setUpEnvAccounts();
+			const firstAccount = await AuthRepository.accountEntity[readMethod](TEST_ENV.accounts.firstAccount.owner[readBy]!);
+			expect(firstAccount).to.be.deep.eq(TEST_ENV.accounts.firstAccount.owner);
 
-			expect(await AuthRepository.accountEntity[readMethod](ENV.accounts.firstAccount.owner[readBy]!)).to.be.deep.eq(ENV.accounts.firstAccount.owner);
-			expect(await AuthRepository.accountEntity[readMethod](ENV.accounts.secondAccount.owner[readBy]!)).to.be.deep.eq(ENV.accounts.secondAccount.owner);
-		}).timeout(4000);
+			const secondAccount = await AuthRepository.accountEntity[readMethod](TEST_ENV.accounts.secondAccount.owner[readBy]!);
+			expect(secondAccount).to.be.deep.eq(TEST_ENV.accounts.secondAccount.owner);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
 
 		it('reads the account with contacts used by the system when user has multiple ones', async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password1',
 				salt: 'salt1',
+				hashingAlg: HashingAlgorithms.ARGON2,
 				telephone: 'telephone1',
 				email: 'email1',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
@@ -361,25 +267,26 @@ describe('account spec', () => {
 			await insertWithAssertion(MySqlClientInstance.writePool, insertContactsSQL, ['email2', 'telephone2'], 'Failed to INSERT linked user contacts', 2);
 
 			expect(await AuthRepository.accountEntity[readMethod](account[readBy]!)).to.be.deep.eq(account);
-		});
+		}).schedule();
 
 		it('reads the right account when there are multiple users with different contacts linked to the same account', async () => {
 			const account: models.AccountModel = {
 				username: 'username1',
 				password: 'password1',
 				salt: 'salt1',
+				hashingAlg: HashingAlgorithms.BCRYPT,
 				telephone: 'telephone1',
 				email: 'email1',
 				usingMfa: true,
 				enabled: true,
-				role: USER_ROLE
+				role: Roles.USER
 			};
 
 			account.id = await AuthRepository.accountEntity.create(account);
 			expect(account.id).to.be.a('string').with.lengthOf(AccountEntity.ACCOUNT_ID_LENGTH);
 
 			const linkedUserId = 'linkeduserid';
-			const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) SELECT '${linkedUserId}', '${account.id}', ID FROM Role WHERE Name = '${MODERATOR_ROLE}';`;
+			const insertUserSQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) SELECT '${linkedUserId}', '${account.id}', ID FROM Role WHERE Name = '${Roles.MODERATOR}';`;
 			await insertWithAssertion(MySqlClientInstance.writePool, insertUserSQL, undefined, 'Failed to INSERT linked user');
 
 			const insertContactsSQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
@@ -388,19 +295,19 @@ describe('account spec', () => {
 			await insertWithAssertion(MySqlClientInstance.writePool, insertContactsSQL, ['email2', 'telephone2'], 'Failed to INSERT linked user contacts', 2);
 
 			expect(await AuthRepository.accountEntity[readMethod](account[readBy]!)).to.be.deep.eq(account);
-		});
+		}).schedule();
 
 		it('returns null when account does not exist', async () => {
-			const account = await AuthRepository.accountEntity[readMethod](string.generateStringOfLength(5));
+			const account = await AuthRepository.accountEntity[readMethod](generateStringOfLength(5, GENERATE_STRING_REGEX));
 			expect(account).to.be.eq(null);
-		});
+		}).schedule();
 
-		it('throws when an error at query level occurs', async () => {
-			await brokeConnectionWithMySql();
+		it('fails to read if network or transport error is encountered', async () => {
+			await brokeConnectionWithMySqlServer();
 
 			let connectionError: Error;
 			try {
-				await AuthRepository.accountEntity[readMethod](string.generateStringOfLength(5));
+				await AuthRepository.accountEntity[readMethod](generateStringOfLength(5, GENERATE_STRING_REGEX));
 			} catch (e) {
 				connectionError = e;
 			}
@@ -409,8 +316,10 @@ describe('account spec', () => {
 				`connect ECONNREFUSED ${MySqlEnv.host}:${MySqlEnv.port}`
 			]);
 
-			await reconnectToMySql();
-		}).timeout(30000);
+			await reconnectToMySqlServer();
+		})
+			.timeout(TESTS_FOR_CONNECTION_FAILURE_TIMEOUT)
+			.schedule();
 	}
 
 	describe('read by username spec', () => {
@@ -423,62 +332,84 @@ describe('account spec', () => {
 
 	describe('change password spec', () => {
 		it('updates password of the right account', async () => {
-			await setUpEnvAccounts();
-
 			async function doTestChangePassword(account: models.AccountModel): Promise<void> {
-				const newPasswordHash = await hash(generateStringOfLength(10));
+				const newPasswordHash = await hash(generateStringOfLength(10, GENERATE_STRING_REGEX));
 				const newSalt = (await token.generate(10)).plain;
+				const newHashingAlg = number.generateRandom(1, 10);
 
-				await AuthRepository.accountEntity.changePassword(account.id!, newPasswordHash, newSalt);
+				await AuthRepository.accountEntity.changePassword(account.id!, newPasswordHash, newSalt, newHashingAlg);
+
 				const updateAccount = await AuthRepository.accountEntity.readById(account.id!);
 				expect(updateAccount!.password).to.be.eq(newPasswordHash);
 				expect(updateAccount!.salt).to.be.eq(newSalt);
+				expect(updateAccount!.hashingAlg).to.be.eq(newHashingAlg);
 			}
 
-			await doTestChangePassword(ENV.accounts.firstAccount.owner);
-			await doTestChangePassword(ENV.accounts.secondAccount.owner);
-		}).timeout(3000);
+			await doTestChangePassword(TEST_ENV.accounts.firstAccount.owner);
+			await doTestChangePassword(TEST_ENV.accounts.secondAccount.owner);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
+
+		it('updates password and salt, but hashing algorithm is left untouched', async () => {
+			const accountId = await AuthRepository.accountEntity.create(TEST_ENV.accounts.firstAccount.owner);
+
+			const newPasswordHash = await hash(generateStringOfLength(10, GENERATE_STRING_REGEX));
+			const newSalt = (await token.generate(10)).plain;
+			const oldHashingAlg = TEST_ENV.accounts.firstAccount.owner.hashingAlg;
+
+			await AuthRepository.accountEntity.changePassword(accountId, newPasswordHash, newSalt, oldHashingAlg);
+
+			const updateAccount = await AuthRepository.accountEntity.readById(accountId);
+			expect(updateAccount!.password).to.be.eq(newPasswordHash);
+			expect(updateAccount!.salt).to.be.eq(newSalt);
+			expect(updateAccount!.hashingAlg).to.be.eq(oldHashingAlg);
+		}).schedule();
 
 		it("users which do not own account can't change it's password", async () => {
-			await setUpEnvAccounts();
-			const newPasswordHash = await hash(generateStringOfLength(10));
+			const newPasswordHash = await hash(generateStringOfLength(10, GENERATE_STRING_REGEX));
 			const newSalt = (await token.generate(10)).plain;
+			const newHashingAlg = number.generateRandom(1, 10);
 
 			let unauthorizedChangePasswordErr;
 			try {
-				await AuthRepository.accountEntity.changePassword(ENV.accounts.firstAccount.firstLinkedUserId, newPasswordHash, newSalt);
+				await AuthRepository.accountEntity.changePassword(TEST_ENV.accounts.firstAccount.firstLinkedUserId, newPasswordHash, newSalt, newHashingAlg);
 			} catch (e) {
 				unauthorizedChangePasswordErr = e;
 			}
 			expect(unauthorizedChangePasswordErr).to.haveOwnProperty(
 				'message',
-				`Failed to change password and salt for account id ${ENV.accounts.firstAccount.firstLinkedUserId} . No changes occurred. `
+				`Failed to change password and salt for account id ${TEST_ENV.accounts.firstAccount.firstLinkedUserId} . No changes occurred. `
 			);
-		}).timeout(3000);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
 
 		it('fails to update password if new password hash and salt are the same as the old ones', async () => {
-			const accountId = await AuthRepository.accountEntity.create(ENV.accounts.firstAccount.owner);
+			const accountId = await AuthRepository.accountEntity.create(TEST_ENV.accounts.firstAccount.owner);
 
-			const newPassword = ENV.accounts.firstAccount.owner.password;
-			const newSalt = ENV.accounts.firstAccount.owner.salt;
+			const newPassword = TEST_ENV.accounts.firstAccount.owner.password;
+			const newSalt = TEST_ENV.accounts.firstAccount.owner.salt;
+			const newHashingAlg = TEST_ENV.accounts.firstAccount.owner.hashingAlg;
 
 			let samePasswordErr;
 			try {
-				await AuthRepository.accountEntity.changePassword(accountId, newPassword, newSalt);
+				await AuthRepository.accountEntity.changePassword(accountId, newPassword, newSalt, newHashingAlg);
 			} catch (e) {
 				samePasswordErr = e;
 			}
 			expect(samePasswordErr).to.haveOwnProperty('message', `Failed to change password and salt for account id ${accountId} . No changes occurred. `);
-		});
+		}).schedule();
 
 		it('fails to update password to non existing account', async () => {
-			const nonExistingAccountID = generateStringOfLength(10);
-			const newPasswordHash = await hash(generateStringOfLength(10));
+			const nonExistingAccountID = generateStringOfLength(10, GENERATE_STRING_REGEX);
+			const newPasswordHash = await hash(generateStringOfLength(10, GENERATE_STRING_REGEX));
 			const newSalt = (await token.generate(10)).plain;
+			const newHashingAlg = number.generateRandom(1, 10);
 
 			let nonExistingAccountError;
 			try {
-				await AuthRepository.accountEntity.changePassword(nonExistingAccountID, newPasswordHash, newSalt);
+				await AuthRepository.accountEntity.changePassword(nonExistingAccountID, newPasswordHash, newSalt, newHashingAlg);
 			} catch (e) {
 				nonExistingAccountError = e;
 			}
@@ -486,14 +417,14 @@ describe('account spec', () => {
 				'message',
 				`Failed to change password and salt for account id ${nonExistingAccountID} . No changes occurred. `
 			);
-		});
+		}).schedule();
 
-		it('fails to update password if connection related errors occur', async () => {
-			await brokeConnectionWithMySql();
+		it('fails to update password if network or transport error is encountered', async () => {
+			await brokeConnectionWithMySqlServer();
 
 			let connectionError: Error;
 			try {
-				await AuthRepository.accountEntity.changePassword("doesn't matter", "doesn't matter", "doesn't matter");
+				await AuthRepository.accountEntity.changePassword("doesn't matter", "doesn't matter", "doesn't matter", 0);
 			} catch (e) {
 				connectionError = e;
 			}
@@ -502,7 +433,105 @@ describe('account spec', () => {
 				`connect ECONNREFUSED ${MySqlEnv.host}:${MySqlEnv.port}`
 			]);
 
-			await reconnectToMySql();
-		}).timeout(30000);
+			await reconnectToMySqlServer();
+		})
+			.timeout(TESTS_FOR_CONNECTION_FAILURE_TIMEOUT)
+			.schedule();
+	});
+
+	describe('enable account spec', () => {
+		it('enables account', async () => {
+			const accountId = TEST_ENV.accounts.secondAccount.owner.id!;
+			await AuthRepository.accountEntity.enable(accountId);
+
+			expect((await AuthRepository.accountEntity.readById(accountId))!.enabled).to.be.eq(true);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
+
+		it('fails to enable account which is already enabled', async () => {
+			const accountId = TEST_ENV.accounts.firstAccount.owner.id!;
+
+			let alreadyEnabledErr;
+			try {
+				await AuthRepository.accountEntity.enable(accountId);
+			} catch (e) {
+				alreadyEnabledErr = e;
+			}
+
+			expect(alreadyEnabledErr).to.haveOwnProperty(
+				'message',
+				`Failed to update enabled status for account id ${accountId} to ${true}. No changes occurred. `
+			);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
+
+		it('fails to enable account if network or transport error is encountered', async () => {
+			await brokeConnectionWithMySqlServer();
+
+			let connectionError: Error;
+			try {
+				await AuthRepository.accountEntity.enable(generateStringOfLength(5, GENERATE_STRING_REGEX));
+			} catch (e) {
+				connectionError = e;
+			}
+			expect(connectionError!.message).to.be.oneOf([
+				'Connection lost: The server closed the connection.',
+				`connect ECONNREFUSED ${MySqlEnv.host}:${MySqlEnv.port}`
+			]);
+
+			await reconnectToMySqlServer();
+		})
+			.timeout(TESTS_FOR_CONNECTION_FAILURE_TIMEOUT)
+			.schedule();
+	});
+
+	describe('disable account spec', () => {
+		it('disables account', async () => {
+			const accountId = TEST_ENV.accounts.firstAccount.owner.id!;
+			await AuthRepository.accountEntity.disable(accountId);
+
+			expect((await AuthRepository.accountEntity.readById(accountId))!.enabled).to.be.eq(false);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
+
+		it('fails to disable account which is already disabled', async () => {
+			const accountId = TEST_ENV.accounts.secondAccount.owner.id!;
+
+			let alreadyDisabledErr;
+			try {
+				await AuthRepository.accountEntity.disable(accountId);
+			} catch (e) {
+				alreadyDisabledErr = e;
+			}
+
+			expect(alreadyDisabledErr).to.haveOwnProperty(
+				'message',
+				`Failed to update enabled status for account id ${accountId} to ${false}. No changes occurred. `
+			);
+		})
+			.dependsOn({ envAccounts: true })
+			.schedule();
+
+		it('fails to disable account if network or transport error is encountered', async () => {
+			await brokeConnectionWithMySqlServer();
+
+			let connectionError: Error;
+			try {
+				await AuthRepository.accountEntity.disable(generateStringOfLength(5, GENERATE_STRING_REGEX));
+			} catch (e) {
+				connectionError = e;
+			}
+			expect(connectionError!.message).to.be.oneOf([
+				'Connection lost: The server closed the connection.',
+				`connect ECONNREFUSED ${MySqlEnv.host}:${MySqlEnv.port}`
+			]);
+
+			await reconnectToMySqlServer();
+		})
+			.timeout(TESTS_FOR_CONNECTION_FAILURE_TIMEOUT)
+			.schedule();
 	});
 });

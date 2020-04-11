@@ -18,6 +18,7 @@
         "import/prefer-default-export": "off",
 
         "no-console": "error",
+        "no-underscore-dangle": "warn",
         "no-param-reassign": "warn",
         "no-use-before-define": "warn",
         "no-plusplus": [

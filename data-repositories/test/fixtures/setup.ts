@@ -3,10 +3,9 @@ import { Connection, createConnection, MySqlClientInstance, MysqlError, RedisCli
 import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger';
 import { after, before } from 'mocha';
 import Dockerode, { Container, ContainerInfo, Port } from 'dockerode';
-import { ChildProcessByStdio, spawn, exec } from 'child_process';
+import { spawn, exec } from 'child_process';
 import { onExit, streamEnd, streamWrite } from '@rauschma/stringio';
 import { config as dotEnvConfig } from 'dotenv';
-import { Writable } from 'stream';
 
 // First of all environment variables needs to be loaded
 const dotEnv = dotEnvConfig();
@@ -86,6 +85,10 @@ const DockerContainers: DockerContainers = {
 
 let logger: WinstonLogger;
 
+function getLogger(): WinstonLogger {
+	return logger;
+}
+
 async function assertImageAvailability(imageName: string): Promise<void> {
 	const images = await DockerodeInstance.listImages();
 	if (images.findIndex((image) => image.RepoTags.includes(imageName)) === -1) {
@@ -125,69 +128,30 @@ async function retrievePreviouslyCreatedContainer(
 	return null;
 }
 
-function createNewMySqlConnectionForSetUp(env?: Partial<MySqlEnv>): Connection {
-	return createConnection({
-		host: (env && env.host) || MySqlEnv.host,
-		port: (env && env.port) || MySqlEnv.port,
-		user: (env && env.user) || MySqlEnv.user,
-		password: (env && env.password) || MySqlEnv.password,
-		database: (env && env.database) || MySqlEnv.database
-	});
-}
-
-function spawnMySqlClient(): ChildProcessByStdio<Writable, null, null> {
-	return spawn(`mysql`, ['-h', MySqlEnv.host, `-P${MySqlEnv.port}`, `-u${MySqlEnv.user}`, `-p${MySqlEnv.password}`], {
-		stdio: ['pipe', process.stdout, process.stderr]
-	});
-}
-
-async function changeMySqlAuthToNativePassword(): Promise<void> {
-	const mysql = spawnMySqlClient();
-
-	(async () => {
-		logger.debug('Changing MySql auth type to native password...');
-		await streamWrite(mysql.stdin, `ALTER USER 'root' IDENTIFIED WITH mysql_native_password BY '${MySqlEnv.password}';\n`);
-		await streamEnd(mysql.stdin);
-	})();
-
-	await onExit(mysql);
-}
-
-async function createMySqlStorageSchema(): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const cmd = `mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} ${MySqlEnv.database} < ${MySqlEnv.schemaScriptLocation}`;
-		logger.debug(`Creating MySql storage schema. Executing: ${cmd}`);
-
-		exec(cmd, (error, stdout, stderr) => {
-			if (error) {
-				reject(error);
-			} else {
-				logger.debug(`Create MySql storage schema stdout:\n${stdout}`);
-				logger.debug(`Create MySql storage schema stderr:\n${stderr}`);
-				resolve();
-			}
-		});
-	});
-}
-
 async function waitMySqlServerToBoot(exponentialReconnect?: boolean): Promise<void> {
-	let resolve: (value?: any) => void;
-	let reject: (reason?: any) => void;
+	let resolveMySqlServerBootWaiting: (value?: any) => void;
+	let rejectMySqlServerBootWaiting: (reason?: any) => void;
 	const promise = new Promise<void>((_resolve, _reject) => {
-		resolve = _resolve;
-		reject = _reject;
+		resolveMySqlServerBootWaiting = _resolve;
+		rejectMySqlServerBootWaiting = _reject;
 	});
 
 	let mySqlSetupConnection: Connection;
 	let remainingAttempts = Number(RECONNECT_PARAMS.mysql.maxAttempts);
 	let reconnectTimeout = Number(RECONNECT_PARAMS.mysql.initialTimeout); // ms
 
-	function connect(): void {
-		mySqlSetupConnection = createNewMySqlConnectionForSetUp();
+	function connectToMySqlServer(): void {
+		mySqlSetupConnection = createConnection({
+			host: MySqlEnv.host,
+			port: MySqlEnv.port,
+			user: MySqlEnv.user,
+			password: MySqlEnv.password,
+			database: MySqlEnv.database
+		});
 		mySqlSetupConnection.connect(connectHandler);
 	}
 
-	function reconnect(): void {
+	function reconnectToMySqlServer(): void {
 		let reconnectingAfter;
 
 		if (exponentialReconnect) {
@@ -198,24 +162,53 @@ async function waitMySqlServerToBoot(exponentialReconnect?: boolean): Promise<vo
 		}
 
 		logger.warning(`Reconnecting to MySQL in ${reconnectingAfter} ms. Remaining attempts ${remainingAttempts}.`);
-		setTimeout(connect, reconnectingAfter);
+		setTimeout(connectToMySqlServer, reconnectingAfter);
 	}
 
-	function finishPromise(err?: Error): void {
-		return err ? reject(err) : resolve();
+	function endMySqlServerBootWaiting(err?: Error): void {
+		return err ? rejectMySqlServerBootWaiting(err) : resolveMySqlServerBootWaiting();
 	}
 
 	function done(connectErr?: Error): void {
 		if (connectErr) {
-			return reject(connectErr);
+			return rejectMySqlServerBootWaiting(connectErr);
 		}
 
 		logger.info(`MySQL is ready for connections. Closing setup connection with id ${mySqlSetupConnection.threadId}`);
-		return mySqlSetupConnection.end(finishPromise);
+		return mySqlSetupConnection.end(endMySqlServerBootWaiting);
 	}
 
 	function setUpMySqlContainer(): void {
-		changeMySqlAuthToNativePassword().then(createMySqlStorageSchema).then(resolve).catch(reject);
+		async function changeMySqlAuthToNativePassword(): Promise<void> {
+			const mysql = spawn(`mysql`, ['-h', MySqlEnv.host, `-P${MySqlEnv.port}`, `-u${MySqlEnv.user}`, `-p${MySqlEnv.password}`], {
+				stdio: ['pipe', process.stdout, process.stderr]
+			});
+
+			logger.debug('Changing MySql auth type to native password...');
+			await streamWrite(mysql.stdin, `ALTER USER 'root' IDENTIFIED WITH mysql_native_password BY '${MySqlEnv.password}';\n`);
+			await streamEnd(mysql.stdin);
+
+			await onExit(mysql);
+		}
+
+		async function createMySqlStorageSchema(): Promise<void> {
+			return new Promise((resolveStorageSchemaCreation, rejectStorageSchemaCreation) => {
+				const cmd = `mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} ${MySqlEnv.database} < ${MySqlEnv.schemaScriptLocation}`;
+				logger.debug(`Creating MySql storage schema. Executing: ${cmd}`);
+
+				exec(cmd, (error, stdout, stderr) => {
+					if (error) {
+						rejectStorageSchemaCreation(error);
+					} else {
+						logger.debug(`Create MySql storage schema stdout:\n${stdout}`);
+						logger.debug(`Create MySql storage schema stderr:\n${stderr}`);
+						resolveStorageSchemaCreation();
+					}
+				});
+			});
+		}
+
+		changeMySqlAuthToNativePassword().then(createMySqlStorageSchema).then(resolveMySqlServerBootWaiting).catch(rejectMySqlServerBootWaiting);
 	}
 
 	function connectHandler(connectErr?: MysqlError): any {
@@ -229,13 +222,13 @@ async function waitMySqlServerToBoot(exponentialReconnect?: boolean): Promise<vo
 				return done(connectErr);
 			}
 
-			return reconnect();
+			return reconnectToMySqlServer();
 		}
 
 		return done();
 	}
 
-	connect();
+	connectToMySqlServer();
 
 	return promise;
 }
@@ -342,12 +335,12 @@ async function bootRedisContainer(containerInfos: Array<ContainerInfo>): Promise
 	await DockerContainers.redis.instance!.start();
 }
 
-before(async function (): Promise<void> {
+before(async function testEnvInitializer(): Promise<void> {
 	this.timeout(Number(process.env.ENV_INITIALIZATION_TIMEOUT_MS));
 
-	LoggerInstance.console.setConfig({ level: process.env.LOG_LEVEL || 'debug' });
+	LoggerInstance.console.setConfig({ level: process.env.ENV_LOG_LEVEL || 'debug' });
 	LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
-	logger = LoggerInstance.for(process.env.LOGGER_NAME!);
+	logger = LoggerInstance.for(process.env.ENV_LOGGER_NAME!);
 
 	const containerInfos = await DockerodeInstance.listContainers({
 		all: true
@@ -364,7 +357,7 @@ before(async function (): Promise<void> {
 	await connectToRedis();
 });
 
-after(async function (): Promise<void> {
+after(async function testEnvCleaner(): Promise<void> {
 	this.timeout(Number(process.env.ENV_SHUTDOWN_TIMEOUT_MS));
 
 	await MySqlClientInstance.shutdown();
@@ -381,38 +374,4 @@ after(async function (): Promise<void> {
 	}
 });
 
-function truncateAllTables(done: Function): void {
-	const cmd = `
-					mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} -Nse 'SHOW TABLES;' ${MySqlEnv.database} | 
-					while read table; do mysql -h ${MySqlEnv.host} -P${MySqlEnv.port} -u${MySqlEnv.user} -p${MySqlEnv.password} -e "DELETE FROM $table;" ${MySqlEnv.database}; done
-				`;
-	logger.debug(`Truncating tables. Executing: ${cmd}`);
-
-	exec(cmd, (error, stdout, stderr) => {
-		if (error) {
-			// @ts-ignore
-			done(error);
-		} else {
-			logger.debug(`Truncate all tables stdout:\n${stdout}`);
-			logger.debug(`Truncate all tables stderr:\n${stderr}`);
-			// @ts-ignore
-			done();
-		}
-	});
-}
-
-async function brokeConnectionWithMySql(): Promise<void> {
-	await DockerContainers.mysql.instance!.stop();
-}
-
-async function reconnectToMySql(): Promise<void> {
-	await DockerContainers.mysql.instance!.start();
-
-	await waitMySqlServerToBoot(true);
-
-	MySqlClientInstance.init({
-		pool: MySqlEnv
-	});
-}
-
-export { MySqlEnv, truncateAllTables, reconnectToMySql, brokeConnectionWithMySql };
+export { MySqlEnv, getLogger, DockerContainers, waitMySqlServerToBoot };
