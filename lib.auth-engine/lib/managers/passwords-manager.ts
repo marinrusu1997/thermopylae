@@ -13,6 +13,7 @@ interface PasswordHash {
 interface PasswordHasherInterface {
 	hash(password: string): Promise<PasswordHash>;
 	verify(hash: PasswordHash, plain: string): Promise<boolean>;
+	getHashingAlgorithm(): number;
 }
 
 class PasswordsManager {

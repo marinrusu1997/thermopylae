@@ -116,7 +116,9 @@ class ErrorStep implements AuthStep {
 
 		return {
 			done: {
-				nextStep: prevStepName,
+				// totp are generated only after successful password validation,
+				// therefore this cycle must be repeated, as we don't know whether provided totp is invalid or the stored one expired
+				nextStep: prevStepName === AUTH_STEP.TOTP ? AUTH_STEP.PASSWORD : prevStepName,
 				error: {
 					soft: createException(ErrorCodes.INCORRECT_CREDENTIALS, errorMessage)
 				}

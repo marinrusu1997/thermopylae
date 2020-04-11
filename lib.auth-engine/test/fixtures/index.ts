@@ -1,4 +1,5 @@
 import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
+import { string } from '@marin/lib.utils';
 import { after, afterEach, before } from 'mocha';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
 import {
@@ -40,6 +41,9 @@ import { getLogger } from '../../lib/logger';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
 import { AuthEngineOptions } from '../../lib';
 import { HashingAlgorithms, PasswordHasher } from './password-hasher';
+
+// initialize static variables
+PasswordHasher.pepper = string.generateStringOfLength(10);
 
 const basicAuthEngineConfig: AuthEngineOptions = {
 	jwt: {
@@ -97,9 +101,9 @@ const basicAuthEngineConfig: AuthEngineOptions = {
 		recaptcha: recaptchaValidator,
 		challengeResponse: challengeResponseValidator
 	},
-	passwordHasher: new PasswordHasher('pepper', HashingAlgorithms.BCRYPT),
+	passwordHasher: new PasswordHasher(HashingAlgorithms.BCRYPT),
 	secrets: {
-		totp: 'totp'
+		totp: string.generateStringOfLength(10)
 	},
 	contacts: {
 		adminEmail: 'admin@product.com'

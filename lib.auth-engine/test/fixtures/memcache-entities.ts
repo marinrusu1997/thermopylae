@@ -7,7 +7,8 @@ const memcache = getDefaultMemCache();
 enum SESSIONS_OP {
 	ACTIVATE_ACCOUNT_SESSION_CREATE,
 	ACTIVATE_ACCOUNT_SESSION_DELETE,
-	FAILED_AUTH_ATTEMPTS_SESSION_DELETE
+	FAILED_AUTH_ATTEMPTS_SESSION_DELETE,
+	FORGOT_PASSWORD_SESSION_DELETE
 }
 const failures = new Map<SESSIONS_OP, boolean>();
 
@@ -132,6 +133,10 @@ const ForgotPasswordSessionEntityMemCache: ForgotPasswordSessionEntity = {
 		return memcache.get(key) || null;
 	},
 	delete: async token => {
+		if (failures.get(SESSIONS_OP.FORGOT_PASSWORD_SESSION_DELETE)) {
+			throw new Error('Deletion of forgot password session was configured to fail');
+		}
+
 		const key = `fgtpswd:${token}`;
 		memcache.del(key);
 	}

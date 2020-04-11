@@ -34,7 +34,7 @@ class EmailMock extends EmailClient {
 		this.failEmailDelivery = false;
 	}
 
-	deliveryWillFail(flag: boolean): void {
+	deliveryWillFail(flag = true): void {
 		this.failEmailDelivery = flag;
 	}
 }

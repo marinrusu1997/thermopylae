@@ -1,9 +1,10 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { hostname } from 'os';
-import { chrono } from '@marin/lib.utils';
+import { chrono, number, string } from '@marin/lib.utils';
+import { Exception } from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
-import { AuthEngineOptions, AuthenticationEngine } from '../lib';
+import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthRequest } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';
@@ -96,7 +97,7 @@ describe('Logout spec', () => {
 		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(3);
 
-		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(activeSessions.length - 1);
 
 		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
@@ -112,9 +113,26 @@ describe('Logout spec', () => {
 		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(1);
 
-		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptFromCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
+		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(0);
 
 		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!)).to.not.be.eq(undefined);
+	});
+
+	it('fails to `log out from all devices except current` if account not found', async () => {
+		let accountNotFoundErr;
+
+		const accountId = string.generateStringOfLength(12, /[a-zA-Z0-9]/);
+		const sessionId = number.generateRandom(chrono.dateToUNIX() - number.generateRandom(100, 1000), chrono.dateToUNIX());
+
+		try {
+			await AuthEngineInstance.logoutFromAllDevicesExceptCurrent(accountId, sessionId);
+		} catch (e) {
+			accountNotFoundErr = e;
+		}
+
+		expect(accountNotFoundErr).to.be.instanceOf(Exception);
+		expect(accountNotFoundErr).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
+		expect(accountNotFoundErr).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
 	});
 });

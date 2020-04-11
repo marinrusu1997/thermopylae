@@ -34,7 +34,7 @@ import { RecaptchaStep, RecaptchaValidator } from './authentication/steps/recapt
 import { ErrorStep } from './authentication/steps/error-step';
 import { UserSessionsManager } from './managers/user-sessions-manager';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
-import { PasswordHasherInterface, PasswordsManager } from './managers/passwords-manager';
+import { PasswordsManager, PasswordHasherInterface, PasswordHash } from './managers/passwords-manager';
 import { EmailSender, EmailSendOptions } from './side-channels/email-sender';
 import { ActiveUserSession, AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel } from './types/models';
 import {
@@ -50,6 +50,8 @@ import { AccountStatusManager } from './managers/account-status-manager';
 import { SmsSender, SmsSendOptions } from './side-channels/sms-sender';
 
 class AuthenticationEngine {
+	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
+
 	private readonly config: InternalUsageOptions;
 
 	private readonly emailSender: EmailSender;
@@ -298,6 +300,13 @@ class AuthenticationEngine {
 	}
 
 	public async createForgotPasswordSession(forgotPasswordRequest: CreateForgotPasswordSessionRequest): Promise<void> {
+		if (!AuthenticationEngine.ALLOWED_SIDE_CHANNELS.includes(forgotPasswordRequest['side-channel'])) {
+			const errMsg = `Side-Channel ${
+				forgotPasswordRequest['side-channel']
+			} is UNKNOWN. Allowed side-channels are: ${AuthenticationEngine.ALLOWED_SIDE_CHANNELS.join(', ')}`;
+			throw createException(ErrorCodes.UNKNOWN_SIDE_CHANNEL, errMsg);
+		}
+
 		const account = await this.config.entities.account.read(forgotPasswordRequest.username);
 		if (!account) {
 			// silently discard invalid username, in order to prevent user enumeration
@@ -317,6 +326,8 @@ class AuthenticationEngine {
 		);
 
 		try {
+			// WE HAVE CHECKED THEM AT THE METHOD START!!!
+			// eslint-disable-next-line default-case
 			switch (forgotPasswordRequest['side-channel']) {
 				case SIDE_CHANNEL.EMAIL:
 					await this.emailSender.sendForgotPasswordToken(account.email, sessionToken.plain);
@@ -324,8 +335,6 @@ class AuthenticationEngine {
 				case SIDE_CHANNEL.SMS:
 					await this.smsSender.sendForgotPasswordToken(account.telephone, sessionToken.plain);
 					break;
-				default:
-					throw new Error('Unknown side channel');
 			}
 		} catch (err) {
 			getLogger().error(`Failed to send forgot password token for account ${account.id}. Deleting session with id ${sessionToken}. `, err);
@@ -399,7 +408,7 @@ class AuthenticationEngine {
 		return this.userSessionsManager.deleteAll(payload.sub, payload.aud);
 	}
 
-	public logoutFromAllDevicesExceptFromCurrent(accountId: string, sessionId: number): Promise<number> {
+	public logoutFromAllDevicesExceptCurrent(accountId: string, sessionId: number): Promise<number> {
 		return this.config.entities.account.readById(accountId).then(account => {
 			if (!account) {
 				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} not found. `);
@@ -513,4 +522,4 @@ function fillWithDefaults(options: AuthEngineOptions): Required<InternalUsageOpt
 	};
 }
 
-export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, RegistrationOptions };
+export { AuthenticationEngine, AuthEngineOptions, TTLOptions, ThresholdsOptions, RegistrationOptions, PasswordHasherInterface, PasswordHash };

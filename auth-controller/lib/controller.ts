@@ -37,6 +37,7 @@ class AuthController {
 					res.status(HttpStatusCode.UNAUTHORIZED).json({ nextStep: authStatus.nextStep });
 					return;
 				}
+
 				res.status(HttpStatusCode.ACCEPTED).json({ nextStep: authStatus.nextStep, token: authStatus.token });
 				return;
 			}

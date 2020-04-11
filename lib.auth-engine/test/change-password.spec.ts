@@ -7,7 +7,7 @@ import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthRequest } from '../lib/types/requests';
-import { checkIfJWTWasInvalidated } from './utils';
+import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
 
 describe('Change password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
@@ -20,7 +20,7 @@ describe('Change password spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // need long active sessions
 	};
 
-	const validAuthInput: AuthRequest = {
+	const validAuthRequest: AuthRequest = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -39,7 +39,7 @@ describe('Change password spec', () => {
 	it('changes password and then logs in with updated one', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.authenticate(validAuthInput);
+		await AuthEngineInstance.authenticate(validAuthRequest);
 		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 
 		const newPassword = '42asdaffM!asd85';
@@ -54,24 +54,45 @@ describe('Change password spec', () => {
 			})
 		).to.be.eq(0);
 
-		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthInput, password: newPassword });
-		expect(authStatus.token).to.not.be.eq(undefined);
-		expect(authStatus.nextStep).to.be.eq(undefined);
-		expect(authStatus.error).to.be.eq(undefined);
+		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
+	});
+
+	it('changes password after new hashing algorithm is used', async () => {
+		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(basicAuthEngineConfig);
+
+		// Register and Authenticate with AUTH ENGINE which uses HASHING ALG 1
+		const accountId = await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
+		await validateSuccessfulLogin(authEngineHashAlg1, validAuthRequest);
+		const activeSessions = await authEngineHashAlg1.getActiveSessions(accountId);
+
+		// Change password with AUTH ENGINE which uses HASHING ALG 2
+		const newPassword = string.generateStringOfLength(30);
+		await authEngineHashAlg2.changePassword({
+			accountId,
+			sessionId: activeSessions[0].authenticatedAtUNIX,
+			old: defaultRegistrationInfo.password,
+			new: newPassword
+		});
+
+		// Login with AUTH ENGINE which uses HASHING ALG 1
+		await validateSuccessfulLogin(authEngineHashAlg1, { ...validAuthRequest, password: newPassword });
+
+		// Login with AUTH ENGINE which uses HASHING ALG 2
+		await validateSuccessfulLogin(authEngineHashAlg2, { ...validAuthRequest, password: newPassword });
 	});
 
 	it('invalidates all sessions, excepting the one from where password was changed', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		const authStatus1 = await AuthEngineInstance.authenticate(validAuthInput);
+		const authStatus1 = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatus1.error).to.be.eq(undefined);
 
 		await chrono.sleep(1000);
-		const authStatus2 = await AuthEngineInstance.authenticate(validAuthInput);
+		const authStatus2 = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatus2.error).to.be.eq(undefined);
 
 		await chrono.sleep(1000);
-		const authStatus3 = await AuthEngineInstance.authenticate(validAuthInput);
+		const authStatus3 = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatus3.error).to.be.eq(undefined);
 
 		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
@@ -99,9 +120,9 @@ describe('Change password spec', () => {
 	it('does not invalidate other sessions if explicitly instructed not to do so', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.authenticate(validAuthInput);
+		await AuthEngineInstance.authenticate(validAuthRequest);
 		await chrono.sleep(1000);
-		await AuthEngineInstance.authenticate(validAuthInput);
+		await AuthEngineInstance.authenticate(validAuthRequest);
 
 		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
 

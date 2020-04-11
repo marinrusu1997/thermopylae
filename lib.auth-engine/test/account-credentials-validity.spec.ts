@@ -5,6 +5,7 @@ import { string } from '@marin/lib.utils';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
+import { createAuthEnginesWithDifferentPasswordHashingAlg } from './utils';
 
 describe('Validate account credentials spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
@@ -51,6 +52,20 @@ describe('Validate account credentials spec', () => {
 	it('validates correct account credentials', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const areValid = await AuthEngineInstance.areAccountCredentialsValid(accountId, {
+			username: defaultRegistrationInfo.username,
+			password: defaultRegistrationInfo.password
+		});
+		expect(areValid).to.be.eq(true);
+	});
+
+	it('validates correct account credentials after system is using a new password hashing algorithm', async () => {
+		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(basicAuthEngineConfig);
+
+		// Register with AUTH ENGINE which uses HASHING ALG 1
+		const accountId = await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
+
+		// Validate with AUTH ENGINE which uses HASHING ALG 2
+		const areValid = await authEngineHashAlg2.areAccountCredentialsValid(accountId, {
 			username: defaultRegistrationInfo.username,
 			password: defaultRegistrationInfo.password
 		});

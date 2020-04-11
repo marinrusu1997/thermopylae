@@ -225,21 +225,16 @@ const AuthenticationEntryPointEntityMongo: AuthenticationEntryPointEntity = {
 		await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema).create(accessPoint);
 	},
 	authBeforeFromThisDevice: async (accountId, device) => {
-		const prevAuth = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
+		const prevAuthentications = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
 			.find({ accountId })
 			.exec();
-		if (prevAuth.length === 0) {
+		if (prevAuthentications.length === 0) {
 			return true; // this is the first login ever, don't send notification
 		}
 
-		for (let i = 0; i < prevAuth.length; i++) {
-			// @ts-ignore
-			if (prevAuth[i].device !== device) {
-				return false;
-			}
-		}
+		const prevAuthIndex = prevAuthentications.findIndex((prevAuth: any) => prevAuth.device === device);
 
-		return true;
+		return prevAuthIndex !== -1;
 	}
 };
 
