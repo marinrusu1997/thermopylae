@@ -6,6 +6,7 @@ import {
 	MysqlError,
 	Pool,
 	PoolCluster,
+	PoolConnection,
 	PoolClusterConfig,
 	PoolConfig,
 	TypeCast,
@@ -186,8 +187,19 @@ const typeCastBooleans: TypeCast = (field, next) => {
 	return next();
 };
 
+interface OkPacket {
+	fieldCount: number;
+	affectedRows: number;
+	insertId: number;
+	serverStatus: number;
+	warningCount: number;
+	message: string;
+	protocol41: boolean;
+	changedRows: number;
+}
+
 interface QueryResult {
-	results?: any;
+	results?: OkPacket | any;
 	fields?: FieldInfo[];
 }
 
@@ -210,10 +222,14 @@ async function insertWithAssertion(
 	values?: any,
 	errMsg = 'Failed to INSERT',
 	noOfExpectedRows = 1
-): Promise<void> {
-	if ((await queryAsync(connection, insertSQL, values)).results.affectedRows !== noOfExpectedRows) {
+): Promise<QueryResult> {
+	const queryResult = await queryAsync(connection, insertSQL, values);
+
+	if (queryResult.results.affectedRows !== noOfExpectedRows) {
 		throw new Error(errMsg);
 	}
+
+	return queryResult;
 }
 
 async function updateWithAssertion(
@@ -222,10 +238,26 @@ async function updateWithAssertion(
 	values?: any,
 	errMsg = 'Failed to UPDATE',
 	noOfExpectedRows = 1
-): Promise<void> {
-	if ((await queryAsync(connection, updateSQL, values)).results.changedRows !== noOfExpectedRows) {
+): Promise<QueryResult> {
+	const queryResult = await queryAsync(connection, updateSQL, values);
+
+	if (queryResult.results.changedRows !== noOfExpectedRows) {
 		throw new Error(errMsg);
 	}
+
+	return queryResult;
+}
+
+async function beginTransaction(connection: Connection): Promise<void> {
+	return new Promise((resolve, reject) => connection.beginTransaction(err => (err ? reject(err) : resolve())));
+}
+
+async function commitTransaction(connection: Connection): Promise<void> {
+	return new Promise((resolve, reject) => connection.commit(err => (err ? reject(err) : resolve(err))));
+}
+
+async function rollbackTransaction(connection: Connection): Promise<void> {
+	return new Promise((resolve, reject) => connection.rollback(err => (err ? reject(err) : resolve(err))));
 }
 
 const MySqlClientInstance = new MySqlClient();
@@ -237,11 +269,17 @@ export {
 	insertWithAssertion,
 	updateWithAssertion,
 	createConnection,
+	beginTransaction,
+	commitTransaction,
+	rollbackTransaction,
 	Pool,
+	PoolConnection,
 	PoolClusterConfig,
 	PoolConfig,
 	MySqlPoolClusterConfigs,
 	MySqlClientOptions,
 	MysqlError,
-	Connection
+	Connection,
+	OkPacket,
+	QueryResult
 };

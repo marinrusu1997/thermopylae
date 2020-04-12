@@ -19,16 +19,6 @@ CREATE TABLE IF NOT EXISTS User (
     PRIMARY KEY (ID)
 );
 
-CREATE TABLE IF NOT EXISTS UserDetails (
-    ID INT UNSIGNED AUTO_INCREMENT,
-    FirstName VARCHAR(50) NOT NULL, -- each user has a first name
-    LastName VARCHAR(50) NOT NULL, -- and last name
-    Birthday DATE NOT NULL,
-    RelatedUserID VARCHAR(20),
-
-    PRIMARY KEY (ID)
-);
-
 CREATE TABLE IF NOT EXISTS Authentication (
     ID VARCHAR(20), -- the same key as the account who it belongs to
     UserName VARCHAR(25) NOT NULL UNIQUE, -- username must be unique
@@ -90,8 +80,8 @@ CREATE TABLE IF NOT EXISTS Location (
    RegionCode VARCHAR(5),
    City VARCHAR(30),
    TimeZone VARCHAR(100),
-   Latitude INT,
-   Longitude INT,
+   Latitude FLOAT,
+   Longitude FLOAT,
    PostalCode VARCHAR(16),
 
    PRIMARY KEY (ID)
@@ -160,11 +150,6 @@ ALTER TABLE User
 ADD CONSTRAINT
 FOREIGN KEY (RelatedRoleID) REFERENCES Role(ID)
 ON DELETE SET NULL; -- user without role is a legal state, so we set null
-
-ALTER TABLE UserDetails
-ADD CONSTRAINT
-FOREIGN KEY (RelatedUserID) REFERENCES User(ID)
-ON DELETE CASCADE; -- when user is deleted, it's details are deleted too
 
 ALTER TABLE Authentication
 ADD CONSTRAINT

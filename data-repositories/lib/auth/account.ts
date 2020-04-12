@@ -1,8 +1,10 @@
 import { token } from '@marin/lib.utils';
-import { MySqlClientInstance, insertWithAssertion, updateWithAssertion, MysqlError, typeCastBooleans } from '@marin/lib.data-access';
+import { MySqlClientInstance, typeCastBooleans, insertWithAssertion, updateWithAssertion, MysqlError, PoolConnection } from '@marin/lib.data-access';
 import { entities, models } from '@marin/lib.authentication-engine';
 
 // FIXME replace multiline strings with concatenation for performance reasons
+
+// FIXME remove usage of the promises using callbacks https://www.npmjs.com/package/async
 
 class AccountEntity implements entities.AccountEntity {
 	public static readonly ACCOUNT_ID_LENGTH = 10;
@@ -26,26 +28,6 @@ class AccountEntity implements entities.AccountEntity {
 						return reject(beginTxErr);
 					}
 
-					function generateRollbackHandler(originErr: Error) {
-						return function handleRollback(rollbackErr: MysqlError): void {
-							connection.release();
-
-							const rejectionError = rollbackErr ? { rollbackErr, originErr } : originErr;
-							reject(rejectionError);
-						};
-					}
-
-					function generateCommitHandler(accountId: string) {
-						return function handleCommit(commitErr: MysqlError): void {
-							if (commitErr) {
-								return connection.rollback(generateRollbackHandler(commitErr));
-							}
-
-							connection.release();
-							return resolve(accountId);
-						};
-					}
-
 					try {
 						const accountId = (await token.generate(AccountEntity.ACCOUNT_ID_LENGTH)).plain;
 
@@ -55,35 +37,34 @@ class AccountEntity implements entities.AccountEntity {
 												FROM Role
 												WHERE Name = ${connection.escape(account.role!)};
 											  `;
-						await insertWithAssertion(connection, insertUserSQL, undefined, 'Failed to INSERT User');
-
 						const insertAccountSQL = `INSERT INTO Account (ID, Status) VALUES ('${accountId}', ?);`;
-						await insertWithAssertion(connection, insertAccountSQL, account.enabled, 'Failed to INSERT Account');
 
-						const updateUserSQL = `
-												UPDATE User 
-												SET RelatedAccountID = '${accountId}' 
-												WHERE ID = '${accountId}';
-											  `;
-						await updateWithAssertion(connection, updateUserSQL, undefined, 'Failed to UPDATE User');
+						await Promise.all([
+							insertWithAssertion(connection, insertUserSQL, undefined, 'Failed to INSERT User'),
+							insertWithAssertion(connection, insertAccountSQL, account.enabled, 'Failed to INSERT Account')
+						]);
 
+						const updateUserSQL = `UPDATE User SET RelatedAccountID = '${accountId}' WHERE ID = '${accountId}';`;
 						const insertAuthenticationSQL = `INSERT INTO Authentication (ID, UserName, PasswordHash, PasswordSalt, PasswordHashingAlg, MultiFactor)
 														  VALUES ('${accountId}', ?, ?, ?, ?, ?);`;
-						await insertWithAssertion(
-							connection,
-							insertAuthenticationSQL,
-							[account.username, account.password, account.salt, account.hashingAlg, account.usingMfa],
-							'Failed to INSERT Authentication'
-						);
-
 						const insertContactsSQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
 													('${AccountEntity.EMAIL_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}'),
 													('${AccountEntity.TELEPHONE_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${accountId}');`;
-						await insertWithAssertion(connection, insertContactsSQL, [account.email, account.telephone], 'Failed to INSERT Contacts', 2);
 
-						connection.commit(generateCommitHandler(accountId));
+						await Promise.all([
+							updateWithAssertion(connection, updateUserSQL, undefined, 'Failed to UPDATE User'),
+							insertWithAssertion(connection, insertContactsSQL, [account.email, account.telephone], 'Failed to INSERT Contacts', 2),
+							insertWithAssertion(
+								connection,
+								insertAuthenticationSQL,
+								[account.username, account.password, account.salt, account.hashingAlg, account.usingMfa],
+								'Failed to INSERT Authentication'
+							)
+						]);
+
+						connection.commit(generateCreateCommitHandler(connection, accountId, resolve, reject));
 					} catch (errOccurredWhileRunningTx) {
-						connection.rollback(generateRollbackHandler(errOccurredWhileRunningTx));
+						connection.rollback(generateCreateRollbackHandler(connection, errOccurredWhileRunningTx, reject));
 					}
 
 					return undefined;
@@ -153,6 +134,26 @@ class AccountEntity implements entities.AccountEntity {
 			});
 		});
 	}
+}
+
+function generateCreateRollbackHandler(connection: PoolConnection, originErr: Error, reject: Function) {
+	return function handleRollback(rollbackErr: MysqlError): void {
+		connection.release();
+
+		const rejectionError = rollbackErr ? { rollbackErr, originErr } : originErr;
+		reject(rejectionError);
+	};
+}
+
+function generateCreateCommitHandler(connection: PoolConnection, accountId: string, resolve: Function, reject: Function) {
+	return function handleCommit(commitErr: MysqlError): void {
+		if (commitErr) {
+			return connection.rollback(generateCreateRollbackHandler(connection, commitErr, reject));
+		}
+
+		connection.release();
+		return resolve(accountId);
+	};
 }
 
 function doAccountRead(by: string, valueOfBy: string): Promise<models.AccountModel | null> {
