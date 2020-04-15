@@ -31,6 +31,8 @@ class AuthenticatedStep implements AuthStep {
 		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, authRequest.device))) {
 			this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authRequest.ip, authRequest.device);
 		}
+
+		// FIXME this call violates encapsulation of the error step, this might be moved to engine and called based on a flag from session
 		// reset failed auth attempts on successful authentication (in detached mode)
 		this.failedAuthAttemptSessionEntity
 			.delete(account.username)

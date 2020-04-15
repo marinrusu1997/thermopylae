@@ -187,22 +187,22 @@ class AuthenticationEngine {
 		registeredAccount.id = await this.config.entities.account.create(registeredAccount);
 
 		if (!options.enabled) {
-			let activateToken: any;
+			let activateToken: string;
 			let deleteAccountTaskId;
 			let activateAccountSessionWasCreated = false;
 			try {
-				activateToken = await token.generate(this.config.tokensLength);
+				activateToken = (await token.generate(this.config.tokensLength)).plain;
 				deleteAccountTaskId = await this.config.schedulers.account.deleteUnactivated(
 					registeredAccount.id,
 					chrono.dateFromUNIX(chrono.dateToUNIX() + chrono.minutesToSeconds(this.config.ttl.activateAccountSessionMinutes))
 				);
 				await this.config.entities.activateAccountSession.create(
-					activateToken.plain,
+					activateToken,
 					{ accountId: registeredAccount.id, taskId: deleteAccountTaskId },
 					this.config.ttl.activateAccountSessionMinutes
 				);
 				activateAccountSessionWasCreated = true;
-				await this.emailSender.sendActivateAccountLink(registeredAccount.email, activateToken.plain);
+				await this.emailSender.sendActivateAccountLink(registeredAccount.email, activateToken);
 			} catch (e) {
 				if (deleteAccountTaskId) {
 					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
@@ -210,7 +210,7 @@ class AuthenticationEngine {
 				}
 				await this.config.entities.account.delete(registeredAccount.id);
 				if (activateAccountSessionWasCreated) {
-					await this.config.entities.activateAccountSession.delete(activateToken.plain);
+					await this.config.entities.activateAccountSession.delete(activateToken!);
 				}
 				throw e;
 			}
@@ -318,9 +318,9 @@ class AuthenticationEngine {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `);
 		}
 
-		const sessionToken = await token.generate(this.config.tokensLength);
+		const sessionToken = (await token.generate(this.config.tokensLength)).plain;
 		await this.config.entities.forgotPasswordSession.create(
-			sessionToken.plain,
+			sessionToken,
 			{ accountId: account.id!, accountRole: account.role },
 			this.config.ttl.forgotPasswordSessionMinutes
 		);
@@ -330,15 +330,15 @@ class AuthenticationEngine {
 			// eslint-disable-next-line default-case
 			switch (forgotPasswordRequest['side-channel']) {
 				case SIDE_CHANNEL.EMAIL:
-					await this.emailSender.sendForgotPasswordToken(account.email, sessionToken.plain);
+					await this.emailSender.sendForgotPasswordToken(account.email, sessionToken);
 					break;
 				case SIDE_CHANNEL.SMS:
-					await this.smsSender.sendForgotPasswordToken(account.telephone, sessionToken.plain);
+					await this.smsSender.sendForgotPasswordToken(account.telephone, sessionToken);
 					break;
 			}
 		} catch (err) {
 			getLogger().error(`Failed to send forgot password token for account ${account.id}. Deleting session with id ${sessionToken}. `, err);
-			await this.config.entities.forgotPasswordSession.delete(sessionToken.plain);
+			await this.config.entities.forgotPasswordSession.delete(sessionToken);
 			throw err;
 		}
 	}
@@ -351,6 +351,15 @@ class AuthenticationEngine {
 				`Forgot password session identified by provided token ${changeForgottenPasswordRequest.token} not found. `
 			);
 		}
+
+		/*
+		 * we are not doing password duplicate check for the following reasons:
+		 * 	- it will require to read account from database, which is too expensive
+		 * 	- we can store password in change forgotten password session, which is risky
+		 * 	- the whole point of the forgot password is that user doesn't remember the old one,
+		 * 	  therefore in real life duplicate scenario won't likely to occur
+		 * 	- after all, it's not a big problem if we allow new password to be the same as the old one
+		 */
 		await this.passwordsManager.change(forgotPasswordSession.accountId, changeForgottenPasswordRequest.newPassword);
 
 		try {
