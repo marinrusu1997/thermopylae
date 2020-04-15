@@ -35,10 +35,10 @@
   "type": "module",
   "dependencies": {
     "@marin/lib.error": "file:../lib.error",
-    "argon2": "^0.25.1",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
-    "otplib": "^11.0.1"
+    "otplib": "^11.0.1",
+    "uuid": "^7.0.3"
   },
   "devDependencies": {
     "@marin/lib.module-builder": "file:../lib.module-builder",
@@ -49,6 +49,7 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.12",
     "@types/otplib": "^10.0.0",
+    "@types/uuid": "^7.0.2",
     "@typescript-eslint/eslint-plugin": "^2.8.0",
     "@typescript-eslint/parser": "^2.8.0",
     "chai": "^4.2.0",

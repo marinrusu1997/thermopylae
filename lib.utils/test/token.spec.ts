@@ -1,60 +1,34 @@
 import { describe, it } from 'mocha';
+import Exception from '@marin/lib.error';
 import { chai } from './chai';
-import { compare, fastUnSecureHash, generate, hash } from '../lib/token';
+import { token as tokenModule } from '../lib';
 
-const { expect, assert } = chai;
+const { expect } = chai;
+const { ErrorCodes, fastUnSecureHash, generate, TokenGenerationType } = tokenModule;
 
 describe('token spec', () => {
 	describe('generate spec', () => {
-		it('generates token of specified size (no hash option specified)', async () => {
-			const TOKEN_SIZE = 10;
-			const token = await generate(TOKEN_SIZE);
-			expect(token.plain.length).to.be.equal(TOKEN_SIZE);
+		it('generates cryptographically-strong token', () => {
+			const token = generate(TokenGenerationType.CRYPTOGRAPHYCAL);
+			expect(token.length).to.be.equal(36);
 		});
 
-		it('generates token of specified size (hash option specified)', async () => {
-			const TOKEN_SIZE = 10;
-			const HASHED_TOKEN_SIZE = 96; // constant for hashing algorithm
-			const token = await generate(TOKEN_SIZE, true);
-			expect(token.plain.length).to.be.equal(TOKEN_SIZE);
-			expect(token.hash!.length).to.be.equal(HASHED_TOKEN_SIZE);
-		});
-	});
-
-	describe('hash spec', () => {
-		it('hashes token', async () => {
-			const TOKEN_SIZE = 10;
-			const HASHED_TOKEN_SIZE = 96; // constant for hashing algorithm
-			const token = await generate(TOKEN_SIZE);
-			expect(token.plain.length).to.be.equal(TOKEN_SIZE);
-			const tokenHash = await hash(token.plain);
-			expect(tokenHash.length).to.be.equal(HASHED_TOKEN_SIZE);
-		});
-	});
-
-	describe('compare spec', () => {
-		it('compares correctly different tokens (no hash option specified)', async () => {
-			const token = await generate(10);
-			const areEquals = await compare(token.plain, 'invalid');
-			assert(!areEquals);
+		it('generates normal token', () => {
+			const token = generate(TokenGenerationType.NORMAL);
+			expect(token.length).to.be.equal(36);
 		});
 
-		it('compares correctly different tokens (hash option specified)', async () => {
-			const token = await generate(10);
-			const areEquals = await compare(token.plain, 'invalid', true);
-			assert(!areEquals);
-		});
-
-		it('compares correctly identical tokens (no hash option specified)', async () => {
-			const token = await generate(10);
-			const areEquals = await compare(token.plain, token.plain);
-			assert(areEquals);
-		});
-
-		it('compares correctly identical tokens (hash option specified)', async () => {
-			const token = await generate(10, true);
-			const areEquals = await compare(token.hash!, token.plain, true);
-			assert(areEquals);
+		it('throws when unknown token generation mechanism is specified', () => {
+			let err;
+			try {
+				// @ts-ignore
+				generate('invalid');
+			} catch (e) {
+				err = e;
+			}
+			expect(err).to.be.instanceOf(Exception);
+			expect(err).to.haveOwnProperty('code', ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE);
+			expect(err).to.haveOwnProperty('message', `Received: invalid. Allowed: ${TokenGenerationType.CRYPTOGRAPHYCAL}, ${TokenGenerationType.NORMAL}`);
 		});
 	});
 
