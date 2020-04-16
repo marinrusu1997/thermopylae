@@ -4,7 +4,7 @@ import { AsyncFunction } from '@marin/lib.utils/dist/declarations';
 import { expect } from 'chai';
 import { AuthRepository } from '../../lib/auth';
 import { AccountEntity } from '../../lib/auth/account';
-import { HashingAlgorithms, ResourceType, Roles, SAFE_MYSQL_CHAR_REGEX, TestsEnvironment } from './commons';
+import { HashingAlgorithms, ResourceType, Roles, SAFE_MYSQL_CHAR_REGEX, TestsEnvironment, TestsEnvironmentStats } from './commons';
 import { Logger } from './logger';
 
 const { generateRandom } = number;
@@ -135,6 +135,38 @@ const TEST_ENV: Readonly<TestsEnvironment> = {
 	}
 };
 
+const TEST_ENV_STATS: TestsEnvironmentStats = {
+	RESOURCES: {
+		ACCOUNT_NO: Object.keys(TEST_ENV.accounts).length,
+		USERS_NO: Object.keys(TEST_ENV.accounts)
+			// @ts-ignore, count number of users for each account
+			.map((account) => Object.keys(TEST_ENV.accounts[account]).length)
+			.reduce((prev, cur) => prev + cur, 0),
+		PERMISSIONS_NO: Object.keys(TEST_ENV.permissions).length,
+		ROLES_NO: Object.keys(TEST_ENV.roles).length,
+		DEVICES_NO: Object.keys(TEST_ENV.devices).length,
+		LOCATIONS_NO: Object.keys(TEST_ENV.locations).length,
+		USER_GROUPS_NO: Object.keys(TEST_ENV.userGroups).length
+	},
+
+	FIRST_ACCOUNT: {
+		OWNER_USER: {
+			CONTACTS_NO: 0
+		},
+		LINKED_USER: {
+			CONTACTS_NO: 0
+		}
+	},
+	SECOND_ACCOUNT: {
+		OWNER_USER: {
+			CONTACTS_NO: 0
+		},
+		LINKED_USER: {
+			CONTACTS_NO: 0
+		}
+	}
+};
+
 interface EnvResourceCreators {
 	[resource: string]: AsyncFunction;
 }
@@ -155,9 +187,11 @@ async function createEnvAccounts(): Promise<void> {
 
 	TEST_ENV.accounts.firstAccount.owner.id = await AuthRepository.accountEntity.create(TEST_ENV.accounts.firstAccount.owner);
 	expect(TEST_ENV.accounts.firstAccount.owner.id).to.be.a('string').with.lengthOf(AccountEntity.ACCOUNT_ID_LENGTH);
+	TEST_ENV_STATS.FIRST_ACCOUNT.OWNER_USER.CONTACTS_NO = 2;
 
 	TEST_ENV.accounts.secondAccount.owner.id = await AuthRepository.accountEntity.create(TEST_ENV.accounts.secondAccount.owner);
 	expect(TEST_ENV.accounts.secondAccount.owner.id).to.be.a('string').with.lengthOf(AccountEntity.ACCOUNT_ID_LENGTH);
+	TEST_ENV_STATS.SECOND_ACCOUNT.OWNER_USER.CONTACTS_NO = 2;
 
 	const insertUserCreatorAcc1AdditionalContacts = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
 										('${AccountEntity.TELEPHONE_CONTACT_CLASS}', 'secondary', ?, '${TEST_ENV.accounts.firstAccount.owner.id}');`;
@@ -167,6 +201,7 @@ async function createEnvAccounts(): Promise<void> {
 		'telephone12',
 		'Failed to INSERT user creator account 1 additional contacts'
 	);
+	TEST_ENV_STATS.FIRST_ACCOUNT.OWNER_USER.CONTACTS_NO += 1;
 
 	const insertUserCreatorAcc2AdditionalContacts = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
 										('${AccountEntity.EMAIL_CONTACT_CLASS}', 'secondary', ?, '${TEST_ENV.accounts.secondAccount.owner.id}');`;
@@ -176,6 +211,7 @@ async function createEnvAccounts(): Promise<void> {
 		'email22',
 		'Failed to INSERT user creator account 2 additional contacts'
 	);
+	TEST_ENV_STATS.SECOND_ACCOUNT.OWNER_USER.CONTACTS_NO += 1;
 
 	const insertUserRelToAcc1SQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) 
 										SELECT '${TEST_ENV.accounts.firstAccount.firstLinkedUserId}', '${TEST_ENV.accounts.firstAccount.owner.id}', ID 
@@ -191,6 +227,7 @@ async function createEnvAccounts(): Promise<void> {
 		'telephone32',
 		'Failed to INSERT user related to account 1 contacts'
 	);
+	TEST_ENV_STATS.FIRST_ACCOUNT.LINKED_USER.CONTACTS_NO = 1;
 
 	const insertUserRelToAcc2SQL = `INSERT INTO User (ID, RelatedAccountID, RelatedRoleID) 
 										SELECT '${TEST_ENV.accounts.secondAccount.firstLinkedUserId}', '${TEST_ENV.accounts.secondAccount.owner.id}', ID 
@@ -201,6 +238,7 @@ async function createEnvAccounts(): Promise<void> {
 	const insertContactsUserRelToAcc2SQL = `INSERT INTO Contact (Class, Type, Contact, RelatedUserID) VALUES
 										('${AccountEntity.EMAIL_CONTACT_CLASS}', '${AccountEntity.CONTACT_TYPE_USED_BY_SYSTEM}', ?, '${TEST_ENV.accounts.secondAccount.firstLinkedUserId}');`;
 	await insertWithAssertion(MySqlClientInstance.writePool, insertContactsUserRelToAcc2SQL, 'email41', 'Failed to INSERT user related to account 2 contacts');
+	TEST_ENV_STATS.SECOND_ACCOUNT.LINKED_USER.CONTACTS_NO = 1;
 }
 
 async function createEnvDevices(): Promise<void> {
@@ -299,4 +337,4 @@ function createEnvResources(resourceTypes: Set<ResourceType>): Promise<any> {
 	return Promise.all(createResourcePromises);
 }
 
-export { TEST_ENV, HashingAlgorithms, Roles, createEnvResources };
+export { TEST_ENV, TEST_ENV_STATS, HashingAlgorithms, Roles, createEnvResources };

@@ -2,6 +2,8 @@ import { MySqlClientInstance } from '@marin/lib.data-access';
 import { ResourceType } from './commons';
 import { Logger } from './logger';
 
+const FORCE_DELETE_ALL_RESOURCES = process.env.ENV_AFTER_EACH_FORCE_DELETE_ALL_RESOURCES === 'true';
+
 const RESOURCES_CLEANERS = {
 	[ResourceType.ACCOUNT]: cleanAccounts,
 	[ResourceType.DEVICE]: cleanDevices,
@@ -72,6 +74,11 @@ function cleanUserGroup(): Promise<number> {
 }
 
 async function cleanResources(resourceTypes: Set<ResourceType>): Promise<void> {
+	if (FORCE_DELETE_ALL_RESOURCES) {
+		Logger.warning('Force deleting all resources...');
+		Object.values(ResourceType).forEach((resourceType) => resourceTypes.add(resourceType));
+	}
+
 	if (resourceTypes.has(ResourceType.ACCOUNT)) {
 		resourceTypes.delete(ResourceType.ACCOUNT);
 		await cleanAccounts();

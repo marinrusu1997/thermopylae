@@ -1,6 +1,6 @@
 import { models } from '@marin/lib.authentication-engine';
 
-export const enum ResourceType {
+export enum ResourceType {
 	ACCOUNT = 'ACCOUNT',
 	DEVICE = 'DEVICE',
 	LOCATION = 'LOCATION',
@@ -104,6 +104,36 @@ export interface TestsEnvironment {
 	locations: Readonly<EnvLocations>;
 	permissions: Readonly<EnvPermissions>;
 	userGroups: Readonly<EnvUserGroups>;
+}
+
+export interface TestsEnvironmentStats {
+	RESOURCES: Readonly<{
+		ACCOUNT_NO: number;
+		USERS_NO: number;
+		ROLES_NO: number;
+		PERMISSIONS_NO: number;
+		DEVICES_NO: number;
+		LOCATIONS_NO: number;
+		USER_GROUPS_NO: number;
+	}>;
+
+	FIRST_ACCOUNT: {
+		OWNER_USER: {
+			CONTACTS_NO: number;
+		};
+		LINKED_USER: {
+			CONTACTS_NO: number;
+		};
+	};
+
+	SECOND_ACCOUNT: {
+		OWNER_USER: {
+			CONTACTS_NO: number;
+		};
+		LINKED_USER: {
+			CONTACTS_NO: number;
+		};
+	};
 }
 
 export const SAFE_MYSQL_CHAR_REGEX = /[a-zA-Z0-9>!@#$%^&*()_+=-}{[\]:;"\\|?/.<,`~]/;

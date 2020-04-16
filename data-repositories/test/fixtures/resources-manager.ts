@@ -19,7 +19,8 @@ class ResourcesManager {
 
 	private currentQueue: Queue<RequiredResources> = this.normalQueue;
 
-	private currentRequiredResources: RequiredResources | null = null;
+	// @ts-ignore
+	private currentRequiredResources: RequiredResources;
 
 	public registerRequiredResources(resources: RequiredResources, priority: Priority = 'normal'): void {
 		if (priority === 'high' && !this.priorityQueue) {
@@ -30,6 +31,14 @@ class ResourcesManager {
 		}
 
 		this.currentQueue.enqueue(resources);
+	}
+
+	public markForDeletionInNextCleanup(resourceType: ResourceType): void {
+		if (!this.currentRequiredResources.release) {
+			this.currentRequiredResources.release = new Set();
+		}
+
+		this.currentRequiredResources.release.add(resourceType);
 	}
 
 	public createRequiredResources(): Promise<void> {
@@ -48,7 +57,7 @@ class ResourcesManager {
 				try {
 					await beginTransaction(connection);
 
-					await createEnvResources(this.currentRequiredResources!.acquire!);
+					await createEnvResources(this.currentRequiredResources.acquire!);
 
 					await commitTransaction(connection);
 
@@ -65,7 +74,7 @@ class ResourcesManager {
 	}
 
 	public cleanRequiredResources(): Promise<void> {
-		if (!this.currentRequiredResources || !this.currentRequiredResources.release || !this.currentRequiredResources.release.size) {
+		if (!this.currentRequiredResources.release || !this.currentRequiredResources.release.size) {
 			return Promise.resolve();
 		}
 

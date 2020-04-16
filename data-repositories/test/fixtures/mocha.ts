@@ -17,7 +17,7 @@ interface TestCase {
 	schedule(): void;
 	requires(resourceTypes: Array<ResourceType>): TestCase;
 	releases(resourceTypes: Array<ResourceType> | ResourceType | '@all' | '@nothing'): TestCase;
-	timeout(ms: number, append?: boolean): TestCase;
+	timeout(ms: number): TestCase;
 }
 
 function it(title: string, testBusiness: Func | AsyncFunc): TestCase {
@@ -167,12 +167,12 @@ it._impl = (title: string, testBusiness: Function, runningType: TestRunningType 
 			return this._addSingleResourceForCleanUp(resourceTypes);
 		},
 
-		timeout(ms, append = false): TestCase {
+		timeout(ms): TestCase {
 			if (runningType === 'skip') {
 				return this;
 			}
 
-			this._timeout = append ? this._timeout + ms : ms;
+			this._timeout = ms;
 
 			return this;
 		}
