@@ -1,8 +1,9 @@
 "use strict";
+
 const fs = require("fs");
 const spawn = require("child_process").spawn;
 const npmRun = require("npm-run");
-const constants = require('./constants');
+const constants = require('../../constants');
 
 const SPAWN_OPTIONS = constants.SPAWN_OPTIONS;
 
@@ -43,7 +44,6 @@ function runCoverageTests() {
 function coverageShow() {
   return spawn("http-server", ["coverage/"], SPAWN_OPTIONS);
 }
-
 
 function coverageFactory(module, gulp) {
    if (module === constants.ModuleLang.TS) {

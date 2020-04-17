@@ -1,7 +1,8 @@
 "use strict";
+
 const fs = require("fs");
 const spawn = require("child_process").spawn;
-const constants = require('./constants');
+const constants = require('../../constants');
 
 function stageTsConfig(done) {
   fs.readFile("tsconfig.json", "utf8", (err, content) => {

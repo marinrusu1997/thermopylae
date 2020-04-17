@@ -31,7 +31,7 @@ module.exports = {
 	],
 	"rules": {
 		"prettier/prettier": "error",
-		"import/prefer-default-export": "warn",
+
 		"lines-between-class-members": "warn",
 		"class-methods-use-this": "warn",
 
@@ -41,12 +41,16 @@ module.exports = {
 		"no-await-in-loop": "warn",
 		"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
 
+		"import/prefer-default-export": "warn",
+		"import/no-extraneous-dependencies": "warn",
+
 		"@typescript-eslint/ban-ts-ignore": "warn",
 		"@typescript-eslint/no-use-before-define": "warn",
 		"@typescript-eslint/no-namespace": "warn",
 
 		"node/no-unsupported-features/es-syntax": "warn",
 		"node/no-missing-import": "off",
+		"node/no-extraneous-import": "error",
 
 		"import/extensions": [
 			"error",
@@ -79,6 +83,17 @@ module.exports = {
 					".ts"
 				]
 			}
+		},
+		"import/no-extraneous-dependencies": {
+			"devDependencies": ["**/*.spec.ts"]
+		},
+
+		"node": {
+			"allowModules": [
+				"chai",
+				"mocha",
+				"gulp"
+			]
 		}
 	}
 };

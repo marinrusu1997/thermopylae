@@ -1,6 +1,7 @@
 "use strict";
+
 const npmRun = require("npm-run");
-const constants = require('./constants');
+const constants = require('../../constants');
 
 function test() {
   return npmRun.spawn("mocha", [], constants.SPAWN_OPTIONS);

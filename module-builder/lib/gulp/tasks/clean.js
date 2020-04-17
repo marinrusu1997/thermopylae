@@ -1,4 +1,5 @@
 "use strict";
+
 const del = require("del");
 
 function clean() {

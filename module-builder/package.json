@@ -1,0 +1,40 @@
+{
+  "name": "@thermopylae/module-builder",
+  "version": "0.0.1587138681",
+  "description": "Builder and common stuff for typescript modules",
+  "main": "lib/index.js",
+  "files": [
+    "lib/**/*.js"
+  ],
+  "scripts": {
+    "purge": "rm -rf node_modules package-lock.json",
+    "prepublishOnly": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp"
+  },
+  "author": "Rusu Marin <dimarusu2000@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "del": "5",
+    "npm-run": "5",
+    "@types/chai": "4",
+    "@types/mocha": "5",
+    "@types/node": "13",
+    "@typescript-eslint/eslint-plugin": "2",
+    "@typescript-eslint/parser": "2",
+    "chai": "4",
+    "eslint": "6",
+    "eslint-config-airbnb-base": "14",
+    "eslint-config-prettier": "6",
+    "eslint-plugin-import": "2",
+    "eslint-plugin-mocha": "6",
+    "eslint-plugin-node": "11",
+    "eslint-plugin-prettier": "3",
+    "eslint-plugin-security": "1",
+    "esm": "3",
+    "mocha": "6",
+    "nyc": "15",
+    "prettier": "1",
+    "ts-node": "8",
+    "typescript": "3",
+    "gulp": "4"
+  }
+}

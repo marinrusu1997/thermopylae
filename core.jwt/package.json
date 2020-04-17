@@ -1,0 +1,41 @@
+{
+    "name": "@thermopylae/core.jwt",
+    "description": "JWT Manager",
+    "keywords": [
+        "jwt",
+        "manager",
+        "session"
+    ],
+    "version": "0.0.1587134607",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "license": "ISC",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "test": "gulp test",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": "12.8.0"
+    },
+    "devDependencies": {
+        "@thermopylae/module-builder": "0"
+    }
+}
