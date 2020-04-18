@@ -1,6 +1,6 @@
 {
   "name": "@thermopylae/module-builder",
-  "version": "0.0.1587138681",
+  "version": "0.0.1587166059",
   "description": "Builder and common stuff for typescript modules",
   "main": "lib/index.js",
   "files": [

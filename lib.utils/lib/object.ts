@@ -23,7 +23,6 @@ type TraverseProcessor = (key: string, value: undefined | null | boolean | numbe
  * @param processor			Leaf processor
  * @param alterDeepClone	Alter a deep clone instead of the provided object.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function traverse(objectOrArray: object | Array<any>, processor: TraverseProcessor, alterDeepClone?: boolean): object {
 	const isArray = Array.isArray(objectOrArray);
 
@@ -120,17 +119,16 @@ function sort(obj: object, sortArray = true): object {
  * returns a flattened object
  * @link https://gist.github.com/penguinboy/762197
  */
-function flatten(obj: object): object {
+function flatten(obj: object): object | null {
 	if (obj === null) {
-		// @ts-ignore
 		return null;
 	}
 
 	const toReturn: any = {};
 
+	// eslint-disable-next-line no-restricted-syntax
 	for (const objKey in obj) {
-		// eslint-disable-next-line no-prototype-builtins
-		if (!obj.hasOwnProperty(objKey)) {
+		if (!Object.prototype.hasOwnProperty.call(obj, objKey)) {
 			continue;
 		}
 
@@ -144,7 +142,7 @@ function flatten(obj: object): object {
 				// @ts-ignore
 				toReturn[adjustedObjKey] = flatObject;
 			} else {
-				// eslint-disable-next-line guard-for-in
+				// eslint-disable-next-line no-restricted-syntax, guard-for-in
 				for (const flatObjectKey in flatObject) {
 					// @ts-ignore
 					toReturn[`${adjustedObjKey}.${flatObjectKey}`] = flatObject[flatObjectKey];
@@ -158,5 +156,4 @@ function flatten(obj: object): object {
 	return toReturn;
 }
 
-// eslint-disable-next-line no-undef
 export { clone, cloneDeep, isObject, isEmpty, traverse, TraverseProcessor, sort, flatten };

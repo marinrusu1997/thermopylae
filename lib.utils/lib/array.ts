@@ -1,4 +1,4 @@
-import { UnaryPredicate } from './declarations';
+import { UnaryPredicate } from '@thermopylae/core.declarations';
 
 /**
  * @link https://stackoverflow.com/a/15996017

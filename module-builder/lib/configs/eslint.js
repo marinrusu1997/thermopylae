@@ -39,19 +39,18 @@ module.exports = {
 		"no-param-reassign": "warn",
 		"no-use-before-define": "warn",
 		"no-await-in-loop": "warn",
+		"no-continue": "off",
+		"no-undef": "warn",
 		"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
 
-		"import/prefer-default-export": "warn",
 		"import/no-extraneous-dependencies": "warn",
-
-		"@typescript-eslint/ban-ts-ignore": "warn",
-		"@typescript-eslint/no-use-before-define": "warn",
-		"@typescript-eslint/no-namespace": "warn",
-
-		"node/no-unsupported-features/es-syntax": "warn",
-		"node/no-missing-import": "off",
-		"node/no-extraneous-import": "error",
-
+		"import/no-unresolved": [
+			"error",
+			{
+				"ignore": ['^@thermopylae/core\.declarations$']
+			}
+		],
+		"import/prefer-default-export": "warn",
 		"import/extensions": [
 			"error",
 			"ignorePackages",
@@ -60,7 +59,15 @@ module.exports = {
 				"ts": "never",
 				".d.ts": "never"
 			}
-		]
+		],
+
+		"@typescript-eslint/ban-ts-ignore": "warn",
+		"@typescript-eslint/no-use-before-define": "warn",
+		"@typescript-eslint/no-namespace": "warn",
+
+		"node/no-unsupported-features/es-syntax": "warn",
+		"node/no-missing-import": "off",
+		"node/no-extraneous-import": "error"
 	},
 	"globals": {
 		"Atomics": "readonly",

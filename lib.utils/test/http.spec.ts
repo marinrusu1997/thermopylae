@@ -16,38 +16,39 @@ describe('http spec', () => {
 
 	const port = 7000;
 	const baseURL = `http://127.0.0.1:${port}/`;
-	const server = http.createServer((req: IncomingMessage, res: ServerResponse): void => {
-		if (req.method === 'GET') {
-			res.writeHead(statusCodeForGETRequest, {
-				'Content-Type': contentTypeForGETRequest
-			});
-			res.end(typeof responseForGETRequest === 'string' ? responseForGETRequest : JSON.stringify(responseForGETRequest));
-		} else if (req.method === 'POST') {
-			let body: Uint8Array[] | string = [];
-			req.on('readable', () => {
-				const chunk = req.read();
-				if (chunk) {
-					(body as Uint8Array[]).push(chunk);
-				}
-			});
-			req.on('end', () => {
-				body = Buffer.concat(body as Uint8Array[]).toString();
-				expect(body).to.be.equal(dataWhichWasSentInPOSTReq);
-				res.writeHead(statusCodeForPOSTRequest);
-				res.end();
-			});
-		} else {
-			throw new Error('Unknown method');
-		}
+	let server: http.Server;
+
+	before(done => {
+		server = http.createServer((req: IncomingMessage, res: ServerResponse): void => {
+			if (req.method === 'GET') {
+				res.writeHead(statusCodeForGETRequest, {
+					'Content-Type': contentTypeForGETRequest
+				});
+				res.end(typeof responseForGETRequest === 'string' ? responseForGETRequest : JSON.stringify(responseForGETRequest));
+			} else if (req.method === 'POST') {
+				let body: Uint8Array[] | string = [];
+				req.on('readable', () => {
+					const chunk = req.read();
+					if (chunk) {
+						(body as Uint8Array[]).push(chunk);
+					}
+				});
+				req.on('end', () => {
+					body = Buffer.concat(body as Uint8Array[]).toString();
+					expect(body).to.be.equal(dataWhichWasSentInPOSTReq);
+					res.writeHead(statusCodeForPOSTRequest);
+					res.end();
+				});
+			} else {
+				throw new Error('Unknown method');
+			}
+		});
+
+		server.listen(port, done);
 	});
 
-	before(() => {
-		server.listen(port);
-	});
-
-	after(() => {
-		// eslint-disable-next-line no-console
-		server.close(err => console.error(err));
+	after(done => {
+		server.close(done);
 	});
 
 	it('throws when unsupported status code is received (redirects)', done => {

@@ -1,6 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import Exception from '@marin/lib.error';
+
+import { Exception } from '@thermopylae/lib.exception';
 import { generateRandom, generateArbitrary, toNumber, ErrorCodes, toLetter } from '../lib/number';
 
 describe('number spec', () => {

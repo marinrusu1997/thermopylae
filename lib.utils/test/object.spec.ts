@@ -14,7 +14,7 @@ describe('object spec', () => {
 			expect(isObject('1')).to.be.eq(false);
 			expect(isObject(['1'])).to.be.eq(false);
 			expect(isObject(Symbol('1'))).to.be.eq(false);
-			expect(isObject(() => {})).to.be.eq(false);
+			expect(isObject(() => ({}))).to.be.eq(false);
 			expect(isObject({})).to.be.eq(true);
 		});
 	});
@@ -46,9 +46,9 @@ describe('object spec', () => {
 						strVal: 'value',
 						objVal: {
 							symbolVal: Symbol('sumbol'),
-							functionVal: () => {},
+							functionVal: () => ({}),
 							objVal: {
-								arrVal: [1, () => {}, Symbol('symbol')]
+								arrVal: [1, () => ({}), Symbol('symbol')]
 							}
 						}
 					}
@@ -109,11 +109,11 @@ describe('object spec', () => {
 				1,
 				'str',
 				Symbol('str'),
-				() => {},
+				() => ({}),
 				{
 					str: 'value',
 					obj: {
-						fun: () => {},
+						fun: () => ({}),
 						sym: Symbol('s'),
 						num: 1
 					}
@@ -257,7 +257,7 @@ describe('object spec', () => {
 				'c.c.a': undefined,
 				'c.c.b': symbol
 			};
-			const flattened = flatten(obj);
+			const flattened = flatten(obj) as object;
 
 			expect(flattened).to.be.deep.eq(expected);
 			expect(Object.keys(flattened).length).to.be.eq(12);

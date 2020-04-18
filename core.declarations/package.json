@@ -1,0 +1,34 @@
+{
+    "name": "@thermopylae/core.declarations",
+    "description": "Declarations used by Thermopylae framework",
+    "keywords": [
+        "core",
+        "declarations"
+    ],
+    "version": "0.0.1587165519",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "license": "ISC",
+    "types": "lib/index.d.ts",
+    "files": [
+        "lib/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.d.ts\" --fix",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "prepublishOnly": "npm run lint && npm run bumpVersion && gulp stickToMajorSemver"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": "12.8.0"
+    },
+    "devDependencies": {
+        "@thermopylae/module-builder": "0"
+    }
+}

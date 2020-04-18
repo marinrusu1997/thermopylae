@@ -1,4 +1,4 @@
-import { AsyncFunction } from './declarations';
+import { AsyncFunction } from '@thermopylae/core.declarations';
 
 /**
  * like Promise.all() but runs in series instead of parallel

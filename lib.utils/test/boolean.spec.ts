@@ -1,6 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import Exception from '@marin/lib.error';
+
+import { Exception } from '@thermopylae/lib.exception';
 import { ErrorCodes, toBoolean } from '../lib/boolean';
 
 describe('boolean spec', () => {

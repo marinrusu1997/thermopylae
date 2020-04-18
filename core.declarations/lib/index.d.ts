@@ -7,6 +7,10 @@ export const enum Libraries {
 	UTILS = 'LIB_UTILS'
 }
 
+export const enum CoreModules {
+	JWT = 'CORE_JWT'
+}
+
 export const enum Clients {
 	SMS = 'SMS_CLIENT',
 	EMAIL = 'EMAIL_CLIENT',

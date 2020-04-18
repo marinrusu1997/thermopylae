@@ -1,5 +1,6 @@
 import { describe, it } from 'mocha';
-import Exception from '@marin/lib.error';
+
+import { Exception } from '@thermopylae/lib.exception';
 import { chai } from './chai';
 import { token as tokenModule } from '../lib';
 

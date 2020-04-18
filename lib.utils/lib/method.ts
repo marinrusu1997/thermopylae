@@ -1,4 +1,4 @@
-import Exception from '@marin/lib.error';
+import { Exception } from '@thermopylae/lib.exception';
 
 type ErrorHandler = (error: Error | Exception) => void;
 
