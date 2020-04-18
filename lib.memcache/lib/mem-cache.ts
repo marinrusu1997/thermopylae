@@ -45,7 +45,7 @@ class MemCache<Key = string, Value = any> {
 	 * @param value		Value
 	 * @param ttlSec 	Time to live in seconds
 	 */
-	public set(key: Key, value: Value, ttlSec?: number): void {
+	public set(key: Key, value: Value, ttlSec?: number): this {
 		value = this.config.useClones ? object.cloneDeep(value) : value;
 		this.cache.set(key, value);
 
@@ -55,30 +55,41 @@ class MemCache<Key = string, Value = any> {
 		}
 
 		this.events.emit('set', key, value);
+
+		return this;
 	}
 
 	/**
 	 * Stores multiple items. Time to live must be in seconds.
 	 * @param 	items
 	 */
-	public mset(items: Array<CacheableItem<Key, Value>>): void {
+	public mset(items: Array<CacheableItem<Key, Value>>): this {
 		items.forEach(item => this.set(item.key, item.value, item.ttlSec));
+
+		return this;
 	}
 
 	/**
-	 * Replaces the content stored under specified key, without modifying its ttlSec timer.
+	 * Inserts a new entry in cache if the key not found.
+	 * Updates entry and ttl if key is found.
 	 *
 	 * @param key
 	 * @param value
+	 * @param ttlSec
 	 *
 	 * @return {boolean} success only when key found in cache, and then replaced it content. if key not found returns false
 	 */
-	public replace(key: Key, value: Value): boolean {
-		if (this.cache.get(key)) {
-			this.cache.set(key, value);
-			return true;
+	public upset(key: Key, value: Value, ttlSec?: number): this {
+		if (typeof this.cache.get(key) === 'undefined') {
+			return this.set(key, value, ttlSec);
 		}
-		return false;
+
+		this.cache.set(key, value);
+
+		ttlSec = ttlSec != null ? ttlSec : this.config.defaultTtlSec;
+		this.gc.updateTtl(key, ttlSec);
+
+		return this;
 	}
 
 	/**
@@ -120,6 +131,13 @@ class MemCache<Key = string, Value = any> {
 	}
 
 	/**
+	 * Check cache is empty
+	 */
+	public empty(): boolean {
+		return this.cache.size === 0;
+	}
+
+	/**
 	 * Flush all entries from cache (i.e clears the cache)
 	 */
 	public clear(): void {
@@ -134,7 +152,7 @@ class MemCache<Key = string, Value = any> {
 	 * @param event
 	 * @param listener
 	 */
-	public on(event: EventType, listener: Listener<Key, Value>): MemCache<Key, Value> {
+	public on(event: EventType, listener: Listener<Key, Value>): this {
 		this.events.on(event, listener);
 		return this;
 	}
@@ -145,7 +163,7 @@ class MemCache<Key = string, Value = any> {
 	 * @param {EventType}	event
 	 * @param {Listener}	listener
 	 */
-	public off(event: EventType, listener: Listener<Key, Value>): MemCache<Key, Value> {
+	public off(event: EventType, listener: Listener<Key, Value>): this {
 		this.events.off(event, listener);
 		return this;
 	}
@@ -155,7 +173,7 @@ class MemCache<Key = string, Value = any> {
 	 *
 	 * @param {EventType} 	event
 	 */
-	public removeAllListeners(event: EventType): MemCache<Key, Value> {
+	public removeAllListeners(event: EventType): this {
 		this.events.removeAllListeners(event);
 		return this;
 	}

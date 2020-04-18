@@ -87,46 +87,61 @@ describe('MemCache spec', () => {
 		expect(memCache.keys()).to.be.equalTo(items.map(item => item.key));
 	});
 
-	it("replaces existing key, without affecting it's ttl", done => {
+	it('upsert adds a new entry if key not found', async () => {
 		const memCache = new MemCache();
+		memCache
+			.set('key1', 'value1', 1)
+			.set('key2', 'value2', 1)
+			.set('key3', 'value3', 1);
 
-		const KEY = 'key';
-		const VALUE1 = 'value1';
-		const VALUE2 = 'value2';
+		memCache.upset('key4', 'value4', 2);
 
-		memCache.set(KEY, VALUE1, 1);
+		await chrono.sleep(1050);
+		const keys = memCache.keys();
+		expect(keys.length).to.be.eq(1);
+		expect(keys[0]).to.be.eq('key4');
 
-		setTimeout(() => {
-			try {
-				expect(memCache.get(KEY)).to.be.eq(VALUE1);
-				expect(memCache.replace(KEY, VALUE2)).to.be.eq(true);
-			} catch (e) {
-				done(e);
-			}
-		}, 500);
+		await chrono.sleep(1050);
+		expect(memCache.get('key4')).to.be.eq(undefined);
+	}).timeout(2200);
 
-		setTimeout(() => {
-			try {
-				expect(memCache.get(KEY)).to.be.eq(VALUE2);
-			} catch (e) {
-				done(e);
-			}
-		}, 700);
-
-		setTimeout(() => {
-			try {
-				expect(memCache.get(KEY)).to.be.eq(undefined);
-				done();
-			} catch (e) {
-				done(e);
-			}
-		}, 1050);
-	});
-
-	it("doesn't replace, if it is not present", () => {
+	it('upsert updates entry if already exists', async () => {
 		const memCache = new MemCache();
+		memCache
+			.set('key1', 'value1', 1)
+			.set('key2', 'value2', 2)
+			.set('key2.1', 'value2.1', 2)
+			.set('key3', 'value3', 3);
 
-		expect(memCache.replace('not-exists', 'random')).to.be.eq(false);
+		await chrono.sleep(1050);
+		expect(memCache.keys()).to.be.equalTo(['key2', 'key2.1', 'key3']);
+
+		memCache.upset('key3', 'value3.1', 1);
+		expect(memCache.get('key3')).to.be.eq('value3.1');
+
+		memCache.upset('key2.1', 'value2.2', 2);
+		expect(memCache.get('key2.1')).to.be.eq('value2.2');
+
+		await chrono.sleep(1050);
+		expect(memCache.keys().length).to.be.eq(1);
+		expect(memCache.get('key2.1')).to.be.eq('value2.2');
+
+		await chrono.sleep(1050);
+		expect(memCache.empty()).to.be.eq(true);
+	}).timeout(3300);
+
+	it('upsert fails to update entry setting new ttl to infinite', () => {
+		const memCache = new MemCache();
+		memCache.upset('key', 'val', 0);
+
+		let err;
+		try {
+			memCache.upset('key', 'val', 0);
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err).to.haveOwnProperty('message', 'UPDATING WITH INFINITE TTL IN NOT SUPPORTED YET');
 	});
 
 	it('returns positive answer when key is present in cache', () => {

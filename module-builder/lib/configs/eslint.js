@@ -41,6 +41,7 @@ module.exports = {
 		"no-await-in-loop": "warn",
 		"no-continue": "off",
 		"no-undef": "warn",
+		"no-restricted-syntax": "warn",
 		"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
 
 		"import/no-extraneous-dependencies": "warn",

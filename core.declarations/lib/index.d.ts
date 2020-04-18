@@ -68,3 +68,6 @@ export type BinaryPredicateAsync<T, V> = (first: T, second: V) => Promise<boolea
 
 export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 export type PromiseReject = (reason?: any) => void;
+
+export type Seconds = number;
+export type Minutes = number;

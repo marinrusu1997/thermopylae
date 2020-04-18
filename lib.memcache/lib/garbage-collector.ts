@@ -1,6 +1,5 @@
 import { chrono } from '@thermopylae/lib.utils';
-import { Heap } from 'typescript-collections';
-import { createException, ErrorCodes, ErrorMessages } from './error';
+import { Heap } from './heap';
 
 const INFINITE_TTL = 0;
 
@@ -39,7 +38,7 @@ class GarbageCollector<Key = string> {
 			const whenToDeleteOfPrevItem = item!.whenToDelete;
 			do {
 				this.deleter(item!.key);
-				this.trackedItems.removeRoot();
+				this.trackedItems.pop();
 				item = this.trackedItems.peek();
 				if (item && item.whenToDelete !== whenToDeleteOfPrevItem) {
 					item = undefined;
@@ -57,20 +56,36 @@ class GarbageCollector<Key = string> {
 	 *
 	 * @param key	Key which needs to be tracked
 	 * @param ttl	Time to live in seconds
-	 *
-	 * @throws {Exception} When tracking failed
 	 */
 	public track(key: Key, ttl: number): void {
-		const item: TrackedItem<Key> = {
+		this.trackedItems.push({
 			key,
 			whenToDelete: chrono.dateToUNIX() + ttl
-		};
-		if (!this.trackedItems.add(item)) {
-			throw createException(ErrorCodes.ITEM_TRACKING_FAILED, `${ErrorMessages.ITEM_TRACKING_FAILED} ${key}`);
-		}
+		});
+
 		if (this.trackedItems.size() === 1) {
 			this.start(ttl); // restart GC
 		}
+	}
+
+	/**
+	 * Updates the ttl of an existing key.
+	 * This is a costly operation, as it requires
+	 * rebuilding invariants of internal data structures.
+	 *
+	 * @param key
+	 * @param ttl
+	 */
+	public updateTtl(key: Key, ttl: number): void {
+		if (ttl === INFINITE_TTL) {
+			throw new Error('UPDATING WITH INFINITE TTL IN NOT SUPPORTED YET');
+		}
+
+		const update: TrackedItem<Key> = {
+			key,
+			whenToDelete: chrono.dateToUNIX() + ttl
+		};
+		this.trackedItems.updateItem(update, item => item.key === key);
 	}
 
 	/**

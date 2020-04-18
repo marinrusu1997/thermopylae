@@ -4,6 +4,7 @@ import { PublicPrivateKeys, SessionTokens, PromiseResolve, PromiseReject } from 
 import { IssuedJwtPayload, JwtPayload } from './declarations';
 import { AbstractInvalidationStrategy, JwtAccessToken } from './invalidation/abstract-invalidation-strategy';
 import { createException, ErrorCodes } from './error';
+import { SubjectRoleEncoderDecoder } from './utils';
 
 type OnAudienceResolved = (error: Error | null, audience: string | Array<string>) => void;
 
@@ -82,8 +83,12 @@ class JwtSessionManager extends EventEmitter {
 					return resolve(decoded as IssuedJwtPayload);
 				}
 
+				const [sub, role] = SubjectRoleEncoderDecoder.decode((decoded as IssuedJwtPayload).sub);
+
 				const jwtAccessToken: JwtAccessToken = {
-					sub: (decoded as IssuedJwtPayload).sub,
+					sub,
+					iat: (decoded as IssuedJwtPayload).iat,
+					role,
 					anc: (decoded as IssuedJwtPayload).anc
 				};
 
@@ -102,13 +107,13 @@ class JwtSessionManager extends EventEmitter {
 		});
 	}
 
-	public invalidateSession(jwtAccessTokenPayload: IssuedJwtPayload, refreshToken: string | null): Promise<void> {
+	public invalidateSession(jwtAccessTokenPayload: IssuedJwtPayload): Promise<void> {
 		if (!this.invalidationStrategy) {
 			return Promise.resolve();
 		}
 
 		return new Promise<void>((resolve, reject) =>
-			this.invalidationStrategy!.invalidateSession(jwtAccessTokenPayload, refreshToken, invalidateSessionErr => {
+			this.invalidationStrategy!.invalidateSession(jwtAccessTokenPayload, invalidateSessionErr => {
 				if (invalidateSessionErr) {
 					return reject(invalidateSessionErr);
 				}
@@ -120,20 +125,20 @@ class JwtSessionManager extends EventEmitter {
 		);
 	}
 
-	public invalidateAllSessions(jwtAccessTokenPayload: IssuedJwtPayload): Promise<number> {
+	public invalidateAllSessions(jwtAccessTokenPayload: IssuedJwtPayload): Promise<void> {
 		if (!this.invalidationStrategy) {
-			return Promise.resolve(0);
+			return Promise.resolve();
 		}
 
-		return new Promise<number>((resolve, reject) =>
-			this.invalidationStrategy!.invalidateAllSessions(jwtAccessTokenPayload, (invalidateAllSessionsErr, invalidatedSessionsNo) => {
+		return new Promise<void>((resolve, reject) =>
+			this.invalidationStrategy!.invalidateAllSessions(jwtAccessTokenPayload, invalidateAllSessionsErr => {
 				if (invalidateAllSessionsErr) {
 					return reject(invalidateAllSessionsErr);
 				}
 
 				this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtAccessTokenPayload);
 
-				return resolve(invalidatedSessionsNo);
+				return resolve();
 			})
 		);
 	}
@@ -159,8 +164,6 @@ class JwtSessionManager extends EventEmitter {
 		resolve: PromiseResolve<SessionTokens>,
 		reject: PromiseReject
 	): void {
-		let refreshToken: string | undefined;
-
 		const signCallback = (signErr: Error | null, encoded: string | undefined) => {
 			if (signErr) {
 				return reject(signErr);
@@ -168,8 +171,15 @@ class JwtSessionManager extends EventEmitter {
 			return resolve({ accessToken: encoded!, refreshToken });
 		};
 
+		let refreshToken: string | undefined;
+
+		if (payload.role) {
+			payload.sub = SubjectRoleEncoderDecoder.encode(payload.sub, payload.role);
+			delete payload.role;
+		}
+
 		if (this.invalidationStrategy) {
-			return this.invalidationStrategy.generateRefreshToken(payload, (generateRefreshTokenErr, anchorableRefreshToken) => {
+			return this.invalidationStrategy.generateRefreshToken((generateRefreshTokenErr, anchorableRefreshToken) => {
 				if (generateRefreshTokenErr) {
 					return reject(generateRefreshTokenErr);
 				}

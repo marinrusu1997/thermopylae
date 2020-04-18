@@ -1,6 +1,8 @@
 declare interface JwtAccessToken {
 	sub: string;
+	iat: number;
 	anc?: string;
+	role?: string;
 }
 
 declare interface AnchorableRefreshToken {
@@ -14,20 +16,11 @@ declare type IsAccessTokenStillValidCallback = (error: Error | null, valid?: boo
 
 declare type InvalidateSessionCallback = (error: Error | null) => void;
 
-declare type InvalidateAllSessionsCallback = (error: Error | null, invalidatedSessionsNo: number) => void;
-
 declare interface AbstractInvalidationStrategy {
 	generateRefreshToken(done: GenerateRefreshTokenCallback): void;
 	isAccessTokenStillValid(jwtAccessToken: JwtAccessToken, done: IsAccessTokenStillValidCallback): void;
-	invalidateSession(jwtAccessToken: JwtAccessToken, refreshToken: string | null, done: InvalidateSessionCallback): void;
-	invalidateAllSessions(jwtAccessToken: JwtAccessToken, done: InvalidateAllSessionsCallback): void;
+	invalidateSession(jwtAccessToken: JwtAccessToken, done: InvalidateSessionCallback): void;
+	invalidateAllSessions(jwtAccessToken: JwtAccessToken, done: InvalidateSessionCallback): void;
 }
 
-export {
-	GenerateRefreshTokenCallback,
-	IsAccessTokenStillValidCallback,
-	InvalidateSessionCallback,
-	InvalidateAllSessionsCallback,
-	JwtAccessToken,
-	AbstractInvalidationStrategy
-};
+export { GenerateRefreshTokenCallback, IsAccessTokenStillValidCallback, InvalidateSessionCallback, JwtAccessToken, AbstractInvalidationStrategy };

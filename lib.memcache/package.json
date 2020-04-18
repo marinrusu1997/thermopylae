@@ -6,7 +6,7 @@
         "cache",
         "memory"
     ],
-    "version": "0.0.1587218673",
+    "version": "0.0.1587245744",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -37,8 +37,7 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0",
-        "typescript-collections": "1"
+        "@thermopylae/lib.utils": "0"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
