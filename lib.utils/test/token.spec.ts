@@ -1,22 +1,37 @@
 import { describe, it } from 'mocha';
-
 import { Exception } from '@thermopylae/lib.exception';
 import { chai } from './chai';
 import { token as tokenModule } from '../lib';
 
 const { expect } = chai;
-const { ErrorCodes, fastUnSecureHash, generate, TokenGenerationType } = tokenModule;
+const { ErrorCodes, fastUnSecureHash, generate } = tokenModule;
 
 describe('token spec', () => {
 	describe('generate spec', () => {
-		it('generates cryptographically-strong token', () => {
-			const token = generate(TokenGenerationType.CRYPTOGRAPHYCAL);
-			expect(token.length).to.be.equal(36);
+		function generateTokenSpec(tokenGenerationType: tokenModule.TokenGenerationType): void {
+			it('generates token of default length', () => {
+				const token = generate(tokenGenerationType);
+				expect(token.length).to.be.equal(32);
+			});
+
+			it('generates tokens with variable length', () => {
+				for (let i = 1; i < 100; i++) {
+					const token = generate(tokenGenerationType, i);
+					expect(token.length).to.be.equal(i);
+				}
+			});
+		}
+
+		// eslint-disable-next-line mocha/no-setup-in-describe
+		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL} generation type`, () => {
+			// eslint-disable-next-line mocha/no-setup-in-describe
+			generateTokenSpec(tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL);
 		});
 
-		it('generates normal token', () => {
-			const token = generate(TokenGenerationType.NORMAL);
-			expect(token.length).to.be.equal(36);
+		// eslint-disable-next-line mocha/no-setup-in-describe
+		describe(`${tokenModule.TokenGenerationType.NORMAL} generation type`, () => {
+			// eslint-disable-next-line mocha/no-setup-in-describe
+			generateTokenSpec(tokenModule.TokenGenerationType.NORMAL);
 		});
 
 		it('throws when unknown token generation mechanism is specified', () => {
@@ -29,7 +44,10 @@ describe('token spec', () => {
 			}
 			expect(err).to.be.instanceOf(Exception);
 			expect(err).to.haveOwnProperty('code', ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE);
-			expect(err).to.haveOwnProperty('message', `Received: invalid. Allowed: ${TokenGenerationType.CRYPTOGRAPHYCAL}, ${TokenGenerationType.NORMAL}`);
+			expect(err).to.haveOwnProperty(
+				'message',
+				`Received: invalid. Allowed: ${tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL}, ${tokenModule.TokenGenerationType.NORMAL}`
+			);
 		});
 	});
 

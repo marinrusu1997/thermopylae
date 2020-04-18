@@ -1,6 +1,14 @@
-import { IssuedJwtPayload } from '../declarations';
+declare interface JwtAccessToken {
+	sub: string;
+	anc?: string;
+}
 
-declare type GenerateRefreshTokenCallback = (error: Error | null, token?: string) => void;
+declare interface AnchorableRefreshToken {
+	refreshToken: string;
+	anchor: string;
+}
+
+declare type GenerateRefreshTokenCallback = (error: Error | null, anchorableRefreshToken?: AnchorableRefreshToken) => void;
 
 declare type IsAccessTokenStillValidCallback = (error: Error | null, valid?: boolean) => void;
 
@@ -10,9 +18,16 @@ declare type InvalidateAllSessionsCallback = (error: Error | null, invalidatedSe
 
 declare interface AbstractInvalidationStrategy {
 	generateRefreshToken(done: GenerateRefreshTokenCallback): void;
-	isAccessTokenStillValid(jwtAccessToken: IssuedJwtPayload, done: IsAccessTokenStillValidCallback): void;
-	invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string | null, done: InvalidateSessionCallback): void;
-	invalidateAllSessions(jwtAccessToken: IssuedJwtPayload, done: InvalidateAllSessionsCallback): void;
+	isAccessTokenStillValid(jwtAccessToken: JwtAccessToken, done: IsAccessTokenStillValidCallback): void;
+	invalidateSession(jwtAccessToken: JwtAccessToken, refreshToken: string | null, done: InvalidateSessionCallback): void;
+	invalidateAllSessions(jwtAccessToken: JwtAccessToken, done: InvalidateAllSessionsCallback): void;
 }
 
-export { GenerateRefreshTokenCallback, IsAccessTokenStillValidCallback, InvalidateSessionCallback, InvalidateAllSessionsCallback, AbstractInvalidationStrategy };
+export {
+	GenerateRefreshTokenCallback,
+	IsAccessTokenStillValidCallback,
+	InvalidateSessionCallback,
+	InvalidateAllSessionsCallback,
+	JwtAccessToken,
+	AbstractInvalidationStrategy
+};

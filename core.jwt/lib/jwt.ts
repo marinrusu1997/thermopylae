@@ -1,10 +1,30 @@
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
-import { object } from '@thermopylae/lib.utils';
-import { AudienceResolver, IssuedJwtPayload, JwtManagerOptions, JwtPayload, PublicPrivateKeys, SessionTokens } from './declarations';
-import { AbstractInvalidationStrategy } from './invalidation/abstract-invalidation-strategy';
+import { EventEmitter } from 'events';
+import { PublicPrivateKeys, SessionTokens, PromiseResolve, PromiseReject } from '@thermopylae/core.declarations';
+import { IssuedJwtPayload, JwtPayload } from './declarations';
+import { AbstractInvalidationStrategy, JwtAccessToken } from './invalidation/abstract-invalidation-strategy';
 import { createException, ErrorCodes } from './error';
 
-class JwtSessionManager {
+type OnAudienceResolved = (error: Error | null, audience: string | Array<string>) => void;
+
+type AudienceResolver = (subject: string, done: OnAudienceResolved) => void;
+
+interface JwtManagerOptions {
+	readonly secret: string | Buffer | PublicPrivateKeys;
+	readonly signOptions?: SignOptions;
+	readonly verifyOptions?: VerifyOptions;
+	readonly invalidationStrategy?: AbstractInvalidationStrategy;
+	readonly resolveAudience?: AudienceResolver;
+}
+
+const enum JwtManagerEvents {
+	SESSION_INVALIDATED = 'session_invalidated',
+	ALL_SESSIONS_INVALIDATED = 'all_sessions_invalidated'
+}
+
+declare type JwtManagerEventListener = (jwtAccessToken: JwtAccessToken) => void;
+
+class JwtSessionManager extends EventEmitter {
 	private readonly secret: string | Buffer | PublicPrivateKeys;
 
 	private readonly signOptions?: SignOptions;
@@ -16,6 +36,8 @@ class JwtSessionManager {
 	private readonly resolveAudience?: AudienceResolver;
 
 	constructor(options: JwtManagerOptions) {
+		super();
+
 		this.secret = options.secret;
 		this.signOptions = options.signOptions;
 		this.verifyOptions = options.verifyOptions;
@@ -25,37 +47,33 @@ class JwtSessionManager {
 
 	public createSession(payload: JwtPayload, signOptions?: SignOptions): Promise<SessionTokens> {
 		signOptions = { ...this.signOptions, ...signOptions };
-		// FIXME resolve audience
+		signOptions.mutatePayload = true;
 
-		const secret = this.getSecret('private', signOptions);
+		const secret = this.getSecret('private');
 
 		return new Promise<SessionTokens>((resolve, reject) => {
-			sign(payload, secret, (signErr, encoded) => {
-				if (signErr) {
-					return reject(signErr);
-				}
-
-				if (!this.invalidationStrategy) {
-					return resolve({ accessToken: encoded! });
-				}
-
-				return this.invalidationStrategy.generateRefreshToken((generateRefreshTokenErr, refreshToken) => {
-					if (generateRefreshTokenErr) {
-						return reject(generateRefreshTokenErr);
+			if (!signOptions!.audience && this.resolveAudience) {
+				return this.resolveAudience(signOptions!.subject!, (resolveAudienceErr, audience) => {
+					if (resolveAudienceErr) {
+						return reject(resolveAudienceErr);
 					}
 
-					return resolve({ accessToken: encoded!, refreshToken });
+					signOptions!.audience = audience;
+
+					return this.doSign(payload, secret, signOptions!, resolve, reject);
 				});
-			});
+			}
+
+			return this.doSign(payload, secret, signOptions!, resolve, reject);
 		});
 	}
 
-	public validateSession(jwtAccessToken: string, verifyOptions?: VerifyOptions): Promise<IssuedJwtPayload> {
+	public validateSession(jwtAccessTokenString: string, verifyOptions?: VerifyOptions): Promise<IssuedJwtPayload> {
 		verifyOptions = { ...this.verifyOptions, ...verifyOptions };
-		const secret = this.getSecret('public', verifyOptions);
+		const secret = this.getSecret('public');
 
 		return new Promise<IssuedJwtPayload>((resolve, reject) => {
-			verify(jwtAccessToken, secret, verifyOptions, (verifyError, decoded) => {
+			verify(jwtAccessTokenString, secret, verifyOptions, (verifyError, decoded) => {
 				if (verifyError) {
 					return reject(verifyError);
 				}
@@ -64,7 +82,12 @@ class JwtSessionManager {
 					return resolve(decoded as IssuedJwtPayload);
 				}
 
-				return this.invalidationStrategy.isAccessTokenStillValid(decoded as IssuedJwtPayload, (isValidErr, isValid) => {
+				const jwtAccessToken: JwtAccessToken = {
+					sub: (decoded as IssuedJwtPayload).sub,
+					anc: (decoded as IssuedJwtPayload).anc
+				};
+
+				return this.invalidationStrategy.isAccessTokenStillValid(jwtAccessToken, (isValidErr, isValid) => {
 					if (isValidErr) {
 						return reject(isValidErr);
 					}
@@ -79,16 +102,88 @@ class JwtSessionManager {
 		});
 	}
 
-	private getSecret(keyType: 'public' | 'private', options: SignOptions | VerifyOptions): string | Buffer {
+	public invalidateSession(jwtAccessTokenPayload: IssuedJwtPayload, refreshToken: string | null): Promise<void> {
+		if (!this.invalidationStrategy) {
+			return Promise.resolve();
+		}
+
+		return new Promise<void>((resolve, reject) =>
+			this.invalidationStrategy!.invalidateSession(jwtAccessTokenPayload, refreshToken, invalidateSessionErr => {
+				if (invalidateSessionErr) {
+					return reject(invalidateSessionErr);
+				}
+
+				this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtAccessTokenPayload);
+
+				return resolve();
+			})
+		);
+	}
+
+	public invalidateAllSessions(jwtAccessTokenPayload: IssuedJwtPayload): Promise<number> {
+		if (!this.invalidationStrategy) {
+			return Promise.resolve(0);
+		}
+
+		return new Promise<number>((resolve, reject) =>
+			this.invalidationStrategy!.invalidateAllSessions(jwtAccessTokenPayload, (invalidateAllSessionsErr, invalidatedSessionsNo) => {
+				if (invalidateAllSessionsErr) {
+					return reject(invalidateAllSessionsErr);
+				}
+
+				this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtAccessTokenPayload);
+
+				return resolve(invalidatedSessionsNo);
+			})
+		);
+	}
+
+	public on(event: JwtManagerEvents, listener: JwtManagerEventListener): this {
+		super.on(event, listener);
+
+		return this;
+	}
+
+	private getSecret(keyType: 'public' | 'private'): string | Buffer {
 		if (typeof this.secret === 'string' || this.secret instanceof Buffer) {
 			return this.secret;
 		}
 
-		if (object.isEmpty(options)) {
-			throw createException(ErrorCodes.NO_OPTIONS, `Options are required when using ${keyType} RSA/ECDSA key. `);
+		return this.secret[keyType];
+	}
+
+	private doSign(
+		payload: JwtPayload,
+		secret: string | Buffer,
+		signOptions: SignOptions,
+		resolve: PromiseResolve<SessionTokens>,
+		reject: PromiseReject
+	): void {
+		let refreshToken: string | undefined;
+
+		const signCallback = (signErr: Error | null, encoded: string | undefined) => {
+			if (signErr) {
+				return reject(signErr);
+			}
+			return resolve({ accessToken: encoded!, refreshToken });
+		};
+
+		if (this.invalidationStrategy) {
+			return this.invalidationStrategy.generateRefreshToken(payload, (generateRefreshTokenErr, anchorableRefreshToken) => {
+				if (generateRefreshTokenErr) {
+					return reject(generateRefreshTokenErr);
+				}
+
+				if (anchorableRefreshToken) {
+					refreshToken = anchorableRefreshToken.refreshToken;
+					payload.anc = anchorableRefreshToken.anchor;
+				}
+
+				return sign(payload, secret, signOptions, signCallback);
+			});
 		}
 
-		return this.secret[keyType];
+		return sign(payload, secret, signOptions, signCallback);
 	}
 }
 

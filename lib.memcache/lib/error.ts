@@ -1,7 +1,8 @@
-import { Exception } from '@marin/lib.error';
-import { Libraries } from '@marin/lib.utils/dist/enums';
+import { Exception } from '@thermopylae/lib.exception';
+import { Libraries } from '@thermopylae/core.declarations';
 
 const ErrorCodes = {
+	DELETE_NOT_ALLOWED: 'DELETE_NOT_ALLOWED',
 	ITEM_TRACKING_FAILED: 'ITEM_TRACKING_FAILED'
 };
 

@@ -1,4 +1,4 @@
-import { chrono } from '@marin/lib.utils';
+import { chrono } from '@thermopylae/lib.utils';
 import { describe, it } from 'mocha';
 import { chai } from './chai';
 import { GarbageCollector } from '../lib/garbage-collector';

@@ -10,18 +10,35 @@ const enum TokenGenerationType {
 	NORMAL = 'NORMAL'
 }
 
-function generate(generationType: TokenGenerationType = TokenGenerationType.CRYPTOGRAPHYCAL): string {
+const UUID_DEFAULT_LENGTH = 32;
+const UUID_BUFFER_OFFSET = 16;
+
+function generate(generationType = TokenGenerationType.CRYPTOGRAPHYCAL, length = UUID_DEFAULT_LENGTH): string {
+	let alg;
+
 	switch (generationType) {
 		case TokenGenerationType.CRYPTOGRAPHYCAL:
-			return v4();
+			alg = v4;
+			break;
 		case TokenGenerationType.NORMAL:
-			return v1();
+			alg = v1;
+			break;
 		default:
 			throw createException(
 				ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE,
 				`Received: ${generationType}. Allowed: ${TokenGenerationType.CRYPTOGRAPHYCAL}, ${TokenGenerationType.NORMAL}`
 			);
 	}
+
+	const iterations = Math.ceil(length / UUID_DEFAULT_LENGTH);
+
+	const buffer = Buffer.alloc(iterations * UUID_BUFFER_OFFSET);
+
+	for (let i = 0; i < iterations; i++) {
+		alg(null, buffer, i * UUID_BUFFER_OFFSET);
+	}
+
+	return buffer.toString('hex').slice(0, length);
 }
 
 /**
@@ -57,4 +74,4 @@ function fastUnSecureHash(obj: any): number {
 	return hashValue;
 }
 
-export { ErrorCodes, TokenGenerationType, generate, fastUnSecureHash };
+export { ErrorCodes, TokenGenerationType, UUID_DEFAULT_LENGTH, generate, fastUnSecureHash };

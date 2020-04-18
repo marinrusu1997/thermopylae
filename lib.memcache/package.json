@@ -1,61 +1,49 @@
 {
-  "name": "@marin/lib.memcache",
-  "description": "Memory cache",
-  "keywords": [
-    "events",
-    "cache",
-    "memory"
-  ],
-  "version": "1.0.0",
-  "author": "Rusu Marin <dimarusu2000@gmail.com>",
-  "license": "ISC",
-  "main": "dist/lib/index.js",
-  "typings": "dist/lib/index.d.ts",
-  "type": "module",
-  "files": [
-    "dist/**/*"
-  ],
-  "scripts": {
-    "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-    "build": "tsc; rm -rf dist/test",
-    "test": "mocha",
-    "coverage": "nyc mocha",
-    "coverage:show": "http-server coverage/",
-    "clean": "rm -rf .nyc_output build coverage dist",
-    "purge": "npm run clear; rm -rf node_modules package-lock.json"
-  },
-  "lint-staged": {
-    "*.ts": [
-      "eslint"
-    ]
-  },
-  "engines": {
-    "node": "13.2.0"
-  },
-  "dependencies": {
-    "@marin/lib.error": "file:../lib.error",
-    "@marin/lib.utils": "file:../lib.utils",
-    "typescript-collections": "^1.3.3"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.2.5",
-    "@types/chai-arrays": "^1.0.3",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.11",
-    "@typescript-eslint/eslint-plugin": "^2.8.0",
-    "@typescript-eslint/parser": "^2.8.0",
-    "chai": "^4.2.0",
-    "chai-arrays": "^2.0.0",
-    "eslint": "^6.6.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-config-prettier": "^6.7.0",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-prettier": "^3.1.1",
-    "esm": "^3.2.25",
-    "mocha": "^6.2.2",
-    "nyc": "^14.1.1",
-    "prettier": "^1.19.1",
-    "ts-node": "^8.5.2",
-    "typescript": "^3.7.2"
-  }
+    "name": "@thermopylae/lib.memcache",
+    "description": "Memory caches",
+    "keywords": [
+        "events",
+        "cache",
+        "memory"
+    ],
+    "version": "0.0.1587218673",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "license": "ISC",
+    "main": "dist/index.js",
+    "typings": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "test": "gulp test",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": "12.8.0"
+    },
+    "dependencies": {
+        "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.utils": "0",
+        "typescript-collections": "1"
+    },
+    "devDependencies": {
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/chai-arrays": "1",
+        "chai-arrays": "2"
+    }
 }

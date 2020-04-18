@@ -50,7 +50,7 @@ module.exports = {
 				"ignore": ['^@thermopylae/core\.declarations$']
 			}
 		],
-		"import/prefer-default-export": "warn",
+		"import/prefer-default-export": "off",
 		"import/extensions": [
 			"error",
 			"ignorePackages",

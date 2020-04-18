@@ -1,6 +1,8 @@
+import { chrono } from '@thermopylae/lib.utils';
 import { Heap } from 'typescript-collections';
-import { chrono } from '@marin/lib.utils';
 import { createException, ErrorCodes, ErrorMessages } from './error';
+
+const INFINITE_TTL = 0;
 
 class GarbageCollector<Key = string> {
 	/**
@@ -89,4 +91,4 @@ interface TrackedItem<Key = string> {
 	key: Key;
 }
 
-export { GarbageCollector };
+export { GarbageCollector, INFINITE_TTL };

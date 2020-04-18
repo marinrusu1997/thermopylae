@@ -25,6 +25,16 @@ export const enum AuthTokenType {
 	FACEBOOK = 'FACEBOOK'
 }
 
+export interface PublicPrivateKeys {
+	readonly private: string | Buffer;
+	readonly public: string | Buffer;
+}
+
+export interface SessionTokens {
+	readonly accessToken: string;
+	readonly refreshToken?: string;
+}
+
 export const enum HttpMethod {
 	GET = 'GET',
 	HEAD = 'HEAD',
@@ -55,3 +65,6 @@ export type UnaryPredicate<T> = (val: T) => boolean;
 export type UnaryPredicateAsync<T> = (val: T) => Promise<boolean>;
 export type BinaryPredicate<T, V> = (first: T, second: V) => boolean;
 export type BinaryPredicateAsync<T, V> = (first: T, second: V) => Promise<boolean>;
+
+export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
+export type PromiseReject = (reason?: any) => void;

@@ -37,7 +37,7 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0",
+        "@thermopylae/lib.utils": "0.0.1587208204",
         "jsonwebtoken": "8"
     },
     "devDependencies": {

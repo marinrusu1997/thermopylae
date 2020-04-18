@@ -1,6 +1,6 @@
-import { object } from '@marin/lib.utils';
+import { object } from '@thermopylae/lib.utils';
 import { EventEmitter } from 'events';
-import { GarbageCollector } from './garbage-collector';
+import { GarbageCollector, INFINITE_TTL } from './garbage-collector';
 
 class MemCache<Key = string, Value = any> {
 	/**
@@ -27,7 +27,7 @@ class MemCache<Key = string, Value = any> {
 	 * Configurable MemCache
 	 * @param opts
 	 */
-	constructor(opts?: Options) {
+	constructor(opts?: Partial<Config>) {
 		this.config = fillWithDefaults(opts);
 		this.cache = new Map<Key, Value>();
 		this.events = new EventEmitter();
@@ -43,15 +43,17 @@ class MemCache<Key = string, Value = any> {
 	 *
 	 * @param key		Key
 	 * @param value		Value
-	 * @param ttl 		Time to live in seconds
+	 * @param ttlSec 	Time to live in seconds
 	 */
-	public set(key: Key, value: Value, ttl?: number): void {
+	public set(key: Key, value: Value, ttlSec?: number): void {
 		value = this.config.useClones ? object.cloneDeep(value) : value;
 		this.cache.set(key, value);
-		ttl = ttl || this.config.stdTTL;
-		if (ttl > 0) {
-			this.gc.track(key, ttl);
+
+		ttlSec = ttlSec != null ? ttlSec : this.config.defaultTtlSec;
+		if (ttlSec > INFINITE_TTL) {
+			this.gc.track(key, ttlSec);
 		}
+
 		this.events.emit('set', key, value);
 	}
 
@@ -60,13 +62,11 @@ class MemCache<Key = string, Value = any> {
 	 * @param 	items
 	 */
 	public mset(items: Array<CacheableItem<Key, Value>>): void {
-		items.forEach(item => this.set(item.key, item.value, item.ttl));
+		items.forEach(item => this.set(item.key, item.value, item.ttlSec));
 	}
 
 	/**
-	 * Replaces the content stored under specified key, without modifying its ttl timer.
-	 * If you want to update the value with updating also the timer,
-	 * you have to delete the item, then add it again.
+	 * Replaces the content stored under specified key, without modifying its ttlSec timer.
 	 *
 	 * @param key
 	 * @param value
@@ -102,31 +102,6 @@ class MemCache<Key = string, Value = any> {
 			}
 		}
 		return items;
-	}
-
-	/**
-	 * Removes entry from cache
-	 * @param key
-	 */
-	public del(key: Key): boolean {
-		const deleted = this.cache.delete(key);
-		if (deleted) {
-			this.events.emit('del', key);
-		}
-		return deleted;
-		// no need to notify GC about this, he will just ignore it
-	}
-
-	/**
-	 * Removes multiple entries from cache
-	 * @param keys
-	 */
-	public mdel(keys: Array<Key>): Array<boolean> {
-		const deletionStatuses: boolean[] = [];
-		for (let i = 0; i < keys.length; i += 1) {
-			deletionStatuses.push(this.del(keys[i]));
-		}
-		return deletionStatuses;
 	}
 
 	/**
@@ -186,28 +161,23 @@ class MemCache<Key = string, Value = any> {
 	}
 }
 
-interface Options {
-	stdTTL?: number;
-	useClones?: boolean;
-}
-
 interface Config {
-	stdTTL: number;
+	defaultTtlSec: number;
 	useClones: boolean;
 }
 
 interface CacheableItem<Key = string, Value = any> {
 	key: Key;
 	value: Value;
-	ttl?: number;
+	ttlSec?: number;
 }
 
-type EventType = 'set' | 'del' | 'expired' | 'clear';
+type EventType = 'set' | 'expired' | 'clear';
 type Listener<Key, Value> = (key?: Key, value?: Value) => void;
 
-function fillWithDefaults(opts?: Options): Config {
+function fillWithDefaults(opts?: Partial<Config>): Config {
 	return {
-		stdTTL: (opts && opts.stdTTL) || 0,
+		defaultTtlSec: (opts && opts.defaultTtlSec) || INFINITE_TTL,
 		useClones: (opts && opts.useClones) || false
 	};
 }

@@ -1,4 +1,6 @@
-import { MemCache } from './memcache';
+import { MemCache } from './mem-cache';
+import { MemSetCache } from './mem-set-cache';
+import { INFINITE_TTL } from './garbage-collector';
 
 let defaultCache: MemCache | null = null;
 
@@ -9,4 +11,13 @@ function getDefaultMemCache(): MemCache {
 	return defaultCache;
 }
 
-export { MemCache, getDefaultMemCache };
+let defaultMemSetCache: MemSetCache | null = null;
+
+function getDefaultMemSetCache(): MemSetCache {
+	if (!defaultMemSetCache) {
+		defaultMemSetCache = new MemSetCache<string>();
+	}
+	return defaultMemSetCache;
+}
+
+export { MemCache, getDefaultMemCache, MemSetCache, getDefaultMemSetCache, INFINITE_TTL };
