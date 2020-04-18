@@ -1,5 +1,5 @@
 import { chrono } from '@thermopylae/lib.utils';
-import { Heap } from './heap';
+import { Heap } from '@thermopylae/lib.collections';
 
 const INFINITE_TTL = 0;
 
@@ -76,7 +76,7 @@ class GarbageCollector<Key = string> {
 	 * @param key
 	 * @param ttl
 	 */
-	public updateTtl(key: Key, ttl: number): void {
+	public update(key: Key, ttl: number): void {
 		if (ttl === INFINITE_TTL) {
 			throw new Error('UPDATING WITH INFINITE TTL IN NOT SUPPORTED YET');
 		}

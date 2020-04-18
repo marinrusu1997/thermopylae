@@ -1,38 +1,11 @@
-// FIXME original implementation can be found here: https://github.com/qiao/heap.js/blob/master/lib/heap.js
+// @ts-ignore
+import isFunction from 'lodash.isfunction';
+import { defaultCompare, CompareFunction, ArrayEqualsPredicate } from './commons';
 
 /**
- * Function signature for comparing
- * <0 means a is smaller
- * = 0 means they are equal
- * >0 means a is larger
+ * Binary min heap.
+ * Original implementation can be found here: https://github.com/qiao/heap.js/blob/master/lib/heap.js
  */
-interface CompareFunction<T> {
-	(a: T, b: T): number;
-}
-
-/**
- * Function signature for checking equality
- */
-interface ArrayEqualsPredicate<T> {
-	(value: T, index: number, obj: T[]): boolean;
-}
-
-/**
- * Default function to compare element order.
- * @function
- */
-function defaultCompare<T>(a: T, b: T): number {
-	if (a < b) {
-		return -1;
-	}
-
-	if (a === b) {
-		return 0;
-	}
-
-	return 1;
-}
-
 class Heap<T = number> {
 	private readonly compare: CompareFunction<T>;
 
@@ -53,8 +26,7 @@ class Heap<T = number> {
 		let returnItem: T;
 
 		if (this.nodes.length) {
-			// eslint-disable-next-line prefer-destructuring
-			returnItem = this.nodes[0];
+			[returnItem] = this.nodes;
 			this.nodes[0] = lastEl!;
 			this.siftUp(0);
 		} else {
@@ -81,8 +53,7 @@ class Heap<T = number> {
 
 		if (this.nodes.length && this.compare(this.nodes[0], item) < 0) {
 			ref = [this.nodes[0], item];
-			// eslint-disable-next-line prefer-destructuring
-			item = ref[0];
+			[item] = ref;
 			// eslint-disable-next-line prefer-destructuring
 			this.nodes[0] = ref[1];
 			this.siftUp(0);
@@ -122,7 +93,7 @@ class Heap<T = number> {
 
 	public contains(itemOrPredicate: ArrayEqualsPredicate<T> | T): boolean {
 		// @ts-ignore
-		const pos = typeof itemOrPredicate === 'function' ? this.nodes.findIndex(itemOrPredicate) : this.nodes.indexOf(itemOrPredicate);
+		const pos = isFunction(itemOrPredicate) ? this.nodes.findIndex(itemOrPredicate) : this.nodes.indexOf(itemOrPredicate);
 		return pos !== -1;
 	}
 
@@ -199,4 +170,4 @@ class Heap<T = number> {
 	}
 }
 
-export { Heap, CompareFunction, ArrayEqualsPredicate };
+export { Heap };

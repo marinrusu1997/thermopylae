@@ -87,7 +87,7 @@ class MemCache<Key = string, Value = any> {
 		this.cache.set(key, value);
 
 		ttlSec = ttlSec != null ? ttlSec : this.config.defaultTtlSec;
-		this.gc.updateTtl(key, ttlSec);
+		this.gc.update(key, ttlSec);
 
 		return this;
 	}
