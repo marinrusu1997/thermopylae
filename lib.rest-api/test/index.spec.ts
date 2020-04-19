@@ -322,8 +322,8 @@ describe('rest spi spec', () => {
 		});
 	});
 
-	describe('USER_SERVICE delete method spec', () => {
-		it("can't delete users by making authorized request with USER role", async () => {
+	describe('USER_SERVICE scheduleDeletion method spec', () => {
+		it("can't scheduleDeletion users by making authorized request with USER role", async () => {
 			try {
 				await http.makeHTTPRequest(baseUrl, {
 					method: 'DELETE',

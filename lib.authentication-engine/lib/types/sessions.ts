@@ -12,7 +12,7 @@ export interface FailedAuthenticationAttemptSession {
 }
 
 export interface ActivateAccountSession {
-	taskId: string; // delete unactivated account task id
+	taskId: string; // scheduleDeletion unactivated account task id
 	accountId: string;
 }
 

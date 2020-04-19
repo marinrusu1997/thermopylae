@@ -347,7 +347,7 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 
 		const bulkDelete = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteMany({ accountId });
 		if (!bulkDelete.ok) {
-			throw new Error('Failed to delete all sessions');
+			throw new Error('Failed to scheduleDeletion all sessions');
 		}
 		return bulkDelete.deletedCount!;
 	},
@@ -357,7 +357,7 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			authenticatedAtUNIX: { $ne: exceptedSessionId }
 		});
 		if (!bulkDelete.ok) {
-			throw new Error('Failed to delete all sessions');
+			throw new Error('Failed to scheduleDeletion all sessions');
 		}
 		return bulkDelete.deletedCount!;
 	}

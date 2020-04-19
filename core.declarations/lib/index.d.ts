@@ -70,5 +70,6 @@ export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 export type PromiseReject = (reason?: any) => void;
 
 export type UnixTimestamp = number;
+export type Milliseconds = number;
 export type Seconds = number;
 export type Minutes = number;

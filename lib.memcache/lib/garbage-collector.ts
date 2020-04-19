@@ -1,12 +1,11 @@
 import { chrono } from '@thermopylae/lib.utils';
 import { Heap } from '@thermopylae/lib.collections';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-
-const INFINITE_TTL = 0;
+import { INFINITE_TTL } from './cache';
 
 const now = chrono.dateToUNIX;
 
-class PreciseGarbageCollector<Key = string> {
+class GarbageCollector<Key = string> {
 	/**
 	 * Deleter function used to remove expired items
 	 */
@@ -37,48 +36,41 @@ class PreciseGarbageCollector<Key = string> {
 	}
 
 	/**
-	 * Tracks the specified key for deletion
+	 * Schedules deletion of the key after x seconds
+	 * starting from provided UNIX timestamp.
 	 *
-	 * @param key		Key which needs to be tracked
-	 * @param ttlSec	Time to live in seconds
+	 * @param key	Key which needs to be tracked
+	 * @param after	Time to live in seconds
+	 * @param from	Time from when tracking must be started
 	 */
-	public track(key: Key, ttlSec: Seconds): void {
-		if (ttlSec === INFINITE_TTL) {
-			return; // infinite ttl means we don't need to track it
+	public scheduleDeletion(key: Key, after: Seconds, from?: UnixTimestamp): void {
+		if (after === INFINITE_TTL) {
+			return; // there is no need to schedule immediate deletion
 		}
 
-		const item = {
-			key,
-			whenToDelete: now() + ttlSec
-		};
+		from = from || now();
+		const item = { key, whenToDelete: from + after };
 
-		this.doTrack(item, ttlSec);
+		this.doScheduleDelete(item);
 	}
 
 	/**
-	 * Updates the ttl of an existing key.
 	 * This is a costly operation, as it requires
 	 * rebuilding invariants of internal data structures.
-	 *
-	 * @param key
-	 * @param ttlSec
 	 */
-	public reTrack(key: Key, ttlSec: Seconds): void {
-		if (ttlSec === INFINITE_TTL) {
-			throw new Error('UPDATING WITH INFINITE TTL IN NOT SUPPORTED YET');
+	public reScheduleDeletion(key: Key, after: Seconds, from: UnixTimestamp = now()): void {
+		if (after === INFINITE_TTL) {
+			throw new Error('IMMEDIATE RESCHEDULING IS NOT SUPPORTED FOR NOW');
 		}
 
-		const update: TrackedItem<Key> = {
-			key,
-			whenToDelete: now() + ttlSec
-		};
+		const update: TrackedItem<Key> = { key, whenToDelete: from + after };
 
 		if (this.trackedItems.updateItem(update, item => item.key === key) !== undefined) {
 			return this.synchronize();
 		}
 
-		// key was not tracked, track it and take care of gc activity
-		return this.doTrack(update, ttlSec);
+		// key was not tracked, scheduleDeletion it and take care of gc activity
+		return this.doScheduleDelete(update);
 	}
 
 	/**
@@ -98,35 +90,24 @@ class PreciseGarbageCollector<Key = string> {
 		}
 	}
 
-	private start(willRunOn: UnixTimestamp, remains: Seconds): void {
+	private start(runDelay: Seconds, willRunOn: UnixTimestamp): void {
 		this.gcSprint!.willRunOn = willRunOn;
-		this.gcSprint!.timeoutId = setTimeout(this.doClean, remains * 1000);
+		this.gcSprint!.timeoutId = setTimeout(this.doClean, runDelay * 1000);
 	}
 
-	private doStart(willRunOn: UnixTimestamp, remains: Seconds): void {
+	private doStart(willRunOn: UnixTimestamp): void {
 		// @ts-ignore
 		this.gcSprint = {};
-		this.start(willRunOn, remains);
+
+		const runDelay = willRunOn - now();
+		this.start(runDelay, willRunOn);
 	}
 
-	private shutdown(): void {
-		clearTimeout(this.gcSprint!.timeoutId);
-		this.gcSprint = null;
-	}
-
-	private synchronize(): void {
-		const root = this.trackedItems.peek()!;
-		if (this.gcSprint!.willRunOn !== root.whenToDelete) {
-			clearTimeout(this.gcSprint!.timeoutId);
-			this.start(root.whenToDelete, root.whenToDelete - now());
-		}
-	}
-
-	private doTrack(item: TrackedItem<Key>, deleteAfter: Seconds): void {
+	private doScheduleDelete(item: TrackedItem<Key>): void {
 		this.trackedItems.push(item);
 
 		if (this.isIdle()) {
-			return this.doStart(item.whenToDelete, deleteAfter);
+			return this.doStart(item.whenToDelete);
 		}
 
 		return this.synchronize();
@@ -144,16 +125,29 @@ class PreciseGarbageCollector<Key = string> {
 			if (itemToDelete && itemToDelete.whenToDelete !== whenToDeleteOfRootItem) {
 				itemToDelete = undefined;
 			}
-		} while (itemToDelete !== undefined); // remove all items with same when to delete timestamp
+		} while (itemToDelete !== undefined); // remove all items with same when to scheduleDeletion timestamp
 
 		itemToDelete = this.trackedItems.peek();
 
 		if (itemToDelete !== undefined) {
-			this.start(itemToDelete.whenToDelete, itemToDelete.whenToDelete - now()); // schedule next GC
+			this.start(itemToDelete.whenToDelete - now(), itemToDelete.whenToDelete); // schedule next GC
 		} else {
 			this.gcSprint = null; // mark gc has stopped implicitly
 		}
 	};
+
+	private shutdown(): void {
+		clearTimeout(this.gcSprint!.timeoutId);
+		this.gcSprint = null;
+	}
+
+	private synchronize(): void {
+		const root = this.trackedItems.peek()!;
+		if (this.gcSprint!.willRunOn !== root.whenToDelete) {
+			clearTimeout(this.gcSprint!.timeoutId);
+			this.start(root.whenToDelete - now(), root.whenToDelete);
+		}
+	}
 }
 
 type Deleter<Key = string> = (key: Key) => void;
@@ -168,4 +162,4 @@ interface GCSprint {
 	willRunOn: UnixTimestamp;
 }
 
-export { PreciseGarbageCollector, Deleter, INFINITE_TTL };
+export { GarbageCollector, Deleter };

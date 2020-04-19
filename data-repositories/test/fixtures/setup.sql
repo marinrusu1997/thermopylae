@@ -169,7 +169,7 @@ ON DELETE CASCADE; -- when permission is deleted, user group loses this permissi
 ALTER TABLE UserGroupMembers
 ADD CONSTRAINT
 FOREIGN KEY (RelatedUserGroupID) REFERENCES UserGroup(ID)
-ON DELETE CASCADE; -- when user group is delete, all it's members are also deleted
+ON DELETE CASCADE; -- when user group is scheduleDeletion, all it's members are also deleted
 
 ALTER TABLE UserGroupMembers
 ADD CONSTRAINT

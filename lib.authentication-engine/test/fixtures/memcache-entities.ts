@@ -39,7 +39,7 @@ const AuthSessionEntityMemCache: AuthSessionEntity = {
 	delete: (username, deviceId) => {
 		const key = `auths:${username}:${deviceId}`;
 		if (!memcache.del(key)) {
-			throw new Error('Failed to delete auth session');
+			throw new Error('Failed to scheduleDeletion auth session');
 		}
 		return Promise.resolve();
 	}
@@ -75,7 +75,7 @@ const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
 			}
 			const key = `faas:${username}`;
 			if (!memcache.del(key)) {
-				return reject(new Error('Failed to delete failed auth attempts session'));
+				return reject(new Error('Failed to scheduleDeletion failed auth attempts session'));
 			}
 			return resolve();
 		});
@@ -110,7 +110,7 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 
 			const key = `actacc:${token}`;
 			if (!memcache.del(key)) {
-				return reject(new Error('Failed to delete activate account session'));
+				return reject(new Error('Failed to scheduleDeletion activate account session'));
 			}
 
 			return resolve();

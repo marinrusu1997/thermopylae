@@ -1,17 +1,18 @@
 import { Seconds } from '@thermopylae/core.declarations';
-import { PreciseGarbageCollector, INFINITE_TTL } from './precise-garbage-collector';
+import { INFINITE_TTL } from '../cache';
+import { GarbageCollector } from '../garbage-collector';
 import { createException, ErrorCodes } from '../error';
 
-class PreciseMemSetCache<T = string> extends Set<T> {
+class AutoExpirableSet<T = string> extends Set<T> {
 	private readonly defaultTtlSec: Seconds;
 
-	private readonly gc: PreciseGarbageCollector<T>;
+	private readonly gc: GarbageCollector<T>;
 
 	constructor(defaultTtlSec = INFINITE_TTL) {
 		super();
 
 		this.defaultTtlSec = defaultTtlSec;
-		this.gc = new PreciseGarbageCollector<T>(value => super.delete(value));
+		this.gc = new GarbageCollector<T>(value => super.delete(value));
 	}
 
 	/**
@@ -19,7 +20,7 @@ class PreciseMemSetCache<T = string> extends Set<T> {
 	 * Must be used with special care, as this method will replace cache content,
 	 * add a new timer, but the old one timer will not be replaced.
 	 * This will lead value being deleted prematurely by the old timer.
-	 * Moreover, the new timer will still be active, and might try to delete newly added value.
+	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added value.
 	 *
 	 * Use this method when you are sure 100% no inserts will be made until value expires.
 	 *
@@ -34,7 +35,7 @@ class PreciseMemSetCache<T = string> extends Set<T> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.gc.track(value, ttlSec);
+		this.gc.scheduleDeletion(value, ttlSec);
 
 		return this;
 	}
@@ -55,7 +56,7 @@ class PreciseMemSetCache<T = string> extends Set<T> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.gc.reTrack(value, ttlSec);
+		this.gc.reScheduleDeletion(value, ttlSec);
 
 		return this;
 	}
@@ -63,7 +64,7 @@ class PreciseMemSetCache<T = string> extends Set<T> {
 	public delete(_value: T): boolean {
 		throw createException(
 			ErrorCodes.DELETE_NOT_ALLOWED,
-			"Delete may cause undefined behaviour. Deleting a value will not delete it's timer. Adding the same value after deleting it, will use the old timer. "
+			"Delete may cause undefined behaviour. Deleting a value will not scheduleDeletion it's timer. Adding the same value after deleting it, will use the old timer. "
 		);
 	}
 
@@ -73,4 +74,4 @@ class PreciseMemSetCache<T = string> extends Set<T> {
 	}
 }
 
-export { PreciseMemSetCache };
+export { AutoExpirableSet };

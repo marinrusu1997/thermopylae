@@ -61,15 +61,15 @@ describe('Heap spec', () => {
 		});
 	});
 
-	/*	describe.only('delete spec', () => {
-        it('delete when heap is empty', () => {
+	/*	describe.only('scheduleDeletion spec', () => {
+        it('scheduleDeletion when heap is empty', () => {
             const heap = new Heap();
             const comparator = (item: number) => item === 2;
             expect(heap.remove(comparator)).to.be.eq(undefined);
             expect(heap.size()).to.be.eq(0);
         });
 
-        it('delete when heap contains 1 element', () => {
+        it('scheduleDeletion when heap contains 1 element', () => {
             const heap = new Heap();
             heap.push(1);
 
@@ -79,7 +79,7 @@ describe('Heap spec', () => {
             expect(heap.size()).to.be.eq(0);
         });
 
-        it('delete when heap contains 2 elements', () => {
+        it('scheduleDeletion when heap contains 2 elements', () => {
             const heap = new Heap();
             heap.push(1);
             heap.push(2);
@@ -91,7 +91,7 @@ describe('Heap spec', () => {
             expect(heap.peek()).to.be.eq(1);
         });
 
-        it('delete when heap contains 3 elements', () => {
+        it('scheduleDeletion when heap contains 3 elements', () => {
             const heap = new Heap();
             heap.push(1);
             heap.push(2);
@@ -106,7 +106,7 @@ describe('Heap spec', () => {
             assertHeapSortedOrder(heap);
         });
 
-        it('delete when heap contains multiple elements', () => {
+        it('scheduleDeletion when heap contains multiple elements', () => {
             const heap = new Heap();
             for (let i = 0; i < 100; i++) {
                 heap.push(i);

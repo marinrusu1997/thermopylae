@@ -15,7 +15,7 @@ function sleep(ms: number): Promise<void> {
  * @returns {number}
  */
 function dateToUNIX(date = new Date()): number {
-	return Math.floor(date.getTime() / 1000);
+	return millisecondsToSeconds(date.getTime());
 }
 
 /**
@@ -34,6 +34,15 @@ function dateFromUNIX(seconds: number): Date {
  */
 function minutesToSeconds(minutes: number): number {
 	return minutes * 60;
+}
+
+/**
+ * Converts seconds to milliseconds.
+ *
+ * @param milliseconds
+ */
+function millisecondsToSeconds(milliseconds: number): number {
+	return Math.floor(milliseconds / 1000);
 }
 
 /**
@@ -60,4 +69,4 @@ function tomorrow(): Date {
 	return tomorrowDate;
 }
 
-export { dateToUNIX, sleep, dateFromUNIX, minutesToSeconds, firstDayOfNextMonth, tomorrow };
+export { dateToUNIX, sleep, dateFromUNIX, minutesToSeconds, millisecondsToSeconds, firstDayOfNextMonth, tomorrow };

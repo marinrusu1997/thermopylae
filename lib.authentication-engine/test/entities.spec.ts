@@ -102,12 +102,12 @@ describe('entities', () => {
 		const activeUserConnectionsUser2 = await ActiveUserSessionEntityMongo.readAll('2');
 		expect(activeUserConnectionsUser2.length).to.be.equal(0);
 
-		// delete one active session of user 1
+		// scheduleDeletion one active session of user 1
 		await ActiveUserSessionEntityMongo.delete('1', now);
 		activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');
 		expect(activeSessionsUser1.length).to.be.equal(2);
 
-		// delete all sessions of user 1
+		// scheduleDeletion all sessions of user 1
 		await ActiveUserSessionEntityMongo.deleteAll('1');
 		activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');
 		expect(activeSessionsUser1.length).to.be.equal(0);

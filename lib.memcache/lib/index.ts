@@ -1,5 +1,5 @@
-import { INFINITE_TTL } from './precise/precise-garbage-collector';
+import { INFINITE_TTL } from './cache';
 
-export * from './precise/precise-mem-cache';
-export * from './precise/precise-mem-set-cache';
+export * from './caches/auto-expirable-cache';
+export * from './caches/auto-expirable-set';
 export { INFINITE_TTL };

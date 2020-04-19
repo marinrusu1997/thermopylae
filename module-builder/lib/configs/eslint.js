@@ -34,6 +34,7 @@ module.exports = {
 
 		"lines-between-class-members": "warn",
 		"class-methods-use-this": "warn",
+		"for-direction": "warn",
 
 		"no-console": "error",
 		"no-param-reassign": "warn",

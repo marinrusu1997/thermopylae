@@ -45,19 +45,19 @@ const ScheduleAccountEnablingFromMongo: ScheduleAccountEnabling = async (account
 
 const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDeletion = async (accountId, sessionTimestamp, whenToDelete) => {
 	if (failures.get(SCHEDULING_OP.DELETE_ACTIVE_USER_SESSION)) {
-		throw new Error('Scheduling delete active user session was configured to fail');
+		throw new Error('Scheduling scheduleDeletion active user session was configured to fail');
 	}
 
 	return registerTask(() => {
 		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch(err =>
-			console.error('Error occurred in scheduling delete active user session', err)
+			console.error('Error occurred in scheduling scheduleDeletion active user session', err)
 		);
 	}, whenToDelete);
 };
 
 const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDeletion = async (accountId, whenToDelete) => {
 	if (failures.get(SCHEDULING_OP.DELETE_UNACTIVATED_ACCOUNT)) {
-		throw new Error('Scheduling delete unactivated account was configured to fail');
+		throw new Error('Scheduling scheduleDeletion unactivated account was configured to fail');
 	}
 
 	return registerTask(

@@ -80,14 +80,14 @@ describe('Account registration spec', () => {
 
 		// @ts-ignore
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
-		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel delete account timer
+		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel scheduleDeletion account timer
 	});
 
 	it('fails to register new account if it is registered already', async () => {
 		// email ownership is checked via activation link -> OK
 		// mobile ownership is not checked, but we assume that only account owner has access to his mobile number -> OK
 		// check is made based on username, it needs to be unique, account activation status is not taken into account
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true }); // do not place delete timer
+		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true }); // do not place scheduleDeletion timer
 		try {
 			await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 			assert(false, 'Same account was created twice');
@@ -120,7 +120,7 @@ describe('Account registration spec', () => {
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
 		expect(activationToken.token.length).to.be.equal(basicAuthEngineConfig.tokensLength!);
 
-		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel delete account timer
+		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel scheduleDeletion account timer
 	});
 
 	it('activates account using token sent via email at the registration', async () => {
@@ -129,7 +129,7 @@ describe('Account registration spec', () => {
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
 		await AuthEngineInstance.activateAccount(activationToken.token);
 
-		await chrono.sleep(1500); // wait for delete account scheduler timer to finish
+		await chrono.sleep(1500); // wait for scheduleDeletion account scheduler timer to finish
 
 		const account = await basicAuthEngineConfig.entities.account.read(defaultRegistrationInfo.username);
 		if (!account) {
@@ -141,7 +141,7 @@ describe('Account registration spec', () => {
 		expect(activateAccountSession).to.be.eq(null); // activate account session was deleted
 	});
 
-	it('activate account will not fail if delete activate account session deletion will fail', async () => {
+	it('activate account will not fail if scheduleDeletion activate account session deletion will fail', async () => {
 		// timer cancel is not allowed to throw, so operation can fail only if account status can't be changed to activated
 		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.ACTIVATE_ACCOUNT_SESSION_DELETE);
 
@@ -177,7 +177,7 @@ describe('Account registration spec', () => {
 
 		// @ts-ignore
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
-		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel delete account timer
+		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel scheduleDeletion account timer
 	});
 
 	it("doesn't activate account if canceling account deletion failed", async () => {
@@ -198,7 +198,7 @@ describe('Account registration spec', () => {
 		assert(false, 'Account was activated, even if canceling account deletion failed.');
 	});
 
-	it('will delete account if not activated in specified amount of time (also deletes activate account session)', async () => {
+	it('will scheduleDeletion account if not activated in specified amount of time (also deletes activate account session)', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 		// @ts-ignore
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
@@ -211,13 +211,13 @@ describe('Account registration spec', () => {
 		expect(account).to.be.eq(null);
 	});
 
-	it('will delete account if scheduling deletion of unactivated account failed', async () => {
+	it('will scheduleDeletion account if scheduling deletion of unactivated account failed', async () => {
 		failureWillBeGeneratedWhenScheduling(SCHEDULING_OP.DELETE_UNACTIVATED_ACCOUNT);
 		try {
 			await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 			assert(false, 'Non-activated account was registered, even if scheduling deletion of unactivated account failed');
 		} catch (e) {
-			expect(e).to.be.instanceOf(Error, 'Scheduling delete unactivated account was configured to fail');
+			expect(e).to.be.instanceOf(Error, 'Scheduling scheduleDeletion unactivated account was configured to fail');
 			const account = await basicAuthEngineConfig.entities.account.read(defaultRegistrationInfo.username);
 			expect(account).to.be.eq(null);
 			expect(hasActiveTimers()).to.be.eq(false);
@@ -225,7 +225,7 @@ describe('Account registration spec', () => {
 		}
 	});
 
-	it('will delete account and cancel account account deletion if creating activate account session failed', async () => {
+	it('will scheduleDeletion account and cancel account account deletion if creating activate account session failed', async () => {
 		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.ACTIVATE_ACCOUNT_SESSION_CREATE);
 		try {
 			await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
@@ -239,7 +239,7 @@ describe('Account registration spec', () => {
 		}
 	});
 
-	it('will delete account, activate session, cancel timers if activate link delivery via email failed', async () => {
+	it('will scheduleDeletion account, activate session, cancel timers if activate link delivery via email failed', async () => {
 		// @ts-ignore
 		basicAuthEngineConfig['side-channels'].email.client.deliveryWillFail(true);
 		try {

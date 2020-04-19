@@ -1,9 +1,10 @@
 import { object } from '@thermopylae/lib.utils';
 import { Seconds } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
-import { PreciseGarbageCollector, INFINITE_TTL } from './precise-garbage-collector';
+import { GarbageCollector } from '../garbage-collector';
+import { INFINITE_TTL } from "../cache";
 
-class PreciseMemCache<Key = string, Value = any> extends EventEmitter {
+class AutoExpirableCache<Key = string, Value = any> extends EventEmitter {
 	/**
 	 * Configurable options
 	 */
@@ -17,18 +18,18 @@ class PreciseMemCache<Key = string, Value = any> extends EventEmitter {
 	/**
 	 * Associated garbage collector
 	 */
-	private readonly gc: PreciseGarbageCollector<Key>;
+	private readonly gc: GarbageCollector<Key>;
 
 	/**
-	 * Configurable MemCache
+	 * Configurable ExpirableCache
 	 * @param opts
 	 */
 	constructor(opts?: Partial<Config>) {
 		super();
 
-		this.config = PreciseMemCache.fillWithDefaults(opts);
+		this.config = AutoExpirableCache.fillWithDefaults(opts);
 		this.cache = new Map<Key, Value>();
-		this.gc = new PreciseGarbageCollector<Key>(key => {
+		this.gc = new GarbageCollector<Key>(key => {
 			if (this.cache.delete(key)) {
 				this.emit('expired', key);
 			}
@@ -40,7 +41,7 @@ class PreciseMemCache<Key = string, Value = any> extends EventEmitter {
 	 * Must be used with special care, as this method will replace cache content,
 	 * add a new timer, but the old one timer will not be replaced.
 	 * This will lead key being deleted prematurely by the old timer.
-	 * Moreover, the new timer will still be active, and might try to delete newly added key.
+	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added key.
 	 *
 	 * Use this method when you are sure 100% no inserts will be made until key expires.
 	 *
@@ -59,7 +60,7 @@ class PreciseMemCache<Key = string, Value = any> extends EventEmitter {
 		if (ttlSec == null) {
 			ttlSec = this.config.defaultTtlSec;
 		}
-		this.gc.track(key, ttlSec);
+		this.gc.scheduleDeletion(key, ttlSec);
 
 		this.emit('set', key, value, ttlSec);
 
@@ -97,7 +98,7 @@ class PreciseMemCache<Key = string, Value = any> extends EventEmitter {
 		if (ttlSec == null) {
 			ttlSec = this.config.defaultTtlSec;
 		}
-		this.gc.reTrack(key, ttlSec);
+		this.gc.reScheduleDeletion(key, ttlSec);
 
 		this.emit('update', key, value, ttlSec);
 
@@ -200,4 +201,4 @@ type EventType = 'set' | 'update' | 'expired' | 'clear';
 
 type Listener<Key = string, Value = any> = (key: Key, value: Value, ttlSec: Seconds) => void;
 
-export { PreciseMemCache, EventType, Listener, Config };
+export { AutoExpirableCache, EventType, Listener, Config };

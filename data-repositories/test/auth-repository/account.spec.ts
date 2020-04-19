@@ -655,7 +655,7 @@ describe('account spec', () => {
 			.schedule();
 	});
 
-	describe('delete spec', () => {
+	describe('scheduleDeletion spec', () => {
 		it("deletes account with all of it's associated resources", async () => {
 			const firstAccountId = TEST_ENV.accounts.firstAccount.owner.id!;
 			const firstAccLinkedUserId = TEST_ENV.accounts.firstAccount.firstLinkedUserId;
@@ -795,7 +795,7 @@ describe('account spec', () => {
 			await checkSQLStoredResourcesNo('UserSession', 0);
 			await checkSQLStoredResourcesNo('UserGroupMembers', 0);
 
-			// Now it is possible to delete safely locations and devices
+			// Now it is possible to scheduleDeletion safely locations and devices
 			expect((await queryAsync(MySqlClientInstance.writePool, `DELETE FROM Device;`)).results.affectedRows).to.be.eq(TEST_ENV_STATS.RESOURCES.DEVICES_NO);
 			expect((await queryAsync(MySqlClientInstance.writePool, `DELETE FROM Location;`)).results.affectedRows).to.be.eq(
 				TEST_ENV_STATS.RESOURCES.LOCATIONS_NO
@@ -819,7 +819,7 @@ describe('account spec', () => {
 			.timeout(9000)
 			.schedule();
 
-		it('fails to delete account which does not exist', async () => {
+		it('fails to scheduleDeletion account which does not exist', async () => {
 			const accountId = generateStringOfLength(5, SAFE_MYSQL_CHAR_REGEX);
 
 			let notExistingAccountErr;
@@ -832,7 +832,7 @@ describe('account spec', () => {
 			expect(notExistingAccountErr).to.haveOwnProperty('message', `Failed to delete account with id ${accountId}. No affected rows. `);
 		}).schedule();
 
-		it('fails to delete account if network or transport error is encountered', async () => {
+		it('fails to scheduleDeletion account if network or transport error is encountered', async () => {
 			await brokeConnectionWithMySqlServer();
 
 			let connectionError: Error;

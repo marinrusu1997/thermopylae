@@ -49,7 +49,7 @@ describe('Logout spec', () => {
 		}
 	};
 
-	it('logs out from one device, expecting to delete existing session and invalidate token', async () => {
+	it('logs out from one device, expecting to scheduleDeletion existing session and invalidate token', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatusFirstDevice = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });
@@ -68,7 +68,7 @@ describe('Logout spec', () => {
 		await checkIfJWTWasInvalidated(authStatusFirstDevice.token!, basicAuthEngineConfig.jwt.instance);
 	});
 
-	it('logs out from all devices, expecting to delete all existing sessions and invalidate issued tokens', async () => {
+	it('logs out from all devices, expecting to scheduleDeletion all existing sessions and invalidate issued tokens', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validNetworkInput, device: 'device1' });

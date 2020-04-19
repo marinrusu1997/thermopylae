@@ -205,7 +205,7 @@ class AuthenticationEngine {
 				await this.emailSender.sendActivateAccountLink(registeredAccount.email, activateToken);
 			} catch (e) {
 				if (deleteAccountTaskId) {
-					// in future it's a very very small chance to id collision, so this task may delete account of the other valid user
+					// in future it's a very very small chance to id collision, so this task may scheduleDeletion account of the other valid user
 					await this.config.schedulers.account.cancelDeleteUnactivated(deleteAccountTaskId); // task cancelling is not allowed to throw
 				}
 				await this.config.entities.account.delete(registeredAccount.id);

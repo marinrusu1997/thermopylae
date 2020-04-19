@@ -38,7 +38,7 @@
     "dependencies": {
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0.0.1587318247"
+        "@thermopylae/lib.utils": "0.0.1587337625"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",

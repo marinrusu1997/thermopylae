@@ -1,15 +1,15 @@
 import { describe, it } from 'mocha';
 import { chrono } from '@thermopylae/lib.utils';
-import { PreciseMemSetCache, INFINITE_TTL } from '../../lib';
+import { AutoExpirableSet, INFINITE_TTL } from '../../lib';
 import { chai } from '../env';
 import { ErrorCodes } from '../../lib/error';
 
 const { expect } = chai;
 
-describe('PreciseMemSetCache spec', () => {
+describe('AutoExpirableSet spec', () => {
 	describe('constructor spec', () => {
 		it('creates mem cache set using default config', done => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
 			preciseMemSetCache.add(value);
@@ -27,7 +27,7 @@ describe('PreciseMemSetCache spec', () => {
 
 		it('creates mem cache using explicit config', done => {
 			const defaultTtlSec = 1;
-			const preciseMemSetCache = new PreciseMemSetCache(defaultTtlSec);
+			const preciseMemSetCache = new AutoExpirableSet(defaultTtlSec);
 
 			const value = 'value';
 			preciseMemSetCache.add(value);
@@ -47,7 +47,7 @@ describe('PreciseMemSetCache spec', () => {
 	describe('add spec', () => {
 		it("does not remove items which don't have tll (i.e ttl provided as 0)", done => {
 			const defaultTtlSec = 1;
-			const preciseMemSetCache = new PreciseMemSetCache(defaultTtlSec);
+			const preciseMemSetCache = new AutoExpirableSet(defaultTtlSec);
 
 			const value = 'value';
 			preciseMemSetCache.add(value, INFINITE_TTL);
@@ -64,7 +64,7 @@ describe('PreciseMemSetCache spec', () => {
 		});
 
 		it("doesn't update ttl when adding value which is already in cache", done => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
 			preciseMemSetCache.add(value, 1);
@@ -94,7 +94,7 @@ describe('PreciseMemSetCache spec', () => {
 
 	describe('has spec', () => {
 		it('lists all existing items at a given time point', done => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value1 = 'value1';
 			const value2 = 'value2';
@@ -138,9 +138,9 @@ describe('PreciseMemSetCache spec', () => {
 		}).timeout(2100);
 	});
 
-	describe('delete spec', () => {
-		it('delete is not allowed', done => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+	describe('scheduleDeletion spec', () => {
+		it('scheduleDeletion is not allowed', done => {
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			try {
 				preciseMemSetCache.delete('random');
@@ -148,7 +148,7 @@ describe('PreciseMemSetCache spec', () => {
 			} catch (e) {
 				expect(e.code).to.be.eq(ErrorCodes.DELETE_NOT_ALLOWED);
 				expect(e.message).to.be.eq(
-					"Delete may cause undefined behaviour. Deleting a value will not delete it's timer. Adding the same value after deleting it, will use the old timer. "
+					"Delete may cause undefined behaviour. Deleting a value will not scheduleDeletion it's timer. Adding the same value after deleting it, will use the old timer. "
 				);
 				done();
 			}
@@ -157,7 +157,7 @@ describe('PreciseMemSetCache spec', () => {
 
 	describe('upset spec', () => {
 		it('upset adds a new entry if value not found', async () => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
 			preciseMemSetCache.upset(value, 1);
@@ -171,7 +171,7 @@ describe('PreciseMemSetCache spec', () => {
 		});
 
 		it('upset adds a new entry if value not found and restarts gc', async () => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
 
@@ -192,7 +192,7 @@ describe('PreciseMemSetCache spec', () => {
 		}).timeout(2200);
 
 		it('upsets entry with new ttl', async () => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			let value = 'value4';
 			preciseMemSetCache
@@ -222,7 +222,7 @@ describe('PreciseMemSetCache spec', () => {
 		}).timeout(2200);
 
 		it("upset doesn't interfere with older timers", async () => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			preciseMemSetCache.upset('value', 5);
 			preciseMemSetCache.upset('value', 1);
@@ -252,7 +252,7 @@ describe('PreciseMemSetCache spec', () => {
 		}).timeout(4500);
 
 		it('upset restarts gc', async () => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			// restarts when there is no values
 			preciseMemSetCache.upset('value', 1);
@@ -306,7 +306,7 @@ describe('PreciseMemSetCache spec', () => {
 
 	describe('clear spec', () => {
 		it('clears internal cache and gc tracked items on clear', done => {
-			const preciseMemSetCache = new PreciseMemSetCache();
+			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
 			preciseMemSetCache.add(value, 1);
