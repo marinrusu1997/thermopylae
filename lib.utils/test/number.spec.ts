@@ -2,26 +2,27 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { Exception } from '@thermopylae/lib.exception';
-import { generateRandom, generateArbitrary, toNumber, ErrorCodes, toLetter } from '../lib/number';
+import { generateRandomInt, generateRandomNumber, toNumber, ErrorCodes, toLetter } from '../lib/number';
 
 describe('number spec', () => {
 	describe('randomness spec', () => {
 		const LOWER_END = 1;
 		const HIGHER_END = 5;
 
-		it('generates arbitrary number', () => {
+		it('generates random number', () => {
 			for (let i = 0; i < 100; i++) {
-				const random = generateArbitrary(LOWER_END, HIGHER_END);
+				const random = generateRandomNumber(LOWER_END, HIGHER_END);
 				expect(random).to.be.gte(LOWER_END);
 				expect(random).to.be.lt(HIGHER_END);
 			}
 		});
 
-		it('generates random number', () => {
+		it('generates random int', () => {
 			for (let i = 0; i < 100; i++) {
-				const random = generateRandom(LOWER_END, HIGHER_END);
+				const random = generateRandomInt(LOWER_END, HIGHER_END);
 				expect(random).to.be.gte(LOWER_END);
 				expect(random).to.be.lte(HIGHER_END);
+				expect(random).to.be.eq(Math.trunc(random));
 			}
 		});
 	});
