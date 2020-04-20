@@ -1,19 +1,19 @@
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 
 class NoExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
-	expires() {
+	onSet() {
 		return null;
 	}
 
-	updateExpires() {
+	onUpdate() {
 		return null;
 	}
 
-	expired() {
+	isExpired() {
 		return false;
 	}
 
-	resetExpires() {
+	onClear() {
 		return undefined;
 	}
 

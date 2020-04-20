@@ -23,7 +23,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 	 * This will lead value being deleted prematurely by the old timer.
 	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added value.
 	 *
-	 * Use this method when you are sure 100% no inserts will be made until value expires.
+	 * Use this method when you are sure 100% no inserts will be made until value onSet.
 	 *
 	 * @param value
 	 * @param ttlSec
@@ -36,7 +36,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.expirationPolicy.expires(value, ttlSec);
+		this.expirationPolicy.onSet(value, ttlSec);
 
 		return this;
 	}
@@ -57,7 +57,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.expirationPolicy.updateExpires(value, ttlSec);
+		this.expirationPolicy.onUpdate(value, ttlSec);
 
 		return this;
 	}
@@ -71,7 +71,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 
 	public clear(): void {
 		super.clear();
-		this.expirationPolicy.resetExpires();
+		this.expirationPolicy.onClear();
 	}
 }
 

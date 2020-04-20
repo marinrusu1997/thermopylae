@@ -1,9 +1,10 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { EvictionPolicy } from '../contracts/eviction-policy';
-import { BaseCacheEntry, INFINITE_KEYS } from '../contracts/cache';
+import { ExpirableCacheValue, INFINITE_KEYS } from '../contracts/cache';
 import { createException, ErrorCodes } from '../error';
 
-class NoEvictionPolicy<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> implements EvictionPolicy<Key, Value, Entry> {
+class NoEvictionPolicy<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>>
+	implements EvictionPolicy<Key, Value, Entry> {
 	private readonly capacity: Threshold;
 
 	constructor(capacity: Threshold) {

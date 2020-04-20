@@ -1,21 +1,22 @@
 import { Seconds, Threshold } from '@thermopylae/core.declarations';
-import { BaseCache, BaseCacheConfig, BaseCacheEntry } from './base-cache';
-import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
+import { BaseCache, BaseCacheConfig } from './base-cache';
 import { SpeculativeExpirationPolicy } from '../expiration-policies/speculative-expiration-policy';
+import { ExpirableCacheValue } from '../contracts/cache';
+import { EvictionPolicy } from '../contracts/eviction-policy';
 
 interface SpeculativeCacheOptions extends BaseCacheConfig {
 	checkPeriod?: Seconds;
 	iterateThreshold?: Threshold;
 }
 
-class SpeculativeCache<Key = string, Value = any> extends BaseCache<Key, Value> {
-	private iterator: IterableIterator<[Key, BaseCacheEntry<Value>]>;
+class SpeculativeCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends BaseCache<Key, Value, Entry> {
+	private iterator: IterableIterator<[Key, ExpirableCacheValue<Value>]>;
 
-	constructor(options: Partial<SpeculativeCacheOptions> = {}, evictionPolicy = new NoEvictionPolicy()) {
+	constructor(options: Partial<SpeculativeCacheOptions> = {}, evictionPolicy?: EvictionPolicy<Key, Value, Entry>) {
 		super(
 			options,
 			new SpeculativeExpirationPolicy<Key>({
-				nextCacheEntry: () => {
+				nextCacheKey: () => {
 					const entry = this.iterator.next();
 
 					if (entry.done) {
@@ -23,10 +24,10 @@ class SpeculativeCache<Key = string, Value = any> extends BaseCache<Key, Value> 
 						return null;
 					}
 
-					return { key: entry.value[0], expires: entry.value[1].expires };
+					return { key: entry.value[0], expiresAt: entry.value[1].expiresAt };
 				},
 				collectionSize: () => this.cache.size,
-				checkPeriod: options.checkPeriod,
+				checkInterval: options.checkPeriod,
 				iterateThreshold: options.iterateThreshold
 			}),
 			evictionPolicy
@@ -36,4 +37,4 @@ class SpeculativeCache<Key = string, Value = any> extends BaseCache<Key, Value> 
 	}
 }
 
-export { SpeculativeCache };
+export { SpeculativeCache, SpeculativeCacheOptions };

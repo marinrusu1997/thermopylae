@@ -2,30 +2,26 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-
-interface TrackedItem<Key = string> {
-	whenToDelete: number;
-	key: Key;
-}
+import { ExpirableCacheKey } from '../contracts/cache';
 
 interface CleanUpSprint {
 	timeoutId: NodeJS.Timeout;
-	willRunOn: UnixTimestamp;
+	willCleanUpOn: UnixTimestamp;
 }
 
 class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPolicy<Key> {
-	private readonly trackedItems: Heap<TrackedItem<Key>>;
+	private readonly expirableKeys: Heap<ExpirableCacheKey<Key>>;
 
 	private cleanUpSprint: CleanUpSprint | null;
 
 	constructor() {
 		super();
 
-		this.trackedItems = new Heap<TrackedItem<Key>>((first, second) => {
-			if (first.whenToDelete < second.whenToDelete) {
+		this.expirableKeys = new Heap<ExpirableCacheKey<Key>>((first, second) => {
+			if (first.expiresAt! < second.expiresAt!) {
 				return -1;
 			}
-			if (first.whenToDelete > second.whenToDelete) {
+			if (first.expiresAt! > second.expiresAt!) {
 				return 1;
 			}
 			return 0;
@@ -33,65 +29,65 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		this.cleanUpSprint = null;
 	}
 
-	public expires(key: Key, after: Seconds, from?: UnixTimestamp): UnixTimestamp | null {
-		const expires = super.expires(key, after, from);
-		if (expires === null) {
+	public onSet(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const expiresAt = super.onSet(key, expiresAfter, expiresFrom);
+		if (expiresAt === null) {
 			return null;
 		}
 
-		const item = { key, whenToDelete: expires };
-		this.doScheduleDelete(item);
+		const expirableKey = { key, expiresAt };
+		this.doScheduleDelete(expirableKey);
 
 		return null;
 	}
 
-	public updateExpires(key: Key, after: Seconds, from?: UnixTimestamp): UnixTimestamp | null {
-		const newExpires = super.updateExpires(key, after, from);
-		if (newExpires === null) {
+	public onUpdate(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const expiresAt = super.onUpdate(key, expiresAfter, expiresFrom);
+		if (expiresAt === null) {
 			throw new Error('REMOVING OLD TIMER IS NOT SUPPORTED FOR NOW');
 		}
 
-		const update: TrackedItem<Key> = { key, whenToDelete: newExpires };
+		const expirableKeyUpdate = { key, expiresAt };
 
-		if (this.trackedItems.updateItem(update, item => item.key === key) !== undefined) {
+		if (this.expirableKeys.updateItem(expirableKeyUpdate, item => item.key === key) !== undefined) {
 			this.synchronize();
-			return newExpires;
+			return null;
 		}
 
 		// this is an update of item which had infinite timeout
-		this.doScheduleDelete(update);
+		this.doScheduleDelete(expirableKeyUpdate);
 		return null;
 	}
 
-	public expired(_key: Key, _expires: UnixTimestamp | null): boolean {
-		// FIXME ideal scenario: we check expires, clear item, clear timer
+	public isExpired(): boolean {
+		// FIXME ideal scenario: we check onSet, clear item, clear timer
 		//  but due to timer clear performance issues, we will return always false,
 		//  as deletion will be done automatically by timer
 		return false;
 	}
 
-	public resetExpires(): void {
+	public onClear(): void {
 		if (!this.isIdle()) {
 			this.shutdown();
 		}
-		this.trackedItems.clear();
+		this.expirableKeys.clear();
 	}
 
-	private doScheduleDelete(item: TrackedItem<Key>): void {
-		this.trackedItems.push(item);
+	private doScheduleDelete(expirableKey: ExpirableCacheKey<Key>): void {
+		this.expirableKeys.push(expirableKey);
 
 		if (this.isIdle()) {
-			return this.doStart(item.whenToDelete);
+			return this.doStart(expirableKey.expiresAt!);
 		}
 
 		return this.synchronize();
 	}
 
 	private synchronize(): void {
-		const root = this.trackedItems.peek()!;
-		if (this.cleanUpSprint!.willRunOn !== root.whenToDelete) {
+		const rootKey = this.expirableKeys.peek()!;
+		if (this.cleanUpSprint!.willCleanUpOn !== rootKey.expiresAt) {
 			clearTimeout(this.cleanUpSprint!.timeoutId);
-			this.start(root.whenToDelete - chrono.dateToUNIX(), root.whenToDelete);
+			this.start(rootKey.expiresAt! - chrono.dateToUNIX(), rootKey.expiresAt!);
 		}
 	}
 
@@ -100,16 +96,16 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		this.cleanUpSprint = null;
 	}
 
-	private doStart(willRunOn: UnixTimestamp): void {
+	private doStart(willCleanUpOn: UnixTimestamp): void {
 		// @ts-ignore
 		this.cleanUpSprint = {};
 
-		const runDelay = willRunOn - chrono.dateToUNIX();
-		this.start(runDelay, willRunOn);
+		const runDelay = willCleanUpOn - chrono.dateToUNIX();
+		this.start(runDelay, willCleanUpOn);
 	}
 
-	private start(runDelay: Seconds, willRunOn: UnixTimestamp): void {
-		this.cleanUpSprint!.willRunOn = willRunOn;
+	private start(runDelay: Seconds, willCleanUpOn: UnixTimestamp): void {
+		this.cleanUpSprint!.willCleanUpOn = willCleanUpOn;
 		this.cleanUpSprint!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
 	}
 
@@ -118,23 +114,23 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 	}
 
 	private doCleanUp = (): void => {
-		let itemToDelete = this.trackedItems.peek(); // if we were invoked it is clear that first item needs to be deleted
+		let toDelete = this.expirableKeys.peek(); // if we were invoked it is clear that first item needs to be deleted
 
-		const whenToDeleteOfRootItem = itemToDelete!.whenToDelete;
+		const rootKeyExpiresAt = toDelete!.expiresAt;
 
 		do {
-			this.delete(itemToDelete!.key);
-			this.trackedItems.pop();
-			itemToDelete = this.trackedItems.peek();
-			if (itemToDelete && itemToDelete.whenToDelete !== whenToDeleteOfRootItem) {
-				itemToDelete = undefined;
+			this.delete(toDelete!.key);
+			this.expirableKeys.pop();
+			toDelete = this.expirableKeys.peek();
+			if (toDelete && toDelete.expiresAt !== rootKeyExpiresAt) {
+				toDelete = undefined;
 			}
-		} while (itemToDelete !== undefined);
+		} while (toDelete !== undefined);
 
-		itemToDelete = this.trackedItems.peek();
+		toDelete = this.expirableKeys.peek();
 
-		if (itemToDelete !== undefined) {
-			this.start(itemToDelete.whenToDelete - chrono.dateToUNIX(), itemToDelete.whenToDelete);
+		if (toDelete !== undefined) {
+			this.start(toDelete.expiresAt! - chrono.dateToUNIX(), toDelete.expiresAt!);
 		} else {
 			this.cleanUpSprint = null;
 		}

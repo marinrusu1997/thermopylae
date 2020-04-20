@@ -4,7 +4,7 @@ import { Libraries } from '@thermopylae/core.declarations';
 const ErrorCodes = {
 	OPERATION_NOT_SUPPORTED: 'OPERATION_NOT_SUPPORTED',
 	CACHE_FULL: 'CACHE_FULL',
-	INVALID_EXPIRES: 'INVALID_EXPIRES'
+	INVALID_EXPIRES_AT: 'INVALID_EXPIRES_AT'
 };
 
 function createException(code: string, message: string, cause?: object): Exception {

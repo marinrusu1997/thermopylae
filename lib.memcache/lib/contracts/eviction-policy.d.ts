@@ -1,8 +1,8 @@
-import { BaseCacheEntry } from '../caches/base-cache';
+import { ExpirableCacheValue } from './cache';
 
 declare type Deleter<Key = string> = (key: Key) => void;
 
-declare interface EvictionPolicy<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> {
+declare interface EvictionPolicy<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> {
 	onSet(key: Key, entry: Entry, size: number): Entry;
 	onGet(key: Key, entry: Entry): void;
 	onDelete(key: Key): void;

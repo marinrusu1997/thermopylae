@@ -340,7 +340,7 @@ describe('AutoExpirableCache spec', () => {
 			const TTL = 1;
 			preciseMemCache.on('expired', () => done()); // should be emitted only once
 			preciseMemCache.set(KEY, VALUE, TTL);
-			preciseMemCache.clear(); // after this expired should not be emitted
+			preciseMemCache.clear(); // after this isExpired should not be emitted
 			expect(preciseMemCache.get(KEY)).to.be.equal(undefined);
 			preciseMemCache.set(KEY, VALUE, TTL); // now it will be emitted
 		});
@@ -456,7 +456,7 @@ describe('AutoExpirableCache spec', () => {
 				.upset('key1', 'value1.1', 1);
 		});
 
-		it('fires expired event when key expired', done => {
+		it('fires isExpired event when key isExpired', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 			const KEY = 'key';
 			const VALUE = 'value';

@@ -10,9 +10,14 @@ interface CacheStats {
 	misses: number;
 }
 
-interface BaseCacheEntry<Value> {
+interface ExpirableCacheKey<Key = string> {
+	key: Key;
+	expiresAt: UnixTimestamp | null;
+}
+
+interface ExpirableCacheValue<Value> {
 	value: Value;
-	expires: UnixTimestamp | null;
+	expiresAt: UnixTimestamp | null;
 }
 
 type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
@@ -53,4 +58,4 @@ const INFINITE_TTL = 0;
 
 const INFINITE_KEYS = -1;
 
-export { Cache, CachedItem, BaseCacheEntry, CacheStats, EventType, EventListener, INFINITE_TTL, INFINITE_KEYS };
+export { Cache, CachedItem, ExpirableCacheKey, ExpirableCacheValue, CacheStats, EventType, EventListener, INFINITE_TTL, INFINITE_KEYS };

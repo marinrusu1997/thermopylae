@@ -9,7 +9,7 @@ const { expect } = chai;
 describe.only('Garbage Collector spec', () => {
 	const defaultTTL = 1; // second
 
-	it('removes expired item', done => {
+	it('removes isExpired item', done => {
 		const trackedKey = 'key';
 		const whenTrackingBegan = nowInSeconds();
 		const gc = new HighResolutionGarbageCollector(key => {
@@ -20,7 +20,7 @@ describe.only('Garbage Collector spec', () => {
 		gc.scheduleDeletion(trackedKey, defaultTTL);
 	});
 
-	it('removes multiple expired items with same ttl (tracking started at same time)', done => {
+	it('removes multiple isExpired items with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
 		const gc = new HighResolutionGarbageCollector(key => {
@@ -34,7 +34,7 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeys.forEach(key => gc.scheduleDeletion(key, defaultTTL));
 	});
 
-	it('removes multiple expired items with different ttl (tracking started at same time)', done => {
+	it('removes multiple isExpired items with different ttl (tracking started at same time)', done => {
 		const trackedKeysMap = new Map<string, number>();
 		trackedKeysMap.set('key1', defaultTTL);
 		trackedKeysMap.set('key2', defaultTTL);
@@ -52,7 +52,7 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeysMap.forEach((ttl, key) => gc.scheduleDeletion(key, ttl));
 	}).timeout(2100);
 
-	it('removes multiple expired items with different ttl in the order items were tracked (tracking stared at different times)', done => {
+	it('removes multiple isExpired items with different ttl in the order items were tracked (tracking stared at different times)', done => {
 		const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;

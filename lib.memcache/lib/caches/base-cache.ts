@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { Cache, CachedItem, BaseCacheEntry, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../contracts/cache';
+import { Cache, CachedItem, ExpirableCacheValue, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../contracts/cache';
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
@@ -12,7 +12,8 @@ interface BaseCacheConfig {
 	maxKeys: number;
 }
 
-class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> extends EventEmitter implements Cache<Key, Value> {
+class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends EventEmitter
+	implements Cache<Key, Value> {
 	protected readonly config: BaseCacheConfig;
 
 	protected readonly cacheStats: CacheStats;
@@ -21,12 +22,12 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 
 	protected readonly expirationPolicy: ExpirationPolicy<Key>;
 
-	protected readonly evictionPolicy: EvictionPolicy<Key>;
+	protected readonly evictionPolicy: EvictionPolicy<Key, Value, Entry>;
 
 	protected constructor(
 		config?: Partial<BaseCacheConfig>,
 		expirationPolicy: ExpirationPolicy<Key> = new NoExpirationPolicy<Key>(),
-		evictionPolicy?: EvictionPolicy<Key>
+		evictionPolicy?: EvictionPolicy<Key, Value, Entry>
 	) {
 		super();
 
@@ -56,7 +57,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 			key,
 			{
 				value: this.config.useClones ? object.cloneDeep(value) : value,
-				expires: this.expirationPolicy.expires(key, ttl || INFINITE_TTL, from)
+				expiresAt: this.expirationPolicy.onSet(key, ttl || INFINITE_TTL, from)
 			} as Entry,
 			this.cache.size
 		) as Entry;
@@ -73,7 +74,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 		if (entry !== undefined) {
 			entry.value = this.config.useClones ? object.cloneDeep(value) : value;
 			if (ttl !== null) {
-				entry.expires = this.expirationPolicy.updateExpires(key, ttl, from);
+				entry.expiresAt = this.expirationPolicy.onUpdate(key, ttl, from);
 			}
 
 			this.cache.set(key, entry);
@@ -121,7 +122,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 			return false;
 		}
 
-		entry.expires = this.expirationPolicy.updateExpires(key, ttl, from);
+		entry.expiresAt = this.expirationPolicy.onUpdate(key, ttl, from);
 
 		return true;
 	}
@@ -165,7 +166,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 
 	public clear(): void {
 		this.cache.clear();
-		this.expirationPolicy.resetExpires();
+		this.expirationPolicy.onClear();
 		this.evictionPolicy.onClear();
 
 		this.cacheStats.misses = 0;
@@ -188,7 +189,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 			return entry;
 		}
 
-		if (this.expirationPolicy.expired(key, entry.expires)) {
+		if (this.expirationPolicy.isExpired(key, entry.expiresAt)) {
 			return undefined;
 		}
 
@@ -205,7 +206,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 			return entry;
 		}
 
-		if (this.expirationPolicy.expired(key, entry.expires)) {
+		if (this.expirationPolicy.isExpired(key, entry.expiresAt)) {
 			return undefined;
 		}
 

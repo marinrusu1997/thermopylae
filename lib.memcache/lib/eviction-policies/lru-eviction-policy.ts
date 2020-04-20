@@ -1,8 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { BaseCacheEntry } from '../caches/base-cache';
+import { ExpirableCacheValue } from '../contracts/cache';
 import { Deleter, EvictionPolicy } from '../contracts/eviction-policy';
 
-interface DoublyLinkedListNode<Key = string, Value = any> extends BaseCacheEntry<Value> {
+interface DoublyLinkedListNode<Key = string, Value = any> extends ExpirableCacheValue<Value> {
 	key: Key;
 	next: DoublyLinkedListNode<Key, Value> | null;
 	prev: DoublyLinkedListNode<Key, Value> | null;
@@ -27,7 +27,7 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.capacity = capacity;
 		this.delete = deleter;
 		// @ts-ignore
-		this.lru = { next: null, prev: null, expires: null, value: null, key: null };
+		this.lru = { next: null, prev: null, expiresAt: null, value: null, key: null };
 		this.mru = this.lru;
 	}
 

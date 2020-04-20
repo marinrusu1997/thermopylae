@@ -7,32 +7,32 @@ import { INFINITE_TTL } from '../contracts/cache';
 abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
 	protected delete!: Deleter<Key>;
 
-	public expires(_key: Key, after: Seconds, from?: UnixTimestamp): UnixTimestamp | null {
-		if (after === INFINITE_TTL) {
+	public onSet(_key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		if (expiresAfter === INFINITE_TTL) {
 			return null;
 		}
 
 		const now = chrono.dateToUNIX();
-		const expires = (from || now) + after;
+		const expiresAt = (expiresFrom || now) + expiresAfter;
 
-		this.guardValidExpires(expires, now);
+		this.guardValidExpiresAt(expiresAt, now);
 
-		return expires;
+		return expiresAt;
 	}
 
-	public updateExpires(key: Key, after: Seconds, from?: UnixTimestamp): UnixTimestamp | null {
-		return this.expires(key, after, from);
+	public onUpdate(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		return this.onSet(key, expiresAfter, expiresFrom);
 	}
 
-	public expired(key: Key, expires: UnixTimestamp | null): boolean {
-		const expired = expires !== null ? expires >= chrono.dateToUNIX() : false;
+	public isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean {
+		const expired = expiresAt !== null ? expiresAt >= chrono.dateToUNIX() : false;
 		if (expired) {
 			this.delete(key);
 		}
 		return expired;
 	}
 
-	public resetExpires(): void {
+	public onClear(): void {
 		return undefined; // just do nothing
 	}
 
@@ -40,9 +40,9 @@ abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolic
 		this.delete = deleter;
 	}
 
-	private guardValidExpires(expires: UnixTimestamp, now: UnixTimestamp): void {
-		if (expires <= now) {
-			throw createException(ErrorCodes.INVALID_EXPIRES, `New expires ${expires} (UNIX) is lower or equal than current time ${now} (UNIX). `);
+	private guardValidExpiresAt(expiresAt: UnixTimestamp, now: UnixTimestamp): void {
+		if (expiresAt <= now) {
+			throw createException(ErrorCodes.INVALID_EXPIRES_AT, `New expiresAt ${expiresAt} (UNIX) is lower or equal than current time ${now} (UNIX). `);
 		}
 	}
 }
