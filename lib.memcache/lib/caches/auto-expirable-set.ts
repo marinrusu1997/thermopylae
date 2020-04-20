@@ -1,18 +1,18 @@
 import { Seconds } from '@thermopylae/core.declarations';
 import { INFINITE_TTL } from '../cache';
-import { GarbageCollector } from '../garbage-collector';
+import { HighResolutionGarbageCollector } from '../high-resolution-garbage-collector';
 import { createException, ErrorCodes } from '../error';
 
 class AutoExpirableSet<T = string> extends Set<T> {
 	private readonly defaultTtlSec: Seconds;
 
-	private readonly gc: GarbageCollector<T>;
+	private readonly gc: HighResolutionGarbageCollector<T>;
 
 	constructor(defaultTtlSec = INFINITE_TTL) {
 		super();
 
 		this.defaultTtlSec = defaultTtlSec;
-		this.gc = new GarbageCollector<T>(value => super.delete(value));
+		this.gc = new HighResolutionGarbageCollector<T>(value => super.delete(value));
 	}
 
 	/**

@@ -1,7 +1,7 @@
 import { chrono, number } from '@thermopylae/lib.utils';
 import { describe, it } from 'mocha';
 import { chai } from '../env';
-import { GarbageCollector } from '../../lib/garbage-collector';
+import { HighResolutionGarbageCollector } from '../../lib/high-resolution-garbage-collector';
 
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
@@ -12,7 +12,7 @@ describe.only('Garbage Collector spec', () => {
 	it('removes expired item', done => {
 		const trackedKey = 'key';
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(key).to.be.equals(trackedKey);
 			done();
@@ -23,7 +23,7 @@ describe.only('Garbage Collector spec', () => {
 	it('removes multiple expired items with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -41,7 +41,7 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeysMap.set('key3', defaultTTL + 1);
 		trackedKeysMap.set('key4', defaultTTL + 1);
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
 			trackedKeysMap.delete(key); // ensure not called with same key
@@ -57,7 +57,7 @@ describe.only('Garbage Collector spec', () => {
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;
 		const trackedKeysSnapshot = ['key1', 'key2', 'key3', 'key4'];
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			const value = trackedKeysMap.get(key);
 			expect(nowInSeconds() - value!.trackingSince).to.be.equals(value!.ttl);
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
@@ -91,7 +91,7 @@ describe.only('Garbage Collector spec', () => {
 	it('removes duplicate keys with same ttl', done => {
 		const trackedKeys = ['key', 'key', 'key'];
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -115,7 +115,7 @@ describe.only('Garbage Collector spec', () => {
 			currentNumberOfTrackedKeys += 1;
 		};
 
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -138,7 +138,7 @@ describe.only('Garbage Collector spec', () => {
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -162,7 +162,7 @@ describe.only('Garbage Collector spec', () => {
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const gc = new GarbageCollector(key => {
+		const gc = new HighResolutionGarbageCollector(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeyAfterStopping).to.be.equal(key);
 			done();
@@ -175,7 +175,7 @@ describe.only('Garbage Collector spec', () => {
 
 	it('gc is synchronized with nearest element to remove while adding items', async () => {
 		const items = new Set();
-		const gc = new GarbageCollector(item => items.delete(item));
+		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
 		expect(gc.isIdle()).to.be.eq(true);
 
 		// adding element with same ttl
@@ -230,7 +230,7 @@ describe.only('Garbage Collector spec', () => {
 
 	it('gc is synchronized with nearest element to remove while adding/updating items', done => {
 		const items = new Set();
-		const gc = new GarbageCollector(item => items.delete(item));
+		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
 		expect(gc.isIdle()).to.be.eq(true);
 
 		const MIN_TTL = 1;

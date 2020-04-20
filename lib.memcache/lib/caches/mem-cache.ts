@@ -1,15 +1,13 @@
 import { Seconds, Milliseconds } from '@thermopylae/core.declarations';
-import { object, chrono } from '@thermopylae/lib.utils';
-import { CachedItem, CacheStats, EventType, EventListener, INFINITE_TTL, ExpireFrom } from '../cache';
+import { object } from '@thermopylae/lib.utils';
+import { CachedItem, CacheStats, EventType, EventListener, INFINITE_TTL } from '../cache';
 import { AbstractCache, BaseCacheEntry } from './abstract-cache';
 
 const { isObject, cloneDeep } = object;
-const { millisecondsToSeconds } = chrono;
 
 const now = (): Milliseconds => new Date().getTime();
-const nowInSeconds = chrono.dateToUNIX;
 
-class ExpirableCache<Key = string, Value = any> extends AbstractCache<Key, Value> {
+class MemCache<Key = string, Value = any> extends AbstractCache<Key, Value> {
 	public set(key: Key, value: Value, ttl?: Seconds): this {
 		this.guardMaxKeysNumber();
 
@@ -87,24 +85,6 @@ class ExpirableCache<Key = string, Value = any> extends AbstractCache<Key, Value
 
 	public has(key: Key): boolean {
 		return this.internalGet(key) !== undefined;
-	}
-
-	public expire(key: Key, after: Seconds, from: ExpireFrom = 'insert'): boolean {
-		const entry = this.internalGet(key);
-		if (entry === undefined) {
-			return false;
-		}
-
-		this.guardNotTrackedByGC(key, entry);
-
-		if (from === 'insert') {
-			const setAt: Milliseconds | null = this.setAt(entry);
-			from = setAt !== null ? millisecondsToSeconds(setAt) : nowInSeconds();
-		}
-
-		this.gc.scheduleDeletion(key, after, from);
-
-		return true;
 	}
 
 	public del(key: Key): boolean {
@@ -206,4 +186,4 @@ class ExpirableCache<Key = string, Value = any> extends AbstractCache<Key, Value
 	}
 }
 
-export { ExpirableCache };
+export { MemCache };

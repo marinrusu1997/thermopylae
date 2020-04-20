@@ -1,7 +1,7 @@
 import { object } from '@thermopylae/lib.utils';
 import { Seconds } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
-import { GarbageCollector } from '../garbage-collector';
+import { HighResolutionGarbageCollector } from '../high-resolution-garbage-collector';
 import { INFINITE_TTL } from "../cache";
 
 class AutoExpirableCache<Key = string, Value = any> extends EventEmitter {
@@ -18,10 +18,10 @@ class AutoExpirableCache<Key = string, Value = any> extends EventEmitter {
 	/**
 	 * Associated garbage collector
 	 */
-	private readonly gc: GarbageCollector<Key>;
+	private readonly gc: HighResolutionGarbageCollector<Key>;
 
 	/**
-	 * Configurable ExpirableCache
+	 * Configurable MemCache
 	 * @param opts
 	 */
 	constructor(opts?: Partial<Config>) {
@@ -29,7 +29,7 @@ class AutoExpirableCache<Key = string, Value = any> extends EventEmitter {
 
 		this.config = AutoExpirableCache.fillWithDefaults(opts);
 		this.cache = new Map<Key, Value>();
-		this.gc = new GarbageCollector<Key>(key => {
+		this.gc = new HighResolutionGarbageCollector<Key>(key => {
 			if (this.cache.delete(key)) {
 				this.emit('expired', key);
 			}
