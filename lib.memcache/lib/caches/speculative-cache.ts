@@ -1,62 +1,38 @@
-import { Seconds } from '@thermopylae/core.declarations';
-import {BaseCacheConfig, Cache, CachedItem, CacheStats, EventType} from '../cache';
+import { Seconds, Threshold } from '@thermopylae/core.declarations';
+import { BaseCache, BaseCacheConfig, BaseCacheEntry } from './base-cache';
+import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
+import { SpeculativeExpirationPolicy } from '../expiration-policies/speculative-expiration-policy';
 
-interface SpeculativeCacheConfig extends BaseCacheConfig {
-	checkInterval: Seconds;
-
+interface SpeculativeCacheOptions extends BaseCacheConfig {
+	checkPeriod?: Seconds;
+	iterateThreshold?: Threshold;
 }
 
-class SpeculativeCache<Key = string, Value = any> implements Cache<Key, Value> {
-	clear(): void {}
+class SpeculativeCache<Key = string, Value = any> extends BaseCache<Key, Value> {
+	private iterator: IterableIterator<[Key, BaseCacheEntry<Value>]>;
 
-	del(key: Key): boolean {
-		return false;
-	}
+	constructor(options: Partial<SpeculativeCacheOptions> = {}, evictionPolicy = new NoEvictionPolicy()) {
+		super(
+			options,
+			new SpeculativeExpirationPolicy<Key>({
+				nextCacheEntry: () => {
+					const entry = this.iterator.next();
 
-	get(key: Key): Value | undefined {
-		return undefined;
-	}
+					if (entry.done) {
+						this.iterator = this.cache[Symbol.iterator](); // reposition to beginning
+						return null;
+					}
 
-	getTtl(key: Key): Seconds | undefined {
-		return undefined;
-	}
+					return { key: entry.value[0], expires: entry.value[1].expires };
+				},
+				collectionSize: () => this.size,
+				checkPeriod: options.checkPeriod,
+				iterateThreshold: options.iterateThreshold
+			}),
+			evictionPolicy
+		);
 
-	has(key: Key): boolean {
-		return false;
-	}
-
-	keys(): Array<Key> {
-		return undefined;
-	}
-
-	mdel(keys: Array<Key>): void {}
-
-	mget(keys: Array<Key>): Array<CachedItem<Key, Value>> {
-		return undefined;
-	}
-
-	on(event: EventType, listener: EventListener<Key, Value>): this {
-		return undefined;
-	}
-
-	set(key: Key, value: Value, ttl: Seconds): this {
-		return undefined;
-	}
-
-	stats(): CacheStats {
-		return undefined;
-	}
-
-	take(key: Key): Value | undefined {
-		return undefined;
-	}
-
-	ttl(key: Key, ttl?: Seconds): this {
-		return undefined;
-	}
-
-	upset(key: Key, value: Value, ttl: Seconds): this {
-		return undefined;
+		this.iterator = this.cache[Symbol.iterator]();
 	}
 }
 

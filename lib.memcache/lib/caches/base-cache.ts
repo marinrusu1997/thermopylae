@@ -1,0 +1,231 @@
+import { EventEmitter } from 'events';
+import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { object } from '@thermopylae/lib.utils';
+import { Cache, CachedItem, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../cache';
+import { createException, ErrorCodes } from '../error';
+import { ExpirationPolicy } from '../expiration-policy';
+import { EvictionPolicy } from '../eviction-policy';
+import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
+import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
+
+interface BaseCacheConfig {
+	useClones: boolean;
+	maxKeys: number;
+}
+
+interface BaseCacheEntry<Value> {
+	value: Value;
+	expires: UnixTimestamp | null;
+}
+
+class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> extends EventEmitter implements Cache<Key, Value> {
+	protected readonly config: BaseCacheConfig;
+
+	protected readonly cacheStats: CacheStats;
+
+	protected readonly cache: Map<Key, Entry>;
+
+	protected readonly expirationPolicy: ExpirationPolicy<Key>;
+
+	protected readonly evictionPolicy: EvictionPolicy<Key>;
+
+	protected constructor(
+		config?: Partial<BaseCacheConfig>,
+		expirationPolicy: ExpirationPolicy<Key> = new NoExpirationPolicy<Key>(),
+		evictionPolicy: EvictionPolicy<Key> = new NoEvictionPolicy<Key, Value, Entry>()
+	) {
+		super();
+
+		this.config = this.fillWithDefaults(config);
+		this.cacheStats = { hits: 0, misses: 0 };
+		this.cache = new Map();
+		this.expirationPolicy = expirationPolicy;
+		this.evictionPolicy = evictionPolicy;
+
+		this.expirationPolicy.setDeleter(key => {
+			if (this.cache.delete(key)) {
+				this.emit('expired', key);
+			}
+		});
+
+		this.evictionPolicy.setDeleter(key => {
+			if (this.cache.delete(key)) {
+				this.emit('evicted', key);
+			}
+		});
+	}
+
+	public set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this {
+		this.guardMaxKeysNumber();
+
+		const wrappedEntry = this.evictionPolicy.wrapEntry(key, {
+			value: this.config.useClones ? object.cloneDeep(value) : value,
+			expires: this.expirationPolicy.expires(key, ttl || INFINITE_TTL, from)
+		} as Entry) as Entry;
+
+		this.cache.set(key, wrappedEntry);
+		this.emit('set', key, value);
+
+		return this;
+	}
+
+	public upset(key: Key, value: Value, ttl: Seconds | null, from?: UnixTimestamp): this {
+		const entry = this.internalGetEntry(key);
+
+		if (entry !== undefined) {
+			entry.value = this.config.useClones ? object.cloneDeep(value) : value;
+			if (ttl !== null) {
+				entry.expires = this.expirationPolicy.updateExpires(key, ttl, from);
+			}
+
+			this.cache.set(key, entry);
+			this.emit('update', key, value);
+
+			return this;
+		}
+
+		return this.set(key, value, ttl!);
+	}
+
+	public get(key: Key): Value | undefined {
+		return this.internalGetValue(key);
+	}
+
+	public mget(keys: Array<Key>): Array<CachedItem<Key, Value>> {
+		const items: Array<CachedItem<Key, Value>> = [];
+
+		let value;
+		// eslint-disable-next-line no-restricted-syntax
+		for (const key of keys) {
+			value = this.get(key);
+			if (value !== undefined) {
+				items.push({ key, value });
+			}
+		}
+
+		return items;
+	}
+
+	public take(key: Key): Value | undefined {
+		const value = this.internalGetValue(key);
+		if (value === undefined) {
+			return value;
+		}
+
+		this.del(key);
+
+		return value;
+	}
+
+	public ttl(key: Key, ttl: Seconds, from?: UnixTimestamp): boolean {
+		const entry = this.internalGetEntry(key);
+		if (entry === undefined) {
+			return false;
+		}
+
+		entry.expires = this.expirationPolicy.updateExpires(key, ttl, from);
+
+		return true;
+	}
+
+	public has(key: Key): boolean {
+		return this.internalGetEntry(key) !== undefined;
+	}
+
+	public del(key: Key): boolean {
+		if (this.cache.delete(key)) {
+			// fixme here we will need to notify expire policy about key deletion, i.e. for timer based ones
+			this.emit('del', key);
+			return true;
+		}
+		return false;
+	}
+
+	public mdel(keys: Array<Key>): void {
+		// eslint-disable-next-line no-restricted-syntax
+		for (const key of keys) {
+			this.del(key);
+		}
+	}
+
+	public keys(): Array<Key> {
+		return Array.from(this.cache.keys());
+	}
+
+	public stats(): CacheStats {
+		return object.cloneDeep(this.cacheStats);
+	}
+
+	public get size(): number {
+		return this.cache.size;
+	}
+
+	public empty(): boolean {
+		return this.cache.size !== 0;
+	}
+
+	public clear(): void {
+		this.cache.clear();
+		this.expirationPolicy.resetExpires();
+
+		this.cacheStats.misses = 0;
+		this.cacheStats.hits = 0;
+
+		this.emit('flush');
+	}
+
+	public on(event: EventType, listener: EventListener<Key, Value>): this {
+		return super.on(event, listener);
+	}
+
+	// following methods were duplicated for speed
+
+	protected internalGetEntry(key: Key): Entry | undefined {
+		const entry = this.cache.get(key);
+
+		if (entry === undefined) {
+			this.cacheStats.misses += 1;
+			return entry;
+		}
+
+		if (this.expirationPolicy.expired(key, entry.expires)) {
+			return undefined;
+		}
+
+		this.cacheStats.hits += 1;
+		this.evictionPolicy.accessed(key);
+		return entry;
+	}
+
+	protected internalGetValue(key: Key): Value | undefined {
+		const entry = this.cache.get(key);
+
+		if (entry === undefined) {
+			this.cacheStats.misses += 1;
+			return entry;
+		}
+
+		if (this.expirationPolicy.expired(key, entry.expires)) {
+			return undefined;
+		}
+
+		this.cacheStats.hits += 1;
+		this.evictionPolicy.accessed(key);
+		return entry.value;
+	}
+
+	protected guardMaxKeysNumber(): void {
+		if (this.config.maxKeys !== INFINITE_KEYS && this.cache.size >= this.config.maxKeys && !this.evictionPolicy.evict()) {
+			throw createException(ErrorCodes.CACHE_FULL, `Limit of ${this.config.maxKeys} has been reached and eviction failed. `);
+		}
+	}
+
+	protected fillWithDefaults(options?: Partial<BaseCacheConfig>): BaseCacheConfig {
+		options = options || {};
+		options.maxKeys = options.maxKeys || INFINITE_KEYS;
+		options.useClones = options.useClones || false;
+		return options as BaseCacheConfig;
+	}
+}
+
+export { BaseCache, BaseCacheConfig, BaseCacheEntry };

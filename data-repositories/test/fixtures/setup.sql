@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS User (
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, -- it's created at some point in time
     RelatedAccountID VARCHAR(20), -- for the user who created the account it's the same as the user id
                                   -- null means user is inactive -> doesn't have account -> can't log into system
-    RelatedRoleID TINYINT UNSIGNED, -- null means it has no role -> no access to global shared resources
+    RelatedRoleID TINYINT UNSIGNED, -- null means it has no role -> no accessed to global shared resources
 
     PRIMARY KEY (ID)
 );

@@ -72,7 +72,7 @@ describe('entities', () => {
 		expect(attempts[1].id).to.be.oneOf([attempt2Id, attempt3Id]);
 	});
 
-	it('access point', async () => {
+	it('accessed point', async () => {
 		const now = new Date().getTime();
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
@@ -87,11 +87,11 @@ describe('entities', () => {
 		await ActiveUserSessionEntityMongo.create({ authenticatedAtUNIX: now, accountId: '1' });
 		await ActiveUserSessionEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '1' });
 		await ActiveUserSessionEntityMongo.create({ authenticatedAtUNIX: now + 20, accountId: '1' });
-		// ... and their corresponding access points
+		// ... and their corresponding accessed points
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		// user 2 is not active, but has a previous access point
+		// user 2 is not active, but has a previous accessed point
 		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
 
 		// read active sessions of user 1 ...

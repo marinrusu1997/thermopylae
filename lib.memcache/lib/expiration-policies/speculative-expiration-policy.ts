@@ -1,5 +1,4 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
-import { Deleter } from '../expiration-policy';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
 
 interface ExpirableCacheEntry<Key = string> {
@@ -32,8 +31,8 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 
 	private readonly collectionSize: QueryCollectionSize;
 
-	constructor(deleter: Deleter<Key>, config: SpeculativeExpirationPolicyConfig<Key>) {
-		super(deleter);
+	constructor(config: SpeculativeExpirationPolicyConfig<Key>) {
+		super();
 
 		this.config = SpeculativeExpirationPolicy.fillWithDefaults(config);
 		this.iterateTimeoutId = null;

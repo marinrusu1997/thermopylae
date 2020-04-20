@@ -1,18 +1,19 @@
 import { Seconds } from '@thermopylae/core.declarations';
 import { INFINITE_TTL } from '../cache';
-import { HighResolutionGarbageCollector } from '../high-resolution-garbage-collector';
 import { createException, ErrorCodes } from '../error';
+import { HighResolutionExpirationPolicy } from '../expiration-policies/high-resolution-expiration-policy';
 
-class AutoExpirableSet<T = string> extends Set<T> {
+class AutoExpirableSet<Value = string> extends Set<Value> {
 	private readonly defaultTtlSec: Seconds;
 
-	private readonly gc: HighResolutionGarbageCollector<T>;
+	private readonly expirationPolicy: HighResolutionExpirationPolicy<Value>;
 
 	constructor(defaultTtlSec = INFINITE_TTL) {
 		super();
 
 		this.defaultTtlSec = defaultTtlSec;
-		this.gc = new HighResolutionGarbageCollector<T>(value => super.delete(value));
+		this.expirationPolicy = new HighResolutionExpirationPolicy<Value>();
+		this.expirationPolicy.setDeleter((value: Value) => super.delete(value));
 	}
 
 	/**
@@ -29,13 +30,13 @@ class AutoExpirableSet<T = string> extends Set<T> {
 	 *
 	 * @deprecated
 	 */
-	public add(value: T, ttlSec?: Seconds): this {
+	public add(value: Value, ttlSec?: Seconds): this {
 		super.add(value);
 
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.gc.scheduleDeletion(value, ttlSec);
+		this.expirationPolicy.expires(value, ttlSec);
 
 		return this;
 	}
@@ -48,7 +49,7 @@ class AutoExpirableSet<T = string> extends Set<T> {
 	 * @param value
 	 * @param ttlSec
 	 */
-	public upset(value: T, ttlSec?: Seconds): this {
+	public upset(value: Value, ttlSec?: Seconds): this {
 		if (!super.has(value)) {
 			return this.add(value, ttlSec);
 		}
@@ -56,21 +57,21 @@ class AutoExpirableSet<T = string> extends Set<T> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.gc.reScheduleDeletion(value, ttlSec);
+		this.expirationPolicy.updateExpires(value, ttlSec);
 
 		return this;
 	}
 
-	public delete(_value: T): boolean {
+	public delete(_value: Value): boolean {
 		throw createException(
-			ErrorCodes.DELETE_NOT_ALLOWED,
+			ErrorCodes.OPERATION_NOT_SUPPORTED,
 			"Delete may cause undefined behaviour. Deleting a value will not scheduleDeletion it's timer. Adding the same value after deleting it, will use the old timer. "
 		);
 	}
 
 	public clear(): void {
 		super.clear();
-		this.gc.stop();
+		this.expirationPolicy.resetExpires();
 	}
 }
 

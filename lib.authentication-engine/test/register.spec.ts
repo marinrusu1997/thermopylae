@@ -85,7 +85,7 @@ describe('Account registration spec', () => {
 
 	it('fails to register new account if it is registered already', async () => {
 		// email ownership is checked via activation link -> OK
-		// mobile ownership is not checked, but we assume that only account owner has access to his mobile number -> OK
+		// mobile ownership is not checked, but we assume that only account owner has accessed to his mobile number -> OK
 		// check is made based on username, it needs to be unique, account activation status is not taken into account
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true }); // do not place scheduleDeletion timer
 		try {

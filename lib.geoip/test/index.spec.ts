@@ -21,7 +21,7 @@ describe('geoip spec', () => {
 		ipstackAccessKey = process.env.IPSTACK_ACCESS_KEY;
 
 		if (!ipstackAccessKey) {
-			throw new Error('Could not load ip stack access key from env variable');
+			throw new Error('Could not load ip stack accessed key from env variable');
 		}
 
 		LoggerInstance.console.setConfig({ level: 'emerg' }); // suppress error logs

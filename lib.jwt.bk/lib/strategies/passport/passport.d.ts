@@ -5,7 +5,7 @@ import { IBasicJWTAuthenticatorOpts } from "../commons";
 /**
  * Factory function which creates Passport Jwt Auth Strategy instance.
  * When a logger instance will be provided, this strategy
- * will log all failed attempts to access the protected endpoint with their
+ * will log all failed attempts to accessed the protected endpoint with their
  * corresponding request object.
  *
  * @param auth  Configured Jwt object which contains validation logic

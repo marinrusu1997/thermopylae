@@ -5,11 +5,7 @@ import { createException, ErrorCodes } from '../error';
 import { INFINITE_TTL } from '../cache';
 
 abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
-	protected delete: Deleter<Key>;
-
-	protected constructor(deleter: Deleter<Key>) {
-		this.delete = deleter;
-	}
+	protected delete!: Deleter<Key>;
 
 	public expires(_key: Key, after: Seconds, from?: UnixTimestamp): UnixTimestamp | null {
 		if (after === INFINITE_TTL) {

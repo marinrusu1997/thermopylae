@@ -1,4 +1,4 @@
-import { Seconds } from '@thermopylae/core.declarations';
+import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 
 interface CachedItem<Key, Value> {
 	key: Key;
@@ -15,9 +15,9 @@ type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
 type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
 interface Cache<Key = string, Value = any> {
-	set(key: Key, value: Value, ttl?: Seconds): this;
+	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
-	upset(key: Key, value: Value, ttl?: Seconds): this;
+	upset(key: Key, value: Value, ttl: Seconds | null, from?: UnixTimestamp): this;
 
 	get(key: Key): Value | undefined;
 	mget(keys: Array<Key>): Array<CachedItem<Key, Value>>;
@@ -27,7 +27,7 @@ interface Cache<Key = string, Value = any> {
 	del(key: Key): boolean;
 	mdel(keys: Array<Key>): void;
 
-	ttl(key: Key, ttl?: Seconds): boolean;
+	ttl(key: Key, ttl: Seconds, from?: UnixTimestamp): boolean;
 
 	keys(): Array<Key>;
 
@@ -36,6 +36,10 @@ interface Cache<Key = string, Value = any> {
 	stats(): CacheStats;
 
 	clear(): void;
+
+	empty(): boolean;
+
+	readonly size: number;
 
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }

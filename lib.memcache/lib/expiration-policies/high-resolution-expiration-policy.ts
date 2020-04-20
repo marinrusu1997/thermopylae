@@ -2,7 +2,6 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-import { Deleter } from '../expiration-policy';
 
 interface TrackedItem<Key = string> {
 	whenToDelete: number;
@@ -19,8 +18,8 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 
 	private cleanUpSprint: CleanUpSprint | null;
 
-	constructor(deleter: Deleter<Key>) {
-		super(deleter);
+	constructor() {
+		super();
 
 		this.trackedItems = new Heap<TrackedItem<Key>>((first, second) => {
 			if (first.whenToDelete < second.whenToDelete) {
