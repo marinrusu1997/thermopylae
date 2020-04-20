@@ -1,8 +1,8 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { Deleter, ExpirationPolicy } from '../expiration-policy';
+import { Deleter, ExpirationPolicy } from '../contracts/expiration-policy';
 import { createException, ErrorCodes } from '../error';
-import { INFINITE_TTL } from '../cache';
+import { INFINITE_TTL } from '../contracts/cache';
 
 abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
 	protected delete!: Deleter<Key>;

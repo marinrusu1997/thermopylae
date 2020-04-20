@@ -1,6 +1,6 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { BaseCacheEntry } from '../caches/base-cache';
-import { Deleter, EvictionPolicy } from '../eviction-policy';
+import { Deleter, EvictionPolicy } from '../contracts/eviction-policy';
 
 interface DoublyLinkedListNode<Key = string, Value = any> extends BaseCacheEntry<Value> {
 	key: Key;
@@ -9,6 +9,10 @@ interface DoublyLinkedListNode<Key = string, Value = any> extends BaseCacheEntry
 }
 
 // FIXME original implementation: https://www.journaldev.com/32688/lru-cache-implementation-in-java
+
+// FIXME OPTIMIZE THIS SHIIIIIIT!!!!!!
+
+// FIXME TEST FOR MEMORY LEAKS
 
 class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key, Value, DoublyLinkedListNode<Key, Value>> {
 	private readonly capacity: Threshold;
@@ -82,8 +86,44 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.mru!.next = null;
 	}
 
+	public onDelete(key: Key): void {
+		let temp = this.lru;
+		while (temp !== null) {
+			if (temp.key === key) {
+				return this.deleteNode(temp);
+			}
+			temp = temp.next;
+		}
+	}
+
+	public onClear(): void {
+		// fixme there might be a memory leak
+		this.lru = null;
+		this.mru = null;
+	}
+
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.delete = deleter;
+	}
+
+	private deleteNode(node: DoublyLinkedListNode<Key, Value>): void {
+		// if the node is head
+		if (this.lru === node) {
+			this.lru = node.next;
+		}
+
+		// change the next and prev only if they are not null
+		if (node.next !== null) {
+			node.next!.prev = node.prev;
+		}
+
+		if (node.prev !== null) {
+			node.prev!.next = node.next;
+		}
+
+		// break circular dependencies
+		node.next = null;
+		node.prev = null;
 	}
 }
 

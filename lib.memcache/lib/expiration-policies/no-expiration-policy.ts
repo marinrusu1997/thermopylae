@@ -1,4 +1,4 @@
-import { ExpirationPolicy } from '../expiration-policy';
+import { ExpirationPolicy } from '../contracts/expiration-policy';
 
 class NoExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
 	expires() {

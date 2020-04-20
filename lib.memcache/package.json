@@ -41,8 +41,8 @@
         "@thermopylae/lib.utils": "0"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0.0.1587409735",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/module-builder": "0.0.1587417801",
         "@types/chai-arrays": "1",
         "@types/dotenv": "8",
         "chai-arrays": "2",

@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { Cache, CachedItem, BaseCacheEntry, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../cache';
-import { ExpirationPolicy } from '../expiration-policy';
-import { EvictionPolicy } from '../eviction-policy';
+import { Cache, CachedItem, BaseCacheEntry, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../contracts/cache';
+import { ExpirationPolicy } from '../contracts/expiration-policy';
+import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
 import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
 
@@ -38,12 +38,14 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 
 		this.expirationPolicy.setDeleter(key => {
 			if (this.cache.delete(key)) {
+				this.evictionPolicy.onDelete(key);
 				this.emit('expired', key);
 			}
 		});
 
 		this.evictionPolicy.setDeleter(key => {
 			if (this.cache.delete(key)) {
+				// fixme here we will need to notify expiration strategy
 				this.emit('evicted', key);
 			}
 		});
@@ -130,6 +132,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 
 	public del(key: Key): boolean {
 		if (this.cache.delete(key)) {
+			this.evictionPolicy.onDelete(key);
 			// fixme here we will need to notify expire policy about key deletion, i.e. for timer based ones
 			this.emit('del', key);
 			return true;
@@ -163,6 +166,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 	public clear(): void {
 		this.cache.clear();
 		this.expirationPolicy.resetExpires();
+		this.evictionPolicy.onClear();
 
 		this.cacheStats.misses = 0;
 		this.cacheStats.hits = 0;

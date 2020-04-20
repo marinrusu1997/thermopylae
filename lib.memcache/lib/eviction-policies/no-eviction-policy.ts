@@ -1,6 +1,6 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { EvictionPolicy } from '../eviction-policy';
-import { BaseCacheEntry, INFINITE_KEYS } from '../cache';
+import { EvictionPolicy } from '../contracts/eviction-policy';
+import { BaseCacheEntry, INFINITE_KEYS } from '../contracts/cache';
 import { createException, ErrorCodes } from '../error';
 
 class NoEvictionPolicy<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> implements EvictionPolicy<Key, Value, Entry> {
@@ -19,14 +19,16 @@ class NoEvictionPolicy<Key = string, Value = any, Entry extends BaseCacheEntry<V
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	onGet(): void {}
-
-	evict(): boolean {
-		return true; // eviction is not needed, therefore we will just say to clients that we freed up space
-	}
+	public onGet(): void {}
 
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
-	setDeleter(): void {}
+	public onDelete(): void {}
+
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
+	public onClear(): void {}
+
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
+	public setDeleter(): void {}
 }
 
 export { NoEvictionPolicy };
