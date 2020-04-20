@@ -22,7 +22,7 @@ const internal = _this => {
 	return storage.get(_this);
 };
 
-// this is used in order to limit accessed to some member functions
+// this is used in order to limit onGet to some member functions
 let /** @type {string} */ globalContextToken;
 (async () => {
 	globalContextToken = (await token.generate(10)).plain;

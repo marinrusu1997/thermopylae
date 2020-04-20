@@ -1,8 +1,7 @@
 import { EventEmitter } from 'events';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { Cache, CachedItem, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../cache';
-import { createException, ErrorCodes } from '../error';
+import { Cache, CachedItem, BaseCacheEntry, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../cache';
 import { ExpirationPolicy } from '../expiration-policy';
 import { EvictionPolicy } from '../eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
@@ -11,11 +10,6 @@ import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
 interface BaseCacheConfig {
 	useClones: boolean;
 	maxKeys: number;
-}
-
-interface BaseCacheEntry<Value> {
-	value: Value;
-	expires: UnixTimestamp | null;
 }
 
 class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> = BaseCacheEntry<Value>> extends EventEmitter implements Cache<Key, Value> {
@@ -32,7 +26,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 	protected constructor(
 		config?: Partial<BaseCacheConfig>,
 		expirationPolicy: ExpirationPolicy<Key> = new NoExpirationPolicy<Key>(),
-		evictionPolicy: EvictionPolicy<Key> = new NoEvictionPolicy<Key, Value, Entry>()
+		evictionPolicy?: EvictionPolicy<Key>
 	) {
 		super();
 
@@ -40,7 +34,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 		this.cacheStats = { hits: 0, misses: 0 };
 		this.cache = new Map();
 		this.expirationPolicy = expirationPolicy;
-		this.evictionPolicy = evictionPolicy;
+		this.evictionPolicy = evictionPolicy || new NoEvictionPolicy<Key, Value, Entry>(this.config.maxKeys);
 
 		this.expirationPolicy.setDeleter(key => {
 			if (this.cache.delete(key)) {
@@ -56,12 +50,14 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 	}
 
 	public set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this {
-		this.guardMaxKeysNumber();
-
-		const wrappedEntry = this.evictionPolicy.wrapEntry(key, {
-			value: this.config.useClones ? object.cloneDeep(value) : value,
-			expires: this.expirationPolicy.expires(key, ttl || INFINITE_TTL, from)
-		} as Entry) as Entry;
+		const wrappedEntry = this.evictionPolicy.onSet(
+			key,
+			{
+				value: this.config.useClones ? object.cloneDeep(value) : value,
+				expires: this.expirationPolicy.expires(key, ttl || INFINITE_TTL, from)
+			} as Entry,
+			this.cache.size
+		) as Entry;
 
 		this.cache.set(key, wrappedEntry);
 		this.emit('set', key, value);
@@ -193,7 +189,7 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 		}
 
 		this.cacheStats.hits += 1;
-		this.evictionPolicy.accessed(key);
+		this.evictionPolicy.onGet(key, entry);
 		return entry;
 	}
 
@@ -210,14 +206,8 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 		}
 
 		this.cacheStats.hits += 1;
-		this.evictionPolicy.accessed(key);
+		this.evictionPolicy.onGet(key, entry);
 		return entry.value;
-	}
-
-	protected guardMaxKeysNumber(): void {
-		if (this.config.maxKeys !== INFINITE_KEYS && this.cache.size >= this.config.maxKeys && !this.evictionPolicy.evict()) {
-			throw createException(ErrorCodes.CACHE_FULL, `Limit of ${this.config.maxKeys} has been reached and eviction failed. `);
-		}
 	}
 
 	protected fillWithDefaults(options?: Partial<BaseCacheConfig>): BaseCacheConfig {
@@ -228,4 +218,4 @@ class BaseCache<Key = string, Value = any, Entry extends BaseCacheEntry<Value> =
 	}
 }
 
-export { BaseCache, BaseCacheConfig, BaseCacheEntry };
+export { BaseCache, BaseCacheConfig };

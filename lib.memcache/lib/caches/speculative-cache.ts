@@ -25,7 +25,7 @@ class SpeculativeCache<Key = string, Value = any> extends BaseCache<Key, Value> 
 
 					return { key: entry.value[0], expires: entry.value[1].expires };
 				},
-				collectionSize: () => this.size,
+				collectionSize: () => this.cache.size,
 				checkPeriod: options.checkPeriod,
 				iterateThreshold: options.iterateThreshold
 			}),

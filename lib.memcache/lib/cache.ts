@@ -10,6 +10,11 @@ interface CacheStats {
 	misses: number;
 }
 
+interface BaseCacheEntry<Value> {
+	value: Value;
+	expires: UnixTimestamp | null;
+}
+
 type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
 
 type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
@@ -48,4 +53,4 @@ const INFINITE_TTL = 0;
 
 const INFINITE_KEYS = -1;
 
-export { Cache, CachedItem, CacheStats, EventType, EventListener, INFINITE_TTL, INFINITE_KEYS };
+export { Cache, CachedItem, BaseCacheEntry, CacheStats, EventType, EventListener, INFINITE_TTL, INFINITE_KEYS };

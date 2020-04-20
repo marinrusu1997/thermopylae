@@ -127,7 +127,7 @@ describe('Passport Jwt Auth Strategy spec', () => {
 			});
 		});
 
-		it('will log failed attempts to accessed endpoint with an invalid token', done => {
+		it('will log failed attempts to onGet endpoint with an invalid token', done => {
 			const authenticator = Authenticator(jwtAuth, {
 				verifyOptsProvider: () => verify,
 				logger: loggerMock
