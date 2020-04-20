@@ -1,30 +1,30 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 
-interface CachedItem<Key, Value> {
+declare interface CachedItem<Key, Value> {
 	key: Key;
 	value: Value;
 }
 
-interface CacheStats {
+declare interface CacheStats {
 	hits: number;
 	misses: number;
 }
 
-interface ExpirableCacheKey<Key = string> {
+declare interface ExpirableCacheKey<Key = string> {
 	key: Key;
 	expiresAt: UnixTimestamp | null;
 }
 
-interface ExpirableCacheValue<Value> {
+declare interface ExpirableCacheValue<Value> {
 	value: Value;
 	expiresAt: UnixTimestamp | null;
 }
 
-type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
+declare type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
 
-type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
+declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
-interface Cache<Key = string, Value = any> {
+declare interface Cache<Key = string, Value = any> {
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
 	upset(key: Key, value: Value, ttl: Seconds | null, from?: UnixTimestamp): this;
@@ -54,8 +54,4 @@ interface Cache<Key = string, Value = any> {
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }
 
-const INFINITE_TTL = 0;
-
-const INFINITE_KEYS = -1;
-
-export { Cache, CachedItem, ExpirableCacheKey, ExpirableCacheValue, CacheStats, EventType, EventListener, INFINITE_TTL, INFINITE_KEYS };
+export { Cache, CachedItem, ExpirableCacheKey, ExpirableCacheValue, CacheStats, EventType, EventListener };

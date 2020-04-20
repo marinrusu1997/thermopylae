@@ -1,0 +1,5 @@
+const INFINITE_TTL = 0;
+
+const INFINITE_KEYS = -1;
+
+export { INFINITE_TTL, INFINITE_KEYS };

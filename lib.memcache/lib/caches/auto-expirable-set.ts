@@ -1,5 +1,5 @@
 import { Seconds } from '@thermopylae/core.declarations';
-import { INFINITE_TTL } from '../contracts/cache';
+import { INFINITE_TTL } from '../constants';
 import { createException, ErrorCodes } from '../error';
 import { HighResolutionExpirationPolicy } from '../expiration-policies/high-resolution-expiration-policy';
 

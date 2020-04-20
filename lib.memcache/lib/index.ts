@@ -1,4 +1,4 @@
-import { INFINITE_TTL } from './contracts/cache';
+import { INFINITE_TTL } from './constants';
 
 export * from './caches/auto-expirable-cache';
 export * from './caches/auto-expirable-set';

@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { Cache, CachedItem, ExpirableCacheValue, CacheStats, EventListener, EventType, INFINITE_KEYS, INFINITE_TTL } from '../contracts/cache';
+import { INFINITE_KEYS, INFINITE_TTL } from '../constants';
+import { Cache, CachedItem, ExpirableCacheValue, CacheStats, EventListener, EventType } from '../contracts/cache';
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
