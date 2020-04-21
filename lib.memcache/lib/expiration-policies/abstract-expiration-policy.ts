@@ -7,7 +7,7 @@ import { INFINITE_TTL } from '../constants';
 abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
 	protected delete!: Deleter<Key>;
 
-	public onSet(_key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+	public expiresAt(_key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
 		if (expiresAfter === INFINITE_TTL) {
 			return null;
 		}
@@ -20,8 +20,8 @@ abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolic
 		return expiresAt;
 	}
 
-	public onUpdate(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		return this.onSet(key, expiresAfter, expiresFrom);
+	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		return this.expiresAt(key, expiresAfter, expiresFrom);
 	}
 
 	public isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean {

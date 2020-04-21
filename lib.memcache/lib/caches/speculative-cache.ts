@@ -5,7 +5,7 @@ import { ExpirableCacheValue } from '../contracts/cache';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 
 interface SpeculativeCacheOptions extends BaseCacheConfig {
-	checkPeriod?: Seconds;
+	checkInterval?: Seconds;
 	iterateThreshold?: Threshold;
 }
 
@@ -27,7 +27,7 @@ class SpeculativeCache<Key = string, Value = any, Entry extends ExpirableCacheVa
 					return { key: entry.value[0], expiresAt: entry.value[1].expiresAt };
 				},
 				collectionSize: () => this.cache.size,
-				checkInterval: options.checkPeriod,
+				checkInterval: options.checkInterval,
 				iterateThreshold: options.iterateThreshold
 			}),
 			evictionPolicy

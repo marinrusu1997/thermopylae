@@ -29,8 +29,8 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		this.cleanUpSprint = null;
 	}
 
-	public onSet(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.onSet(key, expiresAfter, expiresFrom);
+	public expiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
 		if (expiresAt === null) {
 			return null;
 		}
@@ -41,8 +41,8 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		return null;
 	}
 
-	public onUpdate(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.onUpdate(key, expiresAfter, expiresFrom);
+	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const expiresAt = super.updateExpiresAt(key, expiresAfter, expiresFrom);
 		if (expiresAt === null) {
 			throw new Error('REMOVING OLD TIMER IS NOT SUPPORTED FOR NOW');
 		}
@@ -60,7 +60,7 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 	}
 
 	public isExpired(): boolean {
-		// FIXME ideal scenario: we check onSet, clear item, clear timer
+		// FIXME ideal scenario: we check expiresAt, clear item, clear timer
 		//  but due to timer clear performance issues, we will return always false,
 		//  as deletion will be done automatically by timer
 		return false;

@@ -39,14 +39,14 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 		delete this.config.collectionSize;
 	}
 
-	public onSet(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.onSet(key, expiresAfter, expiresFrom);
+	public expiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
 		this.startIfIdle(expiresAt);
 		return expiresAt;
 	}
 
-	public onUpdate(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const newExpiresAt = super.onUpdate(key, expiresAfter, expiresFrom);
+	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+		const newExpiresAt = super.updateExpiresAt(key, expiresAfter, expiresFrom);
 		this.startIfIdle(newExpiresAt);
 		return newExpiresAt;
 	}

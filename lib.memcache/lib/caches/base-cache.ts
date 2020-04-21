@@ -53,12 +53,12 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 		});
 	}
 
-	public set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this {
+	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		const wrappedEntry = this.evictionPolicy.onSet(
 			key,
 			{
 				value: this.config.useClones ? object.cloneDeep(value) : value,
-				expiresAt: this.expirationPolicy.onSet(key, ttl || INFINITE_TTL, from)
+				expiresAt: this.expirationPolicy.expiresAt(key, ttl || INFINITE_TTL, expiresFrom)
 			} as Entry,
 			this.cache.size
 		) as Entry;
@@ -69,13 +69,13 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 		return this;
 	}
 
-	public upset(key: Key, value: Value, ttl: Seconds | null, from?: UnixTimestamp): this {
+	public upset(key: Key, value: Value, ttl: Seconds | null, expiresFrom?: UnixTimestamp): this {
 		const entry = this.internalGetEntry(key);
 
 		if (entry !== undefined) {
 			entry.value = this.config.useClones ? object.cloneDeep(value) : value;
 			if (ttl !== null) {
-				entry.expiresAt = this.expirationPolicy.onUpdate(key, ttl, from);
+				entry.expiresAt = this.expirationPolicy.updateExpiresAt(key, ttl, expiresFrom);
 			}
 
 			this.cache.set(key, entry);
@@ -117,13 +117,13 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 		return value;
 	}
 
-	public ttl(key: Key, ttl: Seconds, from?: UnixTimestamp): boolean {
+	public ttl(key: Key, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean {
 		const entry = this.internalGetEntry(key);
 		if (entry === undefined) {
 			return false;
 		}
 
-		entry.expiresAt = this.expirationPolicy.onUpdate(key, ttl, from);
+		entry.expiresAt = this.expirationPolicy.updateExpiresAt(key, ttl, expiresFrom);
 
 		return true;
 	}

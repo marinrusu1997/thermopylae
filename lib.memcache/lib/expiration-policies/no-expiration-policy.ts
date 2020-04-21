@@ -1,11 +1,11 @@
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 
 class NoExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
-	onSet() {
+	expiresAt() {
 		return null;
 	}
 
-	onUpdate() {
+	updateExpiresAt() {
 		return null;
 	}
 
