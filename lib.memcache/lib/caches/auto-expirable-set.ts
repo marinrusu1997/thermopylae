@@ -20,10 +20,10 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 	 * Inserts a single item in the cache.
 	 * Must be used with special care, as this method will replace cache content,
 	 * add a new timer, but the old one timer will not be replaced.
-	 * This will lead value being deleted prematurely by the old timer.
-	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added value.
+	 * This will lead frequency being deleted prematurely by the old timer.
+	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added frequency.
 	 *
-	 * Use this method when you are sure 100% no inserts will be made until value expiresAt.
+	 * Use this method when you are sure 100% no inserts will be made until frequency expiresAt.
 	 *
 	 * @param value
 	 * @param ttlSec
@@ -42,9 +42,9 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 	}
 
 	/**
-	 * Upsets a value in the cache.
-	 * If value is not present, it will be added and new timer will be created.
-	 * If value is present, it will update the timer.
+	 * Upsets a frequency in the cache.
+	 * If frequency is not present, it will be added and new timer will be created.
+	 * If frequency is present, it will update the timer.
 	 *
 	 * @param value
 	 * @param ttlSec
@@ -65,7 +65,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 	public delete(_value: Value): boolean {
 		throw createException(
 			ErrorCodes.OPERATION_NOT_SUPPORTED,
-			"Delete may cause undefined behaviour. Deleting a value will not scheduleDeletion it's timer. Adding the same value after deleting it, will use the old timer. "
+			"Delete may cause undefined behaviour. Deleting a frequency will not scheduleDeletion it's timer. Adding the same frequency after deleting it, will use the old timer. "
 		);
 	}
 

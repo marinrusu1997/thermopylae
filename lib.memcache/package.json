@@ -36,6 +36,7 @@
         "node": "12.8.0"
     },
     "dependencies": {
+        "@akashbabu/node-dll": "2",
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.utils": "0"

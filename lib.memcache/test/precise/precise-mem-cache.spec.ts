@@ -52,7 +52,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('set spec', () => {
-		it("does not remove items which don't have tll (i.e ttl provided as 0)", done => {
+		it("does not remove keys which don't have tll (i.e ttl provided as 0)", done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: 1 });
 
 			preciseMemCache.set('key', 'value', INFINITE_TTL);
@@ -66,7 +66,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('mset spec', () => {
-		it('returns multiple items after mset', () => {
+		it('returns multiple keys after mset', () => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			const items = [
 				{ key: 'key1', value: 'value1' },
@@ -192,7 +192,7 @@ describe('AutoExpirableCache spec', () => {
 			expect(preciseMemCache.keys()).to.be.equalTo([]);
 		});
 
-		it('upset will start gc after performing clear and adding first value with infinite ttl', async () => {
+		it('upset will start gc after performing clear and adding first frequency with infinite ttl', async () => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			preciseMemCache
 				.set('key1', 'value1')
@@ -333,7 +333,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('clear spec', () => {
-		it('clears internal cache and gc tracked items on clear', done => {
+		it('clears internal cache and gc tracked keys on clear', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			const KEY = 'key';
 			const VALUE = 'value';
@@ -359,7 +359,7 @@ describe('AutoExpirableCache spec', () => {
 			preciseMemCache.set(KEY, VALUE);
 		});
 
-		it('fires set event when multiple items added to cache', done => {
+		it('fires set event when multiple keys added to cache', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 			const KEYS = ['key1', 'key2'];
 			const VALUES = ['value1', 'value2'];
@@ -380,7 +380,7 @@ describe('AutoExpirableCache spec', () => {
 			]);
 		});
 
-		it("fires update event when value is updated, but ttl don't", done => {
+		it("fires update event when frequency is updated, but ttl don't", done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 
 			preciseMemCache.on('update', (key, value, ttlSec) => {
@@ -401,7 +401,7 @@ describe('AutoExpirableCache spec', () => {
 				.upset('key1', 'value1.1', 1);
 		});
 
-		it('fires update/set events when value and ttl for key is added/updated', done => {
+		it('fires update/set events when frequency and ttl for key is added/updated', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 
 			let setFiredNo = 0;

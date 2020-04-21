@@ -13,13 +13,12 @@ interface EvictableKeyNode<Key = string, Value = any> extends ExpirableCacheValu
 class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
 	private readonly capacity: Threshold;
 
-	private delete: Deleter<Key>;
+	private delete!: Deleter<Key>;
 
 	private doublyLinkedList: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
 
-	public constructor(deleter: Deleter<Key>, capacity: Threshold) {
+	public constructor(capacity: Threshold) {
 		this.capacity = capacity;
-		this.delete = deleter;
 		this.doublyLinkedList = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
 	}
 
@@ -51,6 +50,10 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 
 	public onClear(): void {
 		this.doublyLinkedList.clear();
+	}
+
+	public requiresEntryForDeletion(): boolean {
+		return false;
 	}
 
 	public setDeleter(deleter: Deleter<Key>): void {

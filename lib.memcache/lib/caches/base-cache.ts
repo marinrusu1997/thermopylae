@@ -133,12 +133,22 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 	}
 
 	public del(key: Key): boolean {
+		let entry;
+		if (this.evictionPolicy.requiresEntryForDeletion()) {
+			entry = this.cache.get(key);
+
+			if (entry === undefined) {
+				return false;
+			}
+		}
+
 		if (this.cache.delete(key)) {
-			this.evictionPolicy.onDelete(key);
+			this.evictionPolicy.onDelete(key, entry);
 			// fixme here we will need to notify expire policy about key deletion, i.e. for timer based ones
 			this.emit('del', key);
 			return true;
 		}
+
 		return false;
 	}
 

@@ -20,7 +20,7 @@ describe.only('Garbage Collector spec', () => {
 		gc.scheduleDeletion(trackedKey, defaultTTL);
 	});
 
-	it('removes multiple isExpired items with same ttl (tracking started at same time)', done => {
+	it('removes multiple isExpired keys with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
 		const gc = new HighResolutionGarbageCollector(key => {
@@ -34,7 +34,7 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeys.forEach(key => gc.scheduleDeletion(key, defaultTTL));
 	});
 
-	it('removes multiple isExpired items with different ttl (tracking started at same time)', done => {
+	it('removes multiple isExpired keys with different ttl (tracking started at same time)', done => {
 		const trackedKeysMap = new Map<string, number>();
 		trackedKeysMap.set('key1', defaultTTL);
 		trackedKeysMap.set('key2', defaultTTL);
@@ -52,7 +52,7 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeysMap.forEach((ttl, key) => gc.scheduleDeletion(key, ttl));
 	}).timeout(2100);
 
-	it('removes multiple isExpired items with different ttl in the order items were tracked (tracking stared at different times)', done => {
+	it('removes multiple isExpired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
 		const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;
@@ -152,7 +152,7 @@ describe.only('Garbage Collector spec', () => {
 		setTimeout(() => trackKey('key2'), (defaultTTL + 1.5) * 1000);
 	}).timeout(3600);
 
-	it('restarts the gc after it was stopped, discarding and its internal list of tracked items', done => {
+	it('restarts the gc after it was stopped, discarding and its internal list of tracked keys', done => {
 		const trackedKeyBeforeStopping = 'key1';
 		const trackedKeyAfterStopping = 'key2';
 		let whenTrackingBegan: number | undefined;
@@ -173,7 +173,7 @@ describe.only('Garbage Collector spec', () => {
 		setTimeout(() => trackKey(trackedKeyAfterStopping), 1500);
 	}).timeout(2600);
 
-	it('gc is synchronized with nearest element to remove while adding items', async () => {
+	it('gc is synchronized with nearest element to remove while adding keys', async () => {
 		const items = new Set();
 		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
 		expect(gc.isIdle()).to.be.eq(true);
@@ -228,7 +228,7 @@ describe.only('Garbage Collector spec', () => {
 		expect(gc.isIdle()).to.be.eq(true);
 	}).timeout(6000);
 
-	it('gc is synchronized with nearest element to remove while adding/updating items', done => {
+	it('gc is synchronized with nearest element to remove while adding/updating keys', done => {
 		const items = new Set();
 		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
 		expect(gc.isIdle()).to.be.eq(true);

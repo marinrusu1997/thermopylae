@@ -13,6 +13,13 @@ class AutoExpirableCache<Key = string, Value = any, Entry extends ExpirableCache
 		super(config, new HighResolutionExpirationPolicy<Key>(), evictionPolicy);
 	}
 
+	public set(key: Key): this {
+		throw createException(
+			ErrorCodes.OPERATION_NOT_SUPPORTED,
+			`Setting key ${key} might interfere with an old timer which was possibly left un-deleted after explicit delete of a key. `
+		);
+	}
+
 	public take(key: Key): Value | undefined {
 		throw createException(ErrorCodes.OPERATION_NOT_SUPPORTED, `Taking key ${key} will remove element. Deletion is not supported. `);
 	}

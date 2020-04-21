@@ -16,7 +16,7 @@ describe('AutoExpirableSet spec', () => {
 
 			setTimeout(() => {
 				try {
-					// by default, items have infinite ttl
+					// by default, keys have infinite ttl
 					expect(preciseMemSetCache.has(value)).to.be.eq(true);
 					done();
 				} catch (e) {
@@ -34,7 +34,7 @@ describe('AutoExpirableSet spec', () => {
 
 			setTimeout(() => {
 				try {
-					// by default, items have 1 sec ttl
+					// by default, keys have 1 sec ttl
 					expect(preciseMemSetCache.has(value)).to.be.eq(false);
 					done();
 				} catch (e) {
@@ -45,7 +45,7 @@ describe('AutoExpirableSet spec', () => {
 	});
 
 	describe('add spec', () => {
-		it("does not remove items which don't have tll (i.e ttl provided as 0)", done => {
+		it("does not remove keys which don't have tll (i.e ttl provided as 0)", done => {
 			const defaultTtlSec = 1;
 			const preciseMemSetCache = new AutoExpirableSet(defaultTtlSec);
 
@@ -63,7 +63,7 @@ describe('AutoExpirableSet spec', () => {
 			}, defaultTtlSec * 1000 + 50);
 		});
 
-		it("doesn't update ttl when adding value which is already in cache", done => {
+		it("doesn't update ttl when adding frequency which is already in cache", done => {
 			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
@@ -93,7 +93,7 @@ describe('AutoExpirableSet spec', () => {
 	});
 
 	describe('has spec', () => {
-		it('lists all existing items at a given time point', done => {
+		it('lists all existing keys at a given time point', done => {
 			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value1 = 'value1';
@@ -148,7 +148,7 @@ describe('AutoExpirableSet spec', () => {
 			} catch (e) {
 				expect(e.code).to.be.eq(ErrorCodes.DELETE_NOT_ALLOWED);
 				expect(e.message).to.be.eq(
-					"Delete may cause undefined behaviour. Deleting a value will not scheduleDeletion it's timer. Adding the same value after deleting it, will use the old timer. "
+					"Delete may cause undefined behaviour. Deleting a frequency will not scheduleDeletion it's timer. Adding the same frequency after deleting it, will use the old timer. "
 				);
 				done();
 			}
@@ -156,7 +156,7 @@ describe('AutoExpirableSet spec', () => {
 	});
 
 	describe('upset spec', () => {
-		it('upset adds a new entry if value not found', async () => {
+		it('upset adds a new entry if frequency not found', async () => {
 			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
@@ -170,7 +170,7 @@ describe('AutoExpirableSet spec', () => {
 			expect(preciseMemSetCache.has(value)).to.be.eq(false);
 		});
 
-		it('upset adds a new entry if value not found and restarts gc', async () => {
+		it('upset adds a new entry if frequency not found and restarts gc', async () => {
 			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
@@ -261,7 +261,7 @@ describe('AutoExpirableSet spec', () => {
 			await chrono.sleep(950);
 			expect(preciseMemSetCache.has('value')).to.be.eq(false);
 
-			// restarts when old replaced value had no ttl
+			// restarts when old replaced frequency had no ttl
 			preciseMemSetCache.add('value');
 			preciseMemSetCache.upset('value', 1);
 
@@ -305,7 +305,7 @@ describe('AutoExpirableSet spec', () => {
 	});
 
 	describe('clear spec', () => {
-		it('clears internal cache and gc tracked items on clear', done => {
+		it('clears internal cache and gc tracked keys on clear', done => {
 			const preciseMemSetCache = new AutoExpirableSet();
 
 			const value = 'value';
