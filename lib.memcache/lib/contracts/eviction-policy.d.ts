@@ -8,8 +8,9 @@ declare interface EvictionPolicy<Key = string, Value = any, Entry extends Expira
 	onDelete(key: Key, entry?: Entry): void;
 	onClear(): void;
 
-	requiresEntryForDeletion(): boolean;
 	setDeleter(deleter: Deleter<Key>): void;
+
+	readonly requiresEntryForDeletion: boolean;
 }
 
 export { EvictionPolicy, Deleter };

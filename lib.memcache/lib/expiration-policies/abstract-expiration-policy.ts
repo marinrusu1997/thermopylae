@@ -21,7 +21,8 @@ abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolic
 	}
 
 	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		return this.expiresAt(key, expiresAfter, expiresFrom);
+		const val = this.expiresAt(key, expiresAfter, expiresFrom);
+		return val;
 	}
 
 	public isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean {
@@ -30,6 +31,10 @@ abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolic
 			this.delete(key);
 		}
 		return expired;
+	}
+
+	public onDelete(): void {
+		return undefined; // just do nothing
 	}
 
 	public onClear(): void {

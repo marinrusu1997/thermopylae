@@ -8,14 +8,14 @@ import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
 import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
 
-interface BaseCacheConfig {
+interface MemCacheConfig {
 	useClones: boolean;
 	maxKeys: number;
 }
 
-class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends EventEmitter
+class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends EventEmitter
 	implements Cache<Key, Value> {
-	protected readonly config: BaseCacheConfig;
+	protected readonly config: MemCacheConfig;
 
 	protected readonly cacheStats: CacheStats;
 
@@ -26,7 +26,7 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 	protected readonly evictionPolicy: EvictionPolicy<Key, Value, Entry>;
 
 	protected constructor(
-		config?: Partial<BaseCacheConfig>,
+		config?: Partial<MemCacheConfig>,
 		expirationPolicy: ExpirationPolicy<Key> = new NoExpirationPolicy<Key>(),
 		evictionPolicy?: EvictionPolicy<Key, Value, Entry>
 	) {
@@ -38,19 +38,8 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 		this.expirationPolicy = expirationPolicy;
 		this.evictionPolicy = evictionPolicy || new NoEvictionPolicy<Key, Value, Entry>(this.config.maxKeys);
 
-		this.expirationPolicy.setDeleter(key => {
-			if (this.cache.delete(key)) {
-				this.evictionPolicy.onDelete(key);
-				this.emit('expired', key);
-			}
-		});
-
-		this.evictionPolicy.setDeleter(key => {
-			if (this.cache.delete(key)) {
-				// fixme here we will need to notify expiration strategy
-				this.emit('evicted', key);
-			}
-		});
+		this.expirationPolicy.setDeleter(key => this.internalDelete(key, 'expired', false, true));
+		this.evictionPolicy.setDeleter(key => this.internalDelete(key, 'evicted', true, false));
 	}
 
 	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
@@ -133,23 +122,7 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 	}
 
 	public del(key: Key): boolean {
-		let entry;
-		if (this.evictionPolicy.requiresEntryForDeletion()) {
-			entry = this.cache.get(key);
-
-			if (entry === undefined) {
-				return false;
-			}
-		}
-
-		if (this.cache.delete(key)) {
-			this.evictionPolicy.onDelete(key, entry);
-			// fixme here we will need to notify expire policy about key deletion, i.e. for timer based ones
-			this.emit('del', key);
-			return true;
-		}
-
-		return false;
+		return this.internalDelete(key, 'del');
 	}
 
 	public mdel(keys: Array<Key>): void {
@@ -226,12 +199,36 @@ class BaseCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Val
 		return entry.value;
 	}
 
-	protected fillWithDefaults(options?: Partial<BaseCacheConfig>): BaseCacheConfig {
+	protected internalDelete(key: Key, event: EventType, notifyExpirationPolicy = true, notifyEvictionPolicy = true): boolean {
+		let entry;
+		if (notifyEvictionPolicy && this.evictionPolicy.requiresEntryForDeletion) {
+			entry = this.cache.get(key);
+
+			if (entry === undefined) {
+				return false;
+			}
+		}
+
+		if (this.cache.delete(key)) {
+			if (notifyExpirationPolicy) {
+				this.expirationPolicy.onDelete(key);
+			}
+			if (notifyEvictionPolicy) {
+				this.evictionPolicy.onDelete(key, entry);
+			}
+			this.emit(event, key);
+			return true;
+		}
+
+		return false;
+	}
+
+	protected fillWithDefaults(options?: Partial<MemCacheConfig>): MemCacheConfig {
 		options = options || {};
 		options.maxKeys = options.maxKeys || INFINITE_KEYS;
 		options.useClones = options.useClones || false;
-		return options as BaseCacheConfig;
+		return options as MemCacheConfig;
 	}
 }
 
-export { BaseCache, BaseCacheConfig };
+export { MemCache, MemCacheConfig };

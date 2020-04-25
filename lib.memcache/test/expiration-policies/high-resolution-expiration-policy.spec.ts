@@ -1,29 +1,32 @@
 import { chrono, number } from '@thermopylae/lib.utils';
 import { describe, it } from 'mocha';
 import { chai } from '../env';
-import { HighResolutionGarbageCollector } from '../../lib/high-resolution-garbage-collector';
+import { HighResolutionExpirationPolicy } from '../../lib/expiration-policies/high-resolution-expiration-policy';
 
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
 
-describe.only('Garbage Collector spec', () => {
+describe('High Resolution Expiration Policy spec', () => {
 	const defaultTTL = 1; // second
 
 	it('removes isExpired item', done => {
 		const trackedKey = 'key';
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(key).to.be.equals(trackedKey);
 			done();
 		});
-		gc.scheduleDeletion(trackedKey, defaultTTL);
+
+		expirationPolicy.expiresAt(trackedKey, defaultTTL);
 	});
 
 	it('removes multiple isExpired keys with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -31,7 +34,7 @@ describe.only('Garbage Collector spec', () => {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => gc.scheduleDeletion(key, defaultTTL));
+		trackedKeys.forEach(key => expirationPolicy.expiresAt(key, defaultTTL));
 	});
 
 	it('removes multiple isExpired keys with different ttl (tracking started at same time)', done => {
@@ -41,7 +44,8 @@ describe.only('Garbage Collector spec', () => {
 		trackedKeysMap.set('key3', defaultTTL + 1);
 		trackedKeysMap.set('key4', defaultTTL + 1);
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
 			trackedKeysMap.delete(key); // ensure not called with same key
@@ -49,7 +53,7 @@ describe.only('Garbage Collector spec', () => {
 				done();
 			}
 		});
-		trackedKeysMap.forEach((ttl, key) => gc.scheduleDeletion(key, ttl));
+		trackedKeysMap.forEach((ttl, key) => expirationPolicy.expiresAt(key, ttl));
 	}).timeout(2100);
 
 	it('removes multiple isExpired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
@@ -57,7 +61,8 @@ describe.only('Garbage Collector spec', () => {
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;
 		const trackedKeysSnapshot = ['key1', 'key2', 'key3', 'key4'];
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			const value = trackedKeysMap.get(key);
 			expect(nowInSeconds() - value!.trackingSince).to.be.equals(value!.ttl);
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
@@ -70,28 +75,29 @@ describe.only('Garbage Collector spec', () => {
 		});
 
 		trackedKeysMap.set('key1', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-		gc.scheduleDeletion('key1', defaultTTL);
+		expirationPolicy.expiresAt('key1', defaultTTL);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key2', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			gc.scheduleDeletion('key2', defaultTTL);
+			expirationPolicy.expiresAt('key2', defaultTTL);
 		}, 1000);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key3', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			gc.scheduleDeletion('key3', defaultTTL);
+			expirationPolicy.expiresAt('key3', defaultTTL);
 		}, 2000);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key4', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			gc.scheduleDeletion('key4', defaultTTL);
+			expirationPolicy.expiresAt('key4', defaultTTL);
 		}, 3000);
 	}).timeout(4100);
 
 	it('removes duplicate keys with same ttl', done => {
 		const trackedKeys = ['key', 'key', 'key'];
 		const whenTrackingBegan = nowInSeconds();
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -99,10 +105,10 @@ describe.only('Garbage Collector spec', () => {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => gc.scheduleDeletion(key, defaultTTL));
+		trackedKeys.forEach(key => expirationPolicy.expiresAt(key, defaultTTL));
 	});
 
-	it('restarts gc after all tracked keys were removed (new key tracked from scheduleDeletion handler)', done => {
+	it('restarts expirationPolicy after all tracked keys were removed (new key tracked from scheduleDeletion handler)', done => {
 		const trackedKeys = ['key1', 'key2'];
 		const MAX_TRACKED_KEY_RECURSION_DEPTH = 2;
 		let currentNumberOfTrackedKeys = 0;
@@ -110,12 +116,13 @@ describe.only('Garbage Collector spec', () => {
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			gc.scheduleDeletion(key, defaultTTL);
+			expirationPolicy.expiresAt(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 			currentNumberOfTrackedKeys += 1;
 		};
 
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -129,16 +136,17 @@ describe.only('Garbage Collector spec', () => {
 		trackKey('key1');
 	}).timeout(2100);
 
-	it('restarts gc after all tracked keys were removed (new key tracked using setTimeout)', done => {
+	it('restarts expirationPolicy after all tracked keys were removed (new key tracked using setTimeout)', done => {
 		const trackedKeys = ['key1', 'key2'];
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			gc.scheduleDeletion(key, defaultTTL);
+			expirationPolicy.expiresAt(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -152,86 +160,89 @@ describe.only('Garbage Collector spec', () => {
 		setTimeout(() => trackKey('key2'), (defaultTTL + 1.5) * 1000);
 	}).timeout(3600);
 
-	it('restarts the gc after it was stopped, discarding and its internal list of tracked keys', done => {
+	it('restarts the expirationPolicy after it was stopped, discarding and its internal list of tracked keys', done => {
 		const trackedKeyBeforeStopping = 'key1';
 		const trackedKeyAfterStopping = 'key2';
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			gc.scheduleDeletion(key, defaultTTL);
+			expirationPolicy.expiresAt(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const gc = new HighResolutionGarbageCollector(key => {
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeyAfterStopping).to.be.equal(key);
 			done();
 		});
 
 		trackKey(trackedKeyBeforeStopping);
-		gc.stop();
+		expirationPolicy.onClear();
 		setTimeout(() => trackKey(trackedKeyAfterStopping), 1500);
 	}).timeout(2600);
 
-	it('gc is synchronized with nearest element to remove while adding keys', async () => {
+	it('expirationPolicy is synchronized with nearest element to remove while adding keys', async () => {
 		const items = new Set();
-		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
-		expect(gc.isIdle()).to.be.eq(true);
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(item => items.delete(item));
+		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		// adding element with same ttl
 		items.add('value1');
-		gc.scheduleDeletion('value1', 1);
-		expect(gc.isIdle()).to.be.eq(false);
+		expirationPolicy.expiresAt('value1', 1);
+		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		gc.scheduleDeletion('value2', 1);
+		expirationPolicy.expiresAt('value2', 1);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(0);
-		expect(gc.isIdle()).to.be.eq(true);
+		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		// adding element with greater ttl
 		items.add('value1');
-		gc.scheduleDeletion('value1', 1);
-		expect(gc.isIdle()).to.be.eq(false);
+		expirationPolicy.expiresAt('value1', 1);
+		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		gc.scheduleDeletion('value2', 2);
+		expirationPolicy.expiresAt('value2', 2);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(1);
 		expect(items.has('value1')).to.be.eq(false);
-		expect(gc.isIdle()).to.be.eq(false);
+		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(0);
-		expect(gc.isIdle()).to.be.eq(true);
+		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		// adding element smaller
 		items.add('value1');
-		gc.scheduleDeletion('value1', 2);
-		expect(gc.isIdle()).to.be.eq(false);
+		expirationPolicy.expiresAt('value1', 2);
+		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		gc.scheduleDeletion('value2', 1);
+		expirationPolicy.expiresAt('value2', 1);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(1);
 		expect(items.has('value2')).to.be.eq(false);
-		expect(gc.isIdle()).to.be.eq(false);
+		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(0);
-		expect(gc.isIdle()).to.be.eq(true);
+		expect(expirationPolicy.isIdle()).to.be.eq(true);
 	}).timeout(6000);
 
-	it('gc is synchronized with nearest element to remove while adding/updating keys', done => {
+	it('expirationPolicy is synchronized with nearest element to remove while adding/updating keys', done => {
 		const items = new Set();
-		const gc = new HighResolutionGarbageCollector(item => items.delete(item));
-		expect(gc.isIdle()).to.be.eq(true);
+		const expirationPolicy = new HighResolutionExpirationPolicy();
+		expirationPolicy.setDeleter(item => items.delete(item));
+		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		const MIN_TTL = 1;
 		const MAX_TTL = 5;
@@ -256,7 +267,7 @@ describe.only('Garbage Collector spec', () => {
 					if (deleteAtIntervalNo === checkIntervalNo) {
 						try {
 							expect(items.has(item)).to.be.eq(false);
-							expect(gc.isIdle()).to.be.eq(items.size === 0);
+							expect(expirationPolicy.isIdle()).to.be.eq(items.size === 0);
 						} catch (e) {
 							done(e);
 						}
@@ -269,7 +280,7 @@ describe.only('Garbage Collector spec', () => {
 					}
 
 					try {
-						expect(gc.isIdle()).to.be.eq(true);
+						expect(expirationPolicy.isIdle()).to.be.eq(true);
 						itemsDeletionDelay.clear();
 						return done();
 					} catch (e) {
@@ -301,7 +312,7 @@ describe.only('Garbage Collector spec', () => {
 				itemsDeletionDelay.set(item, ttl + scheduleDeletionDelay);
 
 				items.add(item);
-				gc.reScheduleDeletion(item, ttl);
+				expirationPolicy.updateExpiresAt(item, ttl);
 			});
 		}
 	}).timeout(10_500);

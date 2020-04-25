@@ -1,14 +1,42 @@
 // FIXME TEST FOR MEMORY LEAKS
+// FIXME UNIT TESTS
 
+// eslint-disable-next-line max-classes-per-file
 interface DoublyLinkedListNode<Node> {
 	prev: Node | null;
 	next: Node | null;
 }
 
-class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
-	public head: Node | null = null;
+class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implements Iterator<Node, Node> {
+	private node: Node | null;
 
-	public tail: Node | null = null;
+	constructor(node: Node | null) {
+		this.node = node;
+	}
+
+	public next(): IteratorResult<Node, Node> {
+		// fixme test all nodes are iterated
+
+		if (this.node === null) {
+			return { value: null!, done: true };
+		}
+
+		const result: IteratorResult<Node, Node> = { value: this.node, done: false };
+		this.node = this.node.next;
+
+		return result;
+	}
+}
+
+class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
+	public head: Node | null;
+
+	public tail: Node | null;
+
+	constructor(startNode: Node | null = null) {
+		this.head = startNode;
+		this.tail = startNode;
+	}
 
 	public addToFront(node: Node): void {
 		node.next = this.head;
@@ -21,6 +49,25 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
 
 		if (this.tail === null) {
 			this.tail = node;
+		}
+	}
+
+	public appendAfter(prevNode: Node, newNode: Node): void {
+		if (this.empty()) {
+			this.head = newNode;
+			this.tail = newNode;
+
+			return;
+		}
+
+		newNode.next = prevNode.next;
+		prevNode.next = newNode;
+
+		newNode.prev = prevNode;
+		if (newNode.next !== null) {
+			newNode.next.prev = newNode;
+		} else {
+			this.tail = newNode;
 		}
 	}
 
@@ -46,11 +93,19 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
 		this.addToFront(node);
 	}
 
+	public iterator(): DoublyLinkedListIterator<Node> {
+		return new DoublyLinkedListIterator<Node>(this.head);
+	}
+
+	public empty(): boolean {
+		return this.head !== null && this.tail !== null;
+	}
+
 	public clear(): void {
-		// fixme there might be a memory leak
+		// fixme there might be a memory leak, we need to unlink all nodes
 		this.head = null;
 		this.tail = null;
 	}
 }
 
-export { DoublyLinkedList, DoublyLinkedListNode };
+export { DoublyLinkedList, DoublyLinkedListNode, DoublyLinkedListIterator };

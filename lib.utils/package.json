@@ -5,7 +5,7 @@
         "utils",
         "shared"
     ],
-    "version": "0.0.1587337625",
+    "version": "0.0.1587822817",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -36,6 +36,8 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
+        "@types/lodash.clone": "4",
+        "@types/lodash.clonedeep": "4",
         "lodash.clone": "4",
         "lodash.clonedeep": "4",
         "otplib": "11",
@@ -45,8 +47,6 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
-        "@types/lodash.clone": "4",
-        "@types/lodash.clonedeep": "4",
         "@types/otplib": "10",
         "@types/uuid": "7",
         "chai-arrays": "2",

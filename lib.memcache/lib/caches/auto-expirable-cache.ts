@@ -1,15 +1,11 @@
-import { BaseCache, BaseCacheConfig } from './base-cache';
+import { MemCache, MemCacheConfig } from './mem-cache';
 import { HighResolutionExpirationPolicy } from '../expiration-policies/high-resolution-expiration-policy';
 import { createException, ErrorCodes } from '../error';
 import { ExpirableCacheValue } from '../contracts/cache';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 
-class AutoExpirableCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends BaseCache<
-	Key,
-	Value,
-	Entry
-> {
-	constructor(config?: Partial<BaseCacheConfig>, evictionPolicy?: EvictionPolicy<Key, Value, Entry>) {
+class AutoExpirableCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends MemCache<Key, Value, Entry> {
+	constructor(config?: Partial<MemCacheConfig>, evictionPolicy?: EvictionPolicy<Key, Value, Entry>) {
 		super(config, new HighResolutionExpirationPolicy<Key>(), evictionPolicy);
 	}
 

@@ -52,7 +52,7 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.doublyLinkedList.clear();
 	}
 
-	public requiresEntryForDeletion(): boolean {
+	public get requiresEntryForDeletion(): boolean {
 		return false;
 	}
 

@@ -1,8 +1,8 @@
 import { describe, it } from 'mocha';
 import { chrono } from '@thermopylae/lib.utils';
-import { AutoExpirableSet, INFINITE_TTL } from '../../lib';
-import { chai } from '../env';
-import { ErrorCodes } from '../../lib/error';
+import { AutoExpirableSet, INFINITE_TTL } from '../lib';
+import { chai } from './env';
+import { ErrorCodes } from '../lib/error';
 
 const { expect } = chai;
 
@@ -146,7 +146,7 @@ describe('AutoExpirableSet spec', () => {
 				preciseMemSetCache.delete('random');
 				done(new Error('Delete should not be allowed'));
 			} catch (e) {
-				expect(e.code).to.be.eq(ErrorCodes.DELETE_NOT_ALLOWED);
+				expect(e.code).to.be.eq(ErrorCodes.OPERATION_NOT_SUPPORTED);
 				expect(e.message).to.be.eq(
 					"Delete may cause undefined behaviour. Deleting a frequency will not scheduleDeletion it's timer. Adding the same frequency after deleting it, will use the old timer. "
 				);

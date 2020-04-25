@@ -1,15 +1,15 @@
 import { Seconds, Threshold } from '@thermopylae/core.declarations';
-import { BaseCache, BaseCacheConfig } from './base-cache';
+import { MemCache, MemCacheConfig } from './mem-cache';
 import { SpeculativeExpirationPolicy } from '../expiration-policies/speculative-expiration-policy';
 import { ExpirableCacheValue } from '../contracts/cache';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 
-interface SpeculativeCacheOptions extends BaseCacheConfig {
+interface SpeculativeCacheOptions extends MemCacheConfig {
 	checkInterval?: Seconds;
 	iterateThreshold?: Threshold;
 }
 
-class SpeculativeCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends BaseCache<Key, Value, Entry> {
+class SpeculativeCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends MemCache<Key, Value, Entry> {
 	private iterator: IterableIterator<[Key, ExpirableCacheValue<Value>]>;
 
 	constructor(options: Partial<SpeculativeCacheOptions> = {}, evictionPolicy?: EvictionPolicy<Key, Value, Entry>) {

@@ -9,6 +9,8 @@ declare interface ExpirationPolicy<Key = string> {
 
 	isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean;
 
+	onDelete(key: Key): void;
+
 	onClear(): void;
 
 	setDeleter(deleter: Deleter<Key>): void;

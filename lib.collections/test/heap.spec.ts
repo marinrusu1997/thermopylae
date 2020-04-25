@@ -61,69 +61,6 @@ describe('Heap spec', () => {
 		});
 	});
 
-	/*	describe.only('scheduleDeletion spec', () => {
-        it('scheduleDeletion when heap is empty', () => {
-            const heap = new Heap();
-            const comparator = (item: number) => item === 2;
-            expect(heap.remove(comparator)).to.be.eq(undefined);
-            expect(heap.size()).to.be.eq(0);
-        });
-
-        it('scheduleDeletion when heap contains 1 element', () => {
-            const heap = new Heap();
-            heap.push(1);
-
-            const comparator = (item: number) => item === 1;
-            expect(heap.remove(comparator)).to.be.eq(1);
-
-            expect(heap.size()).to.be.eq(0);
-        });
-
-        it('scheduleDeletion when heap contains 2 elements', () => {
-            const heap = new Heap();
-            heap.push(1);
-            heap.push(2);
-
-            const comparator = (item: number) => item === 2;
-            expect(heap.remove(comparator)).to.be.eq(2);
-
-            expect(heap.size()).to.be.eq(1);
-            expect(heap.peek()).to.be.eq(1);
-        });
-
-        it('scheduleDeletion when heap contains 3 elements', () => {
-            const heap = new Heap();
-            heap.push(1);
-            heap.push(2);
-            heap.push(3);
-
-            const comparator = (item: number) => item === 3;
-            expect(heap.remove(comparator)).to.be.eq(3);
-
-            expect(heap.size()).to.be.eq(2);
-            expect(heap.peek()).to.be.eq(1);
-
-            assertHeapSortedOrder(heap);
-        });
-
-        it('scheduleDeletion when heap contains multiple elements', () => {
-            const heap = new Heap();
-            for (let i = 0; i < 100; i++) {
-                heap.push(i);
-            }
-
-            let removedItems = 0;
-            for (let i = 0; i < 50; i++) {
-                if (heap.remove(item => item === number.generateRandom(0, 100))) {
-                    removedItems += 1;
-                }
-            }
-
-            expect(heap.size()).to.be.eq(100 - removedItems);
-            assertHeapSortedOrder(heap);
-        });
-    }); */
-
 	describe('replace spec', () => {
 		it('should behave like pop() followed by push()', () => {
 			const heap = new Heap<number>();

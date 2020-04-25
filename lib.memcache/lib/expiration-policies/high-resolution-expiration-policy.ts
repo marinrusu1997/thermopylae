@@ -3,6 +3,7 @@ import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
 import { ExpirableCacheKey } from '../contracts/cache';
+import { createException, ErrorCodes } from '../error';
 
 interface CleanUpSprint {
 	timeoutId: NodeJS.Timeout;
@@ -42,7 +43,7 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 	}
 
 	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.updateExpiresAt(key, expiresAfter, expiresFrom);
+		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
 		if (expiresAt === null) {
 			throw new Error('REMOVING OLD TIMER IS NOT SUPPORTED FOR NOW');
 		}
@@ -64,6 +65,14 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		//  but due to timer clear performance issues, we will return always false,
 		//  as deletion will be done automatically by timer
 		return false;
+	}
+
+	public isIdle(): boolean {
+		return this.cleanUpSprint === null;
+	}
+
+	public onDelete(): void {
+		throw createException(ErrorCodes.OPERATION_NOT_SUPPORTED, 'Delete is not supported');
 	}
 
 	public onClear(): void {
@@ -107,10 +116,6 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 	private start(runDelay: Seconds, willCleanUpOn: UnixTimestamp): void {
 		this.cleanUpSprint!.willCleanUpOn = willCleanUpOn;
 		this.cleanUpSprint!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
-	}
-
-	private isIdle(): boolean {
-		return this.cleanUpSprint === null;
 	}
 
 	private doCleanUp = (): void => {

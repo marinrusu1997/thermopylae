@@ -125,19 +125,19 @@ class Heap<T = number> {
 		const endPos = this.nodes.length;
 		const startPos = pos;
 		const newItem = this.nodes[pos];
-		let childPos = 2 * pos + 1;
+		let leftPos = 2 * pos + 1;
 		let rightPos;
 
-		while (childPos < endPos) {
-			rightPos = childPos + 1;
+		while (leftPos < endPos) {
+			rightPos = leftPos + 1;
 
-			if (rightPos < endPos && !(this.compare(this.nodes[childPos], this.nodes[rightPos]) < 0)) {
-				childPos = rightPos;
+			if (rightPos < endPos && !(this.compare(this.nodes[leftPos], this.nodes[rightPos]) < 0)) {
+				leftPos = rightPos;
 			}
 
-			this.nodes[pos] = this.nodes[childPos];
-			pos = childPos;
-			childPos = 2 * pos + 1;
+			this.nodes[pos] = this.nodes[leftPos];
+			pos = leftPos;
+			leftPos = 2 * pos + 1;
 		}
 
 		this.nodes[pos] = newItem;

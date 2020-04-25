@@ -29,7 +29,7 @@ class NoEvictionPolicy<Key = string, Value = any, Entry extends ExpirableCacheVa
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	public onClear(): void {}
 
-	public requiresEntryForDeletion(): boolean {
+	public get requiresEntryForDeletion(): boolean {
 		return false;
 	}
 

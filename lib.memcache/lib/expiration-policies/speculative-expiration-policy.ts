@@ -23,17 +23,17 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 
 	private iterateTimeoutId: NodeJS.Timeout | null;
 
-	private readonly nextCacheKey: NextCacheKey<Key>;
+	private readonly getNextCacheKey: NextCacheKey<Key>;
 
-	private readonly collectionSize: QueryCollectionSize;
+	private readonly getCollectionSize: QueryCollectionSize;
 
 	constructor(config: SpeculativeExpirationPolicyConfig<Key>) {
 		super();
 
 		this.config = SpeculativeExpirationPolicy.fillWithDefaults(config);
 		this.iterateTimeoutId = null;
-		this.nextCacheKey = this.config.nextCacheKey;
-		this.collectionSize = this.config.collectionSize;
+		this.getNextCacheKey = this.config.nextCacheKey;
+		this.getCollectionSize = this.config.collectionSize;
 
 		delete this.config.nextCacheKey;
 		delete this.config.collectionSize;
@@ -64,23 +64,23 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 
 	private cleanup = (): void => {
 		let iterations = 0;
-		let cacheKey = this.nextCacheKey();
+		let cacheKey = this.getNextCacheKey();
 		// eslint-disable-next-line no-plusplus
-		for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.nextCacheKey()) {
+		for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.getNextCacheKey()) {
 			super.isExpired(cacheKey.key, cacheKey.expiresAt);
 		}
 
 		// check if we reached end and need to start from beginning
-		if (iterations < this.config.iterateThreshold && cacheKey === null && iterations < this.collectionSize()) {
+		if (iterations < this.config.iterateThreshold && cacheKey === null && iterations < this.getCollectionSize()) {
 			// this code was duplicated for speed
-			cacheKey = this.nextCacheKey(); // reset iterator to begin
+			cacheKey = this.getNextCacheKey(); // reset iterator to begin
 			// eslint-disable-next-line no-plusplus
-			for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.nextCacheKey()) {
+			for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.getNextCacheKey()) {
 				super.isExpired(cacheKey.key, cacheKey.expiresAt);
 			}
 		}
 
-		if (this.collectionSize() === 0) {
+		if (this.getCollectionSize() === 0) {
 			this.iterateTimeoutId = null;
 			return;
 		}

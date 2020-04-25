@@ -13,6 +13,10 @@ class NoExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
 		return false;
 	}
 
+	onDelete(): void {
+		return undefined;
+	}
+
 	onClear() {
 		return undefined;
 	}
