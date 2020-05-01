@@ -13,6 +13,8 @@ interface MemCacheConfig {
 	maxKeys: number;
 }
 
+// FIXME ExpirableCacheValue must dissapear, i.e. we will have an object which can be decorated by both expire and eviction policies according to their needs
+
 class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends EventEmitter
 	implements Cache<Key, Value> {
 	protected readonly config: MemCacheConfig;
