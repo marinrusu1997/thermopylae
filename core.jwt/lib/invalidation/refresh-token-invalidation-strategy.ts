@@ -9,6 +9,15 @@ import {
 	JwtAccessToken
 } from './abstract-invalidation-strategy';
 
+// FIXME reference links
+//	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
+//	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-2-921fce24e1b5
+//	https://security.stackexchange.com/questions/223134/how-to-invalidate-jwt-tokens-without-a-database-lookup-with-each-request-to-the
+//	https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3
+//	https://medium.com/@ideneal/securing-authentication-in-a-spa-using-jwt-token-the-coolest-way-ab883bc372b6
+//	https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
+//	https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#logout_token_invalidation
+
 const { generate, UUID_DEFAULT_LENGTH, TokenGenerationType } = token;
 
 type RefreshTokenTtlProvider = (jwtAccessToken: JwtAccessToken) => Seconds;
