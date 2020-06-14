@@ -6,7 +6,7 @@ import { HighResolutionExpirationPolicy } from '../../lib/expiration-policies/hi
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
 
-describe('High Resolution Expiration Policy spec', () => {
+describe('High Resolution Expiration CachePolicy spec', () => {
 	const defaultTTL = 1; // second
 
 	it('removes isExpired item', done => {
@@ -19,7 +19,7 @@ describe('High Resolution Expiration Policy spec', () => {
 			done();
 		});
 
-		expirationPolicy.expiresAt(trackedKey, defaultTTL);
+		expirationPolicy.onSet(trackedKey, defaultTTL);
 	});
 
 	it('removes multiple isExpired keys with same ttl (tracking started at same time)', done => {
@@ -34,7 +34,7 @@ describe('High Resolution Expiration Policy spec', () => {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => expirationPolicy.expiresAt(key, defaultTTL));
+		trackedKeys.forEach(key => expirationPolicy.onSet(key, defaultTTL));
 	});
 
 	it('removes multiple isExpired keys with different ttl (tracking started at same time)', done => {
@@ -53,7 +53,7 @@ describe('High Resolution Expiration Policy spec', () => {
 				done();
 			}
 		});
-		trackedKeysMap.forEach((ttl, key) => expirationPolicy.expiresAt(key, ttl));
+		trackedKeysMap.forEach((ttl, key) => expirationPolicy.onSet(key, ttl));
 	}).timeout(2100);
 
 	it('removes multiple isExpired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
@@ -75,21 +75,21 @@ describe('High Resolution Expiration Policy spec', () => {
 		});
 
 		trackedKeysMap.set('key1', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-		expirationPolicy.expiresAt('key1', defaultTTL);
+		expirationPolicy.onSet('key1', defaultTTL);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key2', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			expirationPolicy.expiresAt('key2', defaultTTL);
+			expirationPolicy.onSet('key2', defaultTTL);
 		}, 1000);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key3', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			expirationPolicy.expiresAt('key3', defaultTTL);
+			expirationPolicy.onSet('key3', defaultTTL);
 		}, 2000);
 
 		setTimeout(() => {
 			trackedKeysMap.set('key4', { trackingSince: nowInSeconds(), ttl: defaultTTL });
-			expirationPolicy.expiresAt('key4', defaultTTL);
+			expirationPolicy.onSet('key4', defaultTTL);
 		}, 3000);
 	}).timeout(4100);
 
@@ -105,7 +105,7 @@ describe('High Resolution Expiration Policy spec', () => {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => expirationPolicy.expiresAt(key, defaultTTL));
+		trackedKeys.forEach(key => expirationPolicy.onSet(key, defaultTTL));
 	});
 
 	it('restarts expirationPolicy after all tracked keys were removed (new key tracked from scheduleDeletion handler)', done => {
@@ -116,7 +116,7 @@ describe('High Resolution Expiration Policy spec', () => {
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			expirationPolicy.expiresAt(key, defaultTTL);
+			expirationPolicy.onSet(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 			currentNumberOfTrackedKeys += 1;
 		};
@@ -141,7 +141,7 @@ describe('High Resolution Expiration Policy spec', () => {
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			expirationPolicy.expiresAt(key, defaultTTL);
+			expirationPolicy.onSet(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 		};
 
@@ -166,7 +166,7 @@ describe('High Resolution Expiration Policy spec', () => {
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
-			expirationPolicy.expiresAt(key, defaultTTL);
+			expirationPolicy.onSet(key, defaultTTL);
 			whenTrackingBegan = nowInSeconds();
 		};
 
@@ -190,12 +190,12 @@ describe('High Resolution Expiration Policy spec', () => {
 
 		// adding element with same ttl
 		items.add('value1');
-		expirationPolicy.expiresAt('value1', 1);
+		expirationPolicy.onSet('value1', 1);
 		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		expirationPolicy.expiresAt('value2', 1);
+		expirationPolicy.onSet('value2', 1);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(0);
@@ -203,12 +203,12 @@ describe('High Resolution Expiration Policy spec', () => {
 
 		// adding element with greater ttl
 		items.add('value1');
-		expirationPolicy.expiresAt('value1', 1);
+		expirationPolicy.onSet('value1', 1);
 		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		expirationPolicy.expiresAt('value2', 2);
+		expirationPolicy.onSet('value2', 2);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(1);
@@ -221,12 +221,12 @@ describe('High Resolution Expiration Policy spec', () => {
 
 		// adding element smaller
 		items.add('value1');
-		expirationPolicy.expiresAt('value1', 2);
+		expirationPolicy.onSet('value1', 2);
 		expect(expirationPolicy.isIdle()).to.be.eq(false);
 
 		await chrono.sleep(50);
 		items.add('value2');
-		expirationPolicy.expiresAt('value2', 1);
+		expirationPolicy.onSet('value2', 1);
 
 		await chrono.sleep(1010);
 		expect(items.size).to.be.eq(1);
@@ -312,7 +312,7 @@ describe('High Resolution Expiration Policy spec', () => {
 				itemsDeletionDelay.set(item, ttl + scheduleDeletionDelay);
 
 				items.add(item);
-				expirationPolicy.updateExpiresAt(item, ttl);
+				expirationPolicy.onUpdate(item, ttl);
 			});
 		}
 	}).timeout(10_500);

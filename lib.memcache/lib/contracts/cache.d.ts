@@ -10,14 +10,12 @@ declare interface CacheStats {
 	misses: number;
 }
 
-declare interface ExpirableCacheKey<Key = string> {
+declare interface CacheKey<Key> {
 	key: Key;
-	expiresAt: UnixTimestamp | null;
 }
 
-declare interface ExpirableCacheValue<Value> {
+declare interface CacheEntry<Value> {
 	value: Value;
-	expiresAt: UnixTimestamp | null;
 }
 
 declare type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
@@ -27,7 +25,7 @@ declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 declare interface Cache<Key = string, Value = any> {
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
-	upset(key: Key, value: Value, ttl: Seconds | null, from?: UnixTimestamp): this;
+	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
 	get(key: Key): Value | undefined;
 	mget(keys: Array<Key>): Array<CachedItem<Key, Value>>;
@@ -54,4 +52,4 @@ declare interface Cache<Key = string, Value = any> {
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }
 
-export { Cache, CachedItem, ExpirableCacheKey, ExpirableCacheValue, CacheStats, EventType, EventListener };
+export { Cache, CachedItem, CacheKey, CacheEntry, CacheStats, EventType, EventListener };

@@ -1,14 +1,15 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from './dll-list';
-import { Deleter, EvictionPolicy } from '../contracts/eviction-policy';
-import { ExpirableCacheValue } from '../contracts/cache';
+import { EvictionPolicy } from '../contracts/eviction-policy';
+import { CacheEntry } from '../contracts/cache';
+import { Deleter } from '../contracts/cache-policy';
 
-interface FreqListNode<Key = string, Value = any> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
+interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
 	frequency: number;
 	list: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
 }
 
-interface EvictableKeyNode<Key = string, Value = any> extends ExpirableCacheValue<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
 	key: Key;
 	freqParentItem: FreqListNode<Key, Value>;
 }
@@ -18,7 +19,7 @@ interface LFUEvictionPolicyOptions {
 	bucketEvictCount: number;
 }
 
-class LFUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
+class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
 	private readonly config: LFUEvictionPolicyOptions;
 
 	private delete: Deleter<Key>;
@@ -34,7 +35,7 @@ class LFUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.freqList = new DoublyLinkedList();
 	}
 
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): EvictableKeyNode<Key, Value> {
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
 		// Check for cache overflow
 		if (size === this.config.capacity) {
 			this.evict(this.config.bucketEvictCount);
@@ -42,8 +43,6 @@ class LFUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 
 		entry.key = key;
 		entry.freqParentItem = this.addToFreqList(entry);
-
-		return entry;
 	}
 
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
@@ -82,7 +81,7 @@ class LFUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.freqList.clear();
 	}
 
-	public get requiresEntryForDeletion(): boolean {
+	public get requiresEntryOnDeletion(): boolean {
 		return true;
 	}
 

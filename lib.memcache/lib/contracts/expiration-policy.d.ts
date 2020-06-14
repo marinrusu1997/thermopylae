@@ -1,19 +1,15 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { CacheEntry } from './cache';
+import { CachePolicy } from './cache-policy';
 
-declare type Deleter<Key = string> = (key: Key) => void;
-
-declare interface ExpirationPolicy<Key = string> {
-	expiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null;
-
-	updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null;
-
-	isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean;
-
-	onDelete(key: Key): void;
-
-	onClear(): void;
-
-	setDeleter(deleter: Deleter<Key>): void;
+interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
+	expiresAt?: UnixTimestamp;
 }
 
-export { ExpirationPolicy, Deleter };
+declare interface ExpirationPolicy<Key, Value, Entry extends CacheEntry<Value>> extends CachePolicy<Key, Value, Entry> {
+	onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void;
+	onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void;
+	removeIfExpired(key: Key, entry: Entry): boolean;
+}
+
+export { ExpirationPolicy, ExpirableCacheEntry };

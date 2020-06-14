@@ -2,34 +2,32 @@ import { EventEmitter } from 'events';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
 import { INFINITE_KEYS, INFINITE_TTL } from '../constants';
-import { Cache, CachedItem, ExpirableCacheValue, CacheStats, EventListener, EventType } from '../contracts/cache';
+import { Cache, CachedItem, CacheEntry, CacheStats, EventListener, EventType } from '../contracts/cache';
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
 import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
 
-interface MemCacheConfig {
+interface MemCacheConfig<Key, Value, Entry> {
 	useClones: boolean;
 	maxKeys: number;
+	entryBuilder: (key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp) => Entry;
 }
 
-// FIXME ExpirableCacheValue must dissapear, i.e. we will have an object which can be decorated by both expire and eviction policies according to their needs
-
-class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Value> = ExpirableCacheValue<Value>> extends EventEmitter
-	implements Cache<Key, Value> {
-	protected readonly config: MemCacheConfig;
+class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = CacheEntry<Value>> extends EventEmitter implements Cache<Key, Value> {
+	protected readonly config: MemCacheConfig<Key, Value, Entry>;
 
 	protected readonly cacheStats: CacheStats;
 
 	protected readonly cache: Map<Key, Entry>;
 
-	protected readonly expirationPolicy: ExpirationPolicy<Key>;
+	protected readonly expirationPolicy: ExpirationPolicy<Key, Value, Entry>;
 
 	protected readonly evictionPolicy: EvictionPolicy<Key, Value, Entry>;
 
 	protected constructor(
-		config?: Partial<MemCacheConfig>,
-		expirationPolicy: ExpirationPolicy<Key> = new NoExpirationPolicy<Key>(),
+		config?: Partial<MemCacheConfig<Key, Value, Entry>>,
+		expirationPolicy?: ExpirationPolicy<Key, Value, Entry>,
 		evictionPolicy?: EvictionPolicy<Key, Value, Entry>
 	) {
 		super();
@@ -37,60 +35,58 @@ class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Valu
 		this.config = this.fillWithDefaults(config);
 		this.cacheStats = { hits: 0, misses: 0 };
 		this.cache = new Map();
-		this.expirationPolicy = expirationPolicy;
+		this.expirationPolicy = expirationPolicy || new NoExpirationPolicy<Key, Value, Entry>();
 		this.evictionPolicy = evictionPolicy || new NoEvictionPolicy<Key, Value, Entry>(this.config.maxKeys);
 
-		this.expirationPolicy.setDeleter(key => this.internalDelete(key, 'expired', false, true));
-		this.evictionPolicy.setDeleter(key => this.internalDelete(key, 'evicted', true, false));
+		this.expirationPolicy.setDeleter(key => this.internalDelete(key, 'expired'));
+		this.evictionPolicy.setDeleter(key => this.internalDelete(key, 'evicted'));
 	}
 
 	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
-		const wrappedEntry = this.evictionPolicy.onSet(
-			key,
-			{
-				value: this.config.useClones ? object.cloneDeep(value) : value,
-				expiresAt: this.expirationPolicy.expiresAt(key, ttl || INFINITE_TTL, expiresFrom)
-			} as Entry,
-			this.cache.size
-		) as Entry;
+		const entry: Entry = this.config.entryBuilder(key, value, ttl, expiresFrom);
+		ttl = MemCache.resolveTtl(ttl);
 
-		this.cache.set(key, wrappedEntry);
+		this.expirationPolicy.onSet(key, entry, ttl, expiresFrom);
+		this.evictionPolicy.onSet(key, entry, this.cache.size);
+
+		this.cache.set(key, entry);
 		this.emit('set', key, value);
 
 		return this;
 	}
 
-	public upset(key: Key, value: Value, ttl: Seconds | null, expiresFrom?: UnixTimestamp): this {
+	public upset(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		const entry = this.internalGetEntry(key);
 
-		if (entry !== undefined) {
-			entry.value = this.config.useClones ? object.cloneDeep(value) : value;
-			if (ttl !== null) {
-				entry.expiresAt = this.expirationPolicy.updateExpiresAt(key, ttl, expiresFrom);
+		if (MemCache.containsEntry(entry)) {
+			entry!.value = this.config.useClones ? object.cloneDeep(value) : value;
+
+			if (ttl != null) {
+				this.expirationPolicy.onUpdate(key, entry!, ttl, expiresFrom);
 			}
 
-			this.cache.set(key, entry);
 			this.emit('update', key, value);
 
 			return this;
 		}
 
-		return this.set(key, value, ttl!);
+		return this.set(key, value, ttl, expiresFrom);
 	}
 
 	public get(key: Key): Value | undefined {
-		return this.internalGetValue(key);
+		const entry = this.internalGetEntry(key);
+		return (entry && entry.value) || MemCache.ENTRY_NOT_PRESENT_VALUE;
 	}
 
 	public mget(keys: Array<Key>): Array<CachedItem<Key, Value>> {
 		const items: Array<CachedItem<Key, Value>> = [];
 
-		let value;
+		let entry;
 		// eslint-disable-next-line no-restricted-syntax
 		for (const key of keys) {
-			value = this.get(key);
-			if (value !== undefined) {
-				items.push({ key, value });
+			entry = this.internalGetEntry(key);
+			if (MemCache.containsEntry(entry)) {
+				items.push({ key, value: entry!.value });
 			}
 		}
 
@@ -98,29 +94,29 @@ class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Valu
 	}
 
 	public take(key: Key): Value | undefined {
-		const value = this.internalGetValue(key);
-		if (value === undefined) {
-			return value;
+		const entry = this.internalGetEntry(key);
+		if (!MemCache.containsEntry(entry)) {
+			return MemCache.ENTRY_NOT_PRESENT_VALUE;
 		}
 
 		this.del(key);
 
-		return value;
+		return entry!.value;
 	}
 
 	public ttl(key: Key, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean {
 		const entry = this.internalGetEntry(key);
-		if (entry === undefined) {
+		if (!MemCache.containsEntry(entry)) {
 			return false;
 		}
 
-		entry.expiresAt = this.expirationPolicy.updateExpiresAt(key, ttl, expiresFrom);
+		this.expirationPolicy.onUpdate(key, entry!, ttl, expiresFrom);
 
 		return true;
 	}
 
 	public has(key: Key): boolean {
-		return this.internalGetEntry(key) !== undefined;
+		return MemCache.containsEntry(this.internalGetEntry(key));
 	}
 
 	public del(key: Key): boolean {
@@ -165,71 +161,67 @@ class MemCache<Key = string, Value = any, Entry extends ExpirableCacheValue<Valu
 		return super.on(event, listener);
 	}
 
-	// following methods were duplicated for speed
+	// following methods were duplicated for speed, yes performance is our all
 
 	protected internalGetEntry(key: Key): Entry | undefined {
 		const entry = this.cache.get(key);
 
-		if (entry === undefined) {
+		if (!MemCache.containsEntry(entry)) {
 			this.cacheStats.misses += 1;
-			return entry;
+			return MemCache.ENTRY_NOT_PRESENT_VALUE;
 		}
 
-		if (this.expirationPolicy.isExpired(key, entry.expiresAt)) {
-			return undefined;
+		const removed = this.expirationPolicy.removeIfExpired(key, entry!);
+		if (removed) {
+			return MemCache.ENTRY_NOT_PRESENT_VALUE;
 		}
 
 		this.cacheStats.hits += 1;
-		this.evictionPolicy.onGet(key, entry);
+		this.evictionPolicy.onGet(key, entry!);
+
 		return entry;
 	}
 
-	protected internalGetValue(key: Key): Value | undefined {
-		const entry = this.cache.get(key);
-
-		if (entry === undefined) {
-			this.cacheStats.misses += 1;
-			return entry;
-		}
-
-		if (this.expirationPolicy.isExpired(key, entry.expiresAt)) {
-			return undefined;
-		}
-
-		this.cacheStats.hits += 1;
-		this.evictionPolicy.onGet(key, entry);
-		return entry.value;
-	}
-
-	protected internalDelete(key: Key, event: EventType, notifyExpirationPolicy = true, notifyEvictionPolicy = true): boolean {
-		let entry;
-		if (notifyEvictionPolicy && this.evictionPolicy.requiresEntryForDeletion) {
+	protected internalDelete(key: Key, event: EventType): boolean {
+		let entry: Entry | undefined;
+		const entryRequiredOnDeletion = this.expirationPolicy.requiresEntryOnDeletion || this.evictionPolicy.requiresEntryOnDeletion;
+		if (entryRequiredOnDeletion) {
 			entry = this.cache.get(key);
 
-			if (entry === undefined) {
+			if (!MemCache.containsEntry(entry)) {
 				return false;
 			}
 		}
 
 		if (this.cache.delete(key)) {
-			if (notifyExpirationPolicy) {
-				this.expirationPolicy.onDelete(key);
-			}
-			if (notifyEvictionPolicy) {
-				this.evictionPolicy.onDelete(key, entry);
-			}
+			this.expirationPolicy.onDelete(key, entry);
+			this.evictionPolicy.onDelete(key, entry);
+
 			this.emit(event, key);
+
 			return true;
 		}
 
 		return false;
 	}
 
-	protected fillWithDefaults(options?: Partial<MemCacheConfig>): MemCacheConfig {
+	protected fillWithDefaults(options?: Partial<MemCacheConfig<Key, Value, Entry>>): MemCacheConfig<Key, Value, Entry> {
 		options = options || {};
 		options.maxKeys = options.maxKeys || INFINITE_KEYS;
 		options.useClones = options.useClones || false;
-		return options as MemCacheConfig;
+		// @ts-ignore
+		options.entryBuilder = options.entryBuilder || ((_key: Key, value: Value): Entry => ({ value }));
+		return options as MemCacheConfig<Key, Value, Entry>;
+	}
+
+	private static ENTRY_NOT_PRESENT_VALUE = undefined;
+
+	private static resolveTtl(ttl?: Seconds): Seconds {
+		return ttl || INFINITE_TTL;
+	}
+
+	private static containsEntry(entry: any): boolean {
+		return entry !== MemCache.ENTRY_NOT_PRESENT_VALUE;
 	}
 }
 

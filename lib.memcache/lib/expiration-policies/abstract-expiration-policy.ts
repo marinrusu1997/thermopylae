@@ -1,36 +1,35 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { Deleter, ExpirationPolicy } from '../contracts/expiration-policy';
+import { ExpirableCacheEntry, ExpirationPolicy } from '../contracts/expiration-policy';
 import { createException, ErrorCodes } from '../error';
 import { INFINITE_TTL } from '../constants';
+import { Deleter } from '../contracts/cache-policy';
 
-abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolicy<Key> {
+abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>>
+	implements ExpirationPolicy<Key, Value, Entry> {
 	protected delete!: Deleter<Key>;
 
-	public expiresAt(_key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
+	get requiresEntryOnDeletion(): boolean {
+		return false;
+	}
+
+	public onSet(_key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		if (expiresAfter === INFINITE_TTL) {
-			return null;
+			return;
 		}
-
-		const now = chrono.dateToUNIX();
-		const expiresAt = (expiresFrom || now) + expiresAfter;
-
-		this.guardValidExpiresAt(expiresAt, now);
-
-		return expiresAt;
+		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
 	}
 
-	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const val = this.expiresAt(key, expiresAfter, expiresFrom);
-		return val;
+	public onUpdate(_key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		if (expiresAfter === INFINITE_TTL) {
+			delete entry.expiresAt;
+			return;
+		}
+		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
 	}
 
-	public isExpired(key: Key, expiresAt: UnixTimestamp | null): boolean {
-		const expired = expiresAt !== null ? expiresAt >= chrono.dateToUNIX() : false;
-		if (expired) {
-			this.delete(key);
-		}
-		return expired;
+	public removeIfExpired(key: Key, entry: Entry): boolean {
+		return this.doRemovalIfExpired(key, entry.expiresAt);
 	}
 
 	public onDelete(): void {
@@ -45,9 +44,30 @@ abstract class AbstractExpirationPolicy<Key = string> implements ExpirationPolic
 		this.delete = deleter;
 	}
 
-	private guardValidExpiresAt(expiresAt: UnixTimestamp, now: UnixTimestamp): void {
-		if (expiresAt <= now) {
-			throw createException(ErrorCodes.INVALID_EXPIRES_AT, `New expiresAt ${expiresAt} (UNIX) is lower or equal than current time ${now} (UNIX). `);
+	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): boolean {
+		const expired = expiration != null ? expiration >= chrono.dateToUNIX() : false;
+		if (expired) {
+			this.delete(key);
+		}
+		return expired;
+	}
+
+	protected setEntryExpiration(entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		const now = chrono.dateToUNIX();
+		const expiresAt = (expiresFrom || now) + expiresAfter;
+
+		AbstractExpirationPolicy.assertValidExpiresAt(entry.expiresAt, expiresAt, now);
+
+		entry.expiresAt = expiresAt;
+	}
+
+	private static assertValidExpiresAt(oldExpiration: UnixTimestamp | undefined, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
+		if (newExpiration <= now) {
+			throw createException(ErrorCodes.INVALID_EXPIRATION, `New expiration ${newExpiration} (UNIX) is lower or equal than current time ${now} (UNIX). `);
+		}
+
+		if (oldExpiration != null && oldExpiration === newExpiration) {
+			throw createException(ErrorCodes.INVALID_EXPIRATION, `New expiration ${newExpiration} (UNIX) is the same as the old one ${oldExpiration} (UNIX). `);
 		}
 	}
 }

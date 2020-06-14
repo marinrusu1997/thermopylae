@@ -68,7 +68,7 @@ module.exports = {
 		"@typescript-eslint/no-use-before-define": "warn",
 		"@typescript-eslint/no-namespace": "warn",
 
-		"node/no-unsupported-features/es-syntax": "warn",
+		"node/no-unsupported-features/es-syntax": "off",
 		"node/no-missing-import": "off",
 		"node/no-extraneous-import": "error"
 	},

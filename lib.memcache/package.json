@@ -39,7 +39,7 @@
         "@akashbabu/node-dll": "2",
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0.0.1587822817"
+        "@thermopylae/lib.utils": "0"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",

@@ -2,18 +2,19 @@ import { Seconds } from '@thermopylae/core.declarations';
 import { INFINITE_TTL } from '../constants';
 import { createException, ErrorCodes } from '../error';
 import { HighResolutionExpirationPolicy } from '../expiration-policies/high-resolution-expiration-policy';
+import { ExpirableCacheEntry } from '../contracts/expiration-policy';
 
-class AutoExpirableSet<Value = string> extends Set<Value> {
+class AutoExpirableSet<Value = string> extends Set<ExpirableCacheEntry<Value>> {
 	private readonly defaultTtlSec: Seconds;
 
-	private readonly expirationPolicy: HighResolutionExpirationPolicy<Value>;
+	private readonly expirationPolicy: HighResolutionExpirationPolicy<Value, Value>;
 
 	constructor(defaultTtlSec = INFINITE_TTL) {
 		super();
 
 		this.defaultTtlSec = defaultTtlSec;
-		this.expirationPolicy = new HighResolutionExpirationPolicy<Value>();
-		this.expirationPolicy.setDeleter((value: Value) => super.delete(value));
+		this.expirationPolicy = new HighResolutionExpirationPolicy<Value, Value>();
+		this.expirationPolicy.setDeleter((value: ExpirableCacheEntry<Value>) => super.delete(value.value));
 	}
 
 	/**
@@ -23,7 +24,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 	 * This will lead frequency being deleted prematurely by the old timer.
 	 * Moreover, the new timer will still be active, and might try to scheduleDeletion newly added frequency.
 	 *
-	 * Use this method when you are sure 100% no inserts will be made until frequency expiresAt.
+	 * Use this method when you are sure 100% no inserts will be made until frequency onSet.
 	 *
 	 * @param value
 	 * @param ttlSec
@@ -36,7 +37,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.expirationPolicy.expiresAt(value, ttlSec);
+		this.expirationPolicy.onSet(value, ttlSec);
 
 		return this;
 	}
@@ -57,7 +58,7 @@ class AutoExpirableSet<Value = string> extends Set<Value> {
 		if (ttlSec == null) {
 			ttlSec = this.defaultTtlSec;
 		}
-		this.expirationPolicy.updateExpiresAt(value, ttlSec);
+		this.expirationPolicy.onUpdate(value, ttlSec);
 
 		return this;
 	}

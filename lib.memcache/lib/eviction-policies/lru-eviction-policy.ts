@@ -1,16 +1,17 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from './dll-list';
-import { ExpirableCacheValue } from '../contracts/cache';
-import { Deleter, EvictionPolicy } from '../contracts/eviction-policy';
+import { CacheEntry } from '../contracts/cache';
+import { EvictionPolicy } from '../contracts/eviction-policy';
+import { Deleter } from '../contracts/cache-policy';
 
-interface EvictableKeyNode<Key = string, Value = any> extends ExpirableCacheValue<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+interface EvictableKeyNode<Key = string, Value = any> extends CacheEntry<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
 	key: Key;
 }
 
 // FIXME original implementation: https://www.callicoder.com/design-lru-cache-data-structure/
 // FIXME other implementation (not used here): https://www.programcreek.com/2013/03/leetcode-lru-cache-java/
 
-class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
+class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
 	private readonly capacity: Threshold;
 
 	private delete!: Deleter<Key>;
@@ -26,7 +27,7 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.doublyLinkedList.moveToFront(entry);
 	}
 
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): EvictableKeyNode<Key, Value> {
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
 		if (size === this.capacity) {
 			this.delete(this.doublyLinkedList.tail!.key);
 			this.doublyLinkedList.removeNode(this.doublyLinkedList.tail!);
@@ -34,8 +35,6 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 
 		entry.key = key;
 		this.doublyLinkedList.addToFront(entry);
-
-		return entry;
 	}
 
 	public onDelete(key: Key): void {
@@ -52,7 +51,7 @@ class LRUEvictionPolicy<Key = string, Value = any> implements EvictionPolicy<Key
 		this.doublyLinkedList.clear();
 	}
 
-	public get requiresEntryForDeletion(): boolean {
+	public get requiresEntryOnDeletion(): boolean {
 		return false;
 	}
 

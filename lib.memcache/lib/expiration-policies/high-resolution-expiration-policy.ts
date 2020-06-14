@@ -2,27 +2,37 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-import { ExpirableCacheKey } from '../contracts/cache';
+import { CacheKey } from '../contracts/cache';
 import { createException, ErrorCodes } from '../error';
+import { ExpirableCacheEntry } from '../contracts/expiration-policy';
+import { INFINITE_TTL } from '../constants';
 
 interface CleanUpSprint {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
 }
 
-class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPolicy<Key> {
-	private readonly expirableKeys: Heap<ExpirableCacheKey<Key>>;
+interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {
+	expiresAt: UnixTimestamp;
+}
+
+class HighResolutionExpirationPolicy<
+	Key,
+	Value,
+	Entry extends ExpirableCacheEntry<Value> = ExpirableCacheKeyEntry<Key, Value>
+> extends AbstractExpirationPolicy<Key, Value, Entry> {
+	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
 
 	private cleanUpSprint: CleanUpSprint | null;
 
 	constructor() {
 		super();
 
-		this.expirableKeys = new Heap<ExpirableCacheKey<Key>>((first, second) => {
-			if (first.expiresAt! < second.expiresAt!) {
+		this.expirableKeys = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
+			if (first.expiresAt < second.expiresAt) {
 				return -1;
 			}
-			if (first.expiresAt! > second.expiresAt!) {
+			if (first.expiresAt > second.expiresAt) {
 				return 1;
 			}
 			return 0;
@@ -30,49 +40,41 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		this.cleanUpSprint = null;
 	}
 
-	public expiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
-		if (expiresAt === null) {
-			return null;
+	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		if (expiresAfter === INFINITE_TTL) {
+			return;
 		}
 
-		const expirableKey = { key, expiresAt };
-		this.doScheduleDelete(expirableKey);
+		super.setEntryExpiration(entry, expiresAfter, expiresFrom);
+		// @ts-ignore
+		entry.key = key;
 
-		return null;
+		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
-	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
-		if (expiresAt === null) {
-			throw new Error('REMOVING OLD TIMER IS NOT SUPPORTED FOR NOW');
+	public onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		super.onUpdate(key, entry, expiresAfter, expiresFrom);
+		if (!entry.expiresAt) {
+			throw createException(ErrorCodes.INVALID_EXPIRATION, 'Removing old timer is not supported for now. ');
 		}
 
-		const expirableKeyUpdate = { key, expiresAt };
-
-		if (this.expirableKeys.updateItem(expirableKeyUpdate, item => item.key === key) !== undefined) {
-			this.synchronize();
-			return null;
+		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
+		if (this.expirableKeys.updateItem((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>, equals) !== undefined) {
+			return this.synchronize();
 		}
 
 		// this is an update of item which had infinite timeout
-		this.doScheduleDelete(expirableKeyUpdate);
-		return null;
+		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
-	public isExpired(): boolean {
-		// FIXME ideal scenario: we check expiresAt, clear item, clear timer
-		//  but due to timer clear performance issues, we will return always false,
-		//  as deletion will be done automatically by timer
+	public removeIfExpired(): boolean {
+		// FIXME here we should find and remove item from heap, but it would be to expensive to do on each get
 		return false;
 	}
 
-	public isIdle(): boolean {
-		return this.cleanUpSprint === null;
-	}
-
 	public onDelete(): void {
-		throw createException(ErrorCodes.OPERATION_NOT_SUPPORTED, 'Delete is not supported');
+		// FIXME here we can delete item from heap, performance issues should not be problematic
+		throw createException(ErrorCodes.OPERATION_NOT_SUPPORTED, 'Delete is not supported. ');
 	}
 
 	public onClear(): void {
@@ -82,11 +84,15 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		this.expirableKeys.clear();
 	}
 
-	private doScheduleDelete(expirableKey: ExpirableCacheKey<Key>): void {
+	public isIdle(): boolean {
+		return this.cleanUpSprint == null;
+	}
+
+	private doScheduleDelete(expirableKey: ExpirableCacheKeyEntry<Key, Value>): void {
 		this.expirableKeys.push(expirableKey);
 
 		if (this.isIdle()) {
-			return this.doStart(expirableKey.expiresAt!);
+			return this.doStart(expirableKey.expiresAt);
 		}
 
 		return this.synchronize();
@@ -96,7 +102,7 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		const rootKey = this.expirableKeys.peek()!;
 		if (this.cleanUpSprint!.willCleanUpOn !== rootKey.expiresAt) {
 			clearTimeout(this.cleanUpSprint!.timeoutId);
-			this.start(rootKey.expiresAt! - chrono.dateToUNIX(), rootKey.expiresAt!);
+			this.start(rootKey.expiresAt - chrono.dateToUNIX(), rootKey.expiresAt);
 		}
 	}
 
@@ -135,7 +141,7 @@ class HighResolutionExpirationPolicy<Key = string> extends AbstractExpirationPol
 		toDelete = this.expirableKeys.peek();
 
 		if (toDelete !== undefined) {
-			this.start(toDelete.expiresAt! - chrono.dateToUNIX(), toDelete.expiresAt!);
+			this.start(toDelete.expiresAt - chrono.dateToUNIX(), toDelete.expiresAt);
 		} else {
 			this.cleanUpSprint = null;
 		}

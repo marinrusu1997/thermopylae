@@ -1,6 +1,7 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-import { ExpirableCacheKey } from '../contracts/cache';
+import { ExpirableCacheEntry } from '../contracts/expiration-policy';
+import { CacheKey } from '../contracts/cache';
 
 type NextCacheKey<Key = string> = () => ExpirableCacheKey<Key> | null;
 
@@ -18,7 +19,15 @@ interface Config<Key = string> extends SpeculativeExpirationPolicyConfig<Key> {
 	iterateThreshold: Threshold;
 }
 
-class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy<Key> {
+interface ExpirableCacheKey<Key> extends CacheKey<Key> {
+	expiresAt?: UnixTimestamp;
+}
+
+class SpeculativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>> extends AbstractExpirationPolicy<
+	Key,
+	Value,
+	Entry
+> {
 	private readonly config: Config<Key>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null;
@@ -39,16 +48,18 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 		delete this.config.collectionSize;
 	}
 
-	public expiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const expiresAt = super.expiresAt(key, expiresAfter, expiresFrom);
-		this.startIfIdle(expiresAt);
-		return expiresAt;
+	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		super.onSet(key, entry, expiresAfter, expiresFrom);
+		if (entry.expiresAt && this.isIdle()) {
+			this.start();
+		}
 	}
 
-	public updateExpiresAt(key: Key, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): UnixTimestamp | null {
-		const newExpiresAt = super.updateExpiresAt(key, expiresAfter, expiresFrom);
-		this.startIfIdle(newExpiresAt);
-		return newExpiresAt;
+	public onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		super.onUpdate(key, entry, expiresAfter, expiresFrom);
+		if (entry.expiresAt && this.isIdle()) {
+			this.start();
+		}
 	}
 
 	public onClear(): void {
@@ -58,26 +69,12 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 		}
 	}
 
-	public isExpired(): boolean {
-		return false;
-	}
-
 	private cleanup = (): void => {
-		let iterations = 0;
-		let cacheKey = this.getNextCacheKey();
-		// eslint-disable-next-line no-plusplus
-		for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.getNextCacheKey()) {
-			super.isExpired(cacheKey.key, cacheKey.expiresAt);
-		}
+		const [currentIteration, currentCacheKey] = this.iterate(0);
 
 		// check if we reached end and need to start from beginning
-		if (iterations < this.config.iterateThreshold && cacheKey === null && iterations < this.getCollectionSize()) {
-			// this code was duplicated for speed
-			cacheKey = this.getNextCacheKey(); // reset iterator to begin
-			// eslint-disable-next-line no-plusplus
-			for (; iterations < this.config.iterateThreshold && cacheKey !== null; iterations++, cacheKey = this.getNextCacheKey()) {
-				super.isExpired(cacheKey.key, cacheKey.expiresAt);
-			}
+		if (currentIteration < this.config.iterateThreshold && currentCacheKey == null && currentIteration < this.getCollectionSize()) {
+			this.iterate(currentIteration);
 		}
 
 		if (this.getCollectionSize() === 0) {
@@ -88,10 +85,20 @@ class SpeculativeExpirationPolicy<Key = string> extends AbstractExpirationPolicy
 		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
 	};
 
-	private startIfIdle(expiresAt: UnixTimestamp | null): void {
-		if (this.iterateTimeoutId === null && expiresAt !== null) {
-			this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
+	private isIdle(): boolean {
+		return this.iterateTimeoutId == null;
+	}
+
+	private start(): void {
+		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
+	}
+
+	private iterate(currentIteration: number): [number, ExpirableCacheKey<Key> | null] {
+		let cacheKey = this.getNextCacheKey();
+		for (; currentIteration < this.config.iterateThreshold && cacheKey != null; currentIteration += 1, cacheKey = this.getNextCacheKey()) {
+			super.doRemovalIfExpired(cacheKey.key, cacheKey.expiresAt);
 		}
+		return [currentIteration, cacheKey];
 	}
 
 	private static fillWithDefaults<Key>(config: SpeculativeExpirationPolicyConfig<Key>): Config<Key> {
