@@ -4,7 +4,7 @@
     "keywords": [
         "collections"
     ],
-    "version": "0.0.1587818689",
+    "version": "0.0.1592255485",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -37,6 +37,7 @@
         "lodash.isfunction": "3"
     },
     "devDependencies": {
+        "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
         "chai-arrays": "2"

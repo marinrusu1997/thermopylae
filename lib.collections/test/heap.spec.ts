@@ -1,31 +1,73 @@
 import { describe, it } from 'mocha';
+import { number, string } from '@thermopylae/lib.utils';
 import { chai } from './chai';
 import { Heap } from '../lib';
 
 const { expect } = chai;
 
+type Comparator<T> = (a: T, b: T) => number;
+
 describe('Heap spec', () => {
-	function assertHeapSortedOrder<T>(heap: Heap<T>): void {
+	function assertHeapSortedOrder<T>(heap: Heap<T>, comparator?: Comparator<T>): void {
 		const sorted = [];
 		while (!heap.empty()) {
 			sorted.push(heap.pop());
 		}
 
-		expect(sorted.slice().sort()).to.be.equalTo(sorted);
+		expect(sorted.slice().sort(comparator)).to.be.equalTo(sorted);
 	}
 
 	describe('push, pop spec', () => {
 		it('should sort an array using push and pop', () => {
 			const heap = new Heap<number>();
 
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 100; i++) {
 				heap.push(Math.random());
 			}
 
 			heap.push(2);
 			heap.push(2);
 
-			assertHeapSortedOrder(heap);
+			assertHeapSortedOrder(heap.clone());
+		});
+
+		it('should sort an array of numbers using push and pop (random order)', () => {
+			const MAX_ITEMS = 100;
+
+			const comparator = (a: number, b: number): number => a - b;
+			const heap = new Heap<number>(comparator);
+
+			for (let i = 0; i < MAX_ITEMS; i++) {
+				heap.push(number.generateRandomInt(i, MAX_ITEMS));
+			}
+
+			assertHeapSortedOrder(heap.clone(), comparator);
+		});
+
+		it('should sort an array of strings using push and pop (random order)', () => {
+			const MAX_ITEMS = 500;
+
+			const comparator = (a: string, b: string): number => a.localeCompare(b);
+			const heap = new Heap<string>(comparator);
+
+			for (let i = 0; i < MAX_ITEMS; i++) {
+				heap.push(string.generateStringOfLength(i));
+			}
+
+			assertHeapSortedOrder(heap.clone(), comparator);
+		});
+
+		it('should sort an array of objects using push and pop (random order)', () => {
+			const MAX_ITEMS = 500;
+
+			const comparator = (a: any, b: any): number => a.x - b.x;
+			const heap = new Heap<{ x: number }>(comparator);
+
+			for (let i = 0; i < MAX_ITEMS; i++) {
+				heap.push({ x: number.generateRandomInt(i, MAX_ITEMS) });
+			}
+
+			assertHeapSortedOrder(heap, comparator);
 		});
 
 		it('should work with custom comparison function', () => {
@@ -127,19 +169,27 @@ describe('Heap spec', () => {
 
 	describe('clone', () => {
 		it('should return a cloned heap', () => {
-			const heap1 = new Heap();
+			const a = { x: 1 };
+			const b = { x: 2 };
+			const c = { x: 3 };
 
-			for (let i = 1; i < 5; i++) {
-				heap1.push(i);
-			}
+			const comparator = (x: any, y: any): number => x.x - y.x;
+			const original = new Heap<{ x: number }>(comparator);
 
-			const heap2 = heap1.clone();
-			expect(heap1.toArray()).to.be.equalTo(heap2.toArray());
+			original.push(a);
+			original.push(b);
+			original.push(c);
+
+			const clone = original.clone();
+			expect(original.toArray()).to.be.equalTo(clone.toArray());
+
+			assertHeapSortedOrder(original, comparator);
+			assertHeapSortedOrder(clone, comparator);
 		});
 	});
 
-	describe('updateItem spec', () => {
-		it('should return correct order', () => {
+	describe('update spec', () => {
+		it('should update item and preserve order', () => {
 			const a = { x: 1 };
 			const b = { x: 2 };
 			const c = { x: 3 };
@@ -149,7 +199,8 @@ describe('Heap spec', () => {
 			heap.push(b);
 			heap.push(c);
 
-			expect(heap.updateItem({ x: 0 }, val => val.x === 3)).to.be.deep.eq(a);
+			const index = heap.findIndex(val => val.x === 3);
+			heap.update(index, { x: 0 });
 
 			expect(heap.pop().x).to.be.eq(0);
 		});
@@ -161,15 +212,116 @@ describe('Heap spec', () => {
 				heap.push(i);
 			}
 
-			expect(heap.updateItem(0, val => val === 0)).to.be.eq(undefined);
+			const index = heap.findIndex(val => val === 0);
 
-			const expectedSorted = [];
-			while (!heap.empty()) {
-				expectedSorted.push(heap.pop());
+			let err: Error | null = null;
+			try {
+				heap.update(index, 0);
+			} catch (e) {
+				err = e;
+			}
+			expect(err)
+				.to.be.instanceOf(Error)
+				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size() - 1}. `);
+
+			assertHeapSortedOrder(heap);
+		});
+	});
+
+	describe('remove spec', () => {
+		it('should remove top of the heap', () => {
+			const a = { x: 1 };
+			const b = { x: 2 };
+			const c = { x: 3 };
+
+			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			heap.push(a);
+			heap.push(b);
+			heap.push(c);
+
+			const index = heap.findIndex(val => val.x === 1);
+			heap.remove(index);
+
+			expect(heap.peek()!.x).to.be.eq(2);
+			assertHeapSortedOrder(heap);
+		});
+
+		it('should remove bottom of the heap', () => {
+			const a = { x: 1 };
+			const b = { x: 2 };
+			const c = { x: 3 };
+
+			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			heap.push(a);
+			heap.push(b);
+			heap.push(c);
+
+			const index = heap.findIndex(val => val.x === 3);
+			heap.remove(index);
+
+			expect(heap.peek()!.x).to.be.eq(1);
+			assertHeapSortedOrder(heap);
+		});
+
+		it('should remove middle of the heap', () => {
+			const a = { x: 1 };
+			const b = { x: 2 };
+			const c = { x: 3 };
+
+			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			heap.push(a);
+			heap.push(b);
+			heap.push(c);
+
+			const index = heap.findIndex(val => val.x === 2);
+			heap.remove(index);
+
+			expect(heap.peek()!.x).to.be.eq(1);
+			assertHeapSortedOrder(heap);
+		});
+
+		it('should remove item and preserve order', () => {
+			const MAX_ITEMS = 100;
+
+			const items: Array<number> = new Array<number>(MAX_ITEMS);
+
+			const comparator = (m: number, n: number): number => m - n;
+			const heap = new Heap<number>(comparator);
+
+			let generated;
+			for (let i = 0; i < MAX_ITEMS; i++) {
+				generated = number.generateRandomInt(i, MAX_ITEMS);
+				items[i] = generated;
+				heap.push(generated);
 			}
 
-			expect(expectedSorted).to.be.equalTo([1, 2, 3, 4, 5]);
-			expect(heap.size()).to.be.eq(0);
+			while (items.length) {
+				const itemsIndex = number.generateRandomInt(0, items.length - 1);
+				const heapIndex = heap.findIndex(n => n === items[itemsIndex]);
+
+				heap.remove(heapIndex);
+				items.splice(itemsIndex, 1);
+
+				assertHeapSortedOrder(heap.clone(), comparator);
+			}
+		});
+
+		it('fails to remove unknown index', () => {
+			const comparator = (m: number, n: number): number => m - n;
+			const heap = new Heap<number>(comparator);
+
+			const index = -1;
+
+			let err;
+			try {
+				heap.remove(index);
+			} catch (e) {
+				err = e;
+			}
+
+			expect(err)
+				.to.be.instanceOf(Error)
+				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size() - 1}. `);
 		});
 	});
 

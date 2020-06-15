@@ -1,19 +1,19 @@
 import { Seconds } from '@thermopylae/core.declarations';
 import { INFINITE_TTL } from '../constants';
 import { createException, ErrorCodes } from '../error';
-import { HighResolutionExpirationPolicy } from '../expiration-policies/high-resolution-expiration-policy';
+import { AutoExpirationPolicy } from '../expiration-policies/auto-expiration-policy';
 import { ExpirableCacheEntry } from '../contracts/expiration-policy';
 
 class AutoExpirableSet<Value = string> extends Set<ExpirableCacheEntry<Value>> {
 	private readonly defaultTtlSec: Seconds;
 
-	private readonly expirationPolicy: HighResolutionExpirationPolicy<Value, Value>;
+	private readonly expirationPolicy: AutoExpirationPolicy<Value, Value>;
 
 	constructor(defaultTtlSec = INFINITE_TTL) {
 		super();
 
 		this.defaultTtlSec = defaultTtlSec;
-		this.expirationPolicy = new HighResolutionExpirationPolicy<Value, Value>();
+		this.expirationPolicy = new AutoExpirationPolicy<Value, Value>();
 		this.expirationPolicy.setDeleter((value: ExpirableCacheEntry<Value>) => super.delete(value.value));
 	}
 

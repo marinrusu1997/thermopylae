@@ -1,7 +1,7 @@
 import { chrono, number } from '@thermopylae/lib.utils';
 import { describe, it } from 'mocha';
 import { chai } from '../env';
-import { HighResolutionExpirationPolicy } from '../../lib/expiration-policies/high-resolution-expiration-policy';
+import { AutoExpirationPolicy } from '../../lib/expiration-policies/auto-expiration-policy';
 
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
@@ -12,7 +12,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 	it('removes isExpired item', done => {
 		const trackedKey = 'key';
 		const whenTrackingBegan = nowInSeconds();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(key).to.be.equals(trackedKey);
@@ -25,7 +25,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 	it('removes multiple isExpired keys with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
@@ -44,7 +44,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 		trackedKeysMap.set('key3', defaultTTL + 1);
 		trackedKeysMap.set('key4', defaultTTL + 1);
 		const whenTrackingBegan = nowInSeconds();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
@@ -61,7 +61,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;
 		const trackedKeysSnapshot = ['key1', 'key2', 'key3', 'key4'];
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			const value = trackedKeysMap.get(key);
 			expect(nowInSeconds() - value!.trackingSince).to.be.equals(value!.ttl);
@@ -96,7 +96,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 	it('removes duplicate keys with same ttl', done => {
 		const trackedKeys = ['key', 'key', 'key'];
 		const whenTrackingBegan = nowInSeconds();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
@@ -121,7 +121,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 			currentNumberOfTrackedKeys += 1;
 		};
 
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
@@ -145,7 +145,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
@@ -170,7 +170,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 			whenTrackingBegan = nowInSeconds();
 		};
 
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(key => {
 			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeyAfterStopping).to.be.equal(key);
@@ -184,7 +184,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 
 	it('expirationPolicy is synchronized with nearest element to remove while adding keys', async () => {
 		const items = new Set();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(item => items.delete(item));
 		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
@@ -240,7 +240,7 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 
 	it('expirationPolicy is synchronized with nearest element to remove while adding/updating keys', done => {
 		const items = new Set();
-		const expirationPolicy = new HighResolutionExpirationPolicy();
+		const expirationPolicy = new AutoExpirationPolicy();
 		expirationPolicy.setDeleter(item => items.delete(item));
 		expect(expirationPolicy.isIdle()).to.be.eq(true);
 

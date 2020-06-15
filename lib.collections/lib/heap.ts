@@ -16,6 +16,10 @@ class Heap<T = number> {
 		this.nodes = [];
 	}
 
+	public peek(): T | undefined {
+		return this.nodes[0];
+	}
+
 	public push(item: T): void {
 		this.nodes.push(item);
 		this.siftDown(0, this.nodes.length - 1);
@@ -36,18 +40,6 @@ class Heap<T = number> {
 		return returnItem;
 	}
 
-	public peek(): T | undefined {
-		return this.nodes[0];
-	}
-
-	public replace(item: T): T {
-		const returnItem = this.nodes[0];
-		this.nodes[0] = item;
-		this.siftUp(0);
-
-		return returnItem;
-	}
-
 	public pushPop(item: T): T {
 		let ref;
 
@@ -62,33 +54,41 @@ class Heap<T = number> {
 		return item;
 	}
 
-	public heapify(): void {
-		const ref1 = (() => {
-			const results1: Array<number> = [];
-			// eslint-disable-next-line no-plusplus
-			for (let j = 0, ref = Math.floor(this.nodes.length / 2); ref >= 0 ? j < ref : j > ref; ref >= 0 ? j++ : j--) {
-				results1.push(j);
-			}
-			return results1;
-		})().reverse();
+	public replace(item: T): T {
+		const returnItem = this.nodes[0];
+		this.nodes[0] = item;
+		this.siftUp(0);
 
-		for (let i = 0, len = ref1.length; i < len; i++) {
-			i = ref1[i];
-			this.siftUp(i);
-		}
+		return returnItem;
 	}
 
-	public updateItem(newItem: T, equalsFunction: ArrayEqualsPredicate<T>): T | undefined {
-		const pos = this.nodes.findIndex(equalsFunction);
+	public findIndex(equalsFunction: ArrayEqualsPredicate<T>): number {
+		return this.nodes.findIndex(equalsFunction);
+	}
 
-		if (pos === -1) {
-			return undefined;
+	public update(index: number, newItem: T): void {
+		Heap.assertIndex(index, this.nodes.length);
+
+		this.nodes[index] = newItem;
+
+		this.siftDown(0, index);
+		this.siftUp(index);
+	}
+
+	public remove(index: number): void {
+		Heap.assertIndex(index, this.nodes.length);
+
+		if (index === this.nodes.length - 1) {
+			this.nodes.length -= 1;
+			return;
 		}
 
-		this.nodes[pos] = newItem;
+		this.nodes[index] = this.nodes[this.nodes.length - 1];
+		this.nodes.length -= 1;
 
-		this.siftDown(0, pos);
-		return this.siftUp(pos);
+		if (this.heapify(index) === index) {
+			this.propagateUp(index);
+		}
 	}
 
 	public contains(itemOrPredicate: ArrayEqualsPredicate<T> | T): boolean {
@@ -114,11 +114,59 @@ class Heap<T = number> {
 	}
 
 	public clone(): Heap<T> {
-		const heap = new Heap<T>();
+		const heap = new Heap<T>(this.compare);
 		for (const item of this.nodes) {
 			heap.nodes.push(item);
 		}
 		return heap;
+	}
+
+	private swap(indexA: number, indexB: number): void {
+		const aux = this.nodes[indexA];
+		this.nodes[indexA] = this.nodes[indexB];
+		this.nodes[indexB] = aux;
+	}
+
+	private heapify(index: number): number {
+		let left = 2 * index + 1;
+		let right;
+
+		let largest = index;
+		while (left < this.nodes.length) {
+			right = left + 1;
+
+			if (this.compare(this.nodes[left], this.nodes[largest]) < 0) {
+				largest = left;
+			}
+
+			if (right < this.nodes.length && this.compare(this.nodes[right], this.nodes[largest]) < 0) {
+				largest = right;
+			}
+
+			if (largest === index) {
+				return index;
+			}
+
+			this.swap(index, largest);
+
+			index = largest;
+			left = 2 * index + 1;
+		}
+
+		return index;
+	}
+
+	private propagateUp(index: number): void {
+		let parent;
+		while (index) {
+			parent = Math.floor((index - 1) / 2);
+			if (this.compare(this.nodes[index], this.nodes[parent]) < 0) {
+				this.swap(index, parent);
+				index = parent;
+			} else {
+				return;
+			}
+		}
 	}
 
 	private siftUp(pos: number): T {
@@ -167,6 +215,12 @@ class Heap<T = number> {
 		this.nodes[pos] = newItem;
 
 		return newItem;
+	}
+
+	private static assertIndex(index: number, length: number): void {
+		if (index < 0 || index > length - 1) {
+			throw new Error(`Invalid index. Provided index ${index} should be in the range 0-${length - 1}. `);
+		}
 	}
 }
 

@@ -32,7 +32,7 @@ abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCache
 		return this.doRemovalIfExpired(key, entry.expiresAt);
 	}
 
-	public onDelete(): void {
+	public onDelete(_key: Key, _entry?: Entry): void {
 		return undefined; // just do nothing
 	}
 

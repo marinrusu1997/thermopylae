@@ -38,7 +38,7 @@ class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, Evicta
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
 		// Check for cache overflow
 		if (size === this.config.capacity) {
-			this.evict(this.config.bucketEvictCount);
+			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}
 
 		entry.key = key;

@@ -29,7 +29,7 @@ class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, Evicta
 
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
 		if (size === this.capacity) {
-			this.delete(this.doublyLinkedList.tail!.key);
+			this.delete(this.doublyLinkedList.tail!.key); // fixme addapt to onDelete hook
 			this.doublyLinkedList.removeNode(this.doublyLinkedList.tail!);
 		}
 

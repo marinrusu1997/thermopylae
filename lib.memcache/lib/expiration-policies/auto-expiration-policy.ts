@@ -7,7 +7,7 @@ import { createException, ErrorCodes } from '../error';
 import { ExpirableCacheEntry } from '../contracts/expiration-policy';
 import { INFINITE_TTL } from '../constants';
 
-interface CleanUpSprint {
+interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
 }
@@ -16,14 +16,14 @@ interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCac
 	expiresAt: UnixTimestamp;
 }
 
-class HighResolutionExpirationPolicy<
+class AutoExpirationPolicy<
 	Key,
 	Value,
 	Entry extends ExpirableCacheEntry<Value> = ExpirableCacheKeyEntry<Key, Value>
 > extends AbstractExpirationPolicy<Key, Value, Entry> {
 	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
 
-	private cleanUpSprint: CleanUpSprint | null;
+	private cleanUpInterval: CleanUpInterval | null;
 
 	constructor() {
 		super();
@@ -37,10 +37,11 @@ class HighResolutionExpirationPolicy<
 			}
 			return 0;
 		});
-		this.cleanUpSprint = null;
+		this.cleanUpInterval = null;
 	}
 
 	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		// FIXME here we need to make it possible to add new entries with cheap performance
 		if (expiresAfter === INFINITE_TTL) {
 			return;
 		}
@@ -58,94 +59,117 @@ class HighResolutionExpirationPolicy<
 			throw createException(ErrorCodes.INVALID_EXPIRATION, 'Removing old timer is not supported for now. ');
 		}
 
-		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
-		if (this.expirableKeys.updateItem((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>, equals) !== undefined) {
+		const index = this.findKeyIndex(key);
+
+		if (index !== -1) {
+			this.expirableKeys.update(index, (entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 			return this.synchronize();
 		}
 
 		// this is an update of item which had infinite timeout
-		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
+		return this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
 	public removeIfExpired(): boolean {
-		// FIXME here we should find and remove item from heap, but it would be to expensive to do on each get
+		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return false;
 	}
 
-	public onDelete(): void {
-		// FIXME here we can delete item from heap, performance issues should not be problematic
-		throw createException(ErrorCodes.OPERATION_NOT_SUPPORTED, 'Delete is not supported. ');
+	public onDelete(key: Key): void {
+		const index = this.findKeyIndex(key); // when key is root, find is O(1)
+
+		if (index === -1) {
+			throw createException(ErrorCodes.KEY_NOT_FOUND, `Attempt to delete key ${key} which doesn't exist. `);
+		}
+
+		// root might be removed, or heap structure might change, we need to sync with new root
+		// on multiple keys with same `expiresAt` won't start timer
+		// it will be started only when root value changes `for real`
+		this.expirableKeys.remove(index);
+		this.synchronize();
 	}
 
 	public onClear(): void {
-		if (!this.isIdle()) {
-			this.shutdown();
-		}
 		this.expirableKeys.clear();
+		this.synchronize();
 	}
 
 	public isIdle(): boolean {
-		return this.cleanUpSprint == null;
+		return this.cleanUpInterval == null;
+	}
+
+	private findKeyIndex(key: Key): number {
+		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
+		return this.expirableKeys.findIndex(equals);
 	}
 
 	private doScheduleDelete(expirableKey: ExpirableCacheKeyEntry<Key, Value>): void {
 		this.expirableKeys.push(expirableKey);
-
-		if (this.isIdle()) {
-			return this.doStart(expirableKey.expiresAt);
-		}
-
-		return this.synchronize();
+		this.synchronize();
 	}
 
+	/**
+	 * This method synchronizes garbage collection
+	 * It needs to be called every time expirable keys heap is altered.
+	 */
 	private synchronize(): void {
-		const rootKey = this.expirableKeys.peek()!;
-		if (this.cleanUpSprint!.willCleanUpOn !== rootKey.expiresAt) {
-			clearTimeout(this.cleanUpSprint!.timeoutId);
+		const rootKey = this.expirableKeys.peek();
+
+		if (rootKey === undefined) {
+			if (!this.isIdle()) {
+				this.shutdown();
+			}
+			return;
+		}
+
+		if (this.cleanUpInterval == null) {
+			return this.doStart(rootKey.expiresAt);
+		}
+
+		if (this.cleanUpInterval.willCleanUpOn !== rootKey.expiresAt) {
+			clearTimeout(this.cleanUpInterval.timeoutId);
 			this.start(rootKey.expiresAt - chrono.dateToUNIX(), rootKey.expiresAt);
 		}
 	}
 
 	private shutdown(): void {
-		clearTimeout(this.cleanUpSprint!.timeoutId);
-		this.cleanUpSprint = null;
+		clearTimeout(this.cleanUpInterval!.timeoutId);
+		this.cleanUpInterval = null;
 	}
 
 	private doStart(willCleanUpOn: UnixTimestamp): void {
 		// @ts-ignore
-		this.cleanUpSprint = {};
+		this.cleanUpInterval = {};
 
 		const runDelay = willCleanUpOn - chrono.dateToUNIX();
 		this.start(runDelay, willCleanUpOn);
 	}
 
 	private start(runDelay: Seconds, willCleanUpOn: UnixTimestamp): void {
-		this.cleanUpSprint!.willCleanUpOn = willCleanUpOn;
-		this.cleanUpSprint!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
+		this.cleanUpInterval!.willCleanUpOn = willCleanUpOn;
+		this.cleanUpInterval!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
 	}
 
 	private doCleanUp = (): void => {
-		let toDelete = this.expirableKeys.peek(); // if we were invoked it is clear that first item needs to be deleted
+		let toDelete = this.expirableKeys.peek();
 
-		const rootKeyExpiresAt = toDelete!.expiresAt;
+		if (toDelete === undefined) {
+			throw createException(
+				ErrorCodes.ABNORMAL_CONDITION,
+				`Clean up handler has been invoked, but expirable keys heap is empty. Scheduling had been made for ${this.cleanUpInterval!.willCleanUpOn}`
+			);
+		}
+
+		const rootKeyExpiresAt = toDelete.expiresAt;
 
 		do {
-			this.delete(toDelete!.key);
-			this.expirableKeys.pop();
+			this.delete(toDelete.key); /// removal from heap will be made by `onDelete` hook
 			toDelete = this.expirableKeys.peek();
 			if (toDelete && toDelete.expiresAt !== rootKeyExpiresAt) {
 				toDelete = undefined;
 			}
 		} while (toDelete !== undefined);
-
-		toDelete = this.expirableKeys.peek();
-
-		if (toDelete !== undefined) {
-			this.start(toDelete.expiresAt - chrono.dateToUNIX(), toDelete.expiresAt);
-		} else {
-			this.cleanUpSprint = null;
-		}
 	};
 }
 
-export { HighResolutionExpirationPolicy };
+export { AutoExpirationPolicy };
