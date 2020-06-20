@@ -1,32 +1,45 @@
 import { chrono, number } from '@thermopylae/lib.utils';
 import { describe, it } from 'mocha';
 import { chai } from '../env';
-import { AutoExpirationPolicy } from '../../lib/expiration-policies/auto-expiration-policy';
+import { AutoExpirationPolicy } from '../../lib';
+import { generateExpirationPolicyDeleter } from '../utils';
+import { ExpirableCacheKeyEntry } from '../../lib/expiration-policies/auto-expiration-policy';
 
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;
 
-describe('High Resolution Expiration CachePolicy spec', () => {
+function generateEntry<K = string>(key: K, expiration:): ExpirableCacheKeyEntry<K, any> {
+	return {
+		key,
+		value: number.generateRandomInt(0, generateEntry.VALUES.length - 1),
+		expiresAt: 0
+	};
+}
+generateEntry.VALUES = [0, undefined, null, '', false];
+
+describe('Auto Expiration CachePolicy spec', () => {
 	const defaultTTL = 1; // second
 
-	it('removes isExpired item', done => {
+	it('removes expired item', done => {
 		const trackedKey = 'key';
 		const whenTrackingBegan = nowInSeconds();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(key).to.be.equals(trackedKey);
 			done();
 		});
 
-		expirationPolicy.onSet(trackedKey, defaultTTL);
+		expirationPolicy.setDeleter(deleter);
+
+		expirationPolicy.onSet(trackedKey, generateEntry(trackedKey), defaultTTL);
 	});
 
-	it('removes multiple isExpired keys with same ttl (tracking started at same time)', done => {
+	it('removes multiple expired keys with same ttl (tracking started at same time)', done => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
 		const whenTrackingBegan = nowInSeconds();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
@@ -34,18 +47,21 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => expirationPolicy.onSet(key, defaultTTL));
+
+		expirationPolicy.setDeleter(deleter);
+		trackedKeys.forEach(key => expirationPolicy.onSet(key, generateEntry(key), defaultTTL));
 	});
 
-	it('removes multiple isExpired keys with different ttl (tracking started at same time)', done => {
+	it('removes multiple expired keys with different ttl (tracking started at same time)', done => {
 		const trackedKeysMap = new Map<string, number>();
 		trackedKeysMap.set('key1', defaultTTL);
 		trackedKeysMap.set('key2', defaultTTL);
 		trackedKeysMap.set('key3', defaultTTL + 1);
 		trackedKeysMap.set('key4', defaultTTL + 1);
+
 		const whenTrackingBegan = nowInSeconds();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
 			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
 			trackedKeysMap.delete(key); // ensure not called with same key
@@ -53,10 +69,12 @@ describe('High Resolution Expiration CachePolicy spec', () => {
 				done();
 			}
 		});
-		trackedKeysMap.forEach((ttl, key) => expirationPolicy.onSet(key, ttl));
+
+		expirationPolicy.setDeleter(deleter);
+		trackedKeysMap.forEach((ttl, key) => expirationPolicy.onSet(key, generateEntry(key), ttl));
 	}).timeout(2100);
 
-	it('removes multiple isExpired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
+	it('removes multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
 		const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;

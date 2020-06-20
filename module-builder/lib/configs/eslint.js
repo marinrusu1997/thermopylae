@@ -67,6 +67,7 @@ module.exports = {
 		"@typescript-eslint/ban-ts-ignore": "warn",
 		"@typescript-eslint/no-use-before-define": "warn",
 		"@typescript-eslint/no-namespace": "warn",
+		"@typescript-eslint/deprecation": "error",
 
 		"node/no-unsupported-features/es-syntax": "off",
 		"node/no-missing-import": "off",

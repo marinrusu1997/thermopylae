@@ -5,7 +5,7 @@ import { INFINITE_KEYS, INFINITE_TTL } from '../constants';
 import { Cache, CachedItem, CacheEntry, CacheStats, EventListener, EventType } from '../contracts/cache';
 import { ExpirationPolicy } from '../contracts/expiration-policy';
 import { EvictionPolicy } from '../contracts/eviction-policy';
-import { NoExpirationPolicy } from '../expiration-policies/no-expiration-policy';
+import { NoExpirationPolicy } from '../expiration-policies';
 import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
 
 interface MemCacheConfig<Key, Value, Entry> {
@@ -25,7 +25,7 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 
 	protected readonly evictionPolicy: EvictionPolicy<Key, Value, Entry>;
 
-	protected constructor(
+	constructor(
 		config?: Partial<MemCacheConfig<Key, Value, Entry>>,
 		expirationPolicy?: ExpirationPolicy<Key, Value, Entry>,
 		evictionPolicy?: EvictionPolicy<Key, Value, Entry>
@@ -42,6 +42,9 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 		this.evictionPolicy.setDeleter(key => this.internalDelete(key, 'evicted'));
 	}
 
+	/**
+	 * @deprecated use this function when you know that key does not exist in cache 100%
+	 */
 	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		const entry: Entry = this.config.entryBuilder(key, value, ttl, expiresFrom);
 		ttl = MemCache.resolveTtl(ttl);
@@ -160,8 +163,6 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 	public on(event: EventType, listener: EventListener<Key, Value>): this {
 		return super.on(event, listener);
 	}
-
-	// following methods were duplicated for speed, yes performance is our all
 
 	protected internalGetEntry(key: Key): Entry | undefined {
 		const entry = this.cache.get(key);

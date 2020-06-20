@@ -22,7 +22,7 @@ declare type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flu
 
 declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
-declare interface Cache<Key = string, Value = any> {
+declare interface Cache<Key, Value> {
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;

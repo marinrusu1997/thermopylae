@@ -1,6 +1,6 @@
 {
     "name": "@thermopylae/lib.memcache",
-    "description": "Memory caches",
+    "description": "Memory cache",
     "keywords": [
         "events",
         "cache",
@@ -36,17 +36,16 @@
         "node": "12.8.0"
     },
     "dependencies": {
-        "@akashbabu/node-dll": "2",
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.utils": "0"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/module-builder": "0.0.1592600596",
         "@types/chai-arrays": "1",
         "@types/dotenv": "8",
-        "chai-arrays": "2",
+        "chai-arrays": "^2.2.0",
         "dotenv": "8"
     }
 }

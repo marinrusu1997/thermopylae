@@ -1,5 +1,5 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { DoublyLinkedList, DoublyLinkedListNode } from './dll-list';
+import { DoublyLinkedList, DoublyLinkedListNode } from '../helpers/dll-list';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 import { CacheEntry } from '../contracts/cache';
 import { Deleter } from '../contracts/cache-policy';

@@ -17,8 +17,8 @@ interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCac
 }
 
 class AutoExpirationPolicy<
-	Key,
-	Value,
+	Key = string,
+	Value = any,
 	Entry extends ExpirableCacheEntry<Value> = ExpirableCacheKeyEntry<Key, Value>
 > extends AbstractExpirationPolicy<Key, Value, Entry> {
 	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
@@ -41,32 +41,40 @@ class AutoExpirationPolicy<
 	}
 
 	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		// FIXME here we need to make it possible to add new entries with cheap performance
 		if (expiresAfter === INFINITE_TTL) {
 			return;
 		}
 
 		super.setEntryExpiration(entry, expiresAfter, expiresFrom);
-		// @ts-ignore
-		entry.key = key;
+		this.decorateEntry(entry, key);
 
 		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
 	public onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		const oldExpiration = entry.expiresAt;
+
 		super.onUpdate(key, entry, expiresAfter, expiresFrom);
-		if (!entry.expiresAt) {
-			throw createException(ErrorCodes.INVALID_EXPIRATION, 'Removing old timer is not supported for now. ');
-		}
 
-		const index = this.findKeyIndex(key);
+		const keyIndex = this.findKeyIndex(key);
 
-		if (index !== -1) {
-			this.expirableKeys.update(index, (entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
+		if (keyIndex !== -1) {
+			if (entry.expiresAt == null) {
+				// item was added with ttl, but now it's ttl became INFINITE
+				return this.doDelete(keyIndex);
+			}
+
+			if (oldExpiration === entry.expiresAt) {
+				// item was set with a great ttl, time passes, then it's ttl decreased, but summed up, we have same expiration
+				return;
+			}
+
+			this.expirableKeys.update(keyIndex, (entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 			return this.synchronize();
 		}
 
-		// this is an update of item which had infinite timeout
+		// this is an update of item which had infinite timeout, now we need to track it
+		this.decorateEntry(entry, key);
 		return this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
@@ -76,17 +84,13 @@ class AutoExpirationPolicy<
 	}
 
 	public onDelete(key: Key): void {
-		const index = this.findKeyIndex(key); // when key is root, find is O(1)
+		const keyIndex = this.findKeyIndex(key); // when key is root, find is O(1)
 
-		if (index === -1) {
-			throw createException(ErrorCodes.KEY_NOT_FOUND, `Attempt to delete key ${key} which doesn't exist. `);
+		if (keyIndex === -1) {
+			throw createException(ErrorCodes.KEY_NOT_FOUND, `Attempt to delete key ${key} which isn't tracked. `);
 		}
 
-		// root might be removed, or heap structure might change, we need to sync with new root
-		// on multiple keys with same `expiresAt` won't start timer
-		// it will be started only when root value changes `for real`
-		this.expirableKeys.remove(index);
-		this.synchronize();
+		this.doDelete(keyIndex);
 	}
 
 	public onClear(): void {
@@ -101,6 +105,19 @@ class AutoExpirationPolicy<
 	private findKeyIndex(key: Key): number {
 		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
 		return this.expirableKeys.findIndex(equals);
+	}
+
+	private decorateEntry(entry: Entry, key: Key): void {
+		// @ts-ignore
+		entry.key = key;
+	}
+
+	private doDelete(keyIndex: number): void {
+		// root might be removed, or heap structure might change, we need to sync with new root
+		// on multiple keys with same `expiresAt` won't start timer
+		// it will be started only when root value changes `for real`
+		this.expirableKeys.remove(keyIndex);
+		this.synchronize();
 	}
 
 	private doScheduleDelete(expirableKey: ExpirableCacheKeyEntry<Key, Value>): void {
@@ -172,4 +189,4 @@ class AutoExpirationPolicy<
 	};
 }
 
-export { AutoExpirationPolicy };
+export { AutoExpirationPolicy, ExpirableCacheKeyEntry };

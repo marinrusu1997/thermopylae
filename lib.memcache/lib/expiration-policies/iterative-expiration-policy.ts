@@ -3,18 +3,18 @@ import { AbstractExpirationPolicy } from './abstract-expiration-policy';
 import { ExpirableCacheEntry } from '../contracts/expiration-policy';
 import { CacheKey } from '../contracts/cache';
 
-type NextCacheKey<Key = string> = () => ExpirableCacheKey<Key> | null;
+type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;
 
 type QueryCollectionSize = () => number;
 
-interface SpeculativeExpirationPolicyConfig<Key = string> {
+interface IterativeExpirationPolicyConfig<Key> {
 	nextCacheKey: NextCacheKey<Key>;
 	collectionSize: QueryCollectionSize;
 	checkInterval?: Seconds;
 	iterateThreshold?: Threshold;
 }
 
-interface Config<Key = string> extends SpeculativeExpirationPolicyConfig<Key> {
+interface Config<Key> extends IterativeExpirationPolicyConfig<Key> {
 	checkInterval: Milliseconds;
 	iterateThreshold: Threshold;
 }
@@ -23,7 +23,7 @@ interface ExpirableCacheKey<Key> extends CacheKey<Key> {
 	expiresAt?: UnixTimestamp;
 }
 
-class SpeculativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>> extends AbstractExpirationPolicy<
+class IterativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>> extends AbstractExpirationPolicy<
 	Key,
 	Value,
 	Entry
@@ -36,10 +36,10 @@ class SpeculativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<
 
 	private readonly getCollectionSize: QueryCollectionSize;
 
-	constructor(config: SpeculativeExpirationPolicyConfig<Key>) {
+	constructor(config: IterativeExpirationPolicyConfig<Key>) {
 		super();
 
-		this.config = SpeculativeExpirationPolicy.fillWithDefaults(config);
+		this.config = IterativeExpirationPolicy.fillWithDefaults(config);
 		this.iterateTimeoutId = null;
 		this.getNextCacheKey = this.config.nextCacheKey;
 		this.getCollectionSize = this.config.collectionSize;
@@ -101,11 +101,11 @@ class SpeculativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<
 		return [currentIteration, cacheKey];
 	}
 
-	private static fillWithDefaults<Key>(config: SpeculativeExpirationPolicyConfig<Key>): Config<Key> {
+	private static fillWithDefaults<Key>(config: IterativeExpirationPolicyConfig<Key>): Config<Key> {
 		config.checkInterval = (config.checkInterval || 30) * 1000;
 		config.iterateThreshold = config.iterateThreshold || 1000;
 		return config as Config<Key>;
 	}
 }
 
-export { SpeculativeExpirationPolicy, NextCacheKey, QueryCollectionSize, SpeculativeExpirationPolicyConfig };
+export { IterativeExpirationPolicy, NextCacheKey, QueryCollectionSize, IterativeExpirationPolicyConfig };
