@@ -1,23 +1,24 @@
+import { AsyncFunction, SyncFunction } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 
 type ErrorHandler = (error: Error | Exception) => void;
 
 class MethodInvoker {
-	private readonly func: Function;
+	private readonly func: SyncFunction | AsyncFunction;
 
 	private readonly args: Array<any>;
 
-	private thisArgument: object | null;
+	private thisArgument: Record<string, unknown> | null;
 
 	private errorHandler?: ErrorHandler;
 
-	constructor(func: Function, ...args: Array<any>) {
+	constructor(func: SyncFunction | AsyncFunction, ...args: Array<any>) {
 		this.func = func;
 		this.args = args;
 		this.thisArgument = null;
 	}
 
-	thisArg(thisArgument: object): MethodInvoker {
+	thisArg(thisArgument: Record<string, unknown>): MethodInvoker {
 		this.thisArgument = thisArgument;
 		return this;
 	}

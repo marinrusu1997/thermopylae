@@ -7,6 +7,7 @@ import { ExpirationPolicy } from '../contracts/expiration-policy';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 import { NoExpirationPolicy } from '../expiration-policies';
 import { NoEvictionPolicy } from '../eviction-policies/no-eviction-policy';
+import { TtlRegistry } from '../helpers/ttl-registry';
 
 interface MemCacheConfig<Key, Value, Entry> {
 	useClones: boolean;
@@ -21,6 +22,8 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 
 	protected readonly cache: Map<Key, Entry>;
 
+	protected readonly ttlRegistry: TtlRegistry<Key>;
+
 	protected readonly expirationPolicy: ExpirationPolicy<Key, Value, Entry>;
 
 	protected readonly evictionPolicy: EvictionPolicy<Key, Value, Entry>;
@@ -28,7 +31,8 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 	constructor(
 		config?: Partial<MemCacheConfig<Key, Value, Entry>>,
 		expirationPolicy?: ExpirationPolicy<Key, Value, Entry>,
-		evictionPolicy?: EvictionPolicy<Key, Value, Entry>
+		evictionPolicy?: EvictionPolicy<Key, Value, Entry>,
+		ttlRegistry?: TtlRegistry<Key>
 	) {
 		super();
 
@@ -37,9 +41,10 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 		this.cache = new Map();
 		this.expirationPolicy = expirationPolicy || new NoExpirationPolicy<Key, Value, Entry>();
 		this.evictionPolicy = evictionPolicy || new NoEvictionPolicy<Key, Value, Entry>(this.config.maxKeys);
+		this.ttlRegistry = ttlRegistry || TtlRegistry.empty<Key>();
 
-		this.expirationPolicy.setDeleter(key => this.internalDelete(key, 'expired'));
-		this.evictionPolicy.setDeleter(key => this.internalDelete(key, 'evicted'));
+		this.expirationPolicy.setDeleter((key) => this.internalDelete(key, 'expired'));
+		this.evictionPolicy.setDeleter((key) => this.internalDelete(key, 'evicted'));
 	}
 
 	/**
@@ -47,7 +52,7 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 	 */
 	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		const entry: Entry = this.config.entryBuilder(key, value, ttl, expiresFrom);
-		ttl = MemCache.resolveTtl(ttl);
+		ttl = ttl ?? this.ttlRegistry.resolve(key);
 
 		this.expirationPolicy.onSet(key, entry, ttl, expiresFrom);
 		this.evictionPolicy.onSet(key, entry, this.cache.size);
@@ -216,10 +221,6 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 	}
 
 	private static ENTRY_NOT_PRESENT_VALUE = undefined;
-
-	private static resolveTtl(ttl?: Seconds): Seconds {
-		return ttl || INFINITE_TTL;
-	}
 
 	private static containsEntry(entry: any): boolean {
 		return entry !== MemCache.ENTRY_NOT_PRESENT_VALUE;

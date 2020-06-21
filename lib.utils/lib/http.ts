@@ -9,7 +9,7 @@ interface HTTPPostData {
 }
 
 interface HTTPResponse {
-	data: string | object;
+	data: string | Record<string, unknown>;
 	status: number;
 	headers: http.IncomingHttpHeaders;
 }
@@ -28,9 +28,9 @@ type HTTPSRequest = (url: string | URL, options: HTTPSRequestOpts, callback?: (r
 type BodyParser = (body: string) => any;
 
 const parsersRepo = new Map<string, BodyParser>();
-parsersRepo.set('application/json', body => JSON.parse(body));
-parsersRepo.set('text/plain', body => body);
-parsersRepo.set('text/html', body => body);
+parsersRepo.set('application/json', (body) => JSON.parse(body));
+parsersRepo.set('text/plain', (body) => body);
+parsersRepo.set('text/html', (body) => body);
 
 function extractContentType(contentTypeHeaderValue: string): string {
 	const contentTypeParts = contentTypeHeaderValue.split(';');
@@ -77,7 +77,7 @@ function makeRequest(
 
 			// accumulate data
 			const body: any[] = [];
-			res.on('data', chunk => body.push(chunk));
+			res.on('data', (chunk) => body.push(chunk));
 
 			// resolve on end
 			res.on('end', (): void => {
@@ -96,7 +96,7 @@ function makeRequest(
 		}
 
 		// reject on request error
-		req.on('error', err => {
+		req.on('error', (err) => {
 			// This is not a "Second reject", just a different sort of failure
 			reject(err);
 		});

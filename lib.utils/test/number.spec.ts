@@ -40,9 +40,7 @@ describe('number spec', () => {
 				} catch (e) {
 					err = e;
 				}
-				expect(err)
-					.to.be.instanceOf(Exception)
-					.and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
+				expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
 			}
 
 			let value: null | undefined;

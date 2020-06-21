@@ -21,7 +21,7 @@ describe('method invoker spec', () => {
 		expect(sum).to.be.equal(2);
 	});
 
-	it("invokes async func which doesn't throw and returns her result", done => {
+	it("invokes async func which doesn't throw and returns her result", (done) => {
 		const func = (a: number, b: number): Promise<number> => Promise.resolve(a + b);
 		new MethodInvoker(func, 1, 1)
 			.safeInvokeAsync()
@@ -29,7 +29,7 @@ describe('method invoker spec', () => {
 				expect(sum).to.be.equal(2);
 				done();
 			})
-			.catch(error => done(error));
+			.catch((error) => done(error));
 	});
 
 	it('invokes sync function which throws (error handler not specified)', () => {
@@ -44,7 +44,7 @@ describe('method invoker spec', () => {
 		expect(sum).to.be.equal(undefined);
 	});
 
-	it('invokes sync function which throws (error handler is specified)', done => {
+	it('invokes sync function which throws (error handler is specified)', (done) => {
 		const func = (a: number, b: number): number => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -60,7 +60,7 @@ describe('method invoker spec', () => {
 		expect(sum).to.be.equal(undefined);
 	});
 
-	it('invokes async function which throws (error handler not specified)', done => {
+	it('invokes async function which throws (error handler not specified)', (done) => {
 		const func = (a: number, b: number): Promise<number> => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -74,10 +74,10 @@ describe('method invoker spec', () => {
 				expect(sum).to.be.equal(undefined);
 				done();
 			})
-			.catch(error => done(error));
+			.catch((error) => done(error));
 	});
 
-	it('invokes async function which throws (error handler is specified)', done => {
+	it('invokes async function which throws (error handler is specified)', (done) => {
 		const func = (a: number, b: number): Promise<number> => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -95,6 +95,6 @@ describe('method invoker spec', () => {
 			.then((sum: number) => {
 				expect(sum).to.be.equal(undefined);
 			})
-			.catch(error => done(error));
+			.catch((error) => done(error));
 	});
 });

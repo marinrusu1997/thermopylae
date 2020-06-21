@@ -38,14 +38,17 @@
     "dependencies": {
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0"
+        "@thermopylae/lib.utils": "0.0.1592766012",
+        "lodash.debounce": "4"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/module-builder": "0.0.1592600596",
+        "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
         "@types/dotenv": "8",
-        "chai-arrays": "^2.2.0",
+        "@types/lodash.debounce": "4",
+        "@types/redis": "2",
+        "chai-arrays": "2",
         "dotenv": "8"
     }
 }

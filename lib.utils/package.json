@@ -5,7 +5,7 @@
         "utils",
         "shared"
     ],
-    "version": "0.0.1587822817",
+    "version": "0.0.1592766012",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -32,7 +32,7 @@
         ]
     },
     "engines": {
-        "node": ">=12.8.0"
+        "node": ">=12"
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
@@ -47,9 +47,14 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
+        "@types/chai-as-promised": "7",
         "@types/otplib": "10",
         "@types/uuid": "7",
         "chai-arrays": "2",
-        "save-dev": "0"
+        "chai-as-promised": "7"
+    },
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4"
     }
 }

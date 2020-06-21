@@ -17,7 +17,7 @@ describe('totp spec', () => {
 		assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid', 'stored'));
 	});
 
-	it('checks correctly expired token', done => {
+	it('checks correctly expired token', (done) => {
 		const instance = new Totp({ secret: 'secret', ttl: 1 });
 		const token = instance.generate();
 		setTimeout(() => {

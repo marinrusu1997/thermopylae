@@ -1,32 +1,31 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { Cache, CachedItem, CacheStats, EventListener, EventType } from './cache';
+import { CachedItem, CacheStats, EventListener, EventType } from './cache';
 
-declare interface AsyncCache<Key = string, Value = any> extends Cache<Key, Value> {
-	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
-
-	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
-
+declare interface AsyncCache<Key, Value> {
 	get(key: Key): Promise<Value | undefined>;
 	mget(keys: Array<Key>): Promise<Array<CachedItem<Key, Value>>>;
 
+	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
+	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
+
 	take(key: Key): Promise<Value | undefined>;
+
+	has(key: Key): Promise<boolean>;
 
 	del(key: Key): Promise<boolean>;
 	mdel(keys: Array<Key>): Promise<void>;
 
-	ttl(key: Key, ttl: Seconds, from?: UnixTimestamp): boolean;
+	ttl(key: Key, ttl: Seconds, from?: UnixTimestamp): Promise<boolean>;
 
-	keys(): Array<Key>;
-
-	has(key: Key): boolean;
+	keys(): Promise<Array<Key>>;
 
 	stats(): CacheStats;
 
 	clear(): Promise<void>;
 
-	empty(): boolean;
+	empty(): Promise<boolean>;
 
-	readonly size: number;
+	readonly size: Promise<number>;
 
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }

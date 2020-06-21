@@ -4,7 +4,7 @@
     "keywords": [
         "exception"
     ],
-    "version": "0.0.1587161379",
+    "version": "0.0.1592763185",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -35,5 +35,9 @@
     },
     "devDependencies": {
         "@thermopylae/module-builder": "0"
+    },
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4"
     }
 }

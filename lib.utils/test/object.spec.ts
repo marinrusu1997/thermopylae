@@ -23,7 +23,7 @@ describe('object spec', () => {
 		it('checks correctly that an object is empty', () => {
 			expect(isEmpty({})).to.be.eq(true);
 			expect(isEmpty({ key: 'val' })).to.be.eq(false);
-			expect(isEmpty(new Date())).to.be.eq(false);
+			expect(isEmpty((new Date() as unknown) as Record<string, unknown>)).to.be.eq(false);
 		});
 	});
 
@@ -90,15 +90,12 @@ describe('object spec', () => {
 			expect(obj.objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[1]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[2]).to.be.eq('processedValue');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(obj.objVal.objVal.arrVal[3].strKey).to.be.eq('processedValue');
 			expect(obj.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.arrVal[1]).to.be.eq('processedValue');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(obj.arrVal[2].strVal).to.be.eq('processedValue');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(obj.arrVal[2].objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 		});
@@ -131,16 +128,12 @@ describe('object spec', () => {
 			expect(arr[2]).to.be.eq('str');
 			expect(typeof arr[3]).to.be.eq('symbol');
 			expect(typeof arr[4]).to.be.eq('function');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(arr[5].str).to.be.eq('value');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(typeof arr[5].obj.fun).to.be.eq('function');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(typeof arr[5].obj.sym).to.be.eq('symbol');
-			// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 			// @ts-ignore
 			expect(arr[5].obj.num).to.be.eq('processedValue');
 			expect(arr[6]).to.be.eq('processedValue');
@@ -257,7 +250,7 @@ describe('object spec', () => {
 				'c.c.a': undefined,
 				'c.c.b': symbol
 			};
-			const flattened = flatten(obj) as object;
+			const flattened = flatten(obj) as Record<string, unknown>;
 
 			expect(flattened).to.be.deep.eq(expected);
 			expect(Object.keys(flattened).length).to.be.eq(12);

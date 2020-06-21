@@ -18,7 +18,7 @@ describe('http spec', () => {
 	const baseURL = `http://127.0.0.1:${port}/`;
 	let server: http.Server;
 
-	before(done => {
+	before((done) => {
 		server = http.createServer((req: IncomingMessage, res: ServerResponse): void => {
 			if (req.method === 'GET') {
 				res.writeHead(statusCodeForGETRequest, {
@@ -47,15 +47,15 @@ describe('http spec', () => {
 		server.listen(port, done);
 	});
 
-	after(done => {
+	after((done) => {
 		server.close(done);
 	});
 
-	it('throws when unsupported status code is received (redirects)', done => {
+	it('throws when unsupported status code is received (redirects)', (done) => {
 		statusCodeForGETRequest = 300;
 		makeHTTPRequest(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
-			.catch(error => {
+			.catch((error) => {
 				expect(error).to.be.instanceOf(Error);
 				expect(error).to.have.property('code', ErrorCodes.REDIRECT_NOT_SUPPORTED);
 				expect(error).to.have.property('message', statusCodeForGETRequest.toString());
@@ -93,7 +93,7 @@ describe('http spec', () => {
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
 	});
 
-	it('makes GET request and handles error code in response (400 code)', done => {
+	it('makes GET request and handles error code in response (400 code)', (done) => {
 		statusCodeForGETRequest = 400;
 		contentTypeForGETRequest = 'application/json';
 		responseForGETRequest = { error: { message: 'failure' } };
@@ -108,19 +108,17 @@ describe('http spec', () => {
 			});
 	});
 
-	it('makes GET request and handles network errors', done => {
+	it('makes GET request and handles network errors', (done) => {
 		statusCodeForGETRequest = 100;
 		makeHTTPRequest(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
-			.catch(error => {
-				expect(error)
-					.to.be.instanceOf(Error)
-					.and.to.have.property('message', 'socket hang up');
+			.catch((error) => {
+				expect(error).to.be.instanceOf(Error).and.to.have.property('message', 'socket hang up');
 				done();
 			});
 	});
 
-	it('makes POST request and handles no body response', done => {
+	it('makes POST request and handles no body response', (done) => {
 		statusCodeForPOSTRequest = 200;
 		dataWhichWasSentInPOSTReq = generateToken(100000);
 		makeHTTPRequest(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq })
@@ -130,12 +128,12 @@ describe('http spec', () => {
 				expect(res.data).to.be.equal(null);
 				done();
 			})
-			.catch(error => done(error));
+			.catch((error) => done(error));
 	});
 
 	it('makes GET secure request', async () => {
 		const resp = await makeHTTPSRequest('https://jsonplaceholder.typicode.com', { method: 'GET', path: '/todos/1' });
-		const expectedJSON: object = {
+		const expectedJSON: Record<string, unknown> = {
 			userId: 1,
 			id: 1,
 			title: 'delectus aut autem',

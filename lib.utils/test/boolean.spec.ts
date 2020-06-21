@@ -53,30 +53,24 @@ describe('boolean spec', () => {
 
 			let err;
 			try {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
 				toBoolean(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
-			expect(err)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
 			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 
 			valueToConvert = null;
 			err = undefined;
 
 			try {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
 				toBoolean(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
-			expect(err)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
 			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 		});
 
@@ -85,30 +79,24 @@ describe('boolean spec', () => {
 
 			let err;
 			try {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
 				toBoolean(valueToConvert);
 			} catch (e) {
 				err = e;
 			}
-			expect(err)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
 			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 
 			valueToConvert = [];
 			err = undefined;
 
 			try {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 				// @ts-ignore
 				toBoolean(valueToConvert);
 			} catch (e) {
 				err = e;
 			}
-			expect(err)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
 			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 		});
 	});

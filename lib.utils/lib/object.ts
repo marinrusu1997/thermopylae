@@ -5,7 +5,7 @@ function isObject(item: any): boolean {
 	return typeof item === 'object' && !Array.isArray(item) && item !== null;
 }
 
-function isEmpty(obj: object): boolean {
+function isEmpty(obj: Record<string, unknown>): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
@@ -23,7 +23,7 @@ type TraverseProcessor = (key: string, value: undefined | null | boolean | numbe
  * @param processor			Leaf processor
  * @param alterDeepClone	Alter a deep clone instead of the provided object.
  */
-function traverse(objectOrArray: object | Array<any>, processor: TraverseProcessor, alterDeepClone?: boolean): object {
+function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor: TraverseProcessor, alterDeepClone?: boolean): Record<string, unknown> {
 	const isArray = Array.isArray(objectOrArray);
 
 	if (alterDeepClone && !isArray) {
@@ -41,7 +41,7 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 		}
 	}
 
-	function traverseObject(obj: object, pathSeparator: string): void {
+	function traverseObject(obj: Record<string, unknown>, pathSeparator: string): void {
 		const keys = Object.getOwnPropertyNames(obj);
 		const appendIndex = currentPath.length;
 		for (let i = 0; i < keys.length; i++) {
@@ -53,7 +53,7 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 		}
 	}
 
-	function continueTraversal(currentObject: object | Array<any>, key: string | number, value: any): void {
+	function continueTraversal(currentObject: Record<string, unknown> | Array<any>, key: string | number, value: any): void {
 		if (Array.isArray(value)) {
 			traverseArray(value, '.');
 		} else if (typeof value === 'object' && value !== null) {
@@ -67,17 +67,20 @@ function traverse(objectOrArray: object | Array<any>, processor: TraverseProcess
 	if (isArray) {
 		traverseArray(objectOrArray as Array<any>, '');
 	} else {
-		traverseObject(objectOrArray, '');
+		traverseObject(objectOrArray as Record<string, unknown>, '');
 	}
 
-	return objectOrArray;
+	return objectOrArray as Record<string, unknown>;
 }
 
 /**
  * deep-sort an object so its attributes are in lexical order.
  * Also sorts the arrays inside of the object if sortArray is set
  */
-function sort(obj: object, sortArray = true): object {
+function sort(obj: Record<string, unknown>, sortArray = true): Record<string, unknown> {
+	return doSortObject(obj, sortArray) as Record<string, unknown>;
+}
+function doSortObject(obj: Record<string, unknown>, sortArray = true): Record<string, unknown> | Array<any> {
 	if (!obj) return obj; // do not sort null, false or undefined
 
 	// array
@@ -92,7 +95,7 @@ function sort(obj: object, sortArray = true): object {
 
 						return typeof a === 'object' ? 1 : -1;
 					})
-					.map(i => sort(i, sortArray));
+					.map((i) => sort(i, sortArray));
 	}
 
 	// object
@@ -101,10 +104,10 @@ function sort(obj: object, sortArray = true): object {
 			return obj;
 		}
 
-		const out: object = {};
+		const out: Record<string, unknown> = {};
 		Object.keys(obj)
 			.sort((a, b) => a.localeCompare(b))
-			.forEach(key => {
+			.forEach((key) => {
 				// @ts-ignore
 				out[key] = sort(obj[key], sortArray);
 			});
@@ -119,7 +122,7 @@ function sort(obj: object, sortArray = true): object {
  * returns a flattened object
  * @link https://gist.github.com/penguinboy/762197
  */
-function flatten(obj: object): object | null {
+function flatten(obj: Record<string, unknown>): Record<string, unknown> | null {
 	if (obj === null) {
 		return null;
 	}

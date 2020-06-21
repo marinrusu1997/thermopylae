@@ -24,7 +24,7 @@ describe('chrono spec', () => {
 		assert(dateFromUNIX(now + seconds).getTime() - dateFromUNIX(now).getTime() === 300000, 'needs to be 300000 ms');
 	});
 
-	it('sleeps for specified amount of milliseconds', done => {
+	it('sleeps for specified amount of milliseconds', (done) => {
 		const SLEEP_DURATION = 1000;
 		const whenSleepBegan = dateToUNIX();
 		sleep(SLEEP_DURATION)
@@ -32,7 +32,7 @@ describe('chrono spec', () => {
 				assert(dateToUNIX() - SLEEP_DURATION / 1000 === whenSleepBegan);
 				done();
 			})
-			.catch(error => done(error));
+			.catch((error) => done(error));
 	});
 
 	it('computes correctly tomorrow', () => {

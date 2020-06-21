@@ -2,9 +2,10 @@ import { Exception } from '@thermopylae/lib.exception';
 import { Libraries } from '@thermopylae/core.declarations';
 
 const enum ErrorCodes {
-	OPERATION_NOT_SUPPORTED = 'OPERATION_NOT_SUPPORTED',
+	MISCONFIGURATION = 'MISCONFIGURATION',
 	CACHE_FULL = 'CACHE_FULL',
 	INVALID_EXPIRATION = 'INVALID_EXPIRATION',
+	INVALID_LAYER = 'INVALID_LAYER',
 	KEY_NOT_FOUND = 'KEY_NOT_FOUND',
 	ABNORMAL_CONDITION = 'ABNORMAL_CONDITION'
 }

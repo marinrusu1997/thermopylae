@@ -43,8 +43,9 @@ module.exports = {
 		"no-await-in-loop": "warn",
 		"no-continue": "off",
 		"no-undef": "warn",
+		"no-cond-assign": "warn",
 		"no-restricted-syntax": "warn",
-		"no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 
 		"import/no-extraneous-dependencies": "warn",
 		"import/no-unresolved": [
@@ -63,11 +64,11 @@ module.exports = {
 				".d.ts": "never"
 			}
 		],
+		"import/no-cycle": "error",
 
-		"@typescript-eslint/ban-ts-ignore": "warn",
+		"@typescript-eslint/ban-ts-comment": "warn",
 		"@typescript-eslint/no-use-before-define": "warn",
 		"@typescript-eslint/no-namespace": "warn",
-		"@typescript-eslint/deprecation": "error",
 
 		"node/no-unsupported-features/es-syntax": "off",
 		"node/no-missing-import": "off",

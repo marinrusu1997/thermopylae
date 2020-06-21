@@ -65,7 +65,7 @@ function toLetter(nr: number): string {
 
 	return digits
 		.reverse()
-		.map(d => base58Chars[d])
+		.map((d) => base58Chars[d])
 		.join('');
 }
 

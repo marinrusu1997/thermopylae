@@ -6,9 +6,9 @@ import { readFile, writeFile } from 'fs';
  * @param path
  * @param json
  */
-function writeJsonToFile(path: string, json: object): Promise<void> {
+function writeJsonToFile(path: string, json: Record<string, unknown>): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
-		writeFile(path, JSON.stringify(json), { encoding: 'utf8' }, err => {
+		writeFile(path, JSON.stringify(json), { encoding: 'utf8' }, (err) => {
 			return err ? reject(err) : resolve();
 		});
 	});
@@ -19,8 +19,8 @@ function writeJsonToFile(path: string, json: object): Promise<void> {
  *
  * @param {string}	path	FS path where json is located.
  */
-function readJsonFromFile(path: string): Promise<object> {
-	return new Promise<object>((resolve, reject) => {
+function readJsonFromFile(path: string): Promise<Record<string, unknown>> {
+	return new Promise<Record<string, unknown>>((resolve, reject) => {
 		readFile(path, 'utf8', (err, data) => {
 			if (err) {
 				return reject(err);

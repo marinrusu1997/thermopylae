@@ -15,7 +15,7 @@ class Exception extends Error {
 		this.cause = cause;
 	}
 
-	toString() {
+	public toString(): string {
 		return `[${this.emitter}] ${this.code}: ${this.message}`;
 	}
 }

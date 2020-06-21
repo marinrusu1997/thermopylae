@@ -1,3 +1,19 @@
+export interface PublicPrivateKeys {
+	readonly private: string | Buffer;
+	readonly public: string | Buffer;
+}
+
+export interface SessionTokens {
+	readonly accessToken: string;
+	readonly refreshToken?: string;
+}
+
+export interface PromiseHolder<T> {
+	promise: Promise<T>;
+	resolve: PromiseResolve<T>;
+	reject: PromiseReject;
+}
+
 export const enum Libraries {
 	AUTH_ENGINE = 'LIB_AUTH_ENGINE',
 	GEO_IP = 'LIB_GEO_IP',
@@ -25,16 +41,6 @@ export const enum AuthTokenType {
 	FACEBOOK = 'FACEBOOK'
 }
 
-export interface PublicPrivateKeys {
-	readonly private: string | Buffer;
-	readonly public: string | Buffer;
-}
-
-export interface SessionTokens {
-	readonly accessToken: string;
-	readonly refreshToken?: string;
-}
-
 export const enum HttpMethod {
 	GET = 'GET',
 	HEAD = 'HEAD',
@@ -60,7 +66,9 @@ export const enum HttpStatusCode {
 	GONE = 410
 }
 
+export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;
 export type AsyncFunction<I = any, O = any> = (...args: Array<I>) => Promise<O>;
+
 export type UnaryPredicate<T> = (val: T) => boolean;
 export type UnaryPredicateAsync<T> = (val: T) => Promise<boolean>;
 export type BinaryPredicate<T, V> = (first: T, second: V) => boolean;
@@ -75,3 +83,6 @@ export type Seconds = number;
 export type Minutes = number;
 
 export type Threshold = number;
+
+export type Label = string;
+export type Index = number;

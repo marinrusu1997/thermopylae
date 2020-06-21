@@ -1,4 +1,4 @@
-import { UnaryPredicate } from '@thermopylae/core.declarations';
+import { UnaryPredicate, SyncFunction } from '@thermopylae/core.declarations';
 
 /**
  * @link https://stackoverflow.com/a/15996017
@@ -38,4 +38,18 @@ function shuffle<T>(arr: T[]): T[] {
 	return arr.sort(() => Math.random() - 0.5);
 }
 
-export { remove, extractUnique, shuffle };
+function filledWith<T>(length: number, value: T | SyncFunction<void, T>): Array<T> {
+	const array = new Array<T>(length);
+
+	if (typeof value === 'function') {
+		for (let i = 0; i < length; i++) {
+			array[i] = (value as SyncFunction<void, T>)();
+		}
+	} else {
+		array.fill(value);
+	}
+
+	return array;
+}
+
+export { remove, extractUnique, shuffle, filledWith };

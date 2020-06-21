@@ -15,12 +15,10 @@ function toBoolean(value: null | undefined | string | number | boolean, strict?:
 	}
 
 	if (valueType === 'string') {
-		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
 		if (value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes') {
 			return true;
 		}
-		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
 		if (value.toLowerCase() === 'false' || value === '0' || value.toLowerCase() === 'no') {
 			return false;
