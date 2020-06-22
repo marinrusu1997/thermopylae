@@ -7,7 +7,7 @@ import { createException, ErrorCodes } from '../error';
 
 type LayerId = number | string;
 
-type Retriever<K, V> = (key: Set<K>) => Promise<Map<K, V>>;
+type Retriever<K, V> = (key: Set<K> | K) => Promise<Map<K, V> | V>;
 
 interface LayeredCacheOptions<K, V> {
 	layers: Array<AsyncCache<K, V>>;
@@ -18,25 +18,48 @@ interface LayeredCacheOptions<K, V> {
 class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> {
 	private readonly config: LayeredCacheOptions<Key, Value>;
 
-	private readonly rwReEntrantMutex: async.ReEntrantMutex<Key, Value>;
+	private readonly rwCondVar: async.LabeledConditionalVariable<Key, Value>;
 
 	constructor(opts: LayeredCacheOptions<Key, Value>) {
 		this.assertConfig(opts);
 		this.config = opts;
-		this.rwReEntrantMutex = new async.ReEntrantMutex<Key, Value>();
+		this.rwCondVar = new async.LabeledConditionalVariable<Key, Value>();
 	}
 
 	public async get(key: Key, ttls?: Map<LayerId, Seconds>): Promise<Value | undefined> {
-		const [acquired, lock] = this.rwReEntrantMutex.acquire(key);
+		const [acquired, lock] = this.rwCondVar.wait(key);
 		if (!acquired) {
-			return lock;
+			return lock; // consumers will wait on promise
 		}
+
+		try {
+			let value: Value | undefined;
+			const layerMisses: Array<AsyncCache<Key, Value>> = [];
+
+			for (const layer of this.config.layers) {
+				if ((value = await layer.get(key)) !== undefined) {
+					break;
+				}
+				layerMisses.push(layer);
+			}
+
+			
+			if (value || (value === undefined && this.config.retriever && (value = (await this.config.retriever(key)) as Value) !== undefined)) {
+			}
+
+			this.rwCondVar.notifyAll(key, value);
+		} catch (e) {
+			this.rwCondVar.notifyAll(key, e);
+		}
+
+		return lock;
 
 		// we go sequentially to each layer and ask for key
 		// during this we register misses per layer
 		// if we reached last layer, invoke retriever (if provided)
 		// when we go back, for each layer miss, we set the key with the ttl from ttls or no ttl
-		// when we are done, we unlock
+		// when we are done, we notify
+		// then return result to producer
 	}
 
 	mget(keys: Array<Key>): Promise<Array<CachedItem<Key, Value>>> {
