@@ -1,32 +1,35 @@
 import { async } from '@thermopylae/lib.utils';
-import { Index, Label, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Index, Label, Seconds, StatusFlag, UnixTimestamp } from '@thermopylae/core.declarations';
 import debounce from 'lodash.debounce';
-import { EventType, EventListener, CacheStats, CachedItem } from '../contracts/cache';
+import { CacheStats, EventListener, EventType } from '../contracts/cache';
 import { AsyncCache } from '../contracts/async-cache';
 import { createException, ErrorCodes } from '../error';
 
-type LayerId = number | string;
-
-type Retriever<K, V> = (key: Set<K> | K) => Promise<Map<K, V> | V>;
+type Retriever<K, V> = (key: K) => Promise<V | undefined>;
 
 interface LayeredCacheOptions<K, V> {
-	layers: Array<AsyncCache<K, V>>;
-	labels?: Map<Label, Index>;
-	retriever?: Retriever<K, V>;
+	readonly layers: Array<AsyncCache<K, V>>;
+	readonly retriever?: Retriever<K, V>;
+}
+
+interface LayeredCacheConfig<K, V> extends LayeredCacheOptions<K, V> {
+	readonly labels: Map<Label, Index>;
 }
 
 class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> {
-	private readonly config: LayeredCacheOptions<Key, Value>;
+	private readonly config: LayeredCacheConfig<Key, Value>;
 
 	private readonly rwCondVar: async.LabeledConditionalVariable<Key, Value>;
 
 	constructor(opts: LayeredCacheOptions<Key, Value>) {
-		this.assertConfig(opts);
-		this.config = opts;
+		LayeredCache.assertOptions(opts);
+		this.disableConcurrentAccessProtectionForCacheLayers(opts.layers);
+
+		this.config = LayeredCache.buildConfig(opts);
 		this.rwCondVar = new async.LabeledConditionalVariable<Key, Value>();
 	}
 
-	public async get(key: Key, ttls?: Map<LayerId, Seconds>): Promise<Value | undefined> {
+	public async get(key: Key, ttlPerLayer?: Map<Label, Seconds>): Promise<Value | undefined> {
 		const [acquired, lock] = this.rwCondVar.wait(key);
 		if (!acquired) {
 			return lock; // consumers will wait on promise
@@ -43,7 +46,8 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 				layerMisses.push(layer);
 			}
 
-			if (value || (value === undefined && this.config.retriever && (value = (await this.config.retriever(key)) as Value) !== undefined)) {
+			if ((value || (value === undefined && this.config.retriever && (value = await this.config.retriever(key)) !== undefined)) && layerMisses.length) {
+				await Promise.all(layerMisses.map((layerMiss) => layerMiss.set(key, value!, ttlPerLayer?.get(layerMiss.name))));
 			}
 
 			this.rwCondVar.notifyAll(key, value);
@@ -52,21 +56,45 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		}
 
 		return lock;
-
-		// we go sequentially to each layer and ask for key
-		// during this we register misses per layer
-		// if we reached last layer, invoke retriever (if provided)
-		// when we go back, for each layer miss, we set the key with the ttl from ttls or no ttl
-		// when we are done, we notify
-		// then return result to producer
 	}
 
-	mget(keys: Array<Key>): Promise<Array<CachedItem<Key, Value>>> {
-		// recursive
+	public async mget(keys: Array<Key>, ttlPerLayer?: Map<Key, Map<Label, Seconds>>): Promise<Map<Key, Value | undefined>> {
+		const entries = await Promise.all(keys.map((key) => this.get(key, ttlPerLayer?.get(key)).then((value) => [key, value])));
+		return new Map<Key, Value>(entries as Array<[Key, Value]>);
 	}
 
-	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void> {
-		// recursive
+	public async set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp, depth?: number): Promise<void> {
+		if (ttl != null) {
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `${LayeredCache.name}::${this.set.name} does not support ttl argument`);
+		}
+		if (from != null) {
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `${LayeredCache.name}::${this.set.name} does not support from argument`);
+		}
+
+		// NOTICE get/set share same lock, this means consumers will always get the latest value set into cache
+		// HOWEVER, this is valid only in the scope of current process and when access to caches is made only from a single instance
+		// ULTIMATE, getting the latest fresh value implies calling another special sync operation
+		const [acquired, lock] = this.rwCondVar.wait(key); // we also need held by, write needs exclusive access, must be set a special label, or get from calling function name
+		if (!acquired) {
+			return (lock as unknown) as Promise<void>; // consumers will wait on promise
+		}
+
+		try {
+			depth = LayeredCache.assertLayerDepth(this.config.layers, depth) || this.config.layers.length;
+
+			const setValuePromises: Array<Promise<void>> = new Array(depth);
+			// setting priority: fastest -> slowest cache
+			for (let i = 0; i < depth; i++) {
+				setValuePromises[i] = this.config.layers[i].set(key, value);
+			}
+			await Promise.all(setValuePromises);
+
+			this.rwCondVar.notifyAll(key);
+		} catch (e) {
+			this.rwCondVar.notifyAll(key, e);
+		}
+
+		return (lock as unknown) as Promise<void>; // producer will wait on promise
 	}
 
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void> {
@@ -93,8 +121,8 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		return this.resolveLayer(layerId).ttl(key, ttl, from);
 	}
 
-	public keys(layerId?: LayerId): Promise<Array<Key>> {
-		return this.resolveLayer(layerId).keys();
+	public keys(layerName?: Label): Promise<Array<Key>> {
+		return this.resolveLayer(layerName).keys();
 	}
 
 	public stats(): CacheStats {
@@ -130,6 +158,10 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		return this;
 	}
 
+	public concurrentAccessProtection(): void {
+		throw createException(ErrorCodes.FORBIDDEN, `${LayeredCache.name} always needs enabled ${this.concurrentAccessProtection.name}`);
+	}
+
 	public sync(key: Key): Promise<void> {
 		// here we need to sync all caches, this is a hard operation
 	}
@@ -152,34 +184,26 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		return this.config.layers[index];
 	}
 
-	private assertConfig(config: LayeredCacheOptions<Key, Value>): void {
-		if (config.layers == null || !config.layers.length) {
-			throw createException(ErrorCodes.MISCONFIGURATION, 'At least 1 layer needs to be provided.');
-		}
-		if (config.labels != null) {
-			if (!(config.labels instanceof Map)) {
-				throw createException(ErrorCodes.MISCONFIGURATION, 'Labels must be a map of label -> layer index.');
+	private acquireAllLocks(keys: ReadonlyArray<Key>): Set<Key> {
+		const acquiredLocks: Set<Key> = new Set<Key>();
+
+		for (const key of keys) {
+			if (!this.rwCondVar.wait(key)[0]) {
+				break;
 			}
-			config.labels.forEach((index, label) => this.assertLayerDepth(index, label));
+			acquiredLocks.add(key);
 		}
-		if (config.retriever != null && typeof config.retriever !== 'function') {
-			throw createException(
-				ErrorCodes.MISCONFIGURATION,
-				'Retriever must be an async function which for a given set of keys should provide a map of values.'
-			);
-		}
-	}
 
-	private assertLayerDepth(depth: number, label?: string): void {
-		const minIndex = 0;
-		const maxIndex = this.config.layers.length - 1;
+		if (acquiredLocks.size !== keys.length) {
+			// unlock buddy
+			for (const key of acquiredLocks) {
+				this.rwCondVar.notifyAll(key, createException(ErrorCodes.LOCK_FAILURE, `Failed to acquire lock for ${key} in mlock operation.`));
+			}
 
-		if (depth < minIndex || depth > maxIndex) {
-			throw createException(
-				ErrorCodes.INVALID_LAYER,
-				`Provided layer depth ${depth} ${label ? `for label ${label}` : ''} must range between ${minIndex} and ${maxIndex}`
-			);
+			throw createException(ErrorCodes.LOCK_FAILURE, `Failed to acquire locks for given keys: ${keys.join(', ')}`);
 		}
+
+		return acquiredLocks;
 	}
 
 	private layerDepth(label: string): number {
@@ -200,6 +224,64 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 	private resolveLayer(layerId?: LayerId): AsyncCache<Key, Value> {
 		return layerId ? this.layer(layerId) : this.firstLayer;
 	}
+
+	private disableConcurrentAccessProtectionForCacheLayers(layers: Array<AsyncCache<Key, Value>>): void {
+		for (const layer of layers) {
+			layer.concurrentAccessProtection(StatusFlag.DISABLED);
+		}
+	}
+
+	private static assertOptions<K, V>(config: LayeredCacheOptions<K, V>): void {
+		if (config.layers == null || !config.layers.length) {
+			throw createException(ErrorCodes.MISCONFIGURATION, 'At least 1 layer needs to be provided.');
+		}
+		if (config.retriever != null && typeof config.retriever !== 'function') {
+			throw createException(
+				ErrorCodes.MISCONFIGURATION,
+				'Retriever must be an async function which for a given set of keys should provide a map of values.'
+			);
+		}
+	}
+
+	private static assertLayerDepth<K, V>(layers: Array<AsyncCache<K, V>>, depth?: number): number | null {
+		if (depth == null) {
+			return null;
+		}
+
+		const minDepth = 1;
+		const maxDepth = layers.length;
+
+		if (depth < minDepth || depth > maxDepth) {
+			throw createException(ErrorCodes.INVALID_LAYER, `Provided layer depth ${depth} must range between ${minDepth} and ${maxDepth}`);
+		}
+
+		return depth;
+	}
+
+	/**
+	 * When multiple operations can run concurrently on the same {@link key},
+	 * acquiring a single lock might cause unexpected behaviour.
+	 * Therefore we need to acquire lock on the {@link key} namespaced with the {@link operation} name.
+	 * This way, a new different lock will be acquired by each operation when using the same {@link key}.
+	 *
+	 * @param key			Key operations are performed on
+	 * @param operation		Operation name
+	 */
+	private static namespaceKeyWithOperationName<K>(key: K, operation: string): string {
+		return key + operation;
+	}
+
+	private static buildConfig<K, V>(options: LayeredCacheOptions<K, V>): LayeredCacheConfig<K, V> {
+		const labels: Map<Label, Index> = new Map<Label, Index>();
+		for (let i = 0; i < options.layers.length; i++) {
+			labels.set(options.layers[i].name, i);
+		}
+		return {
+			layers: options.layers,
+			labels,
+			retriever: options.retriever
+		};
+	}
 }
 
-export { LayeredCache, LayeredCacheOptions, LayerId, Retriever };
+export { LayeredCache, LayeredCacheOptions, Retriever };

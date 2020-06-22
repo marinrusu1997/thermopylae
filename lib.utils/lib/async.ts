@@ -1,6 +1,6 @@
 /* eslint max-classes-per-file: 0 */ // --> OFF
 
-import { AsyncFunction, Milliseconds, PromiseHolder, PromiseReject, PromiseResolve, UnaryPredicate } from '@thermopylae/core.declarations';
+import { AsyncFunction, Milliseconds, PromiseHolder, UnaryPredicate } from '@thermopylae/core.declarations';
 import asyncPool from 'tiny-async-pool';
 import { createException } from './exception';
 
@@ -54,6 +54,22 @@ function synchronize<T>(operation: AsyncFunction<void, T>): AsyncFunction<void, 
 	};
 }
 
+function buildPromiseHolder<T>(): PromiseHolder<T> {
+	const promiseHolder: PromiseHolder<T> = {
+		// @ts-ignore
+		promise: null,
+		// @ts-ignore
+		reject: null,
+		// @ts-ignore
+		resolve: null
+	};
+	promiseHolder.promise = new Promise<T>((resolve, reject) => {
+		promiseHolder.resolve = resolve;
+		promiseHolder.reject = reject;
+	});
+	return promiseHolder;
+}
+
 interface LabeledMutexEntry<T> extends PromiseHolder<T> {
 	timeout?: NodeJS.Timeout;
 }
@@ -85,20 +101,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			return [false, lock.promise];
 		}
 
-		let resolve: PromiseResolve<Result>;
-		let reject: PromiseReject;
-		const promise = new Promise<Result>((resolvePromise, rejectPromise) => {
-			resolve = resolvePromise;
-			reject = rejectPromise;
-		});
-
-		lock = {
-			promise,
-			// @ts-ignore
-			resolve,
-			// @ts-ignore
-			reject
-		};
+		lock = buildPromiseHolder<Result>();
 
 		if (timeout && LabeledConditionalVariable.assertTimeout(timeout)) {
 			const releaseWithRejection = (): void => {
@@ -182,6 +185,12 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	}
 }
 
+interface PromiseExecutorTask<Input, Output> {
+	readonly processor: AsyncFunction<Input, Output>;
+	readonly data: ReadonlyArray<Input>;
+	readonly concurrency: number;
+}
+
 class PromiseExecutor<Input, Output> {
 	public static readonly SEQUENTIAL = 0;
 
@@ -203,7 +212,11 @@ class PromiseExecutor<Input, Output> {
 	 * Execute command with encapsulated promises.
 	 */
 	public execute(): Promise<Array<Output>> {
-		return PromiseExecutor.run<Input, Output>(this.processor, this.data, this.concurrency);
+		return PromiseExecutor.run<Input, Output>({
+			processor: this.processor,
+			data: this.data,
+			concurrency: this.concurrency
+		});
 	}
 
 	/**
@@ -226,7 +239,7 @@ class PromiseExecutor<Input, Output> {
 	 * @param data          Data Set
 	 * @param concurrency   Processing concurrency
 	 */
-	public static async run<I, O>(processor: AsyncFunction<I, O>, data: ReadonlyArray<I>, concurrency: number): Promise<Array<O>> {
+	public static async run<I, O>({ processor, data, concurrency }: PromiseExecutorTask<I, O>): Promise<Array<O>> {
 		let results: Array<O>;
 		switch (concurrency) {
 			case PromiseExecutor.SEQUENTIAL:
@@ -247,6 +260,23 @@ class PromiseExecutor<Input, Output> {
 	}
 
 	/**
+	 * Formats {@link concurrency} to human readable format.
+	 *
+	 * @param concurrency	Processing concurrency
+	 */
+	public static formatConcurrency(concurrency: number): string {
+		PromiseExecutor.assertConcurrency(concurrency);
+		switch (concurrency) {
+			case PromiseExecutor.SEQUENTIAL:
+				return 'SEQUENTIAL';
+			case PromiseExecutor.PARALLEL:
+				return 'PARALLEL';
+			default:
+				return `BATCHES OF ${concurrency} TASKS`;
+		}
+	}
+
+	/**
 	 * Checks whether {@link concurrency} has an accepted value.
 	 *
 	 * @param concurrency   Processing concurrency
@@ -263,4 +293,4 @@ class PromiseExecutor<Input, Output> {
 	}
 }
 
-export { LabeledConditionalVariable, PromiseExecutor, ErrorCodes, runInSeries, toPromise, synchronize };
+export { LabeledConditionalVariable, PromiseExecutor, PromiseExecutorTask, ErrorCodes, runInSeries, toPromise, synchronize, buildPromiseHolder };

@@ -5,7 +5,7 @@
         "core",
         "declarations"
     ],
-    "version": "0.0.1592762817",
+    "version": "0.0.1592851430",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "types": "lib/index.d.ts",

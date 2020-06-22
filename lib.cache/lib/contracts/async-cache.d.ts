@@ -1,9 +1,11 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CachedItem, CacheStats, EventListener, EventType } from './cache';
+import { Label, Seconds, StatusFlag, UnixTimestamp } from '@thermopylae/core.declarations';
+import { CacheStats, EventListener, EventType } from './cache';
 
 declare interface AsyncCache<Key, Value> {
+	readonly name: Label;
+
 	get(key: Key): Promise<Value | undefined>;
-	mget(keys: Array<Key>): Promise<Array<CachedItem<Key, Value>>>;
+	mget(keys: Array<Key>): Promise<Map<Key, Value | undefined>>;
 
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
@@ -28,6 +30,8 @@ declare interface AsyncCache<Key, Value> {
 	readonly size: Promise<number>;
 
 	on(event: EventType, listener: EventListener<Key, Value>): this;
+
+	concurrentAccessProtection(status: StatusFlag): void;
 }
 
 export { AsyncCache };

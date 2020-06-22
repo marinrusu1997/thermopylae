@@ -25,7 +25,8 @@
         "purge": "gulp purge",
         "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
         "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver"
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "unpublish": "npm unpublish --force $npm_package_name"
     },
     "lint-staged": {
         "*.ts": [
@@ -33,12 +34,12 @@
         ]
     },
     "engines": {
-        "node": ">= 12"
+        "node": ">= 14"
     },
     "dependencies": {
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0",
+        "@thermopylae/lib.utils": "0.0.1592858830",
         "lodash.debounce": "4"
     },
     "devDependencies": {
@@ -50,5 +51,9 @@
         "@types/redis": "2",
         "chai-arrays": "2",
         "dotenv": "8"
+    },
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4"
     }
 }

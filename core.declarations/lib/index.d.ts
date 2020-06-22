@@ -14,7 +14,7 @@ export interface PromiseHolder<T> {
 	reject: PromiseReject;
 }
 
-export const enum Libraries {
+export const enum Library {
 	AUTH_ENGINE = 'LIB_AUTH_ENGINE',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
@@ -23,11 +23,11 @@ export const enum Libraries {
 	UTILS = 'LIB_UTILS'
 }
 
-export const enum CoreModules {
+export const enum CoreModule {
 	JWT = 'CORE_JWT'
 }
 
-export const enum Clients {
+export const enum Client {
 	SMS = 'SMS_CLIENT',
 	EMAIL = 'EMAIL_CLIENT',
 	REDIS = 'REDIS_CLIENT',
@@ -64,6 +64,12 @@ export const enum HttpStatusCode {
 	NOT_FOUND = 404,
 	CONFLICT = 409,
 	GONE = 410
+}
+
+export const enum StatusFlag {
+	ENABLED,
+	DISABLED,
+	IDLE
 }
 
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;
