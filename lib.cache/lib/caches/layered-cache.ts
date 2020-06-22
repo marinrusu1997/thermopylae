@@ -43,7 +43,6 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 				layerMisses.push(layer);
 			}
 
-			
 			if (value || (value === undefined && this.config.retriever && (value = (await this.config.retriever(key)) as Value) !== undefined)) {
 			}
 

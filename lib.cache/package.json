@@ -1,5 +1,5 @@
 {
-    "name": "@thermopylae/lib.memcache",
+    "name": "@thermopylae/lib.cache",
     "description": "Memory cache",
     "keywords": [
         "events",
@@ -33,12 +33,12 @@
         ]
     },
     "engines": {
-        "node": "12.8.0"
+        "node": ">= 12"
     },
     "dependencies": {
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0.0.1592849945",
+        "@thermopylae/lib.utils": "0",
         "lodash.debounce": "4"
     },
     "devDependencies": {

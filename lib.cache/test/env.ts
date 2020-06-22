@@ -26,7 +26,7 @@ function cacheFactory<T>(constructor: any, opts?: any): T {
 cacheFactory.globalCaches = new Map();
 
 afterEach(() => {
-	cacheFactory.globalCaches.forEach(cache => cache.clear());
+	cacheFactory.globalCaches.forEach((cache) => cache.clear());
 });
 
 export { chai, cacheFactory };
