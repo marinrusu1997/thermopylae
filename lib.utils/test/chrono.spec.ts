@@ -1,5 +1,5 @@
+import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { chai } from './chai';
 import { dateFromUNIX, minutesToSeconds, dateToUNIX, sleep, tomorrow, firstDayOfNextMonth } from '../lib/chrono';
 
 const { assert } = chai;

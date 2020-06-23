@@ -1,6 +1,6 @@
-import { describe, it } from 'mocha';
 import { Exception } from '@thermopylae/lib.exception';
-import { chai } from './chai';
+import { chai } from '@thermopylae/lib.unit-test';
+import { describe, it } from 'mocha';
 import { token as tokenModule } from '../lib';
 
 const { expect } = chai;

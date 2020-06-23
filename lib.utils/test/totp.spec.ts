@@ -1,5 +1,5 @@
+import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { chai } from './chai';
 import { Totp } from '../lib/totp';
 
 const { expect, assert } = chai;

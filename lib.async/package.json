@@ -1,15 +1,16 @@
 {
-    "name": "@thermopylae/lib.utils",
-    "description": "Utility functions",
+    "name": "@thermopylae/lib.async",
+    "description": "Utilities for async operations and concurrency",
     "keywords": [
-        "utils",
-        "shared"
+        "thermopylae",
+        "library",
+        "async",
+        "concurrency"
     ],
-    "version": "0.0.1592946292",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "license": "ISC",
+    "version": "0.0.1592948428",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
-    "typings": "dist/index.d.ts",
+    "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
     ],
@@ -24,7 +25,24 @@
         "purge": "gulp purge",
         "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
         "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver"
+        "precommit": "npm run lint",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "dependencies": {
+        "@thermopylae/lib.exception": "0",
+        "tiny-async-pool": "1"
+    },
+    "devDependencies": {
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/lib.utils": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/tiny-async-pool": "1"
+    },
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4"
     },
     "lint-staged": {
         "*.ts": [
@@ -32,26 +50,7 @@
         ]
     },
     "engines": {
-        "node": ">=12"
+        "node": ">= 14"
     },
-    "dependencies": {
-        "@thermopylae/lib.exception": "0",
-        "lodash.clone": "4",
-        "lodash.clonedeep": "4",
-        "otplib": "11",
-        "uuid": "7"
-    },
-    "devDependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/otplib": "10",
-        "@types/uuid": "7",
-        "@types/lodash.clone": "4",
-        "@types/lodash.clonedeep": "4"
-    },
-    "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
-    }
+    "license": "ISC"
 }

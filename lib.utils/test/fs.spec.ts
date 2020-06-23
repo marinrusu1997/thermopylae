@@ -1,6 +1,6 @@
+import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it, afterEach } from 'mocha';
 import { unlinkSync } from 'fs';
-import { chai } from './chai';
 import { writeJsonToFile, readJsonFromFile } from '../lib/fs';
 
 const { expect, assert } = chai;

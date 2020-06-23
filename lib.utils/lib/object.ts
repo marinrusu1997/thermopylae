@@ -1,7 +1,15 @@
-import clone from 'lodash.clone';
-import cloneDeep from 'lodash.clonedeep';
+import lodashClone from 'lodash.clone';
+import lodashCloneDeep from 'lodash.clonedeep';
 
-function isObject(item: any): boolean {
+function clone<T>(value: T): T {
+	return lodashClone(value);
+}
+
+function cloneDeep<T>(value: T): T {
+	return lodashCloneDeep(value);
+}
+
+function isObject(item: unknown): boolean {
 	return typeof item === 'object' && !Array.isArray(item) && item !== null;
 }
 

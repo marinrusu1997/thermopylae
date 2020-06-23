@@ -1,6 +1,6 @@
+import { chai } from '@thermopylae/lib.unit-test';
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
-import { chai } from './chai';
 import { makeHTTPRequest, makeHTTPSRequest, HTTPResponse, ErrorCodes } from '../lib/http';
 import { generateToken } from './utils';
 
