@@ -102,7 +102,7 @@ class PromiseExecutor<Input, Output> {
 		const minLimit = 1;
 		if (concurrency !== PromiseExecutor.SEQUENTIAL && concurrency <= minLimit) {
 			throw createException(
-				ErrorCodes.INVALID_PARAM,
+				ErrorCodes.INVALID_ARGUMENT,
 				`Concurrency needs to have a min value of ${minLimit + 1}. Provided concurrency: ${concurrency}. ` +
 					`${concurrency === minLimit ? `For sequential concurrency please provide ${PromiseExecutor.SEQUENTIAL} value.` : ''}`
 			);

@@ -83,7 +83,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			expect(promises[i]).to.be.eq(promises[0]);
 		}
 
-		mutex.forcedNotifyAll();
+		mutex.forcedNotify();
 
 		await expect(Promise.all(promises)).to.be.rejectedWith(`Label ${label} has been released forcibly.`);
 	});
@@ -200,7 +200,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			toForceRelease.add(labels[number.generateRandomInt(0, labels.length - 1)]);
 		}
 
-		mutex.forcedNotifyAll((label) => toForceRelease.has(label));
+		mutex.forcedNotify((label) => toForceRelease.has(label));
 
 		let err;
 		try {

@@ -1,43 +1,66 @@
+/* eslint no-bitwise: 0 */ // --> OFF
+
 import { Milliseconds, PromiseHolder, UnaryPredicate } from '@thermopylae/core.declarations';
 import { ErrorCodes, createException } from '../exception';
 import { buildPromiseHolder } from './utils';
 
+const enum LockedOperation {
+	READ = 1 << 0,
+	WRITE = 1 << 1
+}
+
+const enum LockPriorityPolicy {
+	UNSPECIFIED,
+	READ_PREFERRING,
+	WRITE_PREFERRING
+}
+
+interface WaitStatus<T> {
+	acquiredAlready: boolean;
+	promise: Promise<T>;
+}
+
 interface LabeledMutexEntry<T> extends PromiseHolder<T> {
+	operation: LockedOperation;
 	timeout?: NodeJS.Timeout;
 }
 
-// FIXME this shall be RW Mutex
-// FIXME split async into folder with consolidating index.ts
-// FIXME check this out https://www.npmjs.com/package/mutex
-
 class LabeledConditionalVariable<Label = string, Result = any> {
-	public static MAX_TIMEOUT: Milliseconds = 500;
+	public static readonly MAX_TIMEOUT: Milliseconds = 500;
+
+	private readonly lockPriorityPolicy: LockPriorityPolicy;
 
 	private readonly locks: Map<Label, LabeledMutexEntry<Result>>;
 
-	constructor() {
+	constructor(lockPriorityPolicy = LockPriorityPolicy.UNSPECIFIED) {
+		this.lockPriorityPolicy = lockPriorityPolicy;
 		this.locks = new Map<Label, LabeledMutexEntry<Result>>();
 	}
 
 	/**
 	 * Waits on {@link label}.
-	 * When lock can't be acquired, Promise of the locked mutex is returned.
+	 *
+	 * When lock is acquired already, Promise of the locked mutex is returned.
 	 * This allows consumers to wait on provided promise, until
-	 * producer who acquired lock, finishes computation.
+	 * producer who firstly acquired lock, finishes computation.
+	 *
 	 * If {@link timeout} is provided, and consumers are not notified
 	 * in the given interval, promise will be forcibly resolved.
 	 *
 	 * @param label		Label to wait on.
+	 * @param operation	Operation for which lock needs to be acquired.
 	 * @param timeout	If returned promise is not resolved within this interval,
 	 * 					it will be rejected with related error.
 	 */
-	public wait(label: Label, timeout?: Milliseconds): [boolean, Promise<Result>] {
+	public wait(label: Label, operation: LockedOperation, timeout?: Milliseconds): WaitStatus<Result> {
 		let lock: LabeledMutexEntry<Result> | undefined;
 		if ((lock = this.locks.get(label))) {
-			return [false, lock.promise];
+			LabeledConditionalVariable.assertLockedOperationsOverlap(this.lockPriorityPolicy, lock.operation, operation);
+			return LabeledConditionalVariable.buildWaitStatus(lock.promise, true);
 		}
 
-		lock = buildPromiseHolder<Result>();
+		lock = buildPromiseHolder<Result>() as LabeledMutexEntry<Result>;
+		lock.operation = operation;
 
 		if (timeout && LabeledConditionalVariable.assertTimeout(timeout)) {
 			const releaseWithRejection = (): void => {
@@ -56,7 +79,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 
 		this.locks.set(label, lock);
 
-		return [true, lock.promise];
+		return LabeledConditionalVariable.buildWaitStatus(lock.promise);
 	}
 
 	/**
@@ -85,7 +108,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			}
 			return;
 		}
-		throw createException(ErrorCodes.LOCK_NOT_FOUND, `No lock found for label ${label}.`);
+		throw createException(ErrorCodes.UNABLE_TO_LOCK, `Can't unlock. No lock found for label ${label}.`);
 	}
 
 	/**
@@ -95,7 +118,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 *
 	 * @param filter	Filter labels on which forced notify needs to be applied.
 	 */
-	public forcedNotifyAll(filter: '@all' | UnaryPredicate<Label> = '@all'): void {
+	public forcedNotify(filter: '@all' | UnaryPredicate<Label> = '@all'): void {
 		const needsRelease = filter === '@all' ? () => true : filter;
 
 		for (const label of this.locks.keys()) {
@@ -112,13 +135,105 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		return this.locks.size;
 	}
 
-	private static assertTimeout(timeout: Milliseconds): true {
+	public static formatLockPriorityPolicy(policy: LockPriorityPolicy): string {
+		switch (policy) {
+			case LockPriorityPolicy.UNSPECIFIED:
+				return 'UNSPECIFIED';
+			case LockPriorityPolicy.WRITE_PREFERRING:
+				return 'WRITE_PREFERRING';
+			case LockPriorityPolicy.READ_PREFERRING:
+				return 'READ_PREFERRING';
+			default:
+				LabeledConditionalVariable.throwInvalidLockPriorityPolicy(policy);
+		}
+		return ''; // actually never gets executed, just to calm down eslint
+	}
+
+	public static formatLockedOperation(operation: LockedOperation): string {
+		const representation = [];
+		if (operation & LockedOperation.READ) {
+			representation.push('R');
+		}
+		if (operation & LockedOperation.WRITE) {
+			representation.push('W');
+		}
+		if (!representation.length) {
+			LabeledConditionalVariable.throwInvalidLockedOperation(operation);
+		}
+		return representation.join();
+	}
+
+	private static buildWaitStatus<V>(promise: Promise<V>, acquiredAlready = false): WaitStatus<V> {
+		return { acquiredAlready, promise };
+	}
+
+	private static throwInvalidLockPriorityPolicy(policy: LockPriorityPolicy): never {
+		throw createException(ErrorCodes.INVALID_ARGUMENT, `Lock priority policy is not valid. Given ${policy}.`);
+	}
+
+	private static throwInvalidLockedOperation(operation: LockedOperation): never {
+		throw createException(ErrorCodes.INVALID_ARGUMENT, `Locked operation is not valid. Given ${operation}`);
+	}
+
+	private static throwLockedOperationMutualExclusion(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): never {
+		throw createException(
+			ErrorCodes.UNABLE_TO_LOCK,
+			`Can't request ${LabeledConditionalVariable.formatLockedOperation(requested)} ` +
+				`when lock was acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} ` +
+				`while ${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} priority policy is active.`
+		);
+	}
+
+	/**
+	 * Ensure {@link timeout} is in the accepted range.
+	 *
+	 * @param timeout	Number of ms to wait until forcibly reject mutex's promise.
+	 */
+	private static assertTimeout(timeout: Milliseconds): never | true {
 		const minTimeout = 0;
 		if (timeout < minTimeout || timeout > LabeledConditionalVariable.MAX_TIMEOUT) {
-			throw createException(ErrorCodes.INVALID_PARAM, `Timeout ranges between ${minTimeout} and ${LabeledConditionalVariable.MAX_TIMEOUT}.`);
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `Timeout ranges between ${minTimeout} and ${LabeledConditionalVariable.MAX_TIMEOUT}.`);
 		}
 		return true;
 	}
+
+	/**
+	 * The goal of this method is to ensure that a given client
+	 * can wait on shared promise, used as a `synchronization primitive`.
+	 *
+	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~UNSPECIFIED}, everyone
+	 * can acquire promise to wait on, no matter what's the {@link requested} operation.
+	 *
+	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~READ_PREFERRING},
+	 * {@link requested} read operation has priority over {@link acquired} write operation.
+	 * Mutual exclusion is empowered, meaning that if priority is not satisfied, an error will be thrown.
+	 *
+	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~WRITE_PREFERRING},
+	 * {@link requested} write operation has priority over {@link acquired} read operation.
+	 * Mutual exclusion is empowered, meaning that if priority is not satisfied, an error will be thrown.
+	 *
+	 * @param lockPriorityPolicy	Priority policy for reader vs. writer access.
+	 * @param acquired				Operation used when promise was locked.
+	 * @param requested				Operation used for acquiring the promise again.
+	 */
+	private static assertLockedOperationsOverlap(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): never | void {
+		switch (lockPriorityPolicy) {
+			case LockPriorityPolicy.UNSPECIFIED:
+				return; // does not matter
+			case LockPriorityPolicy.READ_PREFERRING:
+				if (acquired & LockedOperation.WRITE && requested & LockedOperation.READ) {
+					LabeledConditionalVariable.throwLockedOperationMutualExclusion(lockPriorityPolicy, acquired, requested);
+				}
+				break;
+			case LockPriorityPolicy.WRITE_PREFERRING:
+				if (acquired & LockedOperation.READ && requested & LockedOperation.WRITE) {
+					LabeledConditionalVariable.throwLockedOperationMutualExclusion(lockPriorityPolicy, acquired, requested);
+				}
+				break;
+			default:
+				LabeledConditionalVariable.throwInvalidLockPriorityPolicy(lockPriorityPolicy);
+		}
+	}
 }
 
-export { LabeledConditionalVariable };
+export { LabeledConditionalVariable, LockPriorityPolicy, LockedOperation, WaitStatus };

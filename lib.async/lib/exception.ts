@@ -2,9 +2,9 @@ import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
 
 const enum ErrorCodes {
-	LOCK_NOT_FOUND = 'LOCK_NOT_FOUND',
+	UNABLE_TO_LOCK = 'UNABLE_TO_LOCK',
 	TIMEOUT_EXCEEDED = 'TIMEOUT_EXCEEDED',
-	INVALID_PARAM = 'INVALID_PARAM',
+	INVALID_ARGUMENT = 'INVALID_ARGUMENT',
 	INCONSISTENCY = 'INCONSISTENCY',
 	FORCED_RELEASE = 'FORCED_RELEASE'
 }
