@@ -5,6 +5,7 @@ import { ErrorCodes, createException } from '../exception';
 import { buildPromiseHolder } from './utils';
 
 const enum LockedOperation {
+	NOOP = 0,
 	READ = 1 << 0,
 	WRITE = 1 << 1
 }
@@ -15,8 +16,13 @@ const enum LockPriorityPolicy {
 	WRITE_PREFERRING
 }
 
+const enum AwaiterRole {
+	PRODUCER,
+	CONSUMER
+}
+
 interface WaitStatus<T> {
-	acquiredAlready: boolean;
+	role: AwaiterRole;
 	promise: Promise<T>;
 }
 
@@ -52,11 +58,11 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * @param timeout	If returned promise is not resolved within this interval,
 	 * 					it will be rejected with related error.
 	 */
-	public wait(label: Label, operation: LockedOperation, timeout?: Milliseconds): WaitStatus<Result> {
+	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds): WaitStatus<Result> {
 		let lock: LabeledMutexEntry<Result> | undefined;
 		if ((lock = this.locks.get(label))) {
 			LabeledConditionalVariable.assertLockedOperationsOverlap(this.lockPriorityPolicy, lock.operation, operation);
-			return LabeledConditionalVariable.buildWaitStatus(lock.promise, true);
+			return LabeledConditionalVariable.buildWaitStatus(lock.promise, AwaiterRole.CONSUMER);
 		}
 
 		lock = buildPromiseHolder<Result>() as LabeledMutexEntry<Result>;
@@ -79,7 +85,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 
 		this.locks.set(label, lock);
 
-		return LabeledConditionalVariable.buildWaitStatus(lock.promise);
+		return LabeledConditionalVariable.buildWaitStatus(lock.promise, AwaiterRole.PRODUCER);
 	}
 
 	/**
@@ -163,8 +169,20 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		return representation.join();
 	}
 
-	private static buildWaitStatus<V>(promise: Promise<V>, acquiredAlready = false): WaitStatus<V> {
-		return { acquiredAlready, promise };
+	public static formatAwaiterRole(role: AwaiterRole): string {
+		switch (role) {
+			case AwaiterRole.CONSUMER:
+				return 'CONSUMER';
+			case AwaiterRole.PRODUCER:
+				return 'PRODUCER';
+			default:
+				LabeledConditionalVariable.throwInvalidAwaiterRole(role);
+		}
+		return ''; // actually never gets executed, just to calm down eslint
+	}
+
+	private static buildWaitStatus<V>(promise: Promise<V>, awaiterRole: AwaiterRole): WaitStatus<V> {
+		return { role: awaiterRole, promise };
 	}
 
 	private static throwInvalidLockPriorityPolicy(policy: LockPriorityPolicy): never {
@@ -172,7 +190,11 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	}
 
 	private static throwInvalidLockedOperation(operation: LockedOperation): never {
-		throw createException(ErrorCodes.INVALID_ARGUMENT, `Locked operation is not valid. Given ${operation}`);
+		throw createException(ErrorCodes.INVALID_ARGUMENT, `Locked operation is not valid. Given ${operation}.`);
+	}
+
+	private static throwInvalidAwaiterRole(role: AwaiterRole): never {
+		throw createException(ErrorCodes.INVALID_ARGUMENT, `Awaiter role is not valid. Given ${role}.`);
 	}
 
 	private static throwLockedOperationMutualExclusion(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): never {
@@ -236,4 +258,4 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	}
 }
 
-export { LabeledConditionalVariable, LockPriorityPolicy, LockedOperation, WaitStatus };
+export { LabeledConditionalVariable, LockPriorityPolicy, LockedOperation, WaitStatus, AwaiterRole };
