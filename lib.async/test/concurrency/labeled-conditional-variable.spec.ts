@@ -1,10 +1,18 @@
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { AwaiterRole, LabeledConditionalVariable, LockedOperation } from '../../lib/concurrency';
+import { AwaiterRole, LabeledConditionalVariable, LockedOperation, LockPriorityPolicy } from '../../lib/concurrency';
 import { ErrorCodes } from '../../lib';
 
 const { expect } = chai;
+
+function formatLockedOperationMutualExclusion(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): string {
+	return (
+		`Can't request ${LabeledConditionalVariable.formatLockedOperation(requested)} ` +
+		`when lock was acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} ` +
+		`while ${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} priority policy is active.`
+	);
+}
 
 // eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${LabeledConditionalVariable.name} spec`, () => {
@@ -97,6 +105,89 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			expect(() => mutex.wait(label, LockedOperation.NOOP, LabeledConditionalVariable.MAX_TIMEOUT + 1)).to.throw(
 				`Timeout ranges between 0 and ${LabeledConditionalVariable.MAX_TIMEOUT}.`
 			);
+		});
+
+		describe('lock priority spec', () => {
+			// eslint-disable-next-line mocha/no-setup-in-describe
+			describe(`${LockPriorityPolicy.UNSPECIFIED} spec`, () => {
+				it('noop -> noop (success)', async () => {});
+				it('noop -> read | write (failure)', async () => {});
+				it('read | write -> any (failure)', () => {});
+			});
+
+			// eslint-disable-next-line mocha/no-setup-in-describe
+			describe(`${LockPriorityPolicy.READ_PREFERRING} spec`, () => {
+				it('noop -> any (failure)', () => {
+					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
+					const label = 'label';
+
+					expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
+						`${LabeledConditionalVariable.formatLockPriorityPolicy(LockPriorityPolicy.READ_PREFERRING)} lock policy ` +
+							`does not accept ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation.`
+					);
+				});
+
+				it('read -> noop (failure)', async () => {
+					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
+					const label = 'label';
+
+					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
+					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+					expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
+						formatLockedOperationMutualExclusion(LockPriorityPolicy.READ_PREFERRING, LockedOperation.READ, LockedOperation.NOOP)
+					);
+
+					condVar.notifyAll(label, null);
+					await expect(waitStatusProd.promise).to.be.eq(null);
+				});
+
+				it('read -> read (success)', async () => {
+					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
+					const label = 'label';
+
+					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
+					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+					const waitStatusCons = condVar.wait(label, LockedOperation.READ);
+					expect(waitStatusCons.role).to.be.eq(AwaiterRole.CONSUMER);
+
+					condVar.notifyAll(label, null);
+					await expect(waitStatusCons.promise).to.be.eq(null);
+				});
+
+				it('read -> write (failure)', async () => {
+					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
+					const label = 'label';
+
+					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
+					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+					expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
+						formatLockedOperationMutualExclusion(LockPriorityPolicy.READ_PREFERRING, LockedOperation.READ, LockedOperation.WRITE)
+					);
+
+					condVar.notifyAll(label, null);
+					await expect(waitStatusProd.promise).to.be.eq(null);
+				});
+
+				it('write -> noop (failure)', async () => {});
+
+				it('write -> write (failure)', async () => {});
+
+				it('write -> read (success)', async () => {});
+			});
+
+			// eslint-disable-next-line mocha/no-setup-in-describe
+			describe(`${LockPriorityPolicy.WRITE_PREFERRING} spec`, () => {
+				it('noop -> any (failure)', () => {});
+
+				it('read -> noop (failure)', async () => {});
+
+				it('read -> read (success)', async () => {});
+
+				it('read -> write (failure)', async () => {});
+			});
 		});
 	});
 
