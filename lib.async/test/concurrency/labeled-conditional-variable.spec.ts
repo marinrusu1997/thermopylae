@@ -1,18 +1,12 @@
+/* eslint no-bitwise: 0 */ // --> OFF
+
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { AwaiterRole, LabeledConditionalVariable, LockedOperation, LockPriorityPolicy } from '../../lib/concurrency';
+import { AwaiterRole, LabeledConditionalVariable, LockedOperation } from '../../lib/concurrency';
 import { ErrorCodes } from '../../lib';
 
 const { expect } = chai;
-
-function formatLockedOperationMutualExclusion(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): string {
-	return (
-		`Can't request ${LabeledConditionalVariable.formatLockedOperation(requested)} ` +
-		`when lock was acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} ` +
-		`while ${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} priority policy is active.`
-	);
-}
 
 // eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${LabeledConditionalVariable.name} spec`, () => {
@@ -101,92 +95,185 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			const mutex = new LabeledConditionalVariable();
 			const label = 'key';
 
-			expect(() => mutex.wait(label, LockedOperation.NOOP, -1)).to.throw(`Timeout ranges between 0 and ${LabeledConditionalVariable.MAX_TIMEOUT}.`);
-			expect(() => mutex.wait(label, LockedOperation.NOOP, LabeledConditionalVariable.MAX_TIMEOUT + 1)).to.throw(
-				`Timeout ranges between 0 and ${LabeledConditionalVariable.MAX_TIMEOUT}.`
+			const tooLowTimeout = -1;
+			const tooHighTimeout = LabeledConditionalVariable.MAX_TIMEOUT + 1;
+
+			expect(() => mutex.wait(label, LockedOperation.NOOP, tooLowTimeout)).to.throw(
+				`Timeout ranges between 0 and ${LabeledConditionalVariable.MAX_TIMEOUT} ms. Given: ${tooLowTimeout}`
+			);
+			expect(() => mutex.wait(label, LockedOperation.NOOP, tooHighTimeout)).to.throw(
+				`Timeout ranges between 0 and ${LabeledConditionalVariable.MAX_TIMEOUT} ms. Given: ${tooHighTimeout}`
 			);
 		});
 
-		describe('lock priority spec', () => {
-			// eslint-disable-next-line mocha/no-setup-in-describe
-			describe(`${LockPriorityPolicy.UNSPECIFIED} spec`, () => {
-				it('noop -> noop (success)', async () => {});
-				it('noop -> read | write (failure)', async () => {});
-				it('read | write -> any (failure)', () => {});
+		it('fails to lock on unknown operation', () => {
+			const mutex = new LabeledConditionalVariable();
+			const label = 'key';
+			expect(() => mutex.wait(label, -1)).to.throw(`Unknown operation ${-1}`);
+		});
+
+		describe('operations overlap spec', () => {
+			it('noop -> noop (success)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
+
+				const waitStatusProd = condVar.wait(label, LockedOperation.NOOP);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+				const waitStatusCons = condVar.wait(label, LockedOperation.NOOP);
+				expect(waitStatusCons.role).to.be.eq(AwaiterRole.CONSUMER);
+
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
 			});
 
-			// eslint-disable-next-line mocha/no-setup-in-describe
-			describe(`${LockPriorityPolicy.READ_PREFERRING} spec`, () => {
-				it('noop -> any (failure)', () => {
-					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
-					const label = 'label';
+			it('noop -> read | write | read & write (failure)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
 
-					expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
-						`${LabeledConditionalVariable.formatLockPriorityPolicy(LockPriorityPolicy.READ_PREFERRING)} lock policy ` +
-							`does not accept ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation.`
-					);
-				});
+				const waitStatusProd = condVar.wait(label, LockedOperation.NOOP);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
 
-				it('read -> noop (failure)', async () => {
-					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
-					const label = 'label';
+				expect(() => condVar.wait(label, LockedOperation.READ)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation, ` +
+						`but requested operation is ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)}.`
+				);
 
-					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
-					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+				expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation, ` +
+						`but requested operation is ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)}.`
+				);
 
-					expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
-						formatLockedOperationMutualExclusion(LockPriorityPolicy.READ_PREFERRING, LockedOperation.READ, LockedOperation.NOOP)
-					);
+				expect(() => condVar.wait(label, LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation, ` +
+						`but requested operation is ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE | LockedOperation.READ)}.`
+				);
 
-					condVar.notifyAll(label, null);
-					await expect(waitStatusProd.promise).to.be.eq(null);
-				});
-
-				it('read -> read (success)', async () => {
-					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
-					const label = 'label';
-
-					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
-					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
-
-					const waitStatusCons = condVar.wait(label, LockedOperation.READ);
-					expect(waitStatusCons.role).to.be.eq(AwaiterRole.CONSUMER);
-
-					condVar.notifyAll(label, null);
-					await expect(waitStatusCons.promise).to.be.eq(null);
-				});
-
-				it('read -> write (failure)', async () => {
-					const condVar = new LabeledConditionalVariable(LockPriorityPolicy.READ_PREFERRING);
-					const label = 'label';
-
-					const waitStatusProd = condVar.wait(label, LockedOperation.READ);
-					expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
-
-					expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
-						formatLockedOperationMutualExclusion(LockPriorityPolicy.READ_PREFERRING, LockedOperation.READ, LockedOperation.WRITE)
-					);
-
-					condVar.notifyAll(label, null);
-					await expect(waitStatusProd.promise).to.be.eq(null);
-				});
-
-				it('write -> noop (failure)', async () => {});
-
-				it('write -> write (failure)', async () => {});
-
-				it('write -> read (success)', async () => {});
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
 			});
 
-			// eslint-disable-next-line mocha/no-setup-in-describe
-			describe(`${LockPriorityPolicy.WRITE_PREFERRING} spec`, () => {
-				it('noop -> any (failure)', () => {});
+			it('write -> any (failure)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
 
-				it('read -> noop (failure)', async () => {});
+				const waitStatusProd = condVar.wait(label, LockedOperation.WRITE);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
 
-				it('read -> read (success)', async () => {});
+				expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)}.`
+				);
 
-				it('read -> write (failure)', async () => {});
+				expect(() => condVar.wait(label, LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(
+							LockedOperation.WRITE | LockedOperation.READ
+						)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.NOOP | LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(
+							LockedOperation.NOOP | LockedOperation.WRITE | LockedOperation.READ
+						)}.`
+				);
+
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
+			});
+
+			it('read -> noop | write | read & write (failure)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
+
+				const waitStatusProd = condVar.wait(label, LockedOperation.READ);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+				expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation. ` +
+						`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation can't be requested. ` +
+						`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation. ` +
+						`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)} operation can't be requested. ` +
+						`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation. ` +
+						`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE | LockedOperation.READ)} operation can't be requested. ` +
+						`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested.`
+				);
+
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
+			});
+
+			it('read -> read (success)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
+
+				const waitStatusProd = condVar.wait(label, LockedOperation.READ);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+				const waitStatusCons = condVar.wait(label, LockedOperation.READ);
+				expect(waitStatusCons.role).to.be.eq(AwaiterRole.CONSUMER);
+
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
+			});
+
+			it('read & write -> any (failure)', async () => {
+				const condVar = new LabeledConditionalVariable();
+				const label = 'label';
+
+				const waitStatusProd = condVar.wait(label, LockedOperation.READ | LockedOperation.WRITE);
+				expect(waitStatusProd.role).to.be.eq(AwaiterRole.PRODUCER);
+
+				expect(() => condVar.wait(label, LockedOperation.NOOP)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ | LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ | LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ | LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ | LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(
+							LockedOperation.WRITE | LockedOperation.READ
+						)}.`
+				);
+
+				expect(() => condVar.wait(label, LockedOperation.NOOP | LockedOperation.WRITE | LockedOperation.READ)).to.throw(
+					`${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ | LockedOperation.WRITE)} operation is exclusive. ` +
+						`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(
+							LockedOperation.NOOP | LockedOperation.WRITE | LockedOperation.READ
+						)}.`
+				);
+
+				condVar.notifyAll(label, null);
+				expect(await waitStatusProd.promise).to.be.eq(null);
 			});
 		});
 	});
@@ -240,7 +327,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			const timeout = 10;
 			const result = null;
 
-			const waitStatus = mutex.wait(label, timeout);
+			const waitStatus = mutex.wait(label, LockedOperation.NOOP, timeout);
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 
 			mutex.notifyAll(label, result);
@@ -315,6 +402,22 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			}
 
 			expect(mutex.size).to.be.eq(0);
+		});
+	});
+
+	describe('formatters spec', () => {
+		it('formats awaiter', () => {
+			expect(LabeledConditionalVariable.formatAwaiterRole(AwaiterRole.PRODUCER)).to.be.eq('PRODUCER');
+			expect(LabeledConditionalVariable.formatAwaiterRole(AwaiterRole.CONSUMER)).to.be.eq('CONSUMER');
+			expect(() => LabeledConditionalVariable.formatAwaiterRole(-1)).to.throw(`Awaiter role is not valid. Given ${-1}.`);
+		});
+
+		it('formats locked operation', () => {
+			expect(LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)).to.be.eq('Noop');
+			expect(LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)).to.be.eq('Read');
+			expect(LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE)).to.be.eq('Write');
+			expect(LabeledConditionalVariable.formatLockedOperation(LockedOperation.WRITE | LockedOperation.READ)).to.be.eq('ReadWrite');
+			expect(() => LabeledConditionalVariable.formatLockedOperation(-1)).to.throw(`Unknown operation ${-1}`);
 		});
 	});
 });

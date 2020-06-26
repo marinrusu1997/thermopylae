@@ -10,12 +10,6 @@ const enum LockedOperation {
 	WRITE = 1 << 1
 }
 
-const enum LockPriorityPolicy {
-	UNSPECIFIED,
-	READ_PREFERRING,
-	WRITE_PREFERRING
-}
-
 const enum AwaiterRole {
 	PRODUCER,
 	CONSUMER
@@ -34,12 +28,9 @@ interface LabeledMutexEntry<T> extends PromiseHolder<T> {
 class LabeledConditionalVariable<Label = string, Result = any> {
 	public static readonly MAX_TIMEOUT: Milliseconds = 500;
 
-	private readonly lockPriorityPolicy: LockPriorityPolicy;
-
 	private readonly locks: Map<Label, LabeledMutexEntry<Result>>;
 
-	constructor(lockPriorityPolicy = LockPriorityPolicy.UNSPECIFIED) {
-		this.lockPriorityPolicy = lockPriorityPolicy;
+	constructor() {
 		this.locks = new Map<Label, LabeledMutexEntry<Result>>();
 	}
 
@@ -59,13 +50,13 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * 						it will be rejected with related error.
 	 */
 	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds): WaitStatus<Result> {
+		LabeledConditionalVariable.assertLockedOperation(operation);
+
 		let lock: LabeledMutexEntry<Result> | undefined;
 		if ((lock = this.locks.get(label))) {
-			LabeledConditionalVariable.assertLockedOperationsOverlap(this.lockPriorityPolicy, lock.operation, operation);
+			LabeledConditionalVariable.assertLockedOperationsOverlap(lock.operation, operation);
 			return { role: AwaiterRole.CONSUMER, promise: lock.promise };
 		}
-
-		LabeledConditionalVariable.assertLockedOperationContext(this.lockPriorityPolicy, operation);
 
 		lock = buildPromiseHolder<Result>() as LabeledMutexEntry<Result>;
 		lock.operation = operation;
@@ -156,31 +147,15 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		return true;
 	}
 
-	/**
-	 * Checks whether {@link requested} operation is valid in the context of {@link lockPriorityPolicy}.
-	 *
-	 * @param lockPriorityPolicy
-	 * @param requested
-	 */
-	private static assertLockedOperationContext(lockPriorityPolicy: LockPriorityPolicy, requested: LockedOperation): void | never {
-		switch (lockPriorityPolicy) {
-			case LockPriorityPolicy.UNSPECIFIED:
-				if (requested !== LockedOperation.NOOP) {
-					this.throwNoopLockContext(lockPriorityPolicy);
-				}
-				break;
-			case LockPriorityPolicy.READ_PREFERRING:
-			case LockPriorityPolicy.WRITE_PREFERRING:
-				if (requested === LockedOperation.NOOP) {
-					throw createException(
-						ErrorCodes.INVALID_ARGUMENT,
-						`${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} lock policy ` +
-							`does not accept ${LabeledConditionalVariable.formatLockedOperation(requested)} operation.`
-					);
-				}
-				break;
+	private static assertLockedOperation(operation: LockedOperation): void | never {
+		switch (operation) {
+			case LockedOperation.NOOP:
+			case LockedOperation.READ:
+			case LockedOperation.WRITE:
+			case LockedOperation.READ | LockedOperation.WRITE:
+				return;
 			default:
-				LabeledConditionalVariable.throwInvalidLockPriorityPolicy(lockPriorityPolicy);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Unknown operation ${operation}`);
 		}
 	}
 
@@ -188,72 +163,50 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * The goal of this method is to ensure that a given client
 	 * can wait on shared promise, used as a `synchronization primitive`.
 	 *
-	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~UNSPECIFIED}, everyone
-	 * can acquire promise to wait on, no matter what's the {@link requested} operation.
-	 *
-	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~READ_PREFERRING},
-	 * {@link requested} read operation has priority over {@link acquired} write operation.
-	 * Mutual exclusion is empowered, meaning that if priority is not satisfied, an error will be thrown.
-	 *
-	 * When {@link lockPriorityPolicy} is {@link LockPriorityPolicy~WRITE_PREFERRING},
-	 * {@link requested} write operation has priority over {@link acquired} read operation.
-	 * Mutual exclusion is empowered, meaning that if priority is not satisfied, an error will be thrown.
-	 *
-	 * @param lockPriorityPolicy	Priority policy for reader vs. writer access.
 	 * @param acquired				Operation used when promise was locked.
 	 * @param requested				Operation used for acquiring the promise again.
 	 */
-	private static assertLockedOperationsOverlap(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): never | void {
-		switch (lockPriorityPolicy) {
-			case LockPriorityPolicy.UNSPECIFIED:
-				if (requested !== LockedOperation.NOOP) {
-					this.throwNoopLockContext(lockPriorityPolicy);
-				}
-				break;
-			case LockPriorityPolicy.READ_PREFERRING:
-				if (acquired & LockedOperation.WRITE && requested & LockedOperation.READ) {
-					LabeledConditionalVariable.throwLockedOperationMutualExclusion(lockPriorityPolicy, acquired, requested);
-				}
-				break;
-			case LockPriorityPolicy.WRITE_PREFERRING:
-				if (acquired & LockedOperation.READ && requested & LockedOperation.WRITE) {
-					LabeledConditionalVariable.throwLockedOperationMutualExclusion(lockPriorityPolicy, acquired, requested);
-				}
-				break;
-			default:
-				LabeledConditionalVariable.throwInvalidLockPriorityPolicy(lockPriorityPolicy);
+	private static assertLockedOperationsOverlap(acquired: LockedOperation, requested: LockedOperation): never | void {
+		if (acquired === LockedOperation.NOOP && requested !== LockedOperation.NOOP) {
+			throw createException(
+				ErrorCodes.INVALID_ARGUMENT,
+				`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation, ` +
+					`but requested operation is ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
+			);
 		}
-	}
 
-	public static formatLockPriorityPolicy(policy: LockPriorityPolicy): string {
-		switch (policy) {
-			case LockPriorityPolicy.UNSPECIFIED:
-				return 'UNSPECIFIED';
-			case LockPriorityPolicy.WRITE_PREFERRING:
-				return 'WRITE_PREFERRING';
-			case LockPriorityPolicy.READ_PREFERRING:
-				return 'READ_PREFERRING';
-			default:
-				LabeledConditionalVariable.throwInvalidLockPriorityPolicy(policy);
+		if (acquired & LockedOperation.WRITE) {
+			throw createException(
+				ErrorCodes.INVALID_ARGUMENT,
+				`${LabeledConditionalVariable.formatLockedOperation(acquired)} operation is exclusive. ` +
+					`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
+			);
 		}
-		return ''; // actually never gets executed, just to calm down eslint
+
+		if (acquired & LockedOperation.READ && requested !== LockedOperation.READ) {
+			throw createException(
+				ErrorCodes.INVALID_ARGUMENT,
+				`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation. ` +
+					`${LabeledConditionalVariable.formatLockedOperation(requested)} operation can't be requested. ` +
+					`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested.`
+			);
+		}
 	}
 
 	public static formatLockedOperation(operation: LockedOperation): string {
+		LabeledConditionalVariable.assertLockedOperation(operation);
+
 		const representation = [];
 		if (operation === LockedOperation.NOOP) {
-			return 'NOOP';
+			return 'Noop';
 		}
 		if (operation & LockedOperation.READ) {
-			representation.push('R');
+			representation.push('Read');
 		}
 		if (operation & LockedOperation.WRITE) {
-			representation.push('W');
+			representation.push('Write');
 		}
-		if (!representation.length) {
-			LabeledConditionalVariable.throwInvalidLockedOperation(operation);
-		}
-		return representation.join();
+		return representation.join('');
 	}
 
 	public static formatAwaiterRole(role: AwaiterRole): string {
@@ -268,14 +221,6 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		return ''; // actually never gets executed, just to calm down eslint
 	}
 
-	private static throwInvalidLockPriorityPolicy(policy: LockPriorityPolicy): never {
-		throw createException(ErrorCodes.INVALID_ARGUMENT, `Lock priority policy is not valid. Given ${policy}.`);
-	}
-
-	private static throwInvalidLockedOperation(operation: LockedOperation): never {
-		throw createException(ErrorCodes.INVALID_ARGUMENT, `Locked operation is not valid. Given ${operation}.`);
-	}
-
 	private static throwInvalidAwaiterRole(role: AwaiterRole): never {
 		throw createException(ErrorCodes.INVALID_ARGUMENT, `Awaiter role is not valid. Given ${role}.`);
 	}
@@ -286,23 +231,6 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			`Timeout ranges between ${minTimeout} and ${LabeledConditionalVariable.MAX_TIMEOUT} ms. Given: ${givenTimeout}`
 		);
 	}
-
-	private static throwLockedOperationMutualExclusion(lockPriorityPolicy: LockPriorityPolicy, acquired: LockedOperation, requested: LockedOperation): never {
-		throw createException(
-			ErrorCodes.UNABLE_TO_LOCK,
-			`Can't request ${LabeledConditionalVariable.formatLockedOperation(requested)} ` +
-				`when lock was acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} ` +
-				`while ${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} priority policy is active.`
-		);
-	}
-
-	private static throwNoopLockContext(lockPriorityPolicy: LockPriorityPolicy.UNSPECIFIED) {
-		throw createException(
-			ErrorCodes.INVALID_ARGUMENT,
-			`${LabeledConditionalVariable.formatLockPriorityPolicy(lockPriorityPolicy)} lock policy ` +
-				`accepts only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.NOOP)} operation.`
-		);
-	}
 }
 
-export { LabeledConditionalVariable, LockPriorityPolicy, LockedOperation, WaitStatus, AwaiterRole };
+export { LabeledConditionalVariable, LockedOperation, WaitStatus, AwaiterRole };
