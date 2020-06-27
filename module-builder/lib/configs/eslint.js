@@ -47,13 +47,17 @@ module.exports = {
 		"no-restricted-syntax": "warn",
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 
-		"import/no-extraneous-dependencies": "warn",
 		"import/no-unresolved": [
 			"error",
 			{
 				"ignore": ['^@thermopylae/core\.declarations$']
 			}
 		],
+		"import/named": "error",
+		"import/namespace": "error",
+		"import/no-absolute-path": "error",
+		"import/no-dynamic-require": "error",
+		"import/no-extraneous-dependencies": "error",
 		"import/prefer-default-export": "off",
 		"import/extensions": [
 			"error",

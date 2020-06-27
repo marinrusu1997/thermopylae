@@ -1,16 +1,16 @@
-import { Label, Seconds, StatusFlag, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { CacheStats, EventListener, EventType } from './cache';
 
 declare interface AsyncCache<Key, Value> {
 	readonly name: Label;
 
-	get(key: Key): Promise<Value | undefined>;
-	mget(keys: Array<Key>): Promise<Map<Key, Value | undefined>>;
+	get(key: Key): Promise<Undefinable<Value>>;
+	mget(keys: Array<Key>): Promise<Map<Key, Value>>;
 
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void>;
 
-	take(key: Key): Promise<Value | undefined>;
+	take(key: Key): Promise<Undefinable<Value>>;
 
 	has(key: Key): Promise<boolean>;
 

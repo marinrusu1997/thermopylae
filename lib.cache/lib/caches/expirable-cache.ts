@@ -1,6 +1,6 @@
 import { Seconds, Threshold } from '@thermopylae/core.declarations';
 import { MemCache, MemCacheConfig } from './mem-cache';
-import { IterativeExpirationPolicy } from '../expiration-policies/iterative-expiration-policy';
+import { IterativeExpirationPolicy } from '../expiration-policies';
 import { CacheEntry } from '../contracts/cache';
 import { EvictionPolicy } from '../contracts/eviction-policy';
 

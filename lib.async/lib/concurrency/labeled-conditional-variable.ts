@@ -1,6 +1,6 @@
 /* eslint no-bitwise: 0 */ // --> OFF
 
-import { AsyncFunction, Milliseconds, PromiseHolder, UnaryPredicate } from '@thermopylae/core.declarations';
+import { AsyncFunction, Milliseconds, PromiseHolder, UnaryPredicate, Optional } from '@thermopylae/core.declarations';
 import { ErrorCodes, createException } from '../exception';
 import { buildPromiseHolder } from './utils';
 
@@ -28,10 +28,10 @@ interface LabeledMutexEntry<T> extends PromiseHolder<T> {
 class LabeledConditionalVariable<Label = string, Result = any> {
 	public static readonly MAX_TIMEOUT: Milliseconds = 500;
 
-	private readonly locks: Map<Label, LabeledMutexEntry<Result>>;
+	private readonly locks: Map<Label, LabeledMutexEntry<Optional<Result>>>;
 
 	constructor() {
-		this.locks = new Map<Label, LabeledMutexEntry<Result>>();
+		this.locks = new Map<Label, LabeledMutexEntry<Optional<Result>>>();
 	}
 
 	/**
@@ -49,23 +49,23 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * @param [timeout]		If returned promise is not resolved within this interval,
 	 * 						it will be rejected with related error.
 	 */
-	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds | null): WaitStatus<Result> {
+	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds | null): WaitStatus<Optional<Result>> {
 		LabeledConditionalVariable.assertLockedOperation(operation);
 
-		let lock: LabeledMutexEntry<Result> | undefined;
+		let lock: LabeledMutexEntry<Optional<Result>> | undefined;
 		if ((lock = this.locks.get(label))) {
 			LabeledConditionalVariable.assertLockedOperationsOverlap(label, lock.operation, operation);
 			return { role: AwaiterRole.CONSUMER, promise: lock.promise };
 		}
 
-		lock = buildPromiseHolder<Result>() as LabeledMutexEntry<Result>;
+		lock = buildPromiseHolder<Optional<Result>>() as LabeledMutexEntry<Optional<Result>>;
 		lock.operation = operation;
 
 		if (timeout && LabeledConditionalVariable.assertTimeout(label, timeout)) {
 			const releaseWithRejection = (): void => {
 				const timeoutMessage = `Timeout of ${timeout} ms for label ${label} has been exceeded.`;
 
-				let expiredLock: LabeledMutexEntry<Result> | undefined;
+				let expiredLock: LabeledMutexEntry<Optional<Result>> | undefined;
 				if ((expiredLock = this.locks.get(label))) {
 					this.locks.delete(label);
 					return expiredLock.reject(createException(ErrorCodes.TIMEOUT_EXCEEDED, timeoutMessage));
@@ -90,8 +90,8 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * @param label		Label to notify on.
 	 * @param result	Result of the computation or it's error.
 	 */
-	public notifyAll(label: Label, result?: Result | Error): void {
-		let lock: LabeledMutexEntry<Result> | undefined;
+	public notifyAll(label: Label, result?: Optional<Result> | Error): void {
+		let lock: LabeledMutexEntry<Optional<Result>> | undefined;
 		if ((lock = this.locks.get(label))) {
 			try {
 				if (result && result instanceof Error) {
@@ -143,10 +143,10 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		label: Label,
 		operation: LockedOperation,
 		timeout: Milliseconds | null,
-		provider: AsyncFunction<any, Result>,
+		provider: AsyncFunction<any, Optional<Result>>,
 		...args: Array<any>
-	): Promise<Result> {
-		let waitStatus: WaitStatus<Result>;
+	): Promise<Optional<Result>> {
+		let waitStatus: WaitStatus<Optional<Result>>;
 		try {
 			waitStatus = this.wait(label, operation, timeout);
 		} catch (e) {
@@ -157,7 +157,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			return waitStatus.promise;
 		}
 
-		const doNotify = (res?: Result | Error): Promise<Result> => {
+		const doNotify = (res?: Optional<Result> | Error): Promise<Optional<Result>> => {
 			try {
 				this.notifyAll(label, res);
 			} catch (notifyErr) {

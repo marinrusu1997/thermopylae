@@ -73,6 +73,11 @@ export const enum StatusFlag {
 	IDLE
 }
 
+export type Nullable<T> = T | null;
+export type Undefinable<T> = T | undefined;
+export type Voidable<T> = T | void;
+export type Optional<T> = Nullable<Undefinable<Voidable<T>>>;
+
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;
 export type AsyncFunction<I = any, O = any> = (...args: Array<I>) => Promise<O>;
 

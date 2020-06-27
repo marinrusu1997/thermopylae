@@ -3,7 +3,7 @@
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { Library } from '@thermopylae/core.declarations';
+import { Library, Optional } from '@thermopylae/core.declarations';
 import { AwaiterRole, LabeledConditionalVariable, LockedOperation } from '../../lib/concurrency';
 import { ErrorCodes } from '../../lib';
 
@@ -78,7 +78,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			const label = 'key';
 			const consumersNo = 10;
 
-			const promises: Array<Promise<number>> = new Array<Promise<number>>(consumersNo);
+			const promises = new Array<Promise<Optional<number>>>(consumersNo);
 			for (let i = 0; i < consumersNo; i++) {
 				promises[i] = mutex.wait(label).promise;
 			}
@@ -390,7 +390,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 				toForceRelease.add(labels[number.generateRandomInt(0, labels.length - 1)]);
 			}
 
-			mutex.forcedNotify((label) => toForceRelease.has(label));
+			mutex.forcedNotify((label: string) => toForceRelease.has(label));
 
 			let err;
 			try {
@@ -504,7 +504,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			}
 		});
 
-		it('rejects if operation is mutual exclusive and returns result to producer', async () => {
+		it('rejects if operation is mutual exclusive and returns result to producer (read -> write)', async () => {
 			const condVar = new LabeledConditionalVariable();
 			const label = 'label';
 
@@ -516,7 +516,6 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			}
 
 			const readPromise = condVar.lockedRun(label, LockedOperation.READ, null, provider);
-
 			const writePromise = condVar.lockedRun(label, LockedOperation.WRITE, null, provider);
 
 			expect(readPromise === writePromise).to.be.eq(false);
@@ -537,6 +536,40 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 			expect(err.cause).to.be.eq(undefined);
 
 			expect(await readPromise).to.be.eq(result);
+		});
+
+		it('rejects if operation is mutual exclusive and returns result to producer (write -> any)', async () => {
+			const condVar = new LabeledConditionalVariable();
+			const label = 'label';
+
+			const result = undefined;
+			function provider(): Promise<any> {
+				return new Promise<any>((resolve) => {
+					setTimeout(resolve, 10);
+				});
+			}
+
+			const writePromise = condVar.lockedRun(label, LockedOperation.WRITE, null, provider);
+			const readPromise = condVar.lockedRun(label, LockedOperation.READ, null, provider);
+
+			expect(writePromise === readPromise).to.be.eq(false);
+
+			let err;
+			try {
+				await readPromise;
+			} catch (e) {
+				err = e;
+			}
+			expect(err.emitter).to.be.eq(Library.ASYNC);
+			expect(err.code).to.be.eq(ErrorCodes.UNABLE_TO_LOCK);
+			expect(err.message).to.be.eq(
+				`Lock acquired for label ${label} on ${LabeledConditionalVariable.formatLockedOperation(
+					LockedOperation.WRITE
+				)} operation, which is an exclusive one. Given: ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)}.`
+			);
+			expect(err.cause).to.be.eq(undefined);
+
+			expect(await writePromise).to.be.eq(result);
 		});
 
 		it('rejects producers and consumers on timeout', async () => {

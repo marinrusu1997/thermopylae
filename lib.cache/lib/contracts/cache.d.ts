@@ -1,4 +1,4 @@
-import { Label, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 
 declare interface CacheStats {
 	hits: number;
@@ -24,10 +24,10 @@ declare interface Cache<Key, Value> {
 
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
-	get(key: Key): Value | undefined;
+	get(key: Key): Undefinable<Value>;
 	mget(keys: Array<Key>): Map<Key, Value>;
 
-	take(key: Key): Value | undefined;
+	take(key: Key): Undefinable<Value>;
 
 	del(key: Key): boolean;
 	mdel(keys: Array<Key>): void;

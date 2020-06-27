@@ -37,14 +37,14 @@
         "node": ">= 14"
     },
     "dependencies": {
-        "@thermopylae/lib.async": "0.0.1593274792",
+        "@thermopylae/lib.async": "0.0.1593280915",
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.utils": "0",
         "lodash.debounce": "4"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0.0.1593268366",
+        "@thermopylae/core.declarations": "0.0.1593280840",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
         "@types/dotenv": "8",
