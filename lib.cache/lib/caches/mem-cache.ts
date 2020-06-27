@@ -220,8 +220,6 @@ class MemCache<Key = string, Value = any, Entry extends CacheEntry<Value> = Cach
 		return options as MemCacheConfig<Key, Value, Entry>;
 	}
 
-	private static ENTRY_NOT_PRESENT_VALUE = undefined;
-
 	private static containsEntry(entry: any): boolean {
 		return entry !== MemCache.ENTRY_NOT_PRESENT_VALUE;
 	}

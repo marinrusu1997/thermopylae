@@ -15,16 +15,17 @@ export interface PromiseHolder<T> {
 }
 
 export const enum Library {
-	AUTH_ENGINE = 'LIB_AUTH_ENGINE',
+	ASYNC = 'LIB_ASYNC',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
-	MEM_CACHE = 'LIB_MEM_CACHE',
-	REST_API = 'LIB_REST_API',
+	CACHE = 'LIB_CACHE',
 	UTILS = 'LIB_UTILS'
 }
 
 export const enum CoreModule {
-	JWT = 'CORE_JWT'
+	JWT = 'CORE_JWT',
+	AUTH_ENGINE = 'CORE_AUTH_ENGINE',
+	REST_API = 'CORE_REST_API'
 }
 
 export const enum Client {

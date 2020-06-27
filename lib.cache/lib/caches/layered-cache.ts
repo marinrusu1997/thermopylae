@@ -1,9 +1,13 @@
-import { async } from '@thermopylae/lib.utils';
+import { concurrency } from '@thermopylae/lib.async';
 import { Index, Label, Seconds, StatusFlag, UnixTimestamp } from '@thermopylae/core.declarations';
 import debounce from 'lodash.debounce';
+import { LockedOperation } from '@thermopylae/lib.async/dist/concurrency';
 import { CacheStats, EventListener, EventType } from '../contracts/cache';
 import { AsyncCache } from '../contracts/async-cache';
+import { NOT_FOUND_VALUE } from '../constants';
 import { createException, ErrorCodes } from '../error';
+
+const { AwaiterRole, LockedOperation, LabeledConditionalVariable } = concurrency;
 
 type Retriever<K, V> = (key: K) => Promise<V | undefined>;
 
@@ -16,23 +20,23 @@ interface LayeredCacheConfig<K, V> extends LayeredCacheOptions<K, V> {
 	readonly labels: Map<Label, Index>;
 }
 
-class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> {
+class LayeredCache<Key = string, Value = never> implements AsyncCache<Key, Value> {
 	private readonly config: LayeredCacheConfig<Key, Value>;
 
-	private readonly rwCondVar: async.LabeledConditionalVariable<Key, Value>;
+	private readonly rwCondVar: concurrency.LabeledConditionalVariable<Key, Value>;
 
 	constructor(opts: LayeredCacheOptions<Key, Value>) {
 		LayeredCache.assertOptions(opts);
 		this.disableConcurrentAccessProtectionForCacheLayers(opts.layers);
 
 		this.config = LayeredCache.buildConfig(opts);
-		this.rwCondVar = new async.LabeledConditionalVariable<Key, Value>();
+		this.rwCondVar = new LabeledConditionalVariable<Key, Value>();
 	}
 
 	public async get(key: Key, ttlPerLayer?: Map<Label, Seconds>): Promise<Value | undefined> {
-		const [acquired, lock] = this.rwCondVar.wait(key);
-		if (!acquired) {
-			return lock; // consumers will wait on promise
+		const waitStatus = this.rwCondVar.wait(key, LockedOperation.READ);
+		if (waitStatus.role !== AwaiterRole.PRODUCER) {
+			return waitStatus.promise;
 		}
 
 		try {
@@ -40,14 +44,23 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 			const layerMisses: Array<AsyncCache<Key, Value>> = [];
 
 			for (const layer of this.config.layers) {
-				if ((value = await layer.get(key)) !== undefined) {
+				if (foundValue((value = await layer.get(key)))) {
 					break;
 				}
 				layerMisses.push(layer);
 			}
 
-			if ((value || (value === undefined && this.config.retriever && (value = await this.config.retriever(key)) !== undefined)) && layerMisses.length) {
-				await Promise.all(layerMisses.map((layerMiss) => layerMiss.set(key, value!, ttlPerLayer?.get(layerMiss.name))));
+			if (!foundValue(value) && this.config.retriever) {
+				value = await this.config.retriever(key);
+			}
+
+			if (foundValue(value) && layerMisses.length) {
+				// eslint-disable-next-line no-inner-declarations
+				function setMissingValue(layerMiss: AsyncCache<Key, Value>): Promise<void> {
+					return layerMiss.set(key, value!, ttlPerLayer?.get(layerMiss.name));
+				}
+
+				await Promise.all(layerMisses.map(setMissingValue));
 			}
 
 			this.rwCondVar.notifyAll(key, value);
@@ -55,12 +68,28 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 			this.rwCondVar.notifyAll(key, e);
 		}
 
-		return lock;
+		return waitStatus.promise; // producer will wait on promise
 	}
 
 	public async mget(keys: Array<Key>, ttlPerLayer?: Map<Key, Map<Label, Seconds>>): Promise<Map<Key, Value | undefined>> {
-		const entries = await Promise.all(keys.map((key) => this.get(key, ttlPerLayer?.get(key)).then((value) => [key, value])));
-		return new Map<Key, Value>(entries as Array<[Key, Value]>);
+		const getValue = (key: Key): Promise<[Key, Value | undefined]> => {
+			return this.get(key, ttlPerLayer?.get(key)).then((value) => [key, value]);
+		};
+
+		const entries: Array<[Key, Value | undefined]> = [];
+
+		// this will prevent from lock being not unlocked from a key if get for another key fails
+		// also will try to get values for all of the keys
+		const results = await Promise.allSettled(keys.map(getValue));
+
+		let i = results.length;
+		while (i--) {
+			if (results.status === 'fulfilled') {
+				entries.push(results.value);
+			}
+		}
+
+		return new Map<Key, Value | undefined>(entries);
 	}
 
 	public async set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp, depth?: number): Promise<void> {
@@ -71,38 +100,61 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 			throw createException(ErrorCodes.INVALID_ARGUMENT, `${LayeredCache.name}::${this.set.name} does not support from argument`);
 		}
 
-		// NOTICE get/set share same lock, this means consumers will always get the latest value set into cache
-		// HOWEVER, this is valid only in the scope of current process and when access to caches is made only from a single instance
-		// ULTIMATE, getting the latest fresh value implies calling another special sync operation
-		const [acquired, lock] = this.rwCondVar.wait(key); // we also need held by, write needs exclusive access, must be set a special label, or get from calling function name
-		if (!acquired) {
-			return (lock as unknown) as Promise<void>; // consumers will wait on promise
-		}
+		// write is an exclusive operation, only a single write op is allowed to run concurrently
+		const waitStatus = this.rwCondVar.wait(key, LockedOperation.WRITE);
 
 		try {
 			depth = LayeredCache.assertLayerDepth(this.config.layers, depth) || this.config.layers.length;
 
-			const setValuePromises: Array<Promise<void>> = new Array(depth);
-			// setting priority: fastest -> slowest cache
-			for (let i = 0; i < depth; i++) {
-				setValuePromises[i] = this.config.layers[i].set(key, value);
+			const setValue: Array<Promise<void>> = new Array(depth);
+			while (depth--) {
+				setValue[depth] = this.config.layers[depth].set(key, value);
 			}
-			await Promise.all(setValuePromises);
+			await Promise.all(setValue);
 
 			this.rwCondVar.notifyAll(key);
 		} catch (e) {
 			this.rwCondVar.notifyAll(key, e);
 		}
 
-		return (lock as unknown) as Promise<void>; // producer will wait on promise
+		return (waitStatus.promise as unknown) as Promise<void>;
 	}
 
-	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): Promise<void> {
-		// recursive
+	public async upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp, depth?: number): Promise<void> {
+		if (ttl != null) {
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `${LayeredCache.name}::${this.upset.name} does not support ttl argument`);
+		}
+		if (from != null) {
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `${LayeredCache.name}::${this.upset.name} does not support from argument`);
+		}
+
+		// write is an exclusive operation, only a single write op is allowed to run concurrently
+		const waitStatus = this.rwCondVar.wait(key, LockedOperation.WRITE);
+
+		try {
+			depth = LayeredCache.assertLayerDepth(this.config.layers, depth) || this.config.layers.length;
+
+			const upsetValue: Array<Promise<void>> = new Array(depth);
+			while (depth--) {
+				upsetValue[depth] = this.config.layers[depth].upset(key, value);
+			}
+			await Promise.all(upsetValue);
+
+			this.rwCondVar.notifyAll(key);
+		} catch (e) {
+			this.rwCondVar.notifyAll(key, e);
+		}
+
+		return (waitStatus.promise as unknown) as Promise<void>;
 	}
 
-	take(key: Key): Promise<Value | undefined> {
-		// recursive take
+	public take(key: Key, depth?: number): Promise<Value | undefined> {
+		const waitStatus = this.rwCondVar.wait(key, LockedOperation.WRITE); // get + delete
+		// FIXME get operations needs to be namespaced
+		try {
+		} catch (e) {
+			this.rwCondVar.notifyAll();
+		}
 	}
 
 	has(key: Key): Promise<boolean> {
@@ -258,19 +310,6 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		return depth;
 	}
 
-	/**
-	 * When multiple operations can run concurrently on the same {@link key},
-	 * acquiring a single lock might cause unexpected behaviour.
-	 * Therefore we need to acquire lock on the {@link key} namespaced with the {@link operation} name.
-	 * This way, a new different lock will be acquired by each operation when using the same {@link key}.
-	 *
-	 * @param key			Key operations are performed on
-	 * @param operation		Operation name
-	 */
-	private static namespaceKeyWithOperationName<K>(key: K, operation: string): string {
-		return key + operation;
-	}
-
 	private static buildConfig<K, V>(options: LayeredCacheOptions<K, V>): LayeredCacheConfig<K, V> {
 		const labels: Map<Label, Index> = new Map<Label, Index>();
 		for (let i = 0; i < options.layers.length; i++) {
@@ -282,6 +321,10 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 			retriever: options.retriever
 		};
 	}
+}
+
+function foundValue<V>(value: V): boolean {
+	return value !== NOT_FOUND_VALUE;
 }
 
 export { LayeredCache, LayeredCacheOptions, Retriever };

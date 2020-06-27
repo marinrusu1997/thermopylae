@@ -1,6 +1,6 @@
 /* eslint no-bitwise: 0 */ // --> OFF
 
-import { Milliseconds, PromiseHolder, UnaryPredicate } from '@thermopylae/core.declarations';
+import { AsyncFunction, Milliseconds, PromiseHolder, UnaryPredicate } from '@thermopylae/core.declarations';
 import { ErrorCodes, createException } from '../exception';
 import { buildPromiseHolder } from './utils';
 
@@ -49,19 +49,19 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * @param [timeout]		If returned promise is not resolved within this interval,
 	 * 						it will be rejected with related error.
 	 */
-	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds): WaitStatus<Result> {
+	public wait(label: Label, operation = LockedOperation.NOOP, timeout?: Milliseconds | null): WaitStatus<Result> {
 		LabeledConditionalVariable.assertLockedOperation(operation);
 
 		let lock: LabeledMutexEntry<Result> | undefined;
 		if ((lock = this.locks.get(label))) {
-			LabeledConditionalVariable.assertLockedOperationsOverlap(lock.operation, operation);
+			LabeledConditionalVariable.assertLockedOperationsOverlap(label, lock.operation, operation);
 			return { role: AwaiterRole.CONSUMER, promise: lock.promise };
 		}
 
 		lock = buildPromiseHolder<Result>() as LabeledMutexEntry<Result>;
 		lock.operation = operation;
 
-		if (timeout && LabeledConditionalVariable.assertTimeout(timeout)) {
+		if (timeout && LabeledConditionalVariable.assertTimeout(label, timeout)) {
 			const releaseWithRejection = (): void => {
 				const timeoutMessage = `Timeout of ${timeout} ms for label ${label} has been exceeded.`;
 
@@ -107,7 +107,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			}
 			return;
 		}
-		throw createException(ErrorCodes.UNABLE_TO_LOCK, `Can't unlock. No lock found for label ${label}.`);
+		throw createException(ErrorCodes.LOCK_NOT_FOUND, `Can't unlock. No lock found for label ${label}.`);
 	}
 
 	/**
@@ -128,6 +128,52 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	}
 
 	/**
+	 * Runs the `Result` {@link provider} with a {@link label} lock.
+	 * Follows the same semantics of {@link LabeledConditionalVariable~wait}
+	 * and {@link LabeledConditionalVariable~notifyAll}, by wrapping the call
+	 * of {@link provider} inside these functions.
+	 *
+	 * @param label			Label to use lock on.
+	 * @param operation		Operation lock is defending.
+	 * @param timeout		Timeout to provide the value.
+	 * @param provider		Async function which provides the result to resolve lock promise.
+	 * @param args			Arguments of the {@link provider}.
+	 */
+	public lockedRun(
+		label: Label,
+		operation: LockedOperation,
+		timeout: Milliseconds | null,
+		provider: AsyncFunction<any, Result>,
+		...args: Array<any>
+	): Promise<Result> {
+		let waitStatus: WaitStatus<Result>;
+		try {
+			waitStatus = this.wait(label, operation, timeout);
+		} catch (e) {
+			return Promise.reject(e);
+		}
+
+		if (waitStatus.role !== AwaiterRole.PRODUCER) {
+			return waitStatus.promise;
+		}
+
+		const doNotify = (res?: Result | Error): Promise<Result> => {
+			try {
+				this.notifyAll(label, res);
+			} catch (notifyErr) {
+				if (notifyErr.code !== ErrorCodes.LOCK_NOT_FOUND) {
+					throw notifyErr; // process will mostly die here
+				}
+			}
+			return waitStatus.promise;
+		};
+
+		return provider(...args)
+			.then(doNotify)
+			.catch(doNotify);
+	}
+
+	/**
 	 * Get number of the labels locks has been acquired on.
 	 */
 	public get size(): number {
@@ -137,12 +183,13 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	/**
 	 * Ensure {@link timeout} is in the accepted range.
 	 *
+	 * @param label		Label
 	 * @param timeout	Number of ms to wait until forcibly reject mutex's promise.
 	 */
-	private static assertTimeout(timeout: Milliseconds): never | true {
+	private static assertTimeout<Label>(label: Label, timeout: Milliseconds): never | true {
 		const minTimeout = 0;
 		if (timeout < minTimeout || timeout > LabeledConditionalVariable.MAX_TIMEOUT) {
-			LabeledConditionalVariable.throwInvalidTimeout(minTimeout, timeout);
+			LabeledConditionalVariable.throwInvalidTimeout(label, minTimeout, timeout);
 		}
 		return true;
 	}
@@ -155,7 +202,7 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			case LockedOperation.READ | LockedOperation.WRITE:
 				return;
 			default:
-				throw createException(ErrorCodes.INVALID_ARGUMENT, `Unknown operation ${operation}`);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation ${operation}.`);
 		}
 	}
 
@@ -163,32 +210,32 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 	 * The goal of this method is to ensure that a given client
 	 * can wait on shared promise, used as a `synchronization primitive`.
 	 *
-	 * @param acquired				Operation used when promise was locked.
-	 * @param requested				Operation used for acquiring the promise again.
+	 * @param acquired		Operation used when promise was locked.
+	 * @param requested		Operation used for acquiring the promise again.
 	 */
-	private static assertLockedOperationsOverlap(acquired: LockedOperation, requested: LockedOperation): never | void {
+	private static assertLockedOperationsOverlap<Label>(label: Label, acquired: LockedOperation, requested: LockedOperation): never | void {
 		if (acquired === LockedOperation.NOOP && requested !== LockedOperation.NOOP) {
 			throw createException(
-				ErrorCodes.INVALID_ARGUMENT,
-				`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation, ` +
+				ErrorCodes.UNABLE_TO_LOCK,
+				`Lock acquired for label ${label} on ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation, ` +
 					`but requested operation is ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
 			);
 		}
 
 		if (acquired & LockedOperation.WRITE) {
 			throw createException(
-				ErrorCodes.INVALID_ARGUMENT,
-				`${LabeledConditionalVariable.formatLockedOperation(acquired)} operation is exclusive. ` +
-					`Can't wait on another operations. Given ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
+				ErrorCodes.UNABLE_TO_LOCK,
+				`Lock acquired for label ${label} on ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation, which is an exclusive one. ` +
+					`Given: ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
 			);
 		}
 
 		if (acquired & LockedOperation.READ && requested !== LockedOperation.READ) {
 			throw createException(
-				ErrorCodes.INVALID_ARGUMENT,
-				`Lock acquired for ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation. ` +
-					`${LabeledConditionalVariable.formatLockedOperation(requested)} operation can't be requested. ` +
-					`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested.`
+				ErrorCodes.UNABLE_TO_LOCK,
+				`Lock acquired for label ${label} on ${LabeledConditionalVariable.formatLockedOperation(acquired)} operation. ` +
+					`Only ${LabeledConditionalVariable.formatLockedOperation(LockedOperation.READ)} operation can be requested. ` +
+					`Given: ${LabeledConditionalVariable.formatLockedOperation(requested)}.`
 			);
 		}
 	}
@@ -225,10 +272,10 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 		throw createException(ErrorCodes.INVALID_ARGUMENT, `Awaiter role is not valid. Given ${role}.`);
 	}
 
-	private static throwInvalidTimeout(minTimeout: Milliseconds, givenTimeout: Milliseconds): never {
+	private static throwInvalidTimeout<Label>(label: Label, minTimeout: Milliseconds, givenTimeout: Milliseconds): never {
 		throw createException(
 			ErrorCodes.INVALID_ARGUMENT,
-			`Timeout ranges between ${minTimeout} and ${LabeledConditionalVariable.MAX_TIMEOUT} ms. Given: ${givenTimeout}`
+			`Timeout ranges between ${minTimeout} and ${LabeledConditionalVariable.MAX_TIMEOUT} ms. Given: ${givenTimeout}. Label: ${label}.`
 		);
 	}
 }

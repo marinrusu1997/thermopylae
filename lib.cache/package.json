@@ -1,10 +1,10 @@
 {
     "name": "@thermopylae/lib.cache",
-    "description": "Memory cache",
+    "description": "Cache library",
     "keywords": [
-        "events",
-        "cache",
-        "memory"
+        "thermopylae",
+        "module",
+        "cache"
     ],
     "version": "0.0.1587317824",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
@@ -37,13 +37,14 @@
         "node": ">= 14"
     },
     "dependencies": {
+        "@thermopylae/lib.async": "0.0.1593274792",
         "@thermopylae/lib.collections": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.utils": "0.0.1592858830",
+        "@thermopylae/lib.utils": "0",
         "lodash.debounce": "4"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.declarations": "0.0.1593268366",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
         "@types/dotenv": "8",

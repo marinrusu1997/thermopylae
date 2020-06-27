@@ -7,7 +7,7 @@
         "async",
         "concurrency"
     ],
-    "version": "0.0.1593214912",
+    "version": "0.0.1593274792",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

@@ -2,4 +2,6 @@ const INFINITE_TTL = 0;
 
 const INFINITE_KEYS = -1;
 
-export { INFINITE_TTL, INFINITE_KEYS };
+const NOT_FOUND_VALUE = undefined;
+
+export { INFINITE_TTL, INFINITE_KEYS, NOT_FOUND_VALUE };
