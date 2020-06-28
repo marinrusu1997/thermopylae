@@ -1,30 +1,28 @@
 import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { CacheBackend, CacheEntry } from '../contracts/sync/cache-backend';
-import { ExpirationPolicy } from '../contracts/sync/expiration-policy';
-import { EvictionPolicy } from '../contracts/sync/eviction-policy';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheMiddleEnd, CacheStats } from '../contracts/sync/cache-middleend';
+import { CachePolicy, EntryValidity, SetOperationContext } from '../contracts/sync/cache-policy';
+import { CacheMiddleEnd } from '../contracts/sync/cache-middleend';
+import CacheStats from '../contracts/commons';
 
 class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	private readonly backend: CacheBackend<K, V>;
 
-	private readonly expiration: ExpirationPolicy<K, V>;
-
-	private readonly eviction: EvictionPolicy<K, V>;
+	private readonly policies: Array<CachePolicy<K, V>>;
 
 	protected readonly cacheStats: CacheStats;
 
-	constructor(backend: CacheBackend<K, V>, expiration: ExpirationPolicy<K, V>, eviction: EvictionPolicy<K, V>) {
+	constructor(backend: CacheBackend<K, V>, policies: Array<CachePolicy<K, V>>) {
 		this.backend = backend;
-		this.expiration = expiration;
-		this.eviction = eviction;
+		this.policies = policies;
 		this.cacheStats = {
 			hits: 0,
 			misses: 0
 		};
 
-		this.expiration.setDeleter((key) => this.del(key));
-		this.eviction.setDeleter((key) => this.del(key));
+		for (const policy of policies) {
+			policy.setDeleter(this.del);
+		}
 	}
 
 	public get(key: K): Undefinable<V> {
@@ -32,14 +30,16 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		return entry && entry.value;
 	}
 
-	public set(key: K, value: V, ttl?: Seconds, expiresFrom?: UnixTimestamp): CacheEntry<V> {
+	public set(key: K, value: V, ttl: Seconds, expiresFrom?: UnixTimestamp): CacheEntry<V> {
 		const entry: CacheEntry<V> = this.backend.set(key, value);
 
 		try {
-			this.expiration.onSet(key, entry, ttl!, expiresFrom);
-			this.eviction.onSet(key, entry, this.backend.size);
+			const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
+			for (const policy of this.policies) {
+				policy.onSet(key, entry, context);
+			}
 		} catch (e) {
-			this.backend.del(key);
+			this.backend.del(key, false);
 			throw e;
 		}
 
@@ -53,8 +53,9 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		}
 
 		entry.value = value;
-		if (ttl != null) {
-			this.expiration.onUpdate(key, entry, ttl, expiresFrom);
+		const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
+		for (const policy of this.policies) {
+			policy.onUpdate(key, entry, context);
 		}
 
 		return true;
@@ -66,26 +67,28 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 			return false;
 		}
 
-		this.expiration.onUpdate(key, entry, ttl, expiresFrom);
+		const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
+		for (const policy of this.policies) {
+			policy.onUpdate(key, entry, context);
+		}
 
 		return true;
 	}
 
 	public del(key: K): boolean {
-		let entry: Undefinable<CacheEntry<V>>;
-		const entryRequiredOnDeletion = this.expiration.requiresEntryOnDeletion || this.eviction.requiresEntryOnDeletion;
-		if (entryRequiredOnDeletion) {
-			entry = this.backend.get(key);
-
-			if (entry === NOT_FOUND_VALUE) {
-				return false;
+		let entryRequiredOnDeletion = false;
+		for (const policy of this.policies) {
+			if ((entryRequiredOnDeletion = policy.requiresEntryOnDeletion)) {
+				break;
 			}
 		}
 
-		if (this.backend.del(key)) {
-			this.expiration.onDelete(key, entry);
-			this.eviction.onDelete(key, entry);
+		const entry = this.backend.del(key, entryRequiredOnDeletion);
 
+		if (entry) {
+			for (const policy of this.policies) {
+				policy.onDelete(key, entry as CacheEntry<V>);
+			}
 			return true;
 		}
 
@@ -93,13 +96,14 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	}
 
 	public keys(): Array<K> {
-		return this.backend.keys();
+		return Array.from(this.backend.keys());
 	}
 
 	public clear(): void {
 		this.backend.clear();
-		this.expiration.onClear();
-		this.eviction.onClear();
+		for (const policy of this.policies) {
+			policy.onClear();
+		}
 
 		this.cacheStats.misses = 0;
 		this.cacheStats.hits = 0;
@@ -121,15 +125,20 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 			return NOT_FOUND_VALUE;
 		}
 
-		const removed = this.expiration.removeIfExpired(key, entry!);
-		if (removed) {
-			return NOT_FOUND_VALUE;
+		for (const policy of this.policies) {
+			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
+			if (policy.onGet(key, entry) === EntryValidity.NOT_VALID) {
+				return NOT_FOUND_VALUE;
+			}
 		}
 
 		this.cacheStats.hits += 1;
-		this.eviction.onGet(key, entry!);
 
 		return entry;
+	}
+
+	private static buildSetContext(elements: number, expiresAfter?: Seconds, expiresFrom?: UnixTimestamp): SetOperationContext {
+		return { elements, expiresAfter, expiresFrom };
 	}
 }
 

@@ -1,9 +1,10 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheFrontend, CachedItem, EventListener, EventType } from '../contracts/sync/cache-frontend';
-import { AsyncCache } from '../contracts/async/async-cache';
-import { CacheStats } from '../contracts/sync/cache-middleend';
+import { CacheFrontend, CachedItem } from '../contracts/sync/cache-frontend';
+import { AsyncCacheFrontend } from '../contracts/async/async-cache-frontend';
+import EventListener, { EventType } from '../contracts/commons';
+import CacheStats from '../contracts/commons';
 
-function convert<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
+function convert<K, V>(cache: CacheFrontend<K, V>): AsyncCacheFrontend<K, V> {
 	return {
 		set(key: K, value: V, ttl?: Seconds, from?: UnixTimestamp): Promise<void> {
 			try {
@@ -115,7 +116,7 @@ function convert<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
 			}
 		},
 
-		on(event: EventType, listener: EventListener<K, V>): AsyncCache<K, V> {
+		on(event: EventType, listener: EventListener<K, V>): AsyncCacheFrontend<K, V> {
 			cache.on(event, listener);
 			return this;
 		}
@@ -123,7 +124,7 @@ function convert<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
 }
 
 class Converter {
-	public static toAsync<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
+	public static toAsync<K, V>(cache: CacheFrontend<K, V>): AsyncCacheFrontend<K, V> {
 		return convert(cache);
 	}
 }

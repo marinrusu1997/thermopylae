@@ -2,17 +2,16 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { object as obj } from '@thermopylae/lib.pool';
 import { CacheBackend, CacheEntry } from '../../contracts/sync/cache-backend';
+import { NOT_FOUND_VALUE } from '../../constants';
 
-const { ObjectPool } = obj;
+class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
+	private readonly store: Map<Key, CacheEntry<Value>>;
 
-class RecyclerBackend<K, V> implements CacheBackend<K, V> {
-	private readonly store: Map<K, CacheEntry<V>>;
-
-	private readonly entryPool: obj.ObjectPool<V>;
+	private readonly entryPool: obj.ObjectPool<Value>;
 
 	constructor(capacity?: number) {
-		this.store = new Map<K, CacheEntry<V>>();
-		this.entryPool = new ObjectPool<V>({
+		this.store = new Map<Key, CacheEntry<Value>>();
+		this.entryPool = new obj.ObjectPool<Value>({
 			capacity: capacity || Infinity,
 			initialFreeShapes: capacity ? array.filledWith(capacity, undefined) : undefined,
 			constructor(value) {
@@ -21,27 +20,50 @@ class RecyclerBackend<K, V> implements CacheBackend<K, V> {
 			destructor() {
 				return undefined;
 			},
-			initializer(_previous, value: V) {
+			initializer(_previous, value: Value) {
 				return value;
 			}
 		});
 	}
 
-	public get(key: K): Undefinable<CacheEntry<V>> {}
-
-	set(key: K, value: V): CacheEntry<V> {
-		return undefined;
+	public get(key: Key): Undefinable<CacheEntry<Value>> {
+		return this.store.get(key);
 	}
 
-	del(key: K): boolean {
-		return false;
+	public set(key: Key, value: Value): CacheEntry<Value> {
+		const handle = this.entryPool.acquire(value);
+		this.store.set(key, handle);
+		return handle;
 	}
 
-	keys(): Array<K> {
-		return undefined;
+	public del(key: Key, entry: boolean): boolean | Undefinable<CacheEntry<Value>> {
+		const handle = this.store.get(key);
+		if (!handle) {
+			return entry ? NOT_FOUND_VALUE : false;
+		}
+
+		this.entryPool.releaseHandle(handle);
+
+		const deleted = this.store.delete(key);
+		return entry ? handle : deleted;
 	}
 
-	clear(): void {}
+	public keys(): IterableIterator<Key> {
+		return this.store.keys();
+	}
 
-	public get size(): number {}
+	public clear(): void {
+		this.store.clear();
+		this.entryPool.releaseAll();
+	}
+
+	public get size(): number {
+		return this.store.size;
+	}
+
+	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]> {
+		return this.store[Symbol.iterator]();
+	}
 }
+
+export { RecyclerBackend };

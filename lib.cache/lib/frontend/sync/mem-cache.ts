@@ -1,14 +1,13 @@
 import { EventEmitter } from 'events';
 import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { INFINITE_KEYS, NOT_FOUND_VALUE } from '../constants';
-import { CacheFrontend, EventListener, EventType } from '../contracts/sync/cache-frontend';
-import { NoExpirationPolicy } from '../middleend/expiration-policies';
-import { NoEvictionPolicy } from '../middleend/eviction-policies/no-eviction-policy';
-import { TtlRegistry } from '../helpers/ttl-registry';
-import { EsMapBackend } from '../backend/sync/es-map-backend';
-import { PolicyMiddleEnd } from '../middleend/policy-middleend';
-import { CacheMiddleEnd, CacheStats } from '../contracts/sync/cache-middleend';
+import { NOT_FOUND_VALUE } from '../../constants';
+import { CacheFrontend } from '../../contracts/sync/cache-frontend';
+import { TtlRegistry } from '../../helpers/ttl-registry';
+import { EsMapBackend } from '../../backend/sync/es-map-backend';
+import { CacheMiddleEnd } from '../../contracts/sync/cache-middleend';
+import { OpaqueMiddleend } from '../../middleend/opaque-middleend';
+import { EventListener, EventType, CacheStats } from '../../contracts/commons';
 
 interface MemCacheOptions<Key, Value> {
 	useClones: boolean;
@@ -50,8 +49,8 @@ class MemCache<Key = string, Value = any> extends EventEmitter implements CacheF
 		return this.config.middleend.get(key);
 	}
 
-	public mget(keys: Array<Key>): Map<Key, Value> {
-		const items = new Map<Key, Value>();
+	public mget(keys: Array<Key>): Map<Key, Undefinable<Value>> {
+		const items = new Map<Key, Undefinable<Value>>();
 
 		for (const key of keys) {
 			items.set(key, this.config.middleend.get(key));
@@ -132,7 +131,7 @@ class MemCache<Key = string, Value = any> extends EventEmitter implements CacheF
 	private static fillWithDefaults<K, V>(options?: Partial<MemCacheOptions<K, V>>): MemCacheOptions<K, V> {
 		options = options || {};
 		options.useClones = options.useClones || false;
-		options.middleend = options.middleend || new PolicyMiddleEnd<K, V>(new EsMapBackend(), new NoExpirationPolicy(), new NoEvictionPolicy(INFINITE_KEYS));
+		options.middleend = options.middleend || new OpaqueMiddleend<K, V>(new EsMapBackend());
 		options.ttlRegistry = options.ttlRegistry || TtlRegistry.empty<K>();
 		return options as MemCacheOptions<K, V>;
 	}

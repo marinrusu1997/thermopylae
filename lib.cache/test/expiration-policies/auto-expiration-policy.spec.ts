@@ -3,7 +3,7 @@ import { describe, it } from 'mocha';
 import { chai } from '../env';
 import { AutoExpirationPolicy } from '../../lib';
 import { generateExpirationPolicyDeleter } from '../utils';
-import { ExpirableCacheKeyEntry } from '../../lib/middleend/expiration-policies/auto-expiration-policy';
+import { ExpirableCacheKeyEntry } from '../../lib/policies/expiration/auto-expiration-policy';
 
 const nowInSeconds = chrono.dateToUNIX;
 const { expect } = chai;

@@ -1,7 +1,7 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
-import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-import { ExpirableCacheEntry } from '../../contracts/sync/expiration-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract-expiration-policy';
 import { CacheKey } from '../../contracts/sync/cache-backend';
+import { SetOperationContext } from '../../contracts/sync/cache-policy';
 
 type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;
 
@@ -44,15 +44,15 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		delete this.config.collectionSize;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		super.onSet(key, entry, expiresAfter, expiresFrom);
+	public onSet(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+		super.onSet(key, entry, context);
 		if (entry.expiresAt && this.isIdle()) {
 			this.start();
 		}
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		super.onUpdate(key, entry, expiresAfter, expiresFrom);
+	public onUpdate(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+		super.onUpdate(key, entry, context);
 		if (entry.expiresAt && this.isIdle()) {
 			this.start();
 		}
@@ -104,4 +104,4 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	}
 }
 
-export { IterativeExpirationPolicy, NextCacheKey, QueryCollectionSize, IterativeExpirationPolicyConfig };
+export { IterativeExpirationPolicy, ExpirableCacheKey, NextCacheKey, QueryCollectionSize, IterativeExpirationPolicyConfig };

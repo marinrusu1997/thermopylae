@@ -1,9 +1,5 @@
 import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheStats } from './cache-middleend';
-
-declare type EventType = 'set' | 'update' | 'del' | 'flush';
-
-declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
+import { CacheStats, EventType, EventListener } from '../commons.d.ts';
 
 declare interface CacheFrontend<Key, Value> {
 	readonly name: Label;
@@ -13,7 +9,7 @@ declare interface CacheFrontend<Key, Value> {
 	upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
 
 	get(key: Key): Undefinable<Value>;
-	mget(keys: Array<Key>): Map<Key, Value>;
+	mget(keys: Array<Key>): Map<Key, Undefinable<Value>>;
 
 	take(key: Key): Undefinable<Value>;
 
@@ -37,4 +33,4 @@ declare interface CacheFrontend<Key, Value> {
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }
 
-export { CacheFrontend, EventType, EventListener };
+export { CacheFrontend };

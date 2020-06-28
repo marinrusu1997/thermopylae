@@ -18,7 +18,16 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return entry;
 	}
 
-	public del(key: Key): boolean {
+	public keys(): IterableIterator<Key> {
+		return this.store.keys();
+	}
+
+	public del(key: Key, withEntry: boolean): boolean | Undefinable<CacheEntry<Value>> {
+		if (withEntry) {
+			const entry = this.store.get(key);
+			this.store.delete(key);
+			return entry;
+		}
 		return this.store.delete(key);
 	}
 
@@ -30,8 +39,8 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return this.store.size;
 	}
 
-	public keys(): Array<Key> {
-		return Array.from(this.store.keys());
+	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]> {
+		return this.store[Symbol.iterator]();
 	}
 }
 

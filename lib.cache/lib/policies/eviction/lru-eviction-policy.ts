@@ -1,8 +1,7 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/dll-list';
-import { EvictionPolicy } from '../../contracts/sync/eviction-policy';
-import { Deleter } from '../../contracts/sync/cache-policy';
 import { CacheEntry } from '../../contracts/sync/cache-backend';
+import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/sync/cache-policy';
 
 interface EvictableKeyNode<Key = string, Value = any> extends CacheEntry<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
 	key: Key;
@@ -11,7 +10,7 @@ interface EvictableKeyNode<Key = string, Value = any> extends CacheEntry<Value>,
 // FIXME original implementation: https://www.callicoder.com/design-lru-cache-data-structure/
 // FIXME other implementation (not used here): https://www.programcreek.com/2013/03/leetcode-lru-cache-java/
 
-class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
+class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	private delete!: Deleter<Key>;
@@ -23,18 +22,23 @@ class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 		this.doublyLinkedList = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
 	}
 
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.doublyLinkedList.moveToFront(entry);
+		return EntryValidity.VALID;
 	}
 
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
-		if (size === this.capacity) {
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
+		if (context.elements === this.capacity) {
 			this.delete(this.doublyLinkedList.tail!.key); // fixme addapt to onDelete hook
 			this.doublyLinkedList.removeNode(this.doublyLinkedList.tail!);
 		}
 
 		entry.key = key;
 		this.doublyLinkedList.addToFront(entry);
+	}
+
+	public onUpdate() {
+		return undefined;
 	}
 
 	public onDelete(key: Key): void {

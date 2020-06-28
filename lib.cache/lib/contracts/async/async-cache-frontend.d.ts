@@ -1,8 +1,7 @@
 import { Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { EventListener, EventType } from '../sync/cache-frontend';
-import { CacheStats } from '../sync/cache-middleend';
+import { CacheStats, EventListener, EventType } from '../commons';
 
-declare interface AsyncCache<Key, Value> {
+declare interface AsyncCacheFrontend<Key, Value> {
 	readonly name: Label;
 
 	get(key: Key): Promise<Undefinable<Value>>;
@@ -35,4 +34,4 @@ declare interface AsyncCache<Key, Value> {
 	concurrentAccessProtection(status: StatusFlag): void;
 }
 
-export { AsyncCache };
+export { AsyncCacheFrontend };

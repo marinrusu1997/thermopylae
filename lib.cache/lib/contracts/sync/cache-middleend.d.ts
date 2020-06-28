@@ -1,13 +1,9 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-
-declare interface CacheStats {
-	hits: number;
-	misses: number;
-}
+import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { CacheStats } from '../commons.d.ts';
 
 declare interface CacheMiddleEnd<Key, Value> {
-	get(key: Key): Value;
-	set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): void;
+	get(key: Key): Undefinable<Value>;
+	set(key: Key, value: Value, ttl: Seconds, expiresFrom?: UnixTimestamp): void;
 	replace(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): boolean;
 	ttl(key: Key, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean;
 	del(key: Key): boolean;
@@ -18,4 +14,4 @@ declare interface CacheMiddleEnd<Key, Value> {
 	readonly stats: CacheStats;
 }
 
-export { CacheMiddleEnd, CacheStats };
+export { CacheMiddleEnd };

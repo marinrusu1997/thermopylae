@@ -1,12 +1,10 @@
 import { concurrency } from '@thermopylae/lib.async';
 import { Index, Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import debounce from 'lodash.debounce';
-import { LockedOperation } from '@thermopylae/lib.async/dist/concurrency';
-import { EventListener, EventType } from '../contracts/sync/cache-frontend';
-import { AsyncCache } from '../contracts/async/async-cache';
-import { NOT_FOUND_VALUE } from '../constants';
-import { createException, ErrorCodes } from '../error';
-import { CacheStats } from '../contracts/sync/cache-middleend';
+import { AsyncCacheFrontend } from '../../contracts/async/async-cache-frontend';
+import { NOT_FOUND_VALUE } from '../../constants';
+import { createException, ErrorCodes } from '../../error';
+import { EventListener, EventType, CacheStats } from '../../contracts/commons';
 
 const { LockedOperation, LabeledConditionalVariable } = concurrency;
 
@@ -15,7 +13,7 @@ type Retriever<K, V> = (key: K) => Promise<Undefinable<V>>;
 type LayerId = Label | number;
 
 interface LayeredCacheOptions<K, V> {
-	readonly layers: Array<AsyncCache<K, V>>;
+	readonly layers: Array<AsyncCacheFrontend<K, V>>;
 	readonly retriever?: Retriever<K, V>;
 }
 
@@ -23,7 +21,7 @@ interface LayeredCacheConfig<K, V> extends LayeredCacheOptions<K, V> {
 	readonly labels: Map<Label, Index>;
 }
 
-class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> {
+class LayeredCache<Key = string, Value = any> implements AsyncCacheFrontend<Key, Value> {
 	private readonly config: LayeredCacheConfig<Key, Value>;
 
 	private readonly synchronization: concurrency.LabeledConditionalVariable<Key, Value>;
@@ -38,13 +36,13 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 
 	public get(key: Key, ttlPerLayer?: Map<Label, Seconds>): Promise<Undefinable<Value>> {
 		// FIXME maybe use WRITE, because we also write values if they missed
-		return this.synchronization.lockedRun(key, LockedOperation.READ, null, this.doGet, key, ttlPerLayer);
+		return this.synchronization.lockedRun(key, LockedOperation.READ, null, this.doGet, key, ttlPerLayer) as Promise<Undefinable<Value>>;
 	}
 
 	public async mget(keys: Array<Key>, ttlPerLayer?: Map<Key, Map<Label, Seconds>>): Promise<Map<Key, Value>> {
 		// FIXME addapt for multiple retriever
 
-		const getValue = (key: Key): Promise<[Key, Value]> => {
+		const getValue = (key: Key): Promise<[Key, Undefinable<Value>]> => {
 			return this.get(key, ttlPerLayer?.get(key)).then((value) => [key, value]);
 		};
 
@@ -65,15 +63,15 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 	}
 
 	public set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp, depth?: number): Promise<void> {
-		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doSet, key, value, ttl, from, depth);
+		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doSet, key, value, ttl, from, depth) as Promise<void>;
 	}
 
 	public upset(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp, depth?: number): Promise<void> {
-		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doUpset, key, value, ttl, from, depth);
+		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doUpset, key, value, ttl, from, depth) as Promise<void>;
 	}
 
 	public take(key: Key, depth?: number): Promise<Undefinable<Value>> {
-		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doTake, key, depth);
+		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doTake, key, depth) as Promise<Undefinable<Value>>;
 	}
 
 	public has(key: Key): Promise<boolean> {
@@ -138,10 +136,10 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 	}
 
 	public sync(key: Key): Promise<void> {
-		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doSync, key);
+		return this.synchronization.lockedRun(key, LockedOperation.WRITE, null, this.doSync, key) as Promise<void>;
 	}
 
-	public layer(id: LayerId): AsyncCache<Key, Value> {
+	public layer(id: LayerId): AsyncCacheFrontend<Key, Value> {
 		let index: number;
 		switch (typeof id) {
 			case 'number':
@@ -159,7 +157,7 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 
 	private doGet = async (key: Key, ttlPerLayer?: Map<Label, Seconds>): Promise<Undefinable<Value>> => {
 		let value: Undefinable<Value>;
-		const layerMisses: Array<AsyncCache<Key, Value>> = [];
+		const layerMisses: Array<AsyncCacheFrontend<Key, Value>> = [];
 
 		for (const layer of this.config.layers) {
 			if (foundValue((value = await layer.get(key)))) {
@@ -174,7 +172,7 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 
 		if (foundValue(value) && layerMisses.length) {
 			// eslint-disable-next-line no-inner-declarations
-			function setMissingValue(layerMiss: AsyncCache<Key, Value>): Promise<void> {
+			function setMissingValue(layerMiss: AsyncCacheFrontend<Key, Value>): Promise<void> {
 				return layerMiss.set(key, value!, ttlPerLayer?.get(layerMiss.name));
 			}
 
@@ -222,7 +220,7 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 	private doTake = async (key: Key, depth?: number): Promise<Undefinable<Value>> => {
 		depth = LayeredCache.assertLayerDepth(this.config.layers.length, depth) || this.config.layers.length;
 
-		const takeFromLayers = new Array<Undefinable<Value>>();
+		const takeFromLayers = new Array<Promise<Undefinable<Value>>>();
 		for (let i = 0; i < depth; i++) {
 			takeFromLayers[i] = this.config.layers[i].take(key);
 		}
@@ -277,7 +275,7 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 
 		const replaceInLayers = new Array<Promise<void>>(i);
 		while (i--) {
-			replaceInLayers[i] = this.config.layers[i].upset(key, value);
+			replaceInLayers[i] = this.config.layers[i].upset(key, value!); // FIXME test not undefined
 		}
 		await Promise.all(replaceInLayers);
 	};
@@ -290,15 +288,15 @@ class LayeredCache<Key = string, Value = any> implements AsyncCache<Key, Value> 
 		return index;
 	}
 
-	private get firstLayer(): AsyncCache<Key, Value> {
+	private get firstLayer(): AsyncCacheFrontend<Key, Value> {
 		return this.config.layers[0];
 	}
 
-	private resolveLayer(layerId?: LayerId): AsyncCache<Key, Value> {
+	private resolveLayer(layerId?: LayerId): AsyncCacheFrontend<Key, Value> {
 		return layerId ? this.layer(layerId) : this.firstLayer;
 	}
 
-	private disableConcurrentAccessProtectionForCacheLayers(layers: Array<AsyncCache<Key, Value>>): void {
+	private disableConcurrentAccessProtectionForCacheLayers(layers: Array<AsyncCacheFrontend<Key, Value>>): void {
 		for (const layer of layers) {
 			layer.concurrentAccessProtection(StatusFlag.DISABLED);
 		}

@@ -1,34 +1,34 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { ExpirableCacheEntry, ExpirationPolicy } from '../../contracts/sync/expiration-policy';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { Deleter } from '../../contracts/sync/cache-policy';
+import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
+import { CacheEntry } from '../../contracts/sync/cache-backend';
 
-abstract class AbstractExpirationPolicy<Key, Value> implements ExpirationPolicy<Key, Value> {
+interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
+	expiresAt?: UnixTimestamp;
+}
+
+abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	protected delete!: Deleter<Key>;
 
-	get requiresEntryOnDeletion(): boolean {
-		return false;
+	public onGet(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
+		return this.doRemovalIfExpired(key, entry.expiresAt);
 	}
 
-	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		if (expiresAfter === INFINITE_TTL) {
+	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
 			return;
 		}
-		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
+		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
 	}
 
-	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		if (expiresAfter === INFINITE_TTL) {
+	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
 			delete entry.expiresAt;
 			return;
 		}
-		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
-	}
-
-	public removeIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): boolean {
-		return this.doRemovalIfExpired(key, entry.expiresAt);
+		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
 	}
 
 	public onDelete(_key: Key, _entry?: ExpirableCacheEntry<Value>): void {
@@ -43,12 +43,17 @@ abstract class AbstractExpirationPolicy<Key, Value> implements ExpirationPolicy<
 		this.delete = deleter;
 	}
 
-	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): boolean {
+	public get requiresEntryOnDeletion(): boolean {
+		return false;
+	}
+
+	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): EntryValidity {
 		const expired = expiration != null ? expiration >= chrono.dateToUNIX() : false;
 		if (expired) {
 			this.delete(key);
+			return EntryValidity.NOT_VALID;
 		}
-		return expired;
+		return EntryValidity.VALID;
 	}
 
 	protected setEntryExpiration(entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
@@ -71,4 +76,4 @@ abstract class AbstractExpirationPolicy<Key, Value> implements ExpirationPolicy<
 	}
 }
 
-export { AbstractExpirationPolicy };
+export { AbstractExpirationPolicy, ExpirableCacheEntry };

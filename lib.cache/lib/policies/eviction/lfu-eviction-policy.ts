@@ -1,7 +1,6 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/dll-list';
-import { EvictionPolicy } from '../../contracts/sync/eviction-policy';
-import { Deleter } from '../../contracts/sync/cache-policy';
+import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
 import { CacheEntry } from '../../contracts/sync/cache-backend';
 
 interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
@@ -19,7 +18,7 @@ interface LFUEvictionPolicyOptions {
 	bucketEvictCount: number;
 }
 
-class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
+class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly config: LFUEvictionPolicyOptions;
 
 	private delete: Deleter<Key>;
@@ -35,17 +34,7 @@ class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 		this.freqList = new DoublyLinkedList();
 	}
 
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
-		// Check for backend overflow
-		if (size === this.config.capacity) {
-			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
-		}
-
-		entry.key = key;
-		entry.freqParentItem = this.addToFreqList(entry);
-	}
-
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		// get next freq item
 		let nextFreqListNode = entry.freqParentItem.next;
 
@@ -67,6 +56,22 @@ class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 
 		// Set the new parent
 		entry.freqParentItem = nextFreqListNode;
+
+		return EntryValidity.VALID;
+	}
+
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
+		// Check for backend overflow
+		if (context.elements === this.config.capacity) {
+			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
+		}
+
+		entry.key = key;
+		entry.freqParentItem = this.addToFreqList(entry);
+	}
+
+	public onUpdate(): void {
+		return undefined;
 	}
 
 	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {

@@ -1,11 +1,11 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy } from './abstract-expiration-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract-expiration-policy';
 import { createException, ErrorCodes } from '../../error';
-import { ExpirableCacheEntry } from '../../contracts/sync/expiration-policy';
 import { INFINITE_TTL } from '../../constants';
 import { CacheKey } from '../../contracts/sync/cache-backend';
+import { EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
 
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
@@ -36,21 +36,26 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 		this.cleanUpInterval = null;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		if (expiresAfter === INFINITE_TTL) {
+	public onGet(): EntryValidity {
+		// here we should find and remove item from heap, but it would be to expensive to do on each get
+		return EntryValidity.VALID;
+	}
+
+	public onSet(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
+		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
 			return;
 		}
 
-		super.setEntryExpiration(entry, expiresAfter, expiresFrom);
+		super.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
 		this.decorateEntry(entry, key);
 
 		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
 		const oldExpiration = entry.expiresAt;
 
-		super.onUpdate(key, entry, expiresAfter, expiresFrom);
+		super.onUpdate(key, entry, context);
 
 		const keyIndex = this.findKeyIndex(key);
 
@@ -72,11 +77,6 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 		// this is an update of item which had infinite timeout, now we need to track it
 		this.decorateEntry(entry, key);
 		return this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
-	}
-
-	public removeIfExpired(): boolean {
-		// here we should find and remove item from heap, but it would be to expensive to do on each get
-		return false;
 	}
 
 	public onDelete(key: Key): void {
