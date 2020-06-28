@@ -1,16 +1,17 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/dll-list';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
-import { CacheEntry } from '../../contracts/sync/cache-backend';
+import { CacheEntry, CacheKey } from '../../contracts/sync/cache-backend';
+
+const FREQ_PARENT_ITEM_SYM = Symbol.for('FREQ_PARENT_ITEM_SYM');
 
 interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
 	frequency: number;
 	list: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
 }
 
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
-	key: Key;
-	freqParentItem: FreqListNode<Key, Value>;
+interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+	[FREQ_PARENT_ITEM_SYM]: FreqListNode<Key, Value>;
 }
 
 interface LFUEvictionPolicyOptions {
@@ -36,26 +37,26 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		// get next freq item
-		let nextFreqListNode = entry.freqParentItem.next;
+		let nextFreqListNode = entry[FREQ_PARENT_ITEM_SYM][NEXT_SYM];
 
-		const nextFrequency = entry.freqParentItem.frequency + 1;
+		const nextFrequency = entry[FREQ_PARENT_ITEM_SYM].frequency + 1;
 
 		if (!nextFreqListNode || nextFreqListNode.frequency !== nextFrequency) {
 			nextFreqListNode = {
 				frequency: nextFrequency,
 				list: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
-				prev: null,
-				next: null
+				[PREV_SYM]: null,
+				[NEXT_SYM]: null
 			};
 
-			this.freqList.appendAfter(entry.freqParentItem, nextFreqListNode);
+			this.freqList.appendAfter(entry[FREQ_PARENT_ITEM_SYM], nextFreqListNode);
 		}
 
-		this.removeEvictableKeyNodeFromParentFreqNode(entry.freqParentItem, entry);
+		this.removeEvictableKeyNodeFromParentFreqNode(entry[FREQ_PARENT_ITEM_SYM], entry);
 		nextFreqListNode.list.addToFront(entry);
 
 		// Set the new parent
-		entry.freqParentItem = nextFreqListNode;
+		entry[FREQ_PARENT_ITEM_SYM] = nextFreqListNode;
 
 		return EntryValidity.VALID;
 	}
@@ -67,7 +68,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		}
 
 		entry.key = key;
-		entry.freqParentItem = this.addToFreqList(entry);
+		entry[FREQ_PARENT_ITEM_SYM] = this.addToFreqList(entry);
 	}
 
 	public onUpdate(): void {
@@ -75,7 +76,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 
 	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		this.removeEvictableKeyNodeFromParentFreqNode(entry.freqParentItem, entry);
+		this.removeEvictableKeyNodeFromParentFreqNode(entry[FREQ_PARENT_ITEM_SYM], entry);
 	}
 
 	public onClear(): void {
@@ -113,8 +114,8 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 			const freqListNode: FreqListNode<Key, Value> = {
 				frequency: 0,
 				list: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(evictableKeyNode),
-				next: null,
-				prev: null
+				[NEXT_SYM]: null,
+				[PREV_SYM]: null
 			};
 			this.freqList.addToFront(freqListNode);
 		} else {

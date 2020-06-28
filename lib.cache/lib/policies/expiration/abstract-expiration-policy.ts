@@ -5,15 +5,17 @@ import { INFINITE_TTL } from '../../constants';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
 import { CacheEntry } from '../../contracts/sync/cache-backend';
 
+const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
+
 interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
-	expiresAt?: UnixTimestamp;
+	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
 abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	protected delete!: Deleter<Key>;
 
 	public onGet(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
-		return this.doRemovalIfExpired(key, entry.expiresAt);
+		return this.doRemovalIfExpired(key, entry[EXPIRES_AT_SYM]);
 	}
 
 	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
@@ -25,7 +27,7 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
-			delete entry.expiresAt;
+			delete entry[EXPIRES_AT_SYM];
 			return;
 		}
 		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
@@ -60,9 +62,9 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 		const now = chrono.dateToUNIX();
 		const expiresAt = (expiresFrom || now) + expiresAfter;
 
-		AbstractExpirationPolicy.assertValidExpiresAt(entry.expiresAt, expiresAt, now);
+		AbstractExpirationPolicy.assertValidExpiresAt(entry[EXPIRES_AT_SYM], expiresAt, now);
 
-		entry.expiresAt = expiresAt;
+		entry[EXPIRES_AT_SYM] = expiresAt;
 	}
 
 	private static assertValidExpiresAt(oldExpiration: UnixTimestamp | undefined, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
@@ -76,4 +78,4 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 	}
 }
 
-export { AbstractExpirationPolicy, ExpirableCacheEntry };
+export { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM };

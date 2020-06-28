@@ -1,11 +1,9 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/dll-list';
-import { CacheEntry } from '../../contracts/sync/cache-backend';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM } from '../../helpers/dll-list';
+import { CacheEntry, CacheKey } from '../../contracts/sync/cache-backend';
 import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/sync/cache-policy';
 
-interface EvictableKeyNode<Key = string, Value = any> extends CacheEntry<Value>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
-	key: Key;
-}
+interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
 
 // FIXME original implementation: https://www.callicoder.com/design-lru-cache-data-structure/
 // FIXME other implementation (not used here): https://www.programcreek.com/2013/03/leetcode-lru-cache-java/
@@ -47,7 +45,7 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 			if (temp.key === key) {
 				return this.doublyLinkedList.removeNode(temp);
 			}
-			temp = temp.next;
+			temp = temp[NEXT_SYM];
 		}
 	}
 

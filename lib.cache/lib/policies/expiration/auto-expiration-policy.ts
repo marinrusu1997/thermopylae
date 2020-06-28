@@ -1,7 +1,7 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract-expiration-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
 import { CacheKey } from '../../contracts/sync/cache-backend';
@@ -13,7 +13,7 @@ interface CleanUpInterval {
 }
 
 interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {
-	expiresAt: UnixTimestamp;
+	[EXPIRES_AT_SYM]: UnixTimestamp;
 }
 
 class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpirationPolicy<Key, Value> {
@@ -25,10 +25,10 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 		super();
 
 		this.expirableKeys = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
-			if (first.expiresAt < second.expiresAt) {
+			if (first[EXPIRES_AT_SYM] < second[EXPIRES_AT_SYM]) {
 				return -1;
 			}
-			if (first.expiresAt > second.expiresAt) {
+			if (first[EXPIRES_AT_SYM] > second[EXPIRES_AT_SYM]) {
 				return 1;
 			}
 			return 0;
@@ -53,19 +53,19 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 	}
 
 	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
-		const oldExpiration = entry.expiresAt;
+		const oldExpiration = entry[EXPIRES_AT_SYM];
 
 		super.onUpdate(key, entry, context);
 
 		const keyIndex = this.findKeyIndex(key);
 
 		if (keyIndex !== -1) {
-			if (entry.expiresAt == null) {
+			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
 				return this.doDelete(keyIndex);
 			}
 
-			if (oldExpiration === entry.expiresAt) {
+			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
 				// item was set with a great ttl, time passes, then it's ttl decreased, but summed up, we have same expiration
 				return;
 			}
@@ -136,12 +136,12 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 		}
 
 		if (this.cleanUpInterval == null) {
-			return this.doStart(rootKey.expiresAt);
+			return this.doStart(rootKey[EXPIRES_AT_SYM]);
 		}
 
-		if (this.cleanUpInterval.willCleanUpOn !== rootKey.expiresAt) {
+		if (this.cleanUpInterval.willCleanUpOn !== rootKey[EXPIRES_AT_SYM]) {
 			clearTimeout(this.cleanUpInterval.timeoutId);
-			this.start(rootKey.expiresAt - chrono.dateToUNIX(), rootKey.expiresAt);
+			this.start(rootKey[EXPIRES_AT_SYM] - chrono.dateToUNIX(), rootKey[EXPIRES_AT_SYM]);
 		}
 	}
 
@@ -173,12 +173,12 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 			);
 		}
 
-		const rootKeyExpiresAt = toDelete.expiresAt;
+		const rootKeyExpiresAt = toDelete[EXPIRES_AT_SYM];
 
 		do {
 			this.delete(toDelete.key); /// removal from heap will be made by `onDelete` hook
 			toDelete = this.expirableKeys.peek();
-			if (toDelete && toDelete.expiresAt !== rootKeyExpiresAt) {
+			if (toDelete && toDelete[EXPIRES_AT_SYM] !== rootKeyExpiresAt) {
 				toDelete = undefined;
 			}
 		} while (toDelete !== undefined);

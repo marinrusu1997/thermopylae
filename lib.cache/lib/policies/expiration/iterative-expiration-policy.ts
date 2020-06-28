@@ -1,5 +1,5 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
-import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract-expiration-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
 import { CacheKey } from '../../contracts/sync/cache-backend';
 import { SetOperationContext } from '../../contracts/sync/cache-policy';
 
@@ -46,14 +46,14 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 
 	public onSet(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		super.onSet(key, entry, context);
-		if (entry.expiresAt && this.isIdle()) {
+		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
 			this.start();
 		}
 	}
 
 	public onUpdate(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		super.onUpdate(key, entry, context);
-		if (entry.expiresAt && this.isIdle()) {
+		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
 			this.start();
 		}
 	}
