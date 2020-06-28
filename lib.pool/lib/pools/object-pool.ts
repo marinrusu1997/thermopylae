@@ -1,16 +1,17 @@
 import DLL, { create, Node as Handle } from 'yallist';
+import { Undefinable } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../exception';
 
 type ObjectConstructor<Value> = (...args: Array<any>) => Value;
-type ObjectInitializer<Value> = (object: Value, ...args: Array<any>) => void;
-type ObjectDestructor<Value> = (object: Value) => any;
+type ObjectInitializer<Value> = (previous: Undefinable<Value>, ...args: Array<any>) => Value;
+type ObjectDestructor<Value> = (previous: Undefinable<Value>) => Undefinable<Value>;
 
 interface ObjectPoolConfig<Value> {
 	capacity: number;
 	constructor: ObjectConstructor<Value>;
 	initializer: ObjectInitializer<Value>;
 	destructor: ObjectDestructor<Value>;
-	initialFreeShapes?: Array<Value>;
+	initialFreeShapes?: Array<Undefinable<Value>>;
 }
 
 interface ObjectPoolStats {
@@ -21,9 +22,9 @@ interface ObjectPoolStats {
 class ObjectPool<Value> {
 	private readonly config: ObjectPoolConfig<Value>;
 
-	private readonly free: DLL<Value>;
+	private readonly free: DLL<Undefinable<Value>>;
 
-	private readonly used: DLL<Value>;
+	private readonly used: DLL<Undefinable<Value>>;
 
 	constructor(config: ObjectPoolConfig<Value>) {
 		this.config = ObjectPool.assertConfig(config);
@@ -35,12 +36,12 @@ class ObjectPool<Value> {
 
 	public preempt(object: Value): Handle<Value> {
 		this.used.push(object);
-		return this.used.tail!;
+		return this.used.tail as Handle<Value>; // there is a value
 	}
 
 	public acquire(...args: Array<any>): Handle<Value> {
 		if (this.free.head != null) {
-			this.config.initializer(this.free.head.value, ...args);
+			this.free.head.value = this.config.initializer(this.free.head.value, ...args);
 			this.used.pushNode(this.free.head);
 		} else {
 			if (this.used.length >= this.config.capacity) {
@@ -50,27 +51,30 @@ class ObjectPool<Value> {
 			this.used.push(this.config.constructor(...args));
 		}
 
-		return this.used.tail!;
+		return this.used.tail as Handle<Value>; // there is a value
 	}
 
-	public release(handle: Handle<Value>): any {
+	public releaseHandle(handle: Handle<Undefinable<Value>>): void {
+		handle.value = this.config.destructor(handle.value);
 		this.free.pushNode(handle);
-		return this.config.destructor(handle.value);
 	}
 
-	public releaseAll(): Array<any> {
-		if (!this.used.length) {
-			return [];
+	public releaseObject(object: Value): void {
+		let handle = this.used.head;
+		while (handle) {
+			if (handle.value === object) {
+				return this.releaseHandle(handle);
+			}
+			handle = handle.next;
 		}
+		throw createException(ErrorCodes.INVALID_PARAM, 'Provided object is not managed by pool.', object);
+	}
 
-		const destructorsResult = new Array<any>(this.used.length);
-		let i = 0;
+	public releaseAll(): void {
 		while (this.used.head != null) {
-			destructorsResult[i++] = this.config.destructor(this.used.head.value);
+			this.used.head.value = this.config.destructor(this.used.head.value);
 			this.free.pushNode(this.used.head);
 		}
-
-		return destructorsResult;
 	}
 
 	public get stats(): ObjectPoolStats {

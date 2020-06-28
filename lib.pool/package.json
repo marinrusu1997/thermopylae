@@ -7,7 +7,7 @@
         "resources",
         "pool"
     ],
-    "version": "0.0.1593352730",
+    "version": "0.0.1593357137",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

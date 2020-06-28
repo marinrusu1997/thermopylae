@@ -1,7 +1,7 @@
 import { number, string, array } from '@thermopylae/lib.utils';
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { Library } from '@thermopylae/core.declarations';
+import { Library, Undefinable } from '@thermopylae/core.declarations';
 import { ObjectPool, ObjectConstructor, ObjectDestructor, ObjectInitializer, ObjectPoolStats, Handle } from '../lib/pools/object-pool';
 import { ErrorCodes } from '../lib/exception';
 
@@ -13,16 +13,15 @@ interface ObjectShape {
 }
 
 const constructor: ObjectConstructor<ObjectShape> = (a: number, b: string): ObjectShape => ({ a, b });
-const destructor: ObjectDestructor<ObjectShape> = (shape): Promise<boolean> => {
-	// @ts-ignore
-	shape.a = undefined;
-	// @ts-ignore
-	shape.b = undefined;
-	return new Promise<boolean>((resolve) => setTimeout(resolve, 10, true));
-};
-const initializer: ObjectInitializer<ObjectShape> = (shape: ObjectShape, a: number, b: string) => {
-	shape.a = a;
-	shape.b = b;
+const destructor: ObjectDestructor<ObjectShape> = () => clearedShape();
+const initializer: ObjectInitializer<ObjectShape> = (shape, a: number, b: string) => {
+	if (shape !== undefined) {
+		shape.a = a;
+		shape.b = b;
+	} else {
+		shape = constructor(a, b);
+	}
+	return shape;
 };
 
 function shapeArgs(): [number, string] {
@@ -72,14 +71,13 @@ function stats(free: number, used: number): ObjectPoolStats {
 	return { free, used };
 }
 
-function clearedShape(): ObjectShape {
-	// @ts-ignore
-	return { a: undefined, b: undefined };
+function clearedShape(): Undefinable<ObjectShape> {
+	return undefined;
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${ObjectPool.name} spec`, () => {
-	it('constructs pool with initial values, acquires, then releases them all', async () => {
+	it('constructs pool with initial values, acquires, then releases them all', () => {
 		const shapesNo = 10;
 		const initialShapes = initialFreeShapes(shapesNo);
 
@@ -94,9 +92,8 @@ describe(`${ObjectPool.name} spec`, () => {
 			expect(acquired).to.be.deep.eq(initialShapes[usedNo]); // initializer did his job
 		}
 
-		const releases = objectPool.releaseAll();
+		objectPool.releaseAll();
 		expect(objectPool.stats).to.be.deep.eq(stats(shapesNo, 0));
-		expect(await Promise.all(releases)).to.be.equalTo(array.filledWith(shapesNo, true));
 	});
 
 	it('fails to construct poll when capacity is lower or equal to 0', () => {
@@ -163,25 +160,74 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(equals(ObjectPool.value(created), ObjectPool.value(recycled), Comparison.REFERENCE)).to.be.eq(false);
 	});
 
-	it('releases object', async () => {
+	it('releases handle', () => {
 		const objectPool = objectPoolFactory();
 		const args = shapeArgs();
 
 		const acquired = objectPool.acquire(...args);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
-		const released = objectPool.release(acquired);
+
+		objectPool.releaseHandle(acquired);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
 
-		expect(await released).to.be.eq(true);
 		expect(ObjectPool.value(acquired));
+	});
+
+	it('releases object', () => {
+		const objectPool = objectPoolFactory();
+		const args = shapeArgs();
+
+		const acquired = objectPool.acquire(...args);
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
+		expect(ObjectPool.value(acquired)).to.be.deep.eq(constructor(...args));
+
+		objectPool.releaseObject(ObjectPool.value(acquired));
+		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
+
+		const reargs = shapeArgs();
+		const reacquired = objectPool.acquire(...reargs);
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
+		expect(ObjectPool.value(reacquired)).to.be.deep.eq(constructor(...reargs));
+		expect(ObjectPool.value(reacquired)).to.not.be.deep.eq(constructor(...args));
+	});
+
+	it('fails to release object not managed by pool', () => {
+		const objectPool = objectPoolFactory();
+		const args = shapeArgs();
+
+		const acquiredFirst = objectPool.acquire(...args);
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
+		expect(ObjectPool.value(acquiredFirst)).to.be.deep.eq(constructor(...args));
+
+		const acquiredSecond = objectPool.acquire(...args);
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 2));
+		expect(ObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...args));
+
+		const toRelease = {};
+		let err;
+		try {
+			// @ts-ignore
+			objectPool.releaseObject(toRelease);
+		} catch (e) {
+			err = e;
+		}
+
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 2));
+
+		expect(err.emitter).to.be.eq(Library.POOL);
+		expect(err.code).to.be.eq(ErrorCodes.INVALID_PARAM);
+		expect(err.message).to.be.eq('Provided object is not managed by pool.');
+		expect(equals(err.cause, toRelease, Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true);
 	});
 
 	it('releases nothing if there are no objects', () => {
 		const objectPool = objectPoolFactory();
-		expect(objectPool.releaseAll()).to.be.equalTo([]);
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
+		objectPool.releaseAll();
+		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
 	});
 
-	it('preempts object', async () => {
+	it('preempts object', () => {
 		const objectPool = objectPoolFactory();
 		const object = constructor(...shapeArgs());
 
@@ -189,13 +235,12 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 		expect(equals(ObjectPool.value(preempted), object, Comparison.VALUE | Comparison.REFERENCE)).to.be.eq(true);
 
-		const released = objectPool.release(preempted);
+		objectPool.releaseHandle(preempted);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(await released).to.be.eq(true);
 		expect(equals(ObjectPool.value(preempted), clearedShape(), Comparison.VALUE)).to.be.eq(true);
 	});
 
-	it('reuses nodes', async () => {
+	it('reuses nodes', () => {
 		const objectPool = objectPoolFactory();
 
 		const firstArgs = shapeArgs();
@@ -205,21 +250,19 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 		expect(ObjectPool.value(acquiredFirst)).to.be.deep.eq(constructor(...firstArgs));
 
-		const releasedFirst = objectPool.release(acquiredFirst);
+		objectPool.releaseHandle(acquiredFirst);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(await releasedFirst).to.be.eq(true);
 
 		const acquiredSecond = objectPool.acquire(...secondArgs);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 		expect(equals(acquiredFirst, acquiredSecond, Comparison.REFERENCE)).to.be.eq(true); // reused
 		expect(ObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...secondArgs));
 
-		const releasedSecond = objectPool.release(acquiredSecond);
+		objectPool.releaseHandle(acquiredSecond);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(await releasedSecond).to.be.eq(true);
 	});
 
-	it('reuses initial nodes', async () => {
+	it('reuses initial nodes', () => {
 		const initialNo = 10;
 		const initial = initialFreeShapes(initialNo);
 		const objectPool = objectPoolFactory(Infinity, initial);
@@ -243,21 +286,19 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(ObjectPool.value(acquiredFirst)).to.be.deep.eq(constructor(...firstArgs));
 		expect(reusedObjectFromInitialShapes(ObjectPool.value(acquiredFirst))).to.be.eq(true);
 
-		const releasedFirst = objectPool.release(acquiredFirst);
+		objectPool.releaseHandle(acquiredFirst);
 		expect(objectPool.stats).to.be.deep.eq(stats(initialNo, 0));
-		expect(await releasedFirst).to.be.eq(true);
 
 		const acquiredSecond = objectPool.acquire(...secondArgs);
 		expect(objectPool.stats).to.be.deep.eq(stats(initialNo - 1, 1));
 		expect(ObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...secondArgs));
 		expect(reusedObjectFromInitialShapes(ObjectPool.value(acquiredSecond))).to.be.eq(true); // reused
 
-		const releasedSecond = objectPool.release(acquiredSecond);
+		objectPool.releaseHandle(acquiredSecond);
 		expect(objectPool.stats).to.be.deep.eq(stats(initialNo, 0));
-		expect(await releasedSecond).to.be.eq(true);
 	});
 
-	it('reuses objects from nodes', async () => {
+	it('reuses objects from nodes', () => {
 		const objectPool = objectPoolFactory();
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
 
@@ -268,9 +309,8 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 		expect(ObjectPool.value(acquiredFirst)).to.be.deep.eq(constructor(...firstArgs)); // constructed
 
-		const releasedFirst = objectPool.release(acquiredFirst);
+		objectPool.releaseHandle(acquiredFirst);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(await releasedFirst).to.be.eq(true);
 
 		const acquiredSecond = objectPool.acquire(...secondArgs);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
@@ -278,9 +318,8 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(equals(acquiredFirst, acquiredSecond, Comparison.REFERENCE)).to.be.eq(true); // reused node
 		expect(equals(ObjectPool.value(acquiredFirst), ObjectPool.value(acquiredSecond), Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true); // reused object
 
-		const releasedSecond = objectPool.release(acquiredSecond);
+		objectPool.releaseHandle(acquiredSecond);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(await releasedSecond).to.be.eq(true);
 	});
 
 	it('reuses memory', () => {
@@ -298,7 +337,7 @@ describe(`${ObjectPool.name} spec`, () => {
 		// play a lil bit
 		const reacquired = new Array<Handle<ObjectShape>>(MAX_ITER);
 		for (let i = 0; i < MAX_ITER; i++) {
-			objectPool.release(acquired[i]);
+			objectPool.releaseHandle(acquired[i]);
 			reacquired[i] = objectPool.acquire(...args);
 		}
 
@@ -328,5 +367,34 @@ describe(`${ObjectPool.name} spec`, () => {
 
 		expect(() => objectPool.acquire(...shapeArgs())).to.throw(`Limit of ${capacity} has been reached.`);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
+	});
+
+	it('acquires and releases primitives', () => {
+		const ITERATIONS = 2;
+		const capacity = 10;
+
+		const objectPool = new ObjectPool<string>({
+			capacity,
+			initialFreeShapes: array.filledWith(capacity, ''),
+			constructor: (value: string) => value,
+			destructor: () => undefined,
+			initializer: (_previous, value: string) => value
+		});
+
+		for (let k = 0; k < ITERATIONS; k++) {
+			const acquired = new Array<Handle<string>>(capacity);
+			for (let i = 0; i < capacity; i++) {
+				const value = string.generateStringOfLength(5);
+				acquired[i] = objectPool.acquire(value);
+
+				expect(objectPool.stats).to.be.deep.eq(stats(capacity - i - 1, i + 1));
+				expect(ObjectPool.value(acquired[i])).to.be.deep.eq(value);
+			}
+
+			for (let i = 0; i < capacity; i++) {
+				objectPool.releaseHandle(acquired[i]);
+				expect(objectPool.stats).to.be.deep.eq(stats(i + 1, capacity - i - 1));
+			}
+		}
 	});
 });
