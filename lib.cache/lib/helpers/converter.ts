@@ -1,8 +1,9 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { Cache, CachedItem, CacheStats, EventListener, EventType } from '../contracts/cache';
-import { AsyncCache } from '../contracts/async-cache';
+import { CacheFrontend, CachedItem, EventListener, EventType } from '../contracts/sync/cache-frontend';
+import { AsyncCache } from '../contracts/async/async-cache';
+import { CacheStats } from '../contracts/sync/cache-middleend';
 
-function convert<K, V>(cache: Cache<K, V>): AsyncCache<K, V> {
+function convert<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
 	return {
 		set(key: K, value: V, ttl?: Seconds, from?: UnixTimestamp): Promise<void> {
 			try {
@@ -122,7 +123,7 @@ function convert<K, V>(cache: Cache<K, V>): AsyncCache<K, V> {
 }
 
 class Converter {
-	public static toAsync<K, V>(cache: Cache<K, V>): AsyncCache<K, V> {
+	public static toAsync<K, V>(cache: CacheFrontend<K, V>): AsyncCache<K, V> {
 		return convert(cache);
 	}
 }

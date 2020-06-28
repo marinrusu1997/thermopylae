@@ -1,8 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { EvictionPolicy } from '../contracts/eviction-policy';
-import { CacheEntry } from '../contracts/cache';
-import { INFINITE_KEYS } from '../constants';
-import { createException, ErrorCodes } from '../error';
+import { EvictionPolicy } from '../../contracts/sync/eviction-policy';
+import { INFINITE_KEYS } from '../../constants';
+import { createException, ErrorCodes } from '../../error';
+import { CacheEntry } from '../../contracts/sync/cache-backend';
 
 class NoEvictionPolicy<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements EvictionPolicy<Key, Value, Entry> {
 	private readonly capacity: Threshold;

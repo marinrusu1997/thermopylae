@@ -1,8 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { DoublyLinkedList, DoublyLinkedListNode } from '../helpers/dll-list';
-import { EvictionPolicy } from '../contracts/eviction-policy';
-import { CacheEntry } from '../contracts/cache';
-import { Deleter } from '../contracts/cache-policy';
+import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/dll-list';
+import { EvictionPolicy } from '../../contracts/sync/eviction-policy';
+import { Deleter } from '../../contracts/sync/cache-policy';
+import { CacheEntry } from '../../contracts/sync/cache-backend';
 
 interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
 	frequency: number;
@@ -36,7 +36,7 @@ class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, Evicta
 	}
 
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, size: number): void {
-		// Check for cache overflow
+		// Check for backend overflow
 		if (size === this.config.capacity) {
 			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}

@@ -2,10 +2,10 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.collections';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
-import { CacheKey } from '../contracts/cache';
-import { createException, ErrorCodes } from '../error';
-import { ExpirableCacheEntry } from '../contracts/expiration-policy';
-import { INFINITE_TTL } from '../constants';
+import { createException, ErrorCodes } from '../../error';
+import { ExpirableCacheEntry } from '../../contracts/sync/expiration-policy';
+import { INFINITE_TTL } from '../../constants';
+import CacheKey from '../../contracts/sync/cache-backend';
 
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;

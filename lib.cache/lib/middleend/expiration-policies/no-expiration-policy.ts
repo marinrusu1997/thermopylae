@@ -1,7 +1,6 @@
-import { ExpirationPolicy } from '../contracts/expiration-policy';
-import { CacheEntry } from '../contracts/cache';
+import { ExpirationPolicy } from '../../contracts/sync/expiration-policy';
 
-class NoExpirationPolicy<Key, Value, Entry extends CacheEntry<Value>> implements ExpirationPolicy<Key, Value, Entry> {
+class NoExpirationPolicy<Key, Value> implements ExpirationPolicy<Key, Value> {
 	get requiresEntryOnDeletion(): boolean {
 		return false;
 	}

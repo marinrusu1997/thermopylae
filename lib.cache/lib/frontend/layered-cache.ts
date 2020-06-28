@@ -2,14 +2,15 @@ import { concurrency } from '@thermopylae/lib.async';
 import { Index, Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import debounce from 'lodash.debounce';
 import { LockedOperation } from '@thermopylae/lib.async/dist/concurrency';
-import { CacheStats, EventListener, EventType } from '../contracts/cache';
-import { AsyncCache } from '../contracts/async-cache';
+import { EventListener, EventType } from '../contracts/sync/cache-frontend';
+import { AsyncCache } from '../contracts/async/async-cache';
 import { NOT_FOUND_VALUE } from '../constants';
 import { createException, ErrorCodes } from '../error';
+import { CacheStats } from '../contracts/sync/cache-middleend';
 
 const { LockedOperation, LabeledConditionalVariable } = concurrency;
 
-type Retriever<K, V> = (key: K) => Promise<V | undefined>;
+type Retriever<K, V> = (key: K) => Promise<Undefinable<V>>;
 
 type LayerId = Label | number;
 

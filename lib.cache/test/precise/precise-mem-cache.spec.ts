@@ -9,7 +9,7 @@ const { expect } = chai;
 
 describe('AutoExpirableCache spec', () => {
 	describe('constructor spec', () => {
-		it('creates mem cache using default config', done => {
+		it('creates mem backend using default config', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			const KEY = 'key';
 			const VALUE = {
@@ -29,7 +29,7 @@ describe('AutoExpirableCache spec', () => {
 			}, 1000);
 		});
 
-		it('creates mem cache using explicit config', done => {
+		it('creates mem backend using explicit config', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { useClones: true, defaultTtlSec: 1 });
 			const KEY = 'key';
 			const VALUE = {
@@ -282,7 +282,7 @@ describe('AutoExpirableCache spec', () => {
 
 			preciseMemCache.upset('key3', `value3.4`, 1);
 
-			// now cache is clear
+			// now backend is clear
 			await chrono.sleep(100);
 			expect(preciseMemCache.keys()).to.be.equalTo(['key3']);
 			expect(preciseMemCache.get('key3')).to.be.eq('value3.4');
@@ -320,7 +320,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('has spec', () => {
-		it('returns positive answer when key is present in cache', () => {
+		it('returns positive answer when key is present in backend', () => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			const items = [
 				{ key: 'key1', value: 'value1' },
@@ -334,7 +334,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('clear spec', () => {
-		it('clears internal cache and gc tracked keys on clear', done => {
+		it('clears internal backend and gc tracked keys on clear', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache);
 			const KEY = 'key';
 			const VALUE = 'value';
@@ -348,7 +348,7 @@ describe('AutoExpirableCache spec', () => {
 	});
 
 	describe('events spec', () => {
-		it('fires set event when new item added to cache', done => {
+		it('fires set event when new item added to backend', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 			const KEY = 'key';
 			const VALUE = 'value';
@@ -360,7 +360,7 @@ describe('AutoExpirableCache spec', () => {
 			preciseMemCache.set(KEY, VALUE);
 		});
 
-		it('fires set event when multiple keys added to cache', done => {
+		it('fires set event when multiple keys added to backend', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 			const KEYS = ['key1', 'key2'];
 			const VALUES = ['value1', 'value2'];
@@ -471,7 +471,7 @@ describe('AutoExpirableCache spec', () => {
 			});
 		});
 
-		it('fires clear event when cache was cleared', done => {
+		it('fires clear event when backend was cleared', done => {
 			const preciseMemCache = cacheFactory<AutoExpirableCache>(AutoExpirableCache, { defaultTtlSec: INFINITE_TTL });
 			const KEY = 'key';
 			const VALUE = 'value';

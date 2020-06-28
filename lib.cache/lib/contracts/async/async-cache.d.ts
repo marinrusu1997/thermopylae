@@ -1,5 +1,6 @@
 import { Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheStats, EventListener, EventType } from './cache';
+import { EventListener, EventType } from '../sync/cache-frontend';
+import { CacheStats } from '../sync/cache-middleend';
 
 declare interface AsyncCache<Key, Value> {
 	readonly name: Label;

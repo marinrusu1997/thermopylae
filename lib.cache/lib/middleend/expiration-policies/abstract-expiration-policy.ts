@@ -1,9 +1,9 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { ExpirableCacheEntry, ExpirationPolicy } from '../contracts/expiration-policy';
-import { createException, ErrorCodes } from '../error';
-import { INFINITE_TTL } from '../constants';
-import { Deleter } from '../contracts/cache-policy';
+import { ExpirableCacheEntry, ExpirationPolicy } from '../../contracts/sync/expiration-policy';
+import { createException, ErrorCodes } from '../../error';
+import { INFINITE_TTL } from '../../constants';
+import { Deleter } from '../../contracts/sync/cache-policy';
 
 abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>>
 	implements ExpirationPolicy<Key, Value, Entry> {

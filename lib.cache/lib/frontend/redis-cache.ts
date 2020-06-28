@@ -1,5 +1,5 @@
 import { RedisClient } from 'redis';
-import { AsyncCache } from '../contracts/async-cache';
+import { AsyncCache } from '../contracts/async/async-cache';
 
 interface RedisCacheOptions<K, V> {
 	client: RedisClient;

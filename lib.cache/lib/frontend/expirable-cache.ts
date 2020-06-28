@@ -1,10 +1,10 @@
 import { Seconds, Threshold } from '@thermopylae/core.declarations';
-import { MemCache, MemCacheConfig } from './mem-cache';
-import { IterativeExpirationPolicy } from '../expiration-policies';
-import { CacheEntry } from '../contracts/cache';
-import { EvictionPolicy } from '../contracts/eviction-policy';
+import { MemCache, MemCacheOptions } from './mem-cache';
+import { IterativeExpirationPolicy } from '../middleend/expiration-policies';
+import { EvictionPolicy } from '../contracts/sync/eviction-policy';
+import { CacheEntry } from '../contracts/sync/cache-backend';
 
-interface ExpirableCacheOptions<Key, Value, Entry> extends MemCacheConfig<Key, Value, Entry> {
+interface ExpirableCacheOptions<Key, Value, Entry> extends MemCacheOptions<Key, Value, Entry> {
 	checkInterval?: Seconds;
 	iterateThreshold?: Threshold;
 }
@@ -20,7 +20,7 @@ class ExpirableCache<Key = string, Value = any, Entry extends CacheEntry<Value> 
 					const entry = this.iterator.next();
 
 					if (entry.done) {
-						this.iterator = this.cache[Symbol.iterator](); // reposition to beginning
+						this.iterator = this.middleend[Symbol.iterator](); // reposition to beginning
 						return null;
 					}
 
@@ -30,14 +30,14 @@ class ExpirableCache<Key = string, Value = any, Entry extends CacheEntry<Value> 
 
 					return { key: entry.value[0], expiresAt };
 				},
-				collectionSize: (): number => this.cache.size,
+				collectionSize: (): number => this.middleend.size,
 				checkInterval: options.checkInterval,
 				iterateThreshold: options.iterateThreshold
 			}),
 			evictionPolicy
 		);
 
-		this.iterator = this.cache[Symbol.iterator]();
+		this.iterator = this.middleend[Symbol.iterator]();
 	}
 }
 

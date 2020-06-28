@@ -1,23 +1,11 @@
 import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { CacheStats } from './cache-middleend';
 
-declare interface CacheStats {
-	hits: number;
-	misses: number;
-}
-
-declare interface CacheKey<Key> {
-	key: Key;
-}
-
-declare interface CacheEntry<Value> {
-	value: Value;
-}
-
-declare type EventType = 'set' | 'update' | 'del' | 'expired' | 'evicted' | 'flush';
+declare type EventType = 'set' | 'update' | 'del' | 'flush';
 
 declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
-declare interface Cache<Key, Value> {
+declare interface CacheFrontend<Key, Value> {
 	readonly name: Label;
 
 	set(key: Key, value: Value, ttl?: Seconds, from?: UnixTimestamp): this;
@@ -38,15 +26,15 @@ declare interface Cache<Key, Value> {
 
 	has(key: Key): boolean;
 
-	stats(): CacheStats;
-
 	clear(): void;
 
-	empty(): boolean;
+	readonly empty: boolean;
 
 	readonly size: number;
+
+	readonly stats: CacheStats;
 
 	on(event: EventType, listener: EventListener<Key, Value>): this;
 }
 
-export { Cache, CacheKey, CacheEntry, CacheStats, EventType, EventListener };
+export { CacheFrontend, EventType, EventListener };
