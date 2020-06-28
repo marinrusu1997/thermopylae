@@ -4,14 +4,14 @@ import { INFINITE_KEYS } from '../../constants';
 import { createException, ErrorCodes } from '../../error';
 import { CacheEntry } from '../../contracts/sync/cache-backend';
 
-class NoEvictionPolicy<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements EvictionPolicy<Key, Value, Entry> {
+class NoEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	constructor(capacity: Threshold) {
 		this.capacity = capacity;
 	}
 
-	public onSet(_key: Key, _entry: Entry, size: number): void {
+	public onSet(_key: Key, _entry: CacheEntry<Value>, size: number): void {
 		if (this.capacity !== INFINITE_KEYS && size >= this.capacity) {
 			throw createException(ErrorCodes.CACHE_FULL, `Limit of ${this.capacity} has been reached and ${this.constructor.name} has been set. `);
 		}

@@ -6,7 +6,7 @@ import { CacheFrontend, EventListener, EventType } from '../contracts/sync/cache
 import { NoExpirationPolicy } from '../middleend/expiration-policies';
 import { NoEvictionPolicy } from '../middleend/eviction-policies/no-eviction-policy';
 import { TtlRegistry } from '../helpers/ttl-registry';
-import { EsMapBackend } from '../backend/es-map-backend';
+import { EsMapBackend } from '../backend/sync/es-map-backend';
 import { PolicyMiddleEnd } from '../middleend/policy-middleend';
 import { CacheMiddleEnd, CacheStats } from '../contracts/sync/cache-middleend';
 

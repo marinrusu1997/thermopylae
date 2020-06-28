@@ -11,7 +11,7 @@ interface EvictableKeyNode<Key = string, Value = any> extends CacheEntry<Value>,
 // FIXME original implementation: https://www.callicoder.com/design-lru-cache-data-structure/
 // FIXME other implementation (not used here): https://www.programcreek.com/2013/03/leetcode-lru-cache-java/
 
-class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
+class LRUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	private delete!: Deleter<Key>;

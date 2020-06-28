@@ -19,7 +19,7 @@ interface LFUEvictionPolicyOptions {
 	bucketEvictCount: number;
 }
 
-class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value, EvictableKeyNode<Key, Value>> {
+class LFUEvictionPolicy<Key, Value> implements EvictionPolicy<Key, Value> {
 	private readonly config: LFUEvictionPolicyOptions;
 
 	private delete: Deleter<Key>;

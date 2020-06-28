@@ -28,6 +28,16 @@ function stageTsConfig(done) {
   });
 }
 
+function tscVersion() {
+  const tsc = spawn("tsc", ['--version'], constants.SPAWN_OPTIONS);
+  tsc.on("close", code => {
+    if (code !== 0) {
+        throw new Error(`tsc --version exit code ${code}.`);
+    }
+  });
+  return tsc;
+}
+
 function transpile() {
   const tsc = spawn("tsc", [], constants.SPAWN_OPTIONS);
   tsc.on("close", code => {
@@ -56,7 +66,7 @@ function unStageTsConfig(done) {
 
 function buildFactory(module, gulp) {
   if (module === constants.ModuleLang.TS) {
-    return gulp.series(stageTsConfig, transpile, unStageTsConfig);
+    return gulp.series(stageTsConfig, tscVersion, transpile, unStageTsConfig);
   }
 }
 

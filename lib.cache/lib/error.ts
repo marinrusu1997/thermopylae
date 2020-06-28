@@ -18,7 +18,7 @@ const enum ErrorCodes {
 }
 
 function createException(code: string, message: string, cause?: Record<string, unknown>): Exception {
-	return new Exception(Library.MEM_CACHE, code, message, cause);
+	return new Exception(Library.CACHE, code, message, cause);
 }
 
 export { createException, ErrorCodes };

@@ -5,7 +5,7 @@ import { AbstractExpirationPolicy } from './abstract-expiration-policy';
 import { createException, ErrorCodes } from '../../error';
 import { ExpirableCacheEntry } from '../../contracts/sync/expiration-policy';
 import { INFINITE_TTL } from '../../constants';
-import CacheKey from '../../contracts/sync/cache-backend';
+import { CacheKey } from '../../contracts/sync/cache-backend';
 
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
@@ -16,11 +16,7 @@ interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCac
 	expiresAt: UnixTimestamp;
 }
 
-class AutoExpirationPolicy<
-	Key = string,
-	Value = any,
-	Entry extends ExpirableCacheEntry<Value> = ExpirableCacheKeyEntry<Key, Value>
-> extends AbstractExpirationPolicy<Key, Value, Entry> {
+class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpirationPolicy<Key, Value> {
 	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
 
 	private cleanUpInterval: CleanUpInterval | null;
@@ -40,7 +36,7 @@ class AutoExpirationPolicy<
 		this.cleanUpInterval = null;
 	}
 
-	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onSet(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		if (expiresAfter === INFINITE_TTL) {
 			return;
 		}
@@ -51,7 +47,7 @@ class AutoExpirationPolicy<
 		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
 	}
 
-	public onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		const oldExpiration = entry.expiresAt;
 
 		super.onUpdate(key, entry, expiresAfter, expiresFrom);
@@ -107,7 +103,7 @@ class AutoExpirationPolicy<
 		return this.expirableKeys.findIndex(equals);
 	}
 
-	private decorateEntry(entry: Entry, key: Key): void {
+	private decorateEntry(entry: ExpirableCacheKeyEntry<Key, Value>, key: Key): void {
 		// @ts-ignore
 		entry.key = key;
 	}

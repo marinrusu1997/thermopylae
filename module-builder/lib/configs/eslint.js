@@ -45,6 +45,7 @@ module.exports = {
 		"no-undef": "warn",
 		"no-cond-assign": "warn",
 		"no-restricted-syntax": "warn",
+		"no-bitwise": "warn",
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 
 		"import/no-unresolved": [

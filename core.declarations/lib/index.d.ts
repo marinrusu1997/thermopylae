@@ -16,9 +16,10 @@ export interface PromiseHolder<T> {
 
 export const enum Library {
 	ASYNC = 'LIB_ASYNC',
+	CACHE = 'LIB_CACHE',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
-	CACHE = 'LIB_CACHE',
+	POOL = 'LIB_POOL',
 	UTILS = 'LIB_UTILS'
 }
 

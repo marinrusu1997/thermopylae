@@ -5,22 +5,21 @@ import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
 import { Deleter } from '../../contracts/sync/cache-policy';
 
-abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>>
-	implements ExpirationPolicy<Key, Value, Entry> {
+abstract class AbstractExpirationPolicy<Key, Value> implements ExpirationPolicy<Key, Value> {
 	protected delete!: Deleter<Key>;
 
 	get requiresEntryOnDeletion(): boolean {
 		return false;
 	}
 
-	public onSet(_key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		if (expiresAfter === INFINITE_TTL) {
 			return;
 		}
 		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
 	}
 
-	public onUpdate(_key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		if (expiresAfter === INFINITE_TTL) {
 			delete entry.expiresAt;
 			return;
@@ -28,11 +27,11 @@ abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCache
 		this.setEntryExpiration(entry, expiresAfter, expiresFrom);
 	}
 
-	public removeIfExpired(key: Key, entry: Entry): boolean {
+	public removeIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): boolean {
 		return this.doRemovalIfExpired(key, entry.expiresAt);
 	}
 
-	public onDelete(_key: Key, _entry?: Entry): void {
+	public onDelete(_key: Key, _entry?: ExpirableCacheEntry<Value>): void {
 		return undefined; // just do nothing
 	}
 
@@ -52,7 +51,7 @@ abstract class AbstractExpirationPolicy<Key, Value, Entry extends ExpirableCache
 		return expired;
 	}
 
-	protected setEntryExpiration(entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	protected setEntryExpiration(entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		const now = chrono.dateToUNIX();
 		const expiresAt = (expiresFrom || now) + expiresAfter;
 

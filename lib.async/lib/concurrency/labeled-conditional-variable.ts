@@ -1,5 +1,3 @@
-/* eslint no-bitwise: 0 */ // --> OFF
-
 import { AsyncFunction, Milliseconds, PromiseHolder, UnaryPredicate, Optional } from '@thermopylae/core.declarations';
 import { ErrorCodes, createException } from '../exception';
 import { buildPromiseHolder } from './utils';

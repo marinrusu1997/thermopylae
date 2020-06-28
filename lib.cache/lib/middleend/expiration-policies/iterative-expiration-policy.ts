@@ -1,7 +1,7 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
 import { AbstractExpirationPolicy } from './abstract-expiration-policy';
 import { ExpirableCacheEntry } from '../../contracts/sync/expiration-policy';
-import CacheKey from '../../contracts/sync/cache-backend';
+import { CacheKey } from '../../contracts/sync/cache-backend';
 
 type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;
 
@@ -23,11 +23,7 @@ interface ExpirableCacheKey<Key> extends CacheKey<Key> {
 	expiresAt?: UnixTimestamp;
 }
 
-class IterativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Value> = ExpirableCacheEntry<Value>> extends AbstractExpirationPolicy<
-	Key,
-	Value,
-	Entry
-> {
+class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
 	private readonly config: Config<Key>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null;
@@ -48,14 +44,14 @@ class IterativeExpirationPolicy<Key, Value, Entry extends ExpirableCacheEntry<Va
 		delete this.config.collectionSize;
 	}
 
-	public onSet(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onSet(key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		super.onSet(key, entry, expiresAfter, expiresFrom);
 		if (entry.expiresAt && this.isIdle()) {
 			this.start();
 		}
 	}
 
-	public onUpdate(key: Key, entry: Entry, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	public onUpdate(key: Key, entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		super.onUpdate(key, entry, expiresAfter, expiresFrom);
 		if (entry.expiresAt && this.isIdle()) {
 			this.start();

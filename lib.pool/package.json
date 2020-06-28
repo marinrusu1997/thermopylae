@@ -1,13 +1,13 @@
 {
-    "name": "@thermopylae/lib.async",
-    "description": "Utilities for async operations and concurrency",
+    "name": "@thermopylae/lib.pool",
+    "description": "Resources pool.",
     "keywords": [
         "thermopylae",
-        "library",
-        "async",
-        "concurrency"
+        "module",
+        "resources",
+        "pool"
     ],
-    "version": "0.0.1593351821",
+    "version": "0.0.1593352730",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -31,14 +31,14 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
-        "tiny-async-pool": "1"
+        "yallist": "4"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
-        "@types/tiny-async-pool": "1"
+        "@types/yallist": "3"
     },
     "peerDependencies": {
         "mocha": "8",
