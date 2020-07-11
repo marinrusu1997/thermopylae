@@ -1,12 +1,5 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-
-declare interface CacheKey<Key> {
-	key: Key;
-}
-
-declare interface CacheEntry<Value> {
-	value: Value;
-}
+import { CacheEntry } from '../commons';
 
 declare interface CacheBackend<Key, Value> {
 	get(key: Key): Undefinable<CacheEntry<Value>>;
@@ -20,4 +13,4 @@ declare interface CacheBackend<Key, Value> {
 	readonly size: number;
 }
 
-export { CacheKey, CacheEntry, CacheBackend };
+export { CacheBackend };

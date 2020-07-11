@@ -4,8 +4,8 @@ import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { CacheKey } from '../../contracts/sync/cache-backend';
 import { EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
+import { CacheKey } from '../../contracts/commons';
 
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;

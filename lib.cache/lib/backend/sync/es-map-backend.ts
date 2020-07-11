@@ -1,5 +1,6 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheBackend, CacheEntry } from '../../contracts/sync/cache-backend';
+import { CacheBackend } from '../../contracts/sync/cache-backend';
+import CacheEntry from '../../contracts/commons';
 
 class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, CacheEntry<Value>>;

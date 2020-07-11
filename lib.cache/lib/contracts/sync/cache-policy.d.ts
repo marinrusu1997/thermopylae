@@ -1,5 +1,5 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheEntry } from './cache-backend.d.ts';
+import { CacheEntry } from '../commons';
 
 declare type Deleter<Key = string> = (key: Key) => void;
 

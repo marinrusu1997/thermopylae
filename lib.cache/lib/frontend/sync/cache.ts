@@ -15,16 +15,16 @@ interface MemCacheOptions<Key, Value> {
 	middleend: CacheMiddleEnd<Key, Value>;
 }
 
-class MemCache<Key = string, Value = any> extends EventEmitter implements CacheFrontend<Key, Value> {
+class Cache<Key = string, Value = any> extends EventEmitter implements CacheFrontend<Key, Value> {
 	protected readonly config: MemCacheOptions<Key, Value>;
 
 	constructor(options?: Partial<MemCacheOptions<Key, Value>>) {
 		super();
-		this.config = MemCache.fillWithDefaults(options);
+		this.config = Cache.fillWithDefaults(options);
 	}
 
 	public get name(): Label {
-		return MemCache.name;
+		return Cache.name;
 	}
 
 	/**
@@ -137,4 +137,4 @@ class MemCache<Key = string, Value = any> extends EventEmitter implements CacheF
 	}
 }
 
-export { MemCache, MemCacheOptions };
+export { Cache, MemCacheOptions };

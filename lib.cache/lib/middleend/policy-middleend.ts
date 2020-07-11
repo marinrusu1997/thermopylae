@@ -1,9 +1,10 @@
 import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheBackend, CacheEntry } from '../contracts/sync/cache-backend';
+import { CacheBackend } from '../contracts/sync/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CachePolicy, EntryValidity, SetOperationContext } from '../contracts/sync/cache-policy';
 import { CacheMiddleEnd } from '../contracts/sync/cache-middleend';
 import CacheStats from '../contracts/commons';
+import CacheEntry from '../contracts/commons';
 
 class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	private readonly backend: CacheBackend<K, V>;

@@ -1,7 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
-import { CacheEntry, CacheKey } from '../../contracts/sync/cache-backend';
+import CacheEntry from '../../contracts/commons';
+import CacheKey from '../../contracts/commons';
 
 const FREQ_PARENT_ITEM_SYM = Symbol.for('FREQ_PARENT_ITEM_SYM');
 

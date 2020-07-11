@@ -1,7 +1,7 @@
 import { AsyncCacheFrontend } from '../../contracts/async/async-cache-frontend';
-import { MemCache } from '../sync/mem-cache';
+import { Cache } from '../sync/cache';
 import { CacheFrontend } from '../../contracts/sync/cache-frontend';
-import { CacheEntry } from '../../contracts/sync/cache-backend';
+import { CacheEntry } from '../../contracts/commons';
 
 type Retriever<K, V> = (key: K) => Promise<V>;
 
@@ -16,7 +16,7 @@ class RenewableCache<Key = string, Value = any, Entry extends CacheEntry<Value> 
 	private readonly retriever: Retriever<Key, Value>;
 
 	constructor(opts: RenewableCacheOptions<Key, Value>) {
-		this.cache = opts.cache ?? new MemCache<Key, Value, Entry>();
+		this.cache = opts.cache ?? new Cache<Key, Value, Entry>();
 		this.retriever = opts.retriever;
 	}
 

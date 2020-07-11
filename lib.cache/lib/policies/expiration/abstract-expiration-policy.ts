@@ -3,7 +3,7 @@ import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
-import { CacheEntry } from '../../contracts/sync/cache-backend';
+import { CacheEntry } from '../../contracts/commons';
 
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
 

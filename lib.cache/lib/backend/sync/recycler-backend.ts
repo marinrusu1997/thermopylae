@@ -1,8 +1,9 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { object as obj } from '@thermopylae/lib.pool';
-import { CacheBackend, CacheEntry } from '../../contracts/sync/cache-backend';
+import { CacheBackend } from '../../contracts/sync/cache-backend';
 import { NOT_FOUND_VALUE } from '../../constants';
+import CacheEntry from '../../contracts/commons';
 
 class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, CacheEntry<Value>>;

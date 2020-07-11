@@ -1,7 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM } from '../../helpers/dll-list';
-import { CacheEntry, CacheKey } from '../../contracts/sync/cache-backend';
 import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/sync/cache-policy';
+import CacheEntry from '../../contracts/commons';
+import CacheKey from '../../contracts/commons';
 
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
 
