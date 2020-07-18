@@ -3,6 +3,10 @@
         "incremental": true,
         "target": "esnext",
         "module": "commonjs",
+        "moduleResolution": "node",
+        "lib": [
+            "ESNext"
+        ],
         "allowJs": true,
         "checkJs": true,
         "declaration": true,
@@ -23,7 +27,6 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "moduleResolution": "node",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true

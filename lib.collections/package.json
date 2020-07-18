@@ -31,15 +31,25 @@
         ]
     },
     "engines": {
-        "node": "12.8.0"
+        "node": ">= 14"
     },
     "dependencies": {
-        "lodash.isfunction": "3"
+        "@thermopylae/lib.exception": "0",
+        "ajv": "6",
+        "ajv-i18n": "3",
+        "lodash.isfunction": "3",
+        "mongo-query": "0",
+        "object-path": "0",
+        "rxjs": "6"
     },
     "devDependencies": {
+        "@b4dnewz/mongodb-operators": "0",
+        "@thermopylae/core.declarations": "0.0.1595083377",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",
-        "chai-arrays": "2"
+        "@types/object-path": "0",
+        "chai-arrays": "2",
+        "json-schema-typed": "7"
     }
 }

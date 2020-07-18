@@ -14,9 +14,26 @@ export interface PromiseHolder<T> {
 	reject: PromiseReject;
 }
 
+export interface Cloneable<T> {
+	clone(): T;
+}
+
+export interface Comparable<T> {
+	compare(other: T): ComparisonResult;
+}
+
+export interface Same<T> {
+	equals(other: T): boolean;
+}
+
+export interface Identity {
+	hashCode(): string;
+}
+
 export const enum Library {
 	ASYNC = 'LIB_ASYNC',
 	CACHE = 'LIB_CACHE',
+	COLLECTIONS = 'LIB_COLLECTIONS',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
@@ -74,10 +91,41 @@ export const enum StatusFlag {
 	IDLE
 }
 
+export const enum SortDirection {
+	ASCENDING,
+	DESCENDING
+}
+
+export const enum ComparisonResult {
+	GREATER = 1,
+	EQUALS = 0,
+	SMALLER = -1
+}
+
+export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
+	{
+		[K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
+	}[Keys];
+
+export type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
+	{
+		[K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>;
+	}[Keys];
+
+export type Conditional<Dispatcher, Expectation, Truthy, Falsy> = Dispatcher extends Expectation ? Truthy : Falsy;
+
 export type Nullable<T> = T | null;
 export type Undefinable<T> = T | undefined;
 export type Voidable<T> = T | void;
 export type Optional<T> = Nullable<Undefinable<Voidable<T>>>;
+
+export type RecordKey = string | number | symbol;
+export type PersistableRecordKey = Exclude<RecordKey, symbol>;
+
+export type Primitive = boolean | number | string | bigint;
+export type PersistablePrimitive = Nullable<Primitive>;
+
+export type PersistableObjMap = Record<PersistableRecordKey, PersistablePrimitive | { [Key in PersistableRecordKey]: PersistableObjMap }>;
 
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;
 export type AsyncFunction<I = any, O = any> = (...args: Array<I>) => Promise<O>;
