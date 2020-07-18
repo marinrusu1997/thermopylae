@@ -24,11 +24,10 @@ import { QueryConditions, QueryProjection } from '@b4dnewz/mongodb-operators';
 import Ajv from 'ajv';
 // @ts-ignore
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
-import IndexedArray from 'indexable-array';
+import { IndexedStore } from './indexed-store';
 
-type PrimaryKey<Document> = Exclude<keyof Document, symbol>;
-type SecondaryKey<Document> = Exclude<PersistableRecordKey, PrimaryKey<Document>>;
-type IndexedKey<Document> = PrimaryKey<Document> | SecondaryKey<Document>;
+type IndexedKey<Document> = Exclude<keyof Document, symbol> | Exclude<PropertyKey, symbol>;
+type IndexValue = string | number;
 
 type Cursor<Document> = Iterator<Document>;
 type Projection<Document> = QueryProjection<Document>; /* Recordable<IndexedKey<Document>, boolean>; */
@@ -51,7 +50,7 @@ type DocumentBase = Record<PersistableRecordKey, PersistablePrimitive | SyncFunc
 type DocumentOperation = 'created' | 'updated' | 'replaced' | 'deleted' | 'dropped';
 
 interface DocumentContract<DocType> extends DocumentBase, Cloneable<DocType>, Comparable<DocType>, Same<DocType>, Identity {
-	readonly _id: PersistablePrimitive;
+	readonly id: IndexValue;
 }
 
 interface DocumentNotification<Document> {
@@ -138,17 +137,15 @@ interface MapReduceCriteria {
 
 interface CollectionOptions<Document> {
 	name: string;
-	primaryKey: PrimaryKey<Document>;
-	initial: Optional<Iterable<Document> | ArrayLike<Document>>;
-	indexKeys: Optional<ReadonlyArray<PersistableRecordKey>>;
-	schema: Optional<JSONSchema>;
-	clones: Optional<boolean>;
+	indexKeys?: ReadonlyArray<IndexedKey<Document>>;
+	schema?: JSONSchema;
+	clones?: boolean;
 }
 
 class Collection<Document extends DocumentContract<Document>> implements Iterable<Document>, Cloneable<Collection<Document>> {
 	private readonly collName!: string;
 
-	private readonly storage: IndexedArray<Document, PrimaryKey<Document>, SecondaryKey<Document>>;
+	private readonly storage: IndexedStore<Document>;
 
 	private readonly emitter: Subject<DocumentNotification<Document>>;
 
@@ -158,7 +155,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	public constructor(options: CollectionOptions<Document>) {
 		this.collName = Collection.assertCollectionName(options.name);
-		this.storage = IndexedArray.from(options.initial || [], options.primaryKey, ...(options.indexKeys || []));
+		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
 		this.emitter = new Subject<DocumentNotification<Document>>();
 		this.clones = options.clones || false;
 
@@ -175,7 +172,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	public get indexes(): ReadonlyArray<IndexedKey<Document>> {
-		return Array.from(this.storage.indexedKeys);
+		return this.storage.indexes;
 	}
 
 	public insert(...documents: ReadonlyArray<Document>): void {
@@ -188,7 +185,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			}
 		}
 
-		this.storage.push(...documents);
+		this.storage.save(...documents);
 
 		documents = this.clones ? documents.map((document) => document.clone()) : documents;
 
@@ -236,31 +233,19 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	public clone(): Collection<Document>;
 
 	public createIndexes(...indexes: Array<IndexedKey<Document>>): this {
-		// @ts-ignore
-		this.storage.addIndex(...indexes);
+		this.storage.createIndexes(indexes);
 		return this;
 	}
 
 	public ensureIndex(index: IndexedKey<Document>): this {
-		if (!this.storage.indexedKeys.has(index)) {
+		if (!this.storage.containsIndex(index)) {
 			return this.createIndexes(index);
 		}
 		return this;
 	}
 
 	public dropIndexes(): this {
-		// @ts-ignore
-		this.storage.clearIndex();
-		return this;
-	}
-
-	public disableIndex(): this {
-		this.storage.disableIndex();
-		return this;
-	}
-
-	public enableIndex(): this {
-		this.storage.enableIndex();
+		this.storage.dropIndexes();
 		return this;
 	}
 

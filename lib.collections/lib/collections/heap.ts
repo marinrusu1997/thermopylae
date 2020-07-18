@@ -1,6 +1,6 @@
 // @ts-ignore
 import isFunction from 'lodash.isfunction';
-import { defaultCompare, CompareFunction, ArrayEqualsPredicate } from './commons';
+import { defaultCompare, CompareFunction, ArrayEqualsPredicate } from '../commons';
 
 /**
  * Binary min heap.
