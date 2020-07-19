@@ -1,13 +1,13 @@
 import objectPath from 'object-path';
-import { Nullable, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Mapper, Nullable, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { createError, ErrorCodes } from '../error';
 
 const PRIMARY_KEY_INDEX = 'id';
 
 type IndexName<Recordable> = Exclude<keyof Recordable, symbol> | Exclude<PropertyKey, symbol>;
-type IndexableValue = string | number;
+type IndexValue = string | number;
 
-type Index<Recordable> = Map<IndexableValue, Array<Recordable>>;
+type Index<Recordable> = Map<IndexValue, Array<Recordable>>;
 
 type IndexRepo<Recordable> = Map<IndexName<Recordable>, Index<Recordable>>;
 
@@ -16,7 +16,7 @@ interface IndexedStoreOptions<Recordable> {
 }
 
 interface Recordable extends Record<PropertyKey, any> {
-	readonly [PRIMARY_KEY_INDEX]: IndexableValue;
+	readonly [PRIMARY_KEY_INDEX]: IndexValue;
 }
 
 class IndexedStore<IndexedRecord extends Recordable> implements Iterable<IndexedRecord> {
@@ -43,7 +43,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue): Array<IndexedRecord> {
+	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): Array<IndexedRecord> {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).get(indexValue) || [];
 	}
 
@@ -51,7 +51,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
 	}
 
-	public contains(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue): boolean {
+	public contains(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): boolean {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).has(indexValue);
 	}
 
@@ -59,12 +59,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return this.indexRepo.has(indexName);
 	}
 
-	public updateIndex(
-		indexName: IndexName<IndexedRecord>,
-		predicate: UnaryPredicate<IndexedRecord>,
-		oldValue: IndexableValue,
-		newValue?: IndexableValue
-	): boolean {
+	public updateIndex(indexName: IndexName<IndexedRecord>, predicate: UnaryPredicate<IndexedRecord>, oldValue: IndexValue, newValue?: IndexValue): boolean {
 		if (indexName === PRIMARY_KEY_INDEX) {
 			throw createError(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}'.`);
 		}
@@ -102,7 +97,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return true;
 	}
 
-	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
+	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
 
 		const records = index.get(indexValue);
@@ -173,7 +168,26 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	public filter(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexableValue): Array<IndexedRecord> {
+	public map<MappedType>(mapper: Mapper<IndexedRecord, MappedType>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Array<MappedType> {
+		if (onIndex == null) {
+			onIndex = PRIMARY_KEY_INDEX;
+		}
+
+		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
+
+		if (withValue != null) {
+			return (index.get(withValue) || []).map(mapper);
+		}
+
+		let mappings = new Array<MappedType>();
+		for (const indexRecords of index.values()) {
+			mappings = mappings.concat(indexRecords.map(mapper));
+		}
+
+		return mappings;
+	}
+
+	public filter(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Array<IndexedRecord> {
 		if (onIndex == null) {
 			onIndex = PRIMARY_KEY_INDEX;
 		}
@@ -196,7 +210,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return filtered;
 	}
 
-	public find(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexableValue): Optional<IndexedRecord> {
+	public find(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Optional<IndexedRecord> {
 		if (onIndex == null) {
 			onIndex = PRIMARY_KEY_INDEX;
 		}
@@ -217,14 +231,14 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	public get size(): number {
-		return this.indexRepo.get(PRIMARY_KEY_INDEX)!.size;
+		return IndexedStore.assertIndex(PRIMARY_KEY_INDEX, this.indexRepo.get(PRIMARY_KEY_INDEX)).size;
 	}
 
 	public get indexes(): ReadonlyArray<IndexName<IndexedRecord>> {
 		return Array.from(this.indexRepo.keys());
 	}
 
-	public get array(): ReadonlyArray<IndexedRecord> {
+	public get values(): Array<IndexedRecord> {
 		const primaryIndex = IndexedStore.assertIndex(PRIMARY_KEY_INDEX, this.indexRepo.get(PRIMARY_KEY_INDEX));
 		const records = new Array(primaryIndex.size);
 
@@ -237,7 +251,18 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	[Symbol.iterator](): Iterator<IndexedRecord> {
-		return this.array[Symbol.iterator]();
+		const primaryIndex = IndexedStore.assertIndex(PRIMARY_KEY_INDEX, this.indexRepo.get(PRIMARY_KEY_INDEX));
+		const iterator = primaryIndex[Symbol.iterator]();
+
+		return {
+			next(): IteratorResult<IndexedRecord> {
+				const entry = iterator.next();
+				return {
+					done: entry.done,
+					value: entry.value[0]
+				};
+			}
+		};
 	}
 
 	private static defineIndexes<R>(indexes: IndexRepo<R>, indexNames: ReadonlyArray<IndexName<R>>): void {
@@ -246,7 +271,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			if (indexes.has(indexNames[i])) {
 				throw createError(ErrorCodes.REDEFINITION, `Index '${String(indexNames[i])} has been redefined already.`);
 			}
-			indexes.set(indexNames[i], new Map<IndexableValue, Array<R>>());
+			indexes.set(indexNames[i], new Map<IndexValue, Array<R>>());
 		}
 	}
 
@@ -257,7 +282,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return index;
 	}
 
-	private static assertIndexableValue<R>(indexName: IndexName<R>, value: IndexableValue): IndexableValue | never {
+	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue): IndexValue | never {
 		switch (typeof value) {
 			case 'string':
 			case 'number':
@@ -270,12 +295,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	private static indexValue<R>(indexName: IndexName<R>, index: Index<R>, value: IndexableValue, recordProxy: R): void {
+	private static indexValue<R>(indexName: IndexName<R>, index: Index<R>, value: IndexValue, recordProxy: R): void {
 		if (value == null) {
 			return; // do not index nullables
 		}
 
-		IndexedStore.assertIndexableValue(indexName, value);
+		IndexedStore.assertIndexValue(indexName, value);
 
 		const records = index.get(value);
 		if (records == null) {
@@ -285,7 +310,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	private static removeIndexedValue<R>(index: Index<R>, value: IndexableValue, recordProxy: R): void {
+	private static removeIndexedValue<R>(index: Index<R>, value: IndexValue, recordProxy: R): void {
 		const records = index.get(value);
 		if (records == null) {
 			return;
@@ -301,4 +326,4 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 }
 
-export { IndexedStore, IndexName, IndexableValue, PRIMARY_KEY_INDEX };
+export { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX };

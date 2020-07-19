@@ -1,3 +1,5 @@
+import { ComparisonResult } from '@thermopylae/core.declarations';
+
 /**
  * Function signature for comparing
  * <0 means a is smaller
@@ -5,7 +7,7 @@
  * >0 means a is larger
  */
 interface CompareFunction<T> {
-	(a: T, b: T): number;
+	(a: T, b: T): ComparisonResult;
 }
 
 /**

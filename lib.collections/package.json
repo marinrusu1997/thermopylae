@@ -41,11 +41,11 @@
         "mongo-query": "0",
         "object-path": "0",
         "rxjs": "6",
-        "thenby": "^1.3.4"
+        "thenby": "1"
     },
     "devDependencies": {
         "@b4dnewz/mongodb-operators": "0",
-        "@thermopylae/core.declarations": "0.0.1595106412",
+        "@thermopylae/core.declarations": "0.0.1595157646",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "@types/chai-arrays": "1",

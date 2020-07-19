@@ -3,8 +3,8 @@ import {
 	Cloneable,
 	Comparable,
 	ComparisonResult,
-	Conditional,
 	Identity,
+	Mapper,
 	Nullable,
 	ObjMap,
 	Optional,
@@ -38,16 +38,6 @@ type IndexValue = string | number;
 type Cursor<Document> = Iterator<Document>;
 type SortFields<Document> = Record<IndexedKey<Document>, SortDirection>;
 
-type PipelineFunction<Document, AlteredDocument extends Document> = (document: Document) => AlteredDocument;
-type AggregationPipeline<Document> = ArrayLike<PipelineFunction<Document, Document>>; // FIXME what about stages ??
-
-type Criteria<Specifications> = Optional<Partial<Specifications>>;
-
-type FilterFunction<Document> = UnaryPredicate<Document>;
-type MapFunction<Document, MappedDocument> = (document: Document) => MappedDocument;
-
-type CursorOrCollection<CollectedResult, Document> = Conditional<CollectedResult, true, ReadonlyArray<Document>, Cursor<Document>>;
-
 type DocumentBase = Record<PersistableRecordKey, PersistablePrimitive | SyncFunction | AsyncFunction | { [Key in PersistableRecordKey]: DocumentBase }>;
 
 const enum ProjectionType {
@@ -63,8 +53,7 @@ const enum DocumentIdentity {
 const enum DocumentOperation {
 	CREATED = 'created',
 	UPDATED = 'updated',
-	DELETED = 'deleted',
-	DROPPED = 'dropped'
+	DELETED = 'deleted'
 }
 
 const enum AlterationType {
@@ -126,33 +115,8 @@ interface UpdateCriteria<Document> extends AlterationCriteria<Document> {
 
 type DeleteCriteria<Document> = AlterationCriteria<Document>;
 
-interface FindAndModifyCriteria<Document> {
-	query: QueryConditions<Document>;
-	remove: boolean;
-	update: Document | AggregationPipeline<Document>;
-	sort: Optional<SortFields<Document>>;
-	new: Optional<boolean>;
-	fields: Optional<Projection<Document>>;
-	upsert: Optional<boolean>;
-	bypassDocumentValidation: Optional<boolean>;
-	collation: Optional<Collation>;
-	// FIXME handle updates on array fields
-}
-
-interface CountOptions {
-	limit: number;
-	skip: number;
-	hint: string;
-	collation: Collation;
-}
-
-interface DistinctOptions {
-	collation: Optional<Collation>;
-}
-
-interface MapReduceCriteria {
-	limit: number;
-	array: boolean;
+interface MapReduceCriteria<Document> {
+	hint: Hint<Document>;
 }
 
 interface CollectionOptions<Document> {
@@ -162,7 +126,7 @@ interface CollectionOptions<Document> {
 	documentsIdentity?: DocumentIdentity;
 }
 
-class Collection<Document extends DocumentContract<Document>> implements Iterable<Document>, Cloneable<Collection<Document>> {
+class Collection<Document extends DocumentContract<Document>> implements Iterable<Document> {
 	private readonly collName!: string;
 
 	private readonly storage: IndexedStore<Document>;
@@ -244,8 +208,6 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return match;
 	}
 
-	/* public findOneAndModify(document: RequireOnlyOne<FindAndModifyCriteria<Document>, 'remove' | 'update'>): Optional<Document>; */
-
 	public replace(query: QueryConditions<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): ReadonlyArray<Document> {
 		let matches = this.findAndDelete(query, criteria);
 
@@ -316,23 +278,66 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public drop(): void;
+	public count(): number {
+		return this.storage.size;
+	}
 
-	public count(query: Query, options: Optional<Partial<CountOptions>>): number;
+	public clear(): void {
+		this.storage.clear();
+	}
 
-	public mapReduce<MappedDocument, CollectedResult = false>(
-		mapper: MapFunction<Document, MappedDocument>,
-		filter: FilterFunction<Document>,
-		criteria: Criteria<MapReduceCriteria>
-	): CursorOrCollection<CollectedResult, Document>;
+	public drop(): void {
+		this.clear();
+		this.notifier.complete();
+	}
 
-	public distinct(field: PersistableRecordKey | Array<PersistableRecordKey>, query: Optional<Query>, options: Optional<DistinctOptions>): Array<Document>;
+	public distinct(field: IndexedKey<Document>, query?: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Set<IndexValue> {
+		if (field === PRIMARY_KEY_INDEX) {
+			throw createError(ErrorCodes.NOT_ALLOWED, `All of the documents are distinct based in their primary key '${field}'.`);
+		}
+
+		const candidates = this.retrieveMatches(query, criteria);
+
+		const distinctValues = new Set<IndexValue>();
+
+		let value: IndexValue;
+		for (const candidate of candidates) {
+			if ((value = objectPath.get(candidate, field)) != null) {
+				distinctValues.add(value);
+			}
+		}
+
+		return distinctValues;
+	}
+
+	public mapReduce<MappedDocument>(
+		mapper: Mapper<Document, MappedDocument>,
+		filter?: UnaryPredicate<MappedDocument>,
+		criteria?: Partial<MapReduceCriteria<Document>>
+	): ReadonlyArray<MappedDocument> {
+		if (criteria == null) {
+			criteria = {};
+		}
+
+		let onIndex: Undefinable<IndexedKey<Document>>;
+		let withValue: Undefinable<IndexValue>;
+		if (criteria.hint) {
+			onIndex = criteria.hint.index;
+			withValue = criteria.hint.value;
+		}
+
+		let transformations = this.storage.map(mapper, onIndex, withValue);
+
+		if (filter != null) {
+			transformations = transformations.filter(filter);
+		}
+
+		return transformations;
+	}
 
 	public watch(): Observable<DocumentNotification<Document>> {
 		return this.notifier.asObservable();
 	}
-
-	public clone(): Collection<Document>;
 
 	public createIndexes(...indexes: Array<IndexedKey<Document>>): this {
 		this.storage.createIndexes(indexes);
@@ -352,7 +357,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	[Symbol.iterator](): Cursor<Document> {
-		return undefined;
+		return this.storage[Symbol.iterator]();
 	}
 
 	private retrieveFirstMatch(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Optional<Document> {
@@ -367,7 +372,11 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.storage.find(filter.test, onIndex, withValue);
 	}
 
-	private retrieveMatches(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
+	private retrieveMatches(query?: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
+		if (query == null) {
+			return this.storage.values;
+		}
+
 		let onIndex: Undefinable<IndexName<Document>>;
 		let withValue: Undefinable<IndexValue>;
 		if (criteria && criteria.hint) {
@@ -593,17 +602,6 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 				AjvLocalizeEn(validator.errors);
 				throw new Error(validator.errorsText(validator.errors, { separator: '\n' }));
 			}
-		}
-	}
-
-	private static formatSortDirection(direction: SortDirection): string {
-		switch (direction) {
-			case SortDirection.ASCENDING:
-				return 'ASCENDING';
-			case SortDirection.DESCENDING:
-				return 'DESCENDING';
-			default:
-				throw createError(ErrorCodes.UNKNOWN, `Couldn't format sort direction ${direction}.`);
 		}
 	}
 }
