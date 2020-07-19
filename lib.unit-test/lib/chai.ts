@@ -1,9 +1,12 @@
 import chai, { Assertion } from 'chai';
 import chaiArrays from 'chai-arrays';
 import chaiAsPromised from 'chai-as-promised';
+// @ts-ignore
+import chaiAssertType from 'chai-asserttype';
 
 chai.use(chaiArrays);
 chai.use(chaiAsPromised);
+chai.use(chaiAssertType);
 
 Assertion.addChainableMethod('in', function isNumber(args): void {
 	const comparison = typeof args === 'number';

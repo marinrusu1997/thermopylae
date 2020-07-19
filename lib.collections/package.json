@@ -45,12 +45,15 @@
     },
     "devDependencies": {
         "@b4dnewz/mongodb-operators": "0",
-        "@thermopylae/core.declarations": "0.0.1595157646",
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0.0.1595168219",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
-        "@types/chai-arrays": "1",
         "@types/object-path": "0",
-        "chai-arrays": "2",
-        "json-schema-typed": "7"
+        "json-schema-typed": "7",
+        "mocker-data-generator": "2"
+    },
+    "peerDependencies": {
+        "mocha": "8"
     }
 }

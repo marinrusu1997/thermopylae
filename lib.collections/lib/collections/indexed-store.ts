@@ -30,15 +30,17 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	public save(...records: Array<IndexedRecord>): void {
+		const { indexes } = this;
+
 		for (const record of records) {
 			if (this.indexRepo.get(PRIMARY_KEY_INDEX)!.has(record.id)) {
 				throw createError(ErrorCodes.REDEFINITION, `Record with primary key '${record.id}' has been added already.`);
 			}
 
-			let indexValue;
+			IndexedStore.assertRecordIndexes(record, indexes);
+
 			for (const [indexName, index] of this.indexRepo) {
-				indexValue = objectPath.get(record, indexName);
-				IndexedStore.indexValue(indexName, index, indexValue, record);
+				IndexedStore.indexRecordBy(record, objectPath.get(record, indexName), index);
 			}
 		}
 	}
@@ -91,7 +93,8 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 		if (newValue != null) {
 			objectPath.set(record, indexName, newValue);
-			IndexedStore.indexValue(indexName, index, newValue, record);
+			IndexedStore.assertIndexValue(indexName, newValue);
+			IndexedStore.indexRecordBy(record, newValue, index);
 		}
 
 		return true;
@@ -128,7 +131,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 
 		for (const [registryIndexName, registryIndex] of this.indexRepo) {
-			IndexedStore.removeIndexedValue(registryIndex, objectPath.get(record, registryIndexName), record);
+			IndexedStore.removeIndexedRecordBy(record, objectPath.get(record, registryIndexName), registryIndex);
 		}
 
 		return true;
@@ -140,21 +143,26 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	public createIndexes(indexNames: ReadonlyArray<IndexName<IndexedRecord>>): void {
-		IndexedStore.defineIndexes(this.indexRepo, indexNames);
+	public createIndexes(newIndexProperties: ReadonlyArray<IndexName<IndexedRecord>>): void {
+		IndexedStore.defineIndexes(this.indexRepo, newIndexProperties);
 
-		for (const indexName of indexNames) {
-			const index = this.indexRepo.get(indexName)!;
-			for (const primaryKeyRecords of this.indexRepo.get(PRIMARY_KEY_INDEX)!.values()) {
-				IndexedStore.indexValue(indexName, index, objectPath.get(primaryKeyRecords[0], indexName), primaryKeyRecords[0]);
+		let newIndex: Index<IndexedRecord>;
+		let indexValue: IndexValue;
+
+		for (const newIndexProperty of newIndexProperties) {
+			newIndex = this.indexRepo.get(newIndexProperty)!;
+			for (const record of this) {
+				indexValue = objectPath.get(record, newIndexProperty);
+
+				IndexedStore.assertIndexValue(newIndexProperty, indexValue);
+				IndexedStore.indexRecordBy(record, indexValue, newIndex);
 			}
 		}
 	}
 
 	public dropIndex(indexName: IndexName<IndexedRecord>): boolean {
 		if (indexName === PRIMARY_KEY_INDEX) {
-			this.clear();
-			return true;
+			throw createError(ErrorCodes.NOT_ALLOWED, `Primary index '${indexName}' can't be dropped.`);
 		}
 		return this.indexRepo.delete(indexName);
 	}
@@ -259,7 +267,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				const entry = iterator.next();
 				return {
 					done: entry.done,
-					value: entry.value[0]
+					value: entry.value && entry.value[0]
 				};
 			}
 		};
@@ -282,7 +290,22 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return index;
 	}
 
+	private static assertRecordIndexes<R>(record: R, indexes: ReadonlyArray<IndexName<R>>): R | never {
+		for (const indexName of indexes) {
+			// eslint-disable-next-line @typescript-eslint/ban-types
+			IndexedStore.assertIndexValue(indexName, objectPath.get((record as unknown) as object, indexName));
+		}
+		return record;
+	}
+
 	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue): IndexValue | never {
+		if (value == null) {
+			if (indexName === PRIMARY_KEY_INDEX) {
+				throw createError(ErrorCodes.NOT_ALLOWED, `Can't index record which has a nullable primary key.`);
+			}
+			return value; // null values for other indexes are valid
+		}
+
 		switch (typeof value) {
 			case 'string':
 			case 'number':
@@ -295,22 +318,20 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	private static indexValue<R>(indexName: IndexName<R>, index: Index<R>, value: IndexValue, recordProxy: R): void {
+	private static indexRecordBy<R>(record: R, value: IndexValue, index: Index<R>): void {
 		if (value == null) {
 			return; // do not index nullables
 		}
 
-		IndexedStore.assertIndexValue(indexName, value);
-
 		const records = index.get(value);
 		if (records == null) {
-			index.set(value, [recordProxy]);
+			index.set(value, [record]);
 		} else {
-			records.push(recordProxy);
+			records.push(record);
 		}
 	}
 
-	private static removeIndexedValue<R>(index: Index<R>, value: IndexValue, recordProxy: R): void {
+	private static removeIndexedRecordBy<R>(record: R, value: IndexValue, index: Index<R>): void {
 		const records = index.get(value);
 		if (records == null) {
 			return;
@@ -318,7 +339,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 		let i = records.length;
 		while (i--) {
-			if (records[i] === recordProxy) {
+			if (records[i] === record) {
 				records.splice(i, 1);
 				return;
 			}
@@ -326,4 +347,4 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 }
 
-export { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX };
+export { IndexedStore, IndexName, IndexValue, Recordable, PRIMARY_KEY_INDEX };

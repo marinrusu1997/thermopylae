@@ -96,24 +96,19 @@ interface Projection<Document> {
 }
 
 interface FindCriteria<Document> {
-	projection: Projection<Document>;
-	hint: Hint<Document>;
-}
-
-interface AlterationCriteria<Document> extends FindCriteria<Document> {
-	sort: SortFields<Document>;
 	multiple: boolean;
+	sort: SortFields<Document>;
+	hint: Hint<Document>;
+	projection: Projection<Document>;
 }
 
-interface ReplaceCriteria<Document> extends AlterationCriteria<Document> {
+interface ReplaceCriteria<Document> extends FindCriteria<Document> {
 	upsert: boolean;
 }
 
-interface UpdateCriteria<Document> extends AlterationCriteria<Document> {
+interface UpdateCriteria<Document> extends FindCriteria<Document> {
 	returnUpdates: boolean;
 }
-
-type DeleteCriteria<Document> = AlterationCriteria<Document>;
 
 interface MapReduceCriteria<Document> {
 	hint: Hint<Document>;
@@ -126,9 +121,12 @@ interface CollectionOptions<Document> {
 	documentsIdentity?: DocumentIdentity;
 }
 
+/**
+ * Collection of volatile documents which are kept indexed in process memory.
+ *
+ * @template {Document}
+ */
 class Collection<Document extends DocumentContract<Document>> implements Iterable<Document> {
-	private readonly collName!: string;
-
 	private readonly storage: IndexedStore<Document>;
 
 	private readonly notifier: Subject<DocumentNotification<Document>>;
@@ -138,21 +136,16 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	private readonly validator: Nullable<Ajv.Ajv>;
 
 	public constructor(options: CollectionOptions<Document>) {
-		this.collName = Collection.assertCollectionName(options.name);
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
 		this.notifier = new Subject<DocumentNotification<Document>>();
 		this.identity = options.documentsIdentity || DocumentIdentity.ORIGINAL;
 
 		if (options.schema) {
 			this.validator = new Ajv({ allErrors: true });
-			this.validator.addSchema(options.schema, this.name);
+			this.validator.addSchema(options.schema, Collection.constructor.name);
 		} else {
 			this.validator = null;
 		}
-	}
-
-	public get name(): string {
-		return this.collName;
 	}
 
 	public get indexes(): ReadonlyArray<IndexedKey<Document>> {
@@ -190,32 +183,10 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public findOne(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Optional<Document> {
-		const match = this.retrieveFirstMatch(query, criteria);
-
-		if (match == null) {
-			return match;
-		}
-
-		if (criteria && criteria.projection) {
-			return Collection.applyProjection(match.clone(), criteria.projection);
-		}
-
-		if (this.identity === DocumentIdentity.CLONE) {
-			return match.clone();
-		}
-
-		return match;
-	}
-
 	public replace(query: QueryConditions<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): ReadonlyArray<Document> {
 		let matches = this.findAndDelete(query, criteria);
 
-		this.storage.save(replacement);
-		this.notifier.next({
-			action: DocumentOperation.CREATED,
-			documents: [replacement]
-		});
+		this.insert(replacement);
 
 		if (criteria && criteria.projection) {
 			matches = Collection.project(matches, criteria.projection);
@@ -268,7 +239,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public delete(query: QueryConditions<Document>, criteria?: Partial<DeleteCriteria<Document>>): ReadonlyArray<Document> {
+	public delete(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
 		let matches = this.findAndDelete(query, criteria);
 
 		if (criteria && criteria.projection) {
@@ -339,21 +310,25 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.notifier.asObservable();
 	}
 
-	public createIndexes(...indexes: Array<IndexedKey<Document>>): this {
+	public createIndexes(...indexes: Array<IndexedKey<Document>>): void {
 		this.storage.createIndexes(indexes);
-		return this;
 	}
 
-	public ensureIndex(index: IndexedKey<Document>): this {
-		if (!this.storage.containsIndex(index)) {
-			return this.createIndexes(index);
+	public dropIndexes(...indexes: Array<IndexedKey<Document>>): void {
+		if (!indexes.length) {
+			return this.storage.dropIndexes();
 		}
-		return this;
+
+		let i = indexes.length;
+		while (i--) {
+			this.storage.dropIndex(indexes[i]);
+		}
 	}
 
-	public dropIndexes(): this {
-		this.storage.dropIndexes();
-		return this;
+	public ensureIndex(index: IndexedKey<Document>): void {
+		if (!this.storage.containsIndex(index)) {
+			this.createIndexes(index);
+		}
 	}
 
 	[Symbol.iterator](): Cursor<Document> {
@@ -390,7 +365,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	private retrieveAlterationCandidates(
 		query: QueryConditions<Document>,
-		criteria: Partial<AlterationCriteria<Document>>,
+		criteria: Partial<FindCriteria<Document>>,
 		replacement?: Document
 	): Nullable<ReadonlyArray<Document>> {
 		let matches: Array<Document>;
@@ -415,7 +390,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	private findAndDelete(query: QueryConditions<Document>, criteria?: Partial<AlterationCriteria<Document>>): ReadonlyArray<Document> {
+	private findAndDelete(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
 		if (criteria == null) {
 			criteria = {};
 		}
@@ -589,16 +564,9 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		Collection.updateIndexes(storage, document, indexesSnapshot, changes);
 	}
 
-	private static assertCollectionName(name: string): never | typeof name {
-		if (name.length === 0) {
-			throw new Error(`Collection name can't be empty.`);
-		}
-		return name;
-	}
-
 	private static validateDocuments<Document>(validator: Ajv.Ajv, documents: ReadonlyArray<Document>): void | never {
 		for (const document of documents) {
-			if (!validator.validate(this.name, document)) {
+			if (!validator.validate(Collection.constructor.name, document)) {
 				AjvLocalizeEn(validator.errors);
 				throw new Error(validator.errorsText(validator.errors, { separator: '\n' }));
 			}

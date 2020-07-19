@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
+import { chai } from '@thermopylae/lib.unit-test';
 import { number, string } from '@thermopylae/lib.utils';
-import { chai } from './chai';
 import { Heap } from '../lib';
 
 const { expect } = chai;
@@ -94,12 +94,7 @@ describe('Heap spec', () => {
 				sorted.push(heap.pop());
 			}
 
-			expect(
-				sorted
-					.slice()
-					.sort()
-					.reverse()
-			).to.be.equalTo(sorted);
+			expect(sorted.slice().sort().reverse()).to.be.equalTo(sorted);
 		});
 	});
 
@@ -147,11 +142,11 @@ describe('Heap spec', () => {
 			}
 
 			for (let i = 1; i < 5; i++) {
-				expect(heap.contains(item => item === i)).to.be.eq(true);
+				expect(heap.contains((item) => item === i)).to.be.eq(true);
 			}
 
 			expect(heap.contains(0)).to.be.eq(false);
-			expect(heap.contains(item => item === 6)).to.be.eq(false);
+			expect(heap.contains((item) => item === 6)).to.be.eq(false);
 		});
 	});
 
@@ -199,7 +194,7 @@ describe('Heap spec', () => {
 			heap.push(b);
 			heap.push(c);
 
-			const index = heap.findIndex(val => val.x === 3);
+			const index = heap.findIndex((val) => val.x === 3);
 			heap.update(index, { x: 0 });
 
 			expect(heap.pop().x).to.be.eq(0);
@@ -212,7 +207,7 @@ describe('Heap spec', () => {
 				heap.push(i);
 			}
 
-			const index = heap.findIndex(val => val === 0);
+			const index = heap.findIndex((val) => val === 0);
 
 			let err: Error | null = null;
 			try {
@@ -239,7 +234,7 @@ describe('Heap spec', () => {
 			heap.push(b);
 			heap.push(c);
 
-			const index = heap.findIndex(val => val.x === 1);
+			const index = heap.findIndex((val) => val.x === 1);
 			heap.remove(index);
 
 			expect(heap.peek()!.x).to.be.eq(2);
@@ -256,7 +251,7 @@ describe('Heap spec', () => {
 			heap.push(b);
 			heap.push(c);
 
-			const index = heap.findIndex(val => val.x === 3);
+			const index = heap.findIndex((val) => val.x === 3);
 			heap.remove(index);
 
 			expect(heap.peek()!.x).to.be.eq(1);
@@ -273,7 +268,7 @@ describe('Heap spec', () => {
 			heap.push(b);
 			heap.push(c);
 
-			const index = heap.findIndex(val => val.x === 2);
+			const index = heap.findIndex((val) => val.x === 2);
 			heap.remove(index);
 
 			expect(heap.peek()!.x).to.be.eq(1);
@@ -297,7 +292,7 @@ describe('Heap spec', () => {
 
 			while (items.length) {
 				const itemsIndex = number.generateRandomInt(0, items.length - 1);
-				const heapIndex = heap.findIndex(n => n === items[itemsIndex]);
+				const heapIndex = heap.findIndex((n) => n === items[itemsIndex]);
 
 				heap.remove(heapIndex);
 				items.splice(itemsIndex, 1);

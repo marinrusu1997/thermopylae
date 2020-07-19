@@ -6,7 +6,7 @@
         "library",
         "unit testing"
     ],
-    "version": "0.0.1592945549",
+    "version": "0.0.1595168219",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -29,13 +29,14 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@types/chai-arrays": "1",
+        "@types/chai-as-promised": "7",
         "chai-arrays": "2",
         "chai-as-promised": "7",
-        "@types/chai-arrays": "1",
-        "@types/chai-as-promised": "7"
+        "chai-asserttype": "1"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "latest"
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
         "mocha": "8",
