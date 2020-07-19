@@ -1,9 +1,11 @@
-import { before, describe, it } from 'mocha';
+import { before, beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
-import mocker from 'mocker-data-generator';
-import { number, string } from '@thermopylae/lib.utils';
+import { number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
+import mocker from 'mocker-data-generator';
 import objectPath from 'object-path';
+// @ts-ignore
+import range from 'range-generator';
 import { IndexedStore, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
 
@@ -87,9 +89,10 @@ const PersonSchema = {
 	}
 };
 
-let PersonsRepo: ReadonlyArray<Person>;
+let PersonsRepo: Array<Person>;
+let PersonsRepoSnapshot: Array<Person>;
 
-function generateTestData(amount: number): Promise<ReadonlyArray<Person>> {
+function generateTestData(amount: number): Promise<Array<Person>> {
 	return mocker()
 		.schema(TRANSACTION_SCHEMA_NAME, TransactionSchema, 10)
 		.schema(PERSON_SCHEMA_NAME, PersonSchema, amount)
@@ -101,6 +104,12 @@ function generateTestData(amount: number): Promise<ReadonlyArray<Person>> {
 describe.only(`${IndexedStore.name} spec`, function () {
 	before(async () => {
 		PersonsRepo = await generateTestData(1000);
+		PersonsRepoSnapshot = PersonsRepo.map((person) => object.cloneDeep(person));
+	});
+
+	beforeEach(() => {
+		// this way we remove test inter-dependencies
+		PersonsRepo = PersonsRepoSnapshot.map((person) => object.cloneDeep(person));
 	});
 
 	describe('constructor', function () {
@@ -461,7 +470,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 				.haveOwnProperty('code', ErrorCodes.REDEFINITION);
 		});
 
-		it.only('saves records with undefined index properties', () => {
+		it('saves records with undefined index properties', () => {
 			const indexNames = Object.values(Indexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes: indexNames });
 			storage.save(...PersonsRepo);
@@ -480,57 +489,205 @@ describe.only(`${IndexedStore.name} spec`, function () {
 					const value = indexName === nulledIndexName ? undefined : string.generateStringOfLength(10);
 					objectPath.set(person, indexName, value);
 				}
-				console.log(person);
 				return person;
 			}
 
-			let additions = 0;
+			const additions = new Map<string, number>();
+			for (const indexName of indexNames) {
+				additions.set(indexName, 0);
+			}
+
+			function increaseAdditions(nulledIndexName: string): void {
+				for (const indexName of indexNames) {
+					if (indexName !== nulledIndexName) {
+						additions.set(indexName, additions.get(indexName)! + 1);
+					}
+				}
+			}
+
 			for (const nulledIndexName of Object.values(Indexes)) {
 				storage.save(generatePerson(nulledIndexName));
-				additions += 1;
+				increaseAdditions(nulledIndexName);
 
 				for (const indexName of indexNames) {
-					if (indexName === nulledIndexName) {
-						expect(storage.readIndex(indexName).size).to.be.eq(initialIndexLoad.get(indexName));
-						continue;
-					}
-					expect(storage.readIndex(indexName).size).to.be.eq(initialIndexLoad.get(indexName)! + additions);
+					const records = initialIndexLoad.get(indexName)! + additions.get(indexName)!;
+					expect(storage.readIndex(indexName).size).to.be.eq(records);
 				}
 			}
 		});
 
 		it('saves records with null index properties', () => {
-			const originalIndexes = Object.values(Indexes) as Array<string>;
-			const storage = new IndexedStore<Person>({ indexes: originalIndexes });
+			const indexNames = Object.values(Indexes) as Array<string>;
+			const storage = new IndexedStore<Person>({ indexes: indexNames });
 			storage.save(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			originalIndexes.push(PRIMARY_KEY_INDEX);
+			indexNames.push(PRIMARY_KEY_INDEX);
 
 			const initialIndexLoad = new Map<string, number>();
-			for (const index of originalIndexes) {
+			for (const index of indexNames) {
 				initialIndexLoad.set(index, storage.readIndex(index).size);
 			}
 
-			let additions = 0;
-			let person: Person;
-			for (const nulledIndex of Object.values(Indexes)) {
-				person = Object.assign(PersonsRepo[0], {});
-				// @ts-ignore
-				person.id = string.generateStringOfLength(5);
+			function generatePerson(nulledIndexName: string): Person {
+				const person: Person = { ...PersonsRepo[0] };
+				for (const indexName of indexNames) {
+					const value = indexName === nulledIndexName ? null : string.generateStringOfLength(10);
+					objectPath.set(person, indexName, value);
+				}
+				return person;
+			}
 
-				objectPath.set(person, nulledIndex, null);
-				storage.save(person);
-				additions += 1;
+			const additions = new Map<string, number>();
+			for (const indexName of indexNames) {
+				additions.set(indexName, 0);
+			}
 
-				for (const index of originalIndexes) {
-					if (index === nulledIndex) {
-						expect(storage.readIndex(index).size).to.be.eq(initialIndexLoad.get(index));
-						continue;
+			function increaseAdditions(nulledIndexName: string): void {
+				for (const indexName of indexNames) {
+					if (indexName !== nulledIndexName) {
+						additions.set(indexName, additions.get(indexName)! + 1);
 					}
-					expect(storage.readIndex(index).size).to.be.eq(initialIndexLoad.get(index)! + additions);
 				}
 			}
+
+			for (const nulledIndexName of Object.values(Indexes)) {
+				storage.save(generatePerson(nulledIndexName));
+				increaseAdditions(nulledIndexName);
+
+				for (const indexName of indexNames) {
+					const records = initialIndexLoad.get(indexName)! + additions.get(indexName)!;
+					expect(storage.readIndex(indexName).size).to.be.eq(records);
+				}
+			}
+		});
+
+		it('saves records partially while error not encountered', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			expect(store.size).to.be.eq(0);
+
+			const validRecordsNo = 3;
+			const invalidRecordsNo = 3;
+
+			const toSave = new Array<Person>(validRecordsNo + invalidRecordsNo);
+			let i = 0;
+			for (; i < validRecordsNo; i++) {
+				toSave[i] = PersonsRepo[i];
+			}
+			for (; i < toSave.length; i++) {
+				toSave[i] = { ...PersonsRepo[i] };
+				// @ts-ignore
+				delete toSave[i].id;
+			}
+
+			// @ts-ignore
+			expect(() => store.save(...toSave))
+				.to.throw(Exception)
+				.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+			expect(store.size).to.be.eq(validRecordsNo);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${IndexedStore.prototype.read.name} spec`, function () {
+		it('reads records by their id', () => {
+			const storage = new IndexedStore<Person>();
+			storage.save(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const positionGenerator = range(
+				number.generateRandomInt(0, PersonsRepo.length / 10),
+				number.generateRandomInt(PersonsRepo.length / 5, PersonsRepo.length / 2)
+			);
+
+			for (const position of positionGenerator) {
+				const desired = PersonsRepo[position];
+				const records = storage.read(PRIMARY_KEY_INDEX, desired.id);
+
+				expect(records.length).to.be.eq(1);
+				expect(records).to.be.containing(desired);
+			}
+		});
+
+		it('reads records by their index', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.save(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const positionGenerator = range(
+				number.generateRandomInt(0, PersonsRepo.length / 10),
+				number.generateRandomInt(PersonsRepo.length / 5, PersonsRepo.length / 2)
+			);
+
+			for (const indexName of indexes) {
+				for (const position of positionGenerator) {
+					const desired = PersonsRepo[position];
+					const records = storage.read(indexName, objectPath.get(desired, indexName));
+					const actual = records[records.indexOf(desired)];
+
+					expect(actual).to.be.deep.eq(desired);
+				}
+			}
+		});
+
+		it('reads records from empty storage', () => {
+			const storage = new IndexedStore<Person>();
+			expect(storage.read(PRIMARY_KEY_INDEX, string.generateStringOfLength(5))).to.be.equalTo([]);
+		});
+
+		it('reads records from empty index', () => {
+			const storage = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const person = { ...PersonsRepo[0] };
+			objectPath.set(person, Indexes.I_BIRTH_YEAR, null);
+			storage.save(person);
+
+			expect(storage.read(PRIMARY_KEY_INDEX, person.id)).to.be.equalTo([person]);
+			expect(storage.read(PRIMARY_KEY_INDEX, person.birthYear)).to.be.equalTo([]);
+		});
+
+		it('fails to read from invalid index', () => {
+			const storage = new IndexedStore<Person>();
+			expect(() => storage.read(string.generateStringOfLength(5), string.generateStringOfLength(5)))
+				.to.throw(Exception)
+				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${IndexedStore.prototype.readIndex.name} spec`, function () {
+		it('reads primary index', () => {
+			const store = new IndexedStore<Person>();
+			expect(store.readIndex(PRIMARY_KEY_INDEX).size).to.be.eq(0);
+
+			store.save(PersonsRepo[0]);
+			expect(store.readIndex(PRIMARY_KEY_INDEX).size).to.be.eq(1);
+		});
+
+		it('reads secondary indexes', () => {
+			const indexes = Object.values(Indexes) as Array<string>;
+			const store = new IndexedStore<Person>({ indexes });
+
+			indexes.push(PRIMARY_KEY_INDEX);
+
+			for (const index of indexes) {
+				expect(store.readIndex(index).size).to.be.eq(0);
+			}
+
+			store.save(PersonsRepo[0]);
+
+			for (const index of indexes) {
+				expect(store.readIndex(index).size).to.be.eq(1);
+			}
+		});
+
+		it('fails to read invalid index', () => {
+			const storage = new IndexedStore<Person>();
+			expect(() => storage.readIndex(string.generateStringOfLength(5)))
+				.to.throw(Exception)
+				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 		});
 	});
 });
