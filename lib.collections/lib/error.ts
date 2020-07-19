@@ -5,8 +5,9 @@ const enum ErrorCodes {
 	NOT_ALLOWED = 'NOT_ALLOWED',
 	NOT_FOUND = 'NOT_FOUND',
 	INVALID_TYPE = 'INVALID_TYPE',
-	BAD_STATE = 'BAD_STATE',
-	REDEFINITION = 'REDEFINITION'
+	UNKNOWN = 'UNKNOWN',
+	REDEFINITION = 'REDEFINITION',
+	REQUIRED = 'REQUIRED'
 }
 
 function createError(code: ErrorCodes, message: string, data?: any): Exception {

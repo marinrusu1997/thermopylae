@@ -125,6 +125,7 @@ export type PersistableRecordKey = Exclude<RecordKey, symbol>;
 export type Primitive = boolean | number | string | bigint;
 export type PersistablePrimitive = Nullable<Primitive>;
 
+export type ObjMap = Record<string, unknown>;
 export type PersistableObjMap = Record<PersistableRecordKey, PersistablePrimitive | { [Key in PersistableRecordKey]: PersistableObjMap }>;
 
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;

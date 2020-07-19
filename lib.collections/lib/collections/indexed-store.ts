@@ -1,8 +1,8 @@
 import objectPath from 'object-path';
-import { Nullable, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Nullable, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { createError, ErrorCodes } from '../error';
 
-const PRIMARY_KEY_NAME = 'id';
+const PRIMARY_KEY_INDEX = 'id';
 
 type IndexName<Recordable> = Exclude<keyof Recordable, symbol> | Exclude<PropertyKey, symbol>;
 type IndexableValue = string | number;
@@ -15,113 +15,94 @@ interface IndexedStoreOptions<Recordable> {
 	indexes?: ReadonlyArray<IndexName<Recordable>>;
 }
 
-interface IndexedRecord extends Record<PropertyKey, any> {
-	readonly [PRIMARY_KEY_NAME]: IndexableValue;
+interface Recordable extends Record<PropertyKey, any> {
+	readonly [PRIMARY_KEY_INDEX]: IndexableValue;
 }
 
-class IndexedStore<Recordable extends IndexedRecord> {
-	private readonly indexRepo: IndexRepo<Recordable>;
+class IndexedStore<IndexedRecord extends Recordable> implements Iterable<IndexedRecord> {
+	private readonly indexRepo: IndexRepo<IndexedRecord>;
 
-	public constructor(options?: IndexedStoreOptions<Recordable>) {
-		this.indexRepo = new Map<IndexName<Recordable>, Index<Recordable>>();
+	public constructor(options?: IndexedStoreOptions<IndexedRecord>) {
+		this.indexRepo = new Map<IndexName<IndexedRecord>, Index<IndexedRecord>>();
 
-		const indexes = ((options && options.indexes) || []).concat(PRIMARY_KEY_NAME);
+		const indexes = ((options && options.indexes) || []).concat(PRIMARY_KEY_INDEX);
 		IndexedStore.defineIndexes(this.indexRepo, indexes);
 	}
 
-	public save(...records: Array<Recordable>): void {
+	public save(...records: Array<IndexedRecord>): void {
 		for (const record of records) {
-			if (this.indexRepo.get(PRIMARY_KEY_NAME)!.has(record.id)) {
+			if (this.indexRepo.get(PRIMARY_KEY_INDEX)!.has(record.id)) {
 				throw createError(ErrorCodes.REDEFINITION, `Record with primary key '${record.id}' has been added already.`);
 			}
-
-			const proxy = new Proxy<Recordable>(record, {
-				set: (target: Recordable, propName: IndexName<Recordable>, newValue: any): boolean => {
-					const index = this.indexRepo.get(propName);
-
-					if (index != null) {
-						if (target !== record) {
-							throw createError(
-								ErrorCodes.NOT_ALLOWED,
-								`Setting property index '${propName}' which is not on the first level in properties tree is forbidden.`
-							);
-						}
-
-						// @ts-ignore
-						const oldValue = target[propName];
-
-						if (newValue === oldValue) {
-							return true;
-						}
-
-						IndexedStore.removeIndexedValue(index, oldValue, proxy);
-						IndexedStore.indexValue(propName, index, newValue, proxy);
-					}
-
-					return true;
-				},
-				deleteProperty: (target: Recordable, propName: IndexName<Recordable>): boolean => {
-					const index = this.indexRepo.get(propName);
-
-					if (index != null) {
-						if (target !== record) {
-							throw createError(
-								ErrorCodes.NOT_ALLOWED,
-								`Deleting property index '${propName}' which is not on the first level in properties tree is forbidden.`
-							);
-						}
-
-						// @ts-ignore
-						const oldValue = target[propName];
-						IndexedStore.removeIndexedValue(index, oldValue, proxy);
-					}
-
-					return true;
-				},
-				defineProperty: (target: Recordable, propName: IndexName<Recordable>, attributes: PropertyDescriptor): boolean => {
-					const index = this.indexRepo.get(propName);
-
-					if (index != null) {
-						if (target !== record) {
-							throw createError(
-								ErrorCodes.NOT_ALLOWED,
-								`Defining property index '${propName}' which is not on the first level in properties tree is forbidden.`
-							);
-						}
-
-						// FIXME what if we have old value when method is invoked?
-						IndexedStore.indexValue(propName, index, attributes.value, proxy);
-					}
-
-					return true;
-				}
-			});
 
 			let indexValue;
 			for (const [indexName, index] of this.indexRepo) {
 				indexValue = objectPath.get(record, indexName);
-				IndexedStore.indexValue(indexName, index, indexValue, proxy);
+				IndexedStore.indexValue(indexName, index, indexValue, record);
 			}
 		}
 	}
 
-	public read(indexName: IndexName<Recordable>, indexValue: IndexableValue): Array<Recordable> {
+	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue): Array<IndexedRecord> {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).get(indexValue) || [];
 	}
 
-	public readIndex(indexName: IndexName<Recordable>): Index<Recordable> {
+	public readIndex(indexName: IndexName<IndexedRecord>): Index<IndexedRecord> {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
 	}
 
-	public contains(indexName: IndexName<Recordable>, indexValue: IndexableValue): boolean {
+	public contains(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue): boolean {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).has(indexValue);
 	}
 
-	public containsIndex(indexName: IndexName<Recordable>): boolean {
+	public containsIndex(indexName: IndexName<IndexedRecord>): boolean {
 		return this.indexRepo.has(indexName);
 	}
 
-	public remove(indexName: IndexName<Recordable>, indexValue: IndexableValue, predicate: UnaryPredicate<Recordable>): boolean {
+	public updateIndex(
+		indexName: IndexName<IndexedRecord>,
+		predicate: UnaryPredicate<IndexedRecord>,
+		oldValue: IndexableValue,
+		newValue?: IndexableValue
+	): boolean {
+		if (indexName === PRIMARY_KEY_INDEX) {
+			throw createError(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}'.`);
+		}
+
+		if (oldValue === newValue) {
+			return false;
+		}
+
+		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+
+		const records = index.get(oldValue);
+		if (records == null) {
+			return false;
+		}
+
+		let record: Nullable<IndexedRecord> = null;
+		let i = records.length;
+		while (i--) {
+			if (predicate(records[i])) {
+				record = records[i];
+				records.splice(i, 1);
+				break;
+			}
+		}
+
+		if (record == null) {
+			return false;
+		}
+
+		if (newValue != null) {
+			objectPath.set(record, indexName, newValue);
+			IndexedStore.indexValue(indexName, index, newValue, record);
+		}
+
+		return true;
+	}
+
+	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexableValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
 
 		const records = index.get(indexValue);
@@ -129,7 +110,15 @@ class IndexedStore<Recordable extends IndexedRecord> {
 			return false;
 		}
 
-		let record: Nullable<Recordable> = null;
+		if (indexName !== PRIMARY_KEY_INDEX) {
+			if (predicate == null) {
+				throw createError(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
+			}
+		} else {
+			predicate = (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === indexValue;
+		}
+
+		let record: Nullable<IndexedRecord> = null;
 		let i = records.length;
 		while (i--) {
 			if (predicate(records[i])) {
@@ -156,19 +145,19 @@ class IndexedStore<Recordable extends IndexedRecord> {
 		}
 	}
 
-	public createIndexes(indexNames: ReadonlyArray<IndexName<Recordable>>): void {
+	public createIndexes(indexNames: ReadonlyArray<IndexName<IndexedRecord>>): void {
 		IndexedStore.defineIndexes(this.indexRepo, indexNames);
 
 		for (const indexName of indexNames) {
 			const index = this.indexRepo.get(indexName)!;
-			for (const primaryKeyRecords of this.indexRepo.get(PRIMARY_KEY_NAME)!.values()) {
+			for (const primaryKeyRecords of this.indexRepo.get(PRIMARY_KEY_INDEX)!.values()) {
 				IndexedStore.indexValue(indexName, index, objectPath.get(primaryKeyRecords[0], indexName), primaryKeyRecords[0]);
 			}
 		}
 	}
 
-	public dropIndex(indexName: IndexName<Recordable>): boolean {
-		if (indexName === PRIMARY_KEY_NAME) {
+	public dropIndex(indexName: IndexName<IndexedRecord>): boolean {
+		if (indexName === PRIMARY_KEY_INDEX) {
 			this.clear();
 			return true;
 		}
@@ -177,19 +166,78 @@ class IndexedStore<Recordable extends IndexedRecord> {
 
 	public dropIndexes(): void {
 		for (const [indexName, index] of this.indexRepo) {
-			if (indexName !== PRIMARY_KEY_NAME) {
+			if (indexName !== PRIMARY_KEY_INDEX) {
 				index.clear();
 				this.indexRepo.delete(indexName);
 			}
 		}
 	}
 
-	public get size(): number {
-		return this.indexRepo.get(PRIMARY_KEY_NAME)!.size;
+	public filter(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexableValue): Array<IndexedRecord> {
+		if (onIndex == null) {
+			onIndex = PRIMARY_KEY_INDEX;
+		}
+
+		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
+
+		if (withValue != null) {
+			return (index.get(withValue) || []).filter(predicate);
+		}
+
+		const filtered = new Array<IndexedRecord>();
+		for (const indexRecords of index.values()) {
+			for (const record of indexRecords) {
+				if (predicate(record)) {
+					filtered.push(record);
+				}
+			}
+		}
+
+		return filtered;
 	}
 
-	public get indexes(): ReadonlyArray<IndexName<Recordable>> {
+	public find(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexableValue): Optional<IndexedRecord> {
+		if (onIndex == null) {
+			onIndex = PRIMARY_KEY_INDEX;
+		}
+
+		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
+
+		if (withValue != null) {
+			return (index.get(withValue) || []).find(predicate);
+		}
+
+		for (const indexRecords of index.values()) {
+			for (const record of indexRecords) {
+				if (predicate(record)) {
+					return record;
+				}
+			}
+		}
+	}
+
+	public get size(): number {
+		return this.indexRepo.get(PRIMARY_KEY_INDEX)!.size;
+	}
+
+	public get indexes(): ReadonlyArray<IndexName<IndexedRecord>> {
 		return Array.from(this.indexRepo.keys());
+	}
+
+	public get array(): ReadonlyArray<IndexedRecord> {
+		const primaryIndex = IndexedStore.assertIndex(PRIMARY_KEY_INDEX, this.indexRepo.get(PRIMARY_KEY_INDEX));
+		const records = new Array(primaryIndex.size);
+
+		let i = 0;
+		for (const record of primaryIndex.values()) {
+			[records[i++]] = record;
+		}
+
+		return records;
+	}
+
+	[Symbol.iterator](): Iterator<IndexedRecord> {
+		return this.array[Symbol.iterator]();
 	}
 
 	private static defineIndexes<R>(indexes: IndexRepo<R>, indexNames: ReadonlyArray<IndexName<R>>): void {
@@ -253,4 +301,4 @@ class IndexedStore<Recordable extends IndexedRecord> {
 	}
 }
 
-export { IndexedStore };
+export { IndexedStore, IndexName, IndexableValue, PRIMARY_KEY_INDEX };
