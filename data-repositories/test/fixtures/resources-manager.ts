@@ -12,6 +12,8 @@ interface RequiredResources {
 
 type Priority = 'normal' | 'high';
 
+// FIXME what about managing fs resources ???
+
 class ResourcesManager {
 	private readonly normalQueue: Queue<RequiredResources> = new Queue<RequiredResources>();
 
