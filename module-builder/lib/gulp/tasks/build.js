@@ -28,6 +28,25 @@ function stageTsConfig(done) {
   });
 }
 
+function stagePackageJson(done) {
+  fs.readFile("package.json", "utf8", (err, content) => {
+    if (err) {
+      done(err);
+    }
+
+    const pkg = JSON.parse(content);
+    if (pkg.exports == null) {
+      pkg.exports = pkg.main.startsWith('./') ? pkg.main : `./${pkg.main}`;
+    }
+
+    if (pkg.type == null) {
+      pkg.type = 'commonjs';
+    }
+
+    fs.writeFile("package.json", JSON.stringify(pkg, null, 4), done);
+  });
+}
+
 function tscVersion() {
   const tsc = spawn("tsc", ['--version'], constants.SPAWN_OPTIONS);
   tsc.on("close", code => {
@@ -66,7 +85,7 @@ function unStageTsConfig(done) {
 
 function buildFactory(module, gulp) {
   if (module === constants.ModuleLang.TS) {
-    return gulp.series(stageTsConfig, tscVersion, transpile, unStageTsConfig);
+    return gulp.series(stageTsConfig, stagePackageJson, tscVersion, transpile, unStageTsConfig);
   }
 }
 

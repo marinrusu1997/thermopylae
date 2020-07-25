@@ -1,5 +1,5 @@
 import objectPath from 'object-path';
-import { Mapper, Nullable, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Mapper, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { createError, ErrorCodes } from '../error';
 
 const PRIMARY_KEY_INDEX = 'id';
@@ -61,13 +61,13 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return this.indexRepo.has(indexName);
 	}
 
-	public updateIndex(indexName: IndexName<IndexedRecord>, predicate: UnaryPredicate<IndexedRecord>, oldValue: IndexValue, newValue?: IndexValue): boolean {
-		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createError(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}'.`);
-		}
-
+	public updateIndex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, predicate: UnaryPredicate<IndexedRecord>): boolean {
 		if (oldValue === newValue) {
 			return false;
+		}
+
+		if (indexName === PRIMARY_KEY_INDEX) {
+			throw createError(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
 		}
 
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -77,33 +77,33 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			return false;
 		}
 
-		let record: Nullable<IndexedRecord> = null;
-		let i = records.length;
-		while (i--) {
-			if (predicate(records[i])) {
-				record = records[i];
-				records.splice(i, 1);
-				break;
-			}
-		}
-
+		const record = IndexedStore.removeRecord(records, predicate);
 		if (record == null) {
 			return false;
 		}
 
-		if (newValue != null) {
-			objectPath.set(record, indexName, newValue);
-			IndexedStore.assertIndexValue(indexName, newValue);
-			IndexedStore.indexRecordBy(record, newValue, index);
-		}
+		objectPath.set(record, indexName, newValue);
+		IndexedStore.assertIndexValue(indexName, newValue);
+		IndexedStore.indexRecordBy(record, newValue, index);
 
 		return true;
 	}
 
-	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
-		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+	public deIndex(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate: UnaryPredicate<IndexedRecord>): boolean {
+		if (indexName === PRIMARY_KEY_INDEX) {
+			throw createError(ErrorCodes.NOT_ALLOWED, `Can't de-index from primary index '${indexName}'.`);
+		}
 
-		const records = index.get(indexValue);
+		const records = this.getIndexRecords(indexName, indexValue);
+		if (records == null) {
+			return false;
+		}
+
+		return IndexedStore.removeRecord(records, predicate) != null;
+	}
+
+	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
+		const records = this.getIndexRecords(indexName, indexValue);
 		if (records == null) {
 			return false;
 		}
@@ -116,15 +116,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			predicate = (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === indexValue;
 		}
 
-		let record: Nullable<IndexedRecord> = null;
-		let i = records.length;
-		while (i--) {
-			if (predicate(records[i])) {
-				record = records[i];
-				records.splice(i, 1);
-				break;
-			}
-		}
+		const record = IndexedStore.removeRecord(records, predicate);
 
 		if (record == null) {
 			return false;
@@ -273,6 +265,11 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		};
 	}
 
+	private getIndexRecords(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): Optional<Array<IndexedRecord>> {
+		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+		return index.get(indexValue);
+	}
+
 	private static defineIndexes<R>(indexes: IndexRepo<R>, indexNames: ReadonlyArray<IndexName<R>>): void {
 		let i = indexNames.length;
 		while (i--) {
@@ -329,6 +326,17 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		} else {
 			records.push(record);
 		}
+	}
+
+	private static removeRecord<IndexedRecord>(records: Array<IndexedRecord>, predicate: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
+		const recordPosition = records.findIndex(predicate);
+		if (recordPosition === -1) {
+			return undefined;
+		}
+
+		const record = records[recordPosition];
+		records.splice(recordPosition, 1);
+		return record;
 	}
 
 	private static removeIndexedRecordBy<R>(record: R, value: IndexValue, index: Index<R>): void {

@@ -6,7 +6,7 @@ import mocker from 'mocker-data-generator';
 import objectPath from 'object-path';
 // @ts-ignore
 import range from 'range-generator';
-import { IndexedStore, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
+import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
 
 const { expect } = chai;
@@ -37,6 +37,13 @@ enum Indexes {
 	II_COUNTRY_CODE = 'address.countryCode',
 	III_BANK_NAME = 'finance.bank.name'
 }
+
+type IndexValueGenerator = () => IndexValue;
+const IndexValueGenerators = new Map<Indexes, IndexValueGenerator>([
+	[Indexes.I_BIRTH_YEAR, () => number.generateRandomInt(2000, 2020)],
+	[Indexes.II_COUNTRY_CODE, () => string.generateStringOfLength(5)],
+	[Indexes.III_BANK_NAME, () => string.generateStringOfLength(5)]
+]);
 
 const TRANSACTION_SCHEMA_NAME = 'transaction';
 const PERSON_SCHEMA_NAME = 'person';
@@ -98,6 +105,10 @@ function generateTestData(amount: number): Promise<Array<Person>> {
 		.schema(PERSON_SCHEMA_NAME, PersonSchema, amount)
 		.build()
 		.then((data) => data[PERSON_SCHEMA_NAME]);
+}
+
+function randomPerson(): Person {
+	return PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)];
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
@@ -688,6 +699,163 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			expect(() => storage.readIndex(string.generateStringOfLength(5)))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${IndexedStore.prototype.updateIndex.name} spec`, function () {
+		it('should not update primary index', () => {
+			const store = new IndexedStore<Person>();
+
+			const oldVal = string.generateStringOfLength(5);
+			const newVal = string.generateStringOfLength(5);
+			const update = () => store.updateIndex(PRIMARY_KEY_INDEX, oldVal, newVal, () => true);
+
+			expect(update).to.throw(Exception).haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+		});
+
+		it('should not update index if values are the same', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const oldVal = '';
+			const newVal = oldVal;
+			const update = () => store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, () => true);
+
+			expect(update()).to.be.eq(false);
+		});
+
+		it('should not update index if index is empty', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const originalSize = store.size;
+
+			const candidate = randomPerson();
+			const oldVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it('should not update record if it is not indexed', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			store.save(indexed);
+
+			let candidate: Person;
+			while ((candidate = randomPerson()) === indexed);
+
+			objectPath.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			store.save(candidate);
+
+			const originalSize = store.size;
+			expect(originalSize).to.be.eq(2);
+
+			const oldVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
+			expect(store.size).to.be.eq(originalSize);
+
+			expect(
+				store.updateIndex(
+					Indexes.I_BIRTH_YEAR,
+					objectPath.get(indexed, Indexes.I_BIRTH_YEAR),
+					newVal,
+					(person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX]
+				)
+			).to.be.eq(true);
+		});
+
+		it("should not update record if it doesn't exist", () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			const originalIndexed = object.cloneDeep(indexed);
+
+			store.save(indexed);
+			const originalSize = store.size;
+
+			const oldVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+
+			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
+			expect(store.size).to.be.eq(originalSize);
+			expect(indexed).to.be.deep.eq(originalIndexed);
+		});
+
+		it('should update first level index', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.save(...PersonsRepo);
+
+			const birthYearIndex = store.readIndex(Indexes.I_BIRTH_YEAR);
+
+			const candidate = randomPerson();
+			const oldBirthYearValue = candidate.birthYear;
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			/** BEFORE UPDATE */
+			const countryCodeIndexRecordsLenBefore = store.readIndex(Indexes.II_COUNTRY_CODE).get(candidate.address.countryCode)!.length;
+			const bankNameIndexRecordsLen = store.readIndex(Indexes.III_BANK_NAME).get(candidate.finance.bank.name)!.length;
+			const originalCandidate = object.cloneDeep(candidate);
+
+			expect(birthYearIndex.get(oldBirthYearValue)!.findIndex(predicate)).to.not.be.eq(-1);
+
+			/** UPDATE */
+			const updatedBirthYear = number.generateRandomInt(2000, 2020);
+			const updated = store.updateIndex(Indexes.I_BIRTH_YEAR, candidate.birthYear, updatedBirthYear, predicate);
+			expect(updated).to.be.eq(true);
+
+			expect(originalCandidate).to.not.be.deep.eq(candidate);
+			expect(candidate.birthYear).to.be.eq(updatedBirthYear);
+			expect({ ...originalCandidate, birthYear: updatedBirthYear }).to.be.deep.eq(candidate);
+
+			/** AFTER UPDATE */
+			expect(birthYearIndex.get(oldBirthYearValue)!.findIndex(predicate)).to.be.eq(-1);
+			expect(birthYearIndex.get(updatedBirthYear)!.findIndex(predicate)).to.not.be.eq(-1);
+
+			const countryCodeIndexRecords = store.readIndex(Indexes.II_COUNTRY_CODE).get(originalCandidate.address.countryCode)!;
+			const bankNameIndexRecords = store.readIndex(Indexes.III_BANK_NAME).get(originalCandidate.finance.bank.name)!;
+
+			expect(countryCodeIndexRecordsLenBefore).to.be.eq(countryCodeIndexRecords.length);
+			expect(countryCodeIndexRecords.findIndex(predicate)).to.not.be.eq(-1);
+
+			expect(bankNameIndexRecordsLen).to.be.eq(bankNameIndexRecords.length);
+			expect(bankNameIndexRecords.findIndex(predicate)).to.not.be.eq(-1);
+		});
+
+		it('should update nested level index', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.save(...PersonsRepo);
+
+			const candidate = randomPerson();
+			const originalCandidate = object.cloneDeep(candidate);
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			const originalSize = store.size;
+
+			for (const indexName of indexes) {
+				const oldValue = objectPath.get(originalCandidate, indexName);
+				const updateValue = IndexValueGenerators.get(indexName)!();
+
+				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.not.be.eq(-1);
+				expect(store.read(indexName, updateValue)!.findIndex(predicate)).to.be.eq(-1);
+
+				expect(store.updateIndex(indexName, oldValue, updateValue, predicate)).to.be.eq(true);
+				expect(candidate).to.not.be.deep.eq(originalCandidate);
+				expect(objectPath.get(candidate, indexName)).to.be.deep.eq(updateValue);
+				objectPath.set(originalCandidate, indexName, updateValue);
+				expect(candidate).to.be.deep.eq(originalCandidate);
+
+				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.be.eq(-1);
+				expect(store.read(indexName, updateValue)!.findIndex(predicate)).to.not.be.eq(-1);
+
+				expect(store.size).to.be.eq(originalSize);
+			}
 		});
 	});
 });
