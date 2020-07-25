@@ -6,7 +6,8 @@ import mocker from 'mocker-data-generator';
 import objectPath from 'object-path';
 // @ts-ignore
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
+import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
 
 const { expect } = chai;
@@ -112,9 +113,9 @@ function randomPerson(): Person {
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
-describe.only(`${IndexedStore.name} spec`, function () {
+describe(`${IndexedStore.name} spec`, function () {
 	before(async () => {
-		PersonsRepo = await generateTestData(1000);
+		PersonsRepo = await generateTestData(100);
 		PersonsRepoSnapshot = PersonsRepo.map((person) => object.cloneDeep(person));
 	});
 
@@ -185,8 +186,8 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('indexes records by primary key', () => {
 				const storage = new IndexedStore<Person>();
-				storage.save(...PersonsRepo);
-				expect(storage.size).to.be.eq(PersonsRepo.length); // save was ok
+				storage.insert(...PersonsRepo);
+				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
 				const primaryIndex = storage.readIndex(PRIMARY_KEY_INDEX);
 				for (const [indexValue, records] of primaryIndex) {
@@ -197,8 +198,8 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('re-indexes records when creating level 1 index', () => {
 				const storage = new IndexedStore<Person>();
-				storage.save(...PersonsRepo);
-				expect(storage.size).to.be.eq(PersonsRepo.length); // save was ok
+				storage.insert(...PersonsRepo);
+				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
 				storage.createIndexes([Indexes.I_BIRTH_YEAR]);
 
@@ -219,8 +220,8 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('re-indexes records when creating level 2 index', () => {
 				const storage = new IndexedStore<Person>();
-				storage.save(...PersonsRepo);
-				expect(storage.size).to.be.eq(PersonsRepo.length); // save was ok
+				storage.insert(...PersonsRepo);
+				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
 				storage.createIndexes([Indexes.II_COUNTRY_CODE]);
 
@@ -241,8 +242,8 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('re-indexes records when creating level 3 index', () => {
 				const storage = new IndexedStore<Person>();
-				storage.save(...PersonsRepo);
-				expect(storage.size).to.be.eq(PersonsRepo.length); // save was ok
+				storage.insert(...PersonsRepo);
+				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
 				storage.createIndexes([Indexes.III_BANK_NAME]);
 
@@ -263,8 +264,8 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('re-indexes records when creating level 1, 2, 3 index', () => {
 				const storage = new IndexedStore<Person>();
-				storage.save(...PersonsRepo);
-				expect(storage.size).to.be.eq(PersonsRepo.length); // save was ok
+				storage.insert(...PersonsRepo);
+				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
 				const indexes = Object.values(Indexes);
 				storage.createIndexes(indexes);
@@ -304,7 +305,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			it('drops existing index', () => {
 				const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
-				store.save(...PersonsRepo);
+				store.insert(...PersonsRepo);
 				expect(store.size).to.be.eq(PersonsRepo.length);
 
 				expect(store.indexes).to.be.containingAllOf([PRIMARY_KEY_INDEX, Indexes.I_BIRTH_YEAR]);
@@ -317,7 +318,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			it('drops multiple existing indexes', () => {
 				const indexes = Object.values(Indexes) as Array<string>;
 				const store = new IndexedStore<Person>({ indexes });
-				store.save(...PersonsRepo);
+				store.insert(...PersonsRepo);
 				expect(store.size).to.be.eq(PersonsRepo.length);
 
 				const originalIndexes = indexes.concat([PRIMARY_KEY_INDEX]);
@@ -364,7 +365,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			it('drops all indexes except the primary one when there are records', () => {
 				const indexes = Object.values(Indexes) as Array<string>;
 				const storage = new IndexedStore<Person>({ indexes });
-				storage.save(...PersonsRepo);
+				storage.insert(...PersonsRepo);
 
 				expect(storage.size).to.be.eq(PersonsRepo.length);
 				expect(storage.indexes).to.be.ofSize(indexes.length + 1);
@@ -379,47 +380,47 @@ describe.only(`${IndexedStore.name} spec`, function () {
 	});
 
 	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${IndexedStore.prototype.save.name} spec`, function () {
+	describe(`${IndexedStore.prototype.insert.name} spec`, function () {
 		it('saves persons without indexing', () => {
 			const storage = new IndexedStore<Person>();
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 1 index', () => {
 			const storage = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 2 index', () => {
 			const storage = new IndexedStore<Person>({ indexes: [Indexes.II_COUNTRY_CODE] });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 3 index', () => {
 			const storage = new IndexedStore<Person>({ indexes: [Indexes.III_BANK_NAME] });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 1, 2, 3 index', () => {
 			const storage = new IndexedStore<Person>({ indexes: Object.values(Indexes) });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
-		it('fails to save records which have indexed properties different from indexable types (string|number)', () => {
+		it('fails to insert records which have indexed properties different from indexable types (string|number)', () => {
 			const storage = new IndexedStore<Person>();
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			let invalidPerson = {};
 
 			/** NO ID */
 			// @ts-ignore
-			expect(() => storage.save(invalidPerson))
+			expect(() => storage.insert(invalidPerson))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
 
@@ -430,7 +431,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 				birthYear: []
 			};
 			// @ts-ignore
-			expect(() => storage.save(invalidPerson))
+			expect(() => storage.insert(invalidPerson))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -445,7 +446,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 				}
 			};
 			// @ts-ignore
-			expect(() => storage.save(invalidPerson))
+			expect(() => storage.insert(invalidPerson))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -465,18 +466,18 @@ describe.only(`${IndexedStore.name} spec`, function () {
 				}
 			};
 			// @ts-ignore
-			expect(() => storage.save(invalidPerson))
+			expect(() => storage.insert(invalidPerson))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
-		it('fails to save duplicate records', () => {
+		it('fails to insert duplicate records', () => {
 			const storage = new IndexedStore<Person>();
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			expect(() => storage.save(PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)]))
+			expect(() => storage.insert(PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)]))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.REDEFINITION);
 		});
@@ -484,7 +485,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 		it('saves records with undefined index properties', () => {
 			const indexNames = Object.values(Indexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes: indexNames });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			indexNames.push(PRIMARY_KEY_INDEX);
@@ -517,7 +518,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			}
 
 			for (const nulledIndexName of Object.values(Indexes)) {
-				storage.save(generatePerson(nulledIndexName));
+				storage.insert(generatePerson(nulledIndexName));
 				increaseAdditions(nulledIndexName);
 
 				for (const indexName of indexNames) {
@@ -530,7 +531,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 		it('saves records with null index properties', () => {
 			const indexNames = Object.values(Indexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes: indexNames });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			indexNames.push(PRIMARY_KEY_INDEX);
@@ -563,7 +564,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			}
 
 			for (const nulledIndexName of Object.values(Indexes)) {
-				storage.save(generatePerson(nulledIndexName));
+				storage.insert(generatePerson(nulledIndexName));
 				increaseAdditions(nulledIndexName);
 
 				for (const indexName of indexNames) {
@@ -593,7 +594,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			}
 
 			// @ts-ignore
-			expect(() => store.save(...toSave))
+			expect(() => store.insert(...toSave))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
 			expect(store.size).to.be.eq(validRecordsNo);
@@ -604,7 +605,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 	describe(`${IndexedStore.prototype.read.name} spec`, function () {
 		it('reads records by their id', () => {
 			const storage = new IndexedStore<Person>();
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const positionGenerator = range(
@@ -624,7 +625,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 		it('reads records by their index', () => {
 			const indexes = Object.values(Indexes);
 			const storage = new IndexedStore<Person>({ indexes });
-			storage.save(...PersonsRepo);
+			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const positionGenerator = range(
@@ -653,7 +654,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 			const person = { ...PersonsRepo[0] };
 			objectPath.set(person, Indexes.I_BIRTH_YEAR, null);
-			storage.save(person);
+			storage.insert(person);
 
 			expect(storage.read(PRIMARY_KEY_INDEX, person.id)).to.be.equalTo([person]);
 			expect(storage.read(PRIMARY_KEY_INDEX, person.birthYear)).to.be.equalTo([]);
@@ -673,7 +674,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			const store = new IndexedStore<Person>();
 			expect(store.readIndex(PRIMARY_KEY_INDEX).size).to.be.eq(0);
 
-			store.save(PersonsRepo[0]);
+			store.insert(PersonsRepo[0]);
 			expect(store.readIndex(PRIMARY_KEY_INDEX).size).to.be.eq(1);
 		});
 
@@ -687,7 +688,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 				expect(store.readIndex(index).size).to.be.eq(0);
 			}
 
-			store.save(PersonsRepo[0]);
+			store.insert(PersonsRepo[0]);
 
 			for (const index of indexes) {
 				expect(store.readIndex(index).size).to.be.eq(1);
@@ -699,6 +700,33 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			expect(() => storage.readIndex(string.generateStringOfLength(5)))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+		});
+	});
+
+	describe('contains spec', function () {
+		it('should return false when storage is empty', () => {
+			const storage = new IndexedStore<Person>();
+			expect(storage.contains(PRIMARY_KEY_INDEX, string.generateStringOfLength(5))).to.be.eq(false);
+		});
+
+		it('should return false when record is in the index', () => {
+			const storage = new IndexedStore<Person>();
+			const record = randomPerson();
+			storage.insert(record);
+
+			expect(storage.contains(PRIMARY_KEY_INDEX, record[PRIMARY_KEY_INDEX])).to.be.eq(true);
+		});
+	});
+
+	describe('contains index spec', function () {
+		it('should return false when index is not present', () => {
+			const storage = new IndexedStore<Person>();
+			expect(storage.containsIndex(Indexes.I_BIRTH_YEAR)).to.be.eq(false);
+		});
+
+		it('should return true when index is present', () => {
+			const storage = new IndexedStore<Person>();
+			expect(storage.containsIndex(PRIMARY_KEY_INDEX)).to.be.eq(true);
 		});
 	});
 
@@ -741,13 +769,13 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
-			store.save(indexed);
+			store.insert(indexed);
 
 			let candidate: Person;
 			while ((candidate = randomPerson()) === indexed);
 
 			objectPath.set(candidate, Indexes.I_BIRTH_YEAR, null);
-			store.save(candidate);
+			store.insert(candidate);
 
 			const originalSize = store.size;
 			expect(originalSize).to.be.eq(2);
@@ -775,7 +803,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 			const indexed = randomPerson();
 			const originalIndexed = object.cloneDeep(indexed);
 
-			store.save(indexed);
+			store.insert(indexed);
 			const originalSize = store.size;
 
 			const oldVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
@@ -790,7 +818,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 		it('should update first level index', () => {
 			const indexes = Object.values(Indexes);
 			const store = new IndexedStore<Person>({ indexes });
-			store.save(...PersonsRepo);
+			store.insert(...PersonsRepo);
 
 			const birthYearIndex = store.readIndex(Indexes.I_BIRTH_YEAR);
 
@@ -831,7 +859,7 @@ describe.only(`${IndexedStore.name} spec`, function () {
 		it('should update nested level index', () => {
 			const indexes = Object.values(Indexes);
 			const store = new IndexedStore<Person>({ indexes });
-			store.save(...PersonsRepo);
+			store.insert(...PersonsRepo);
 
 			const candidate = randomPerson();
 			const originalCandidate = object.cloneDeep(candidate);
@@ -856,6 +884,468 @@ describe.only(`${IndexedStore.name} spec`, function () {
 
 				expect(store.size).to.be.eq(originalSize);
 			}
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${IndexedStore.prototype.remove.name} spec`, () => {
+		it('should not delete record if index is empty', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const originalSize = store.size;
+
+			const candidate = randomPerson();
+			const indexValue = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			expect(store.remove(Indexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it('should not delete record if it is not indexed', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			store.insert(indexed);
+
+			let candidate: Person;
+			while ((candidate = randomPerson()) === indexed);
+
+			objectPath.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			store.insert(candidate);
+
+			const originalSize = store.size;
+			expect(originalSize).to.be.eq(2);
+
+			const unIndexedVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			expect(store.remove(Indexes.I_BIRTH_YEAR, unIndexedVal, predicate)).to.be.eq(undefined);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it("should not delete record if it doesn't exist", () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			store.insert(indexed);
+			const originalSize = store.size;
+
+			const nonExistentVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+
+			expect(store.remove(Indexes.I_BIRTH_YEAR, nonExistentVal, predicate)).to.be.eq(undefined);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it('should delete entries from primary index', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+			expect(store.size).to.be.eq(PersonsRepo.length);
+
+			const candidate = randomPerson();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+			expect(store.size).to.be.eq(PersonsRepo.length - 1);
+			expect(removed).to.be.deep.eq(candidate);
+
+			for (const indexName of indexes) {
+				const match = store.read(indexName, objectPath.get(candidate, indexName))!.find(predicate);
+				expect(match).to.be.eq(undefined);
+			}
+		});
+
+		it('should remove entries from secondary indexes', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+
+			expect(store.size).to.be.eq(PersonsRepo.length);
+
+			const removedCandidates = new Set<Person>();
+
+			function candidateForRemoval(): Person {
+				let candidate: Person = randomPerson();
+				while (removedCandidates.has(candidate)) {
+					candidate = randomPerson();
+				}
+				return candidate;
+			}
+
+			function markAsRemoved(candidate: Person): void {
+				removedCandidates.add(candidate);
+			}
+
+			function assertNotFoundOnAllIndexes(candidate: Person, predicate: UnaryPredicate<Person>): void {
+				for (const indexName of indexes) {
+					const match = store.read(indexName, objectPath.get(candidate, indexName))!.find(predicate);
+					expect(match).to.be.eq(undefined);
+				}
+			}
+
+			for (let i = 0; i < indexes.length; i++) {
+				const candidate = candidateForRemoval();
+				const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+				const removed = store.remove(indexes[i], objectPath.get(candidate, indexes[i]), predicate);
+
+				expect(store.size).to.be.eq(PersonsRepo.length - i - 1);
+				expect(removed).to.be.deep.eq(candidate);
+				assertNotFoundOnAllIndexes(candidate, predicate);
+
+				markAsRemoved(candidate);
+			}
+		});
+
+		it('should be able to insert same record after it was deleted', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+			expect(store.size).to.be.eq(PersonsRepo.length);
+
+			const candidate = randomPerson();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			let match: Optional<Person>;
+
+			const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!;
+			expect(store.size).to.be.eq(PersonsRepo.length - 1);
+			expect(removed).to.be.deep.eq(candidate);
+			match = store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!.find(predicate);
+			expect(match).to.be.eq(undefined);
+
+			store.insert(removed);
+			expect(store.size).to.be.eq(PersonsRepo.length);
+			match = store.read(PRIMARY_KEY_INDEX, removed[PRIMARY_KEY_INDEX])!.find(predicate);
+			expect(match).to.be.deep.eq(removed);
+		});
+
+		it('throw when predicate is not provided for secondary indexes', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+
+			const throwable = () => store.remove(Indexes.I_BIRTH_YEAR, string.generateStringOfLength(5));
+			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
+		});
+	});
+
+	describe('clear spec', () => {
+		it('clears no entries when storage is empty', () => {
+			const store = new IndexedStore<Person>();
+			expect(store.size).to.be.eq(0);
+
+			store.clear();
+			expect(store.size).to.be.eq(0);
+		});
+
+		it('clears all entries from storage', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+			expect(store.size).to.be.eq(PersonsRepo.length);
+
+			store.clear();
+			expect(store.size).to.be.eq(0);
+
+			const candidate = randomPerson();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			expect(store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!.find(predicate)).to.be.eq(undefined);
+		});
+
+		it('clears all entries but preserves indexes', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+			expect(store.size).to.be.eq(PersonsRepo.length);
+
+			store.clear();
+			expect(store.size).to.be.eq(0);
+
+			for (const indexName of indexes) {
+				expect(store.readIndex(indexName)!.size).to.be.eq(0);
+			}
+		});
+	});
+
+	describe('get index records count spec', function () {
+		it('each index contains distinct records', () => {
+			const indexes: Array<IndexName<Person>> = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function assertUniqueRecords(indexName: IndexName<Person>): void {
+				const unique = new Set<Person>();
+				const index = storage.readIndex(indexName);
+
+				for (const records of index.values()) {
+					for (const record of records) {
+						unique.add(record);
+					}
+				}
+
+				expect(unique.size).to.be.eq(storage.getIndexRecordsCount(indexName));
+			}
+
+			indexes.push(PRIMARY_KEY_INDEX);
+			for (const indexName of indexes) {
+				assertUniqueRecords(indexName);
+			}
+		});
+	});
+
+	describe('map spec', () => {
+		it('should return empty array when storage is empty', () => {
+			const storage = new IndexedStore<Person>();
+
+			function mapper(person: Person): IndexValue {
+				return person[PRIMARY_KEY_INDEX];
+			}
+
+			const mappings = storage.map(mapper);
+			expect(mappings.length).to.be.eq(0);
+		});
+
+		it('should map values from primary index', () => {
+			const storage = new IndexedStore<Person>();
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function mapper(person: Person): IndexValue {
+				return person[PRIMARY_KEY_INDEX];
+			}
+
+			const mappings = storage.map(mapper);
+			expect(mappings.length).to.be.eq(storage.size);
+
+			expect(new Set(mappings).size).to.be.eq(mappings.length);
+		});
+
+		it('should map values from secondary index', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function mapper(person: Person): IndexValue {
+				return person[PRIMARY_KEY_INDEX];
+			}
+
+			for (const indexName of indexes) {
+				const mappings = storage.map(mapper, indexName);
+				expect(mappings.length).to.be.eq(storage.getIndexRecordsCount(indexName));
+				expect(new Set(mappings).size).to.be.eq(mappings.length);
+			}
+		});
+
+		it('should map values from index value', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function mapper(person: Person): IndexValue {
+				return person[PRIMARY_KEY_INDEX];
+			}
+
+			const candidate = randomPerson();
+			const mappings = storage.map(mapper, PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+
+			expect(mappings.length).to.be.eq(1);
+			expect(mappings[0]).to.be.deep.eq(candidate[PRIMARY_KEY_INDEX]);
+		});
+	});
+
+	describe('filter spec', () => {
+		it('should filter nothing when storage is empty', () => {
+			const storage = new IndexedStore<Person>();
+
+			function predicate(): boolean {
+				return true;
+			}
+
+			const filtered = storage.filter(predicate);
+			expect(filtered.length).to.be.eq(0);
+		});
+
+		it('should filter storage records', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function predicate(person: Person): boolean {
+				return person.birthYear === 2000;
+			}
+
+			const filtered = storage.filter(predicate);
+			const crossCheckFiltered = PersonsRepo.filter(predicate);
+
+			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
+		});
+
+		it('should filter secondary index records', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const nonIndexed = object.cloneDeep(randomPerson());
+			objectPath.set(nonIndexed, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+			for (const indexName of indexes) {
+				objectPath.set(nonIndexed, indexName, null);
+			}
+			storage.insert(nonIndexed);
+			expect(storage.size).to.be.eq(PersonsRepo.length + 1);
+
+			function predicate(person: Person): boolean {
+				return person.birthYear === 2000;
+			}
+
+			for (const indexName of indexes) {
+				const filtered = storage.filter(predicate, indexName);
+				const crossCheckFiltered = PersonsRepo.filter(predicate);
+
+				expect(filtered.length).to.be.eq(crossCheckFiltered.length);
+			}
+		});
+
+		it('should filter records from index value', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const desiredBirthYearRange = Array.from(range(1990, 1995));
+			function predicate(person: Person): boolean {
+				return desiredBirthYearRange.includes(person.birthYear);
+			}
+
+			const filtered = storage.filter(predicate, Indexes.II_COUNTRY_CODE, 'MX');
+			const crossCheckFiltered = PersonsRepo.filter((person) => objectPath.get(person, Indexes.II_COUNTRY_CODE) === 'MX' && predicate(person));
+
+			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
+			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
+		});
+	});
+
+	describe('find spec', function () {
+		it('should find nothing on empty storage', () => {
+			const storage = new IndexedStore<Person>();
+			function predicate(person: Person): boolean {
+				return person.birthYear === 2000;
+			}
+			const match = storage.find(predicate);
+			expect(match).to.be.eq(undefined);
+		});
+
+		it('should find record from storage', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function predicate(person: Person): boolean {
+				return person.birthYear === 2000;
+			}
+
+			const match = storage.filter(predicate);
+			expect(match).to.not.be.eq(undefined);
+		});
+
+		it('should not find non existing record in the storage', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const desiredId = string.generateStringOfLength(15);
+			function predicate(person: Person): boolean {
+				return person[PRIMARY_KEY_INDEX] === desiredId;
+			}
+
+			const match = storage.find(predicate);
+			expect(match).to.be.eq(undefined);
+		});
+
+		it('should find record in the secondary indexes', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			function predicate(person: Person): boolean {
+				return person.birthYear === 2000;
+			}
+
+			for (const indexName of indexes) {
+				const match = storage.find(predicate, indexName);
+				expect(match).to.not.be.eq(undefined);
+			}
+		});
+
+		it('should find records from index value', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const record = object.cloneDeep(randomPerson());
+			objectPath.set(record, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+
+			const countryCode = string.generateStringOfLength(6);
+			objectPath.set(record, Indexes.I_BIRTH_YEAR, 1990);
+			objectPath.set(record, Indexes.II_COUNTRY_CODE, countryCode);
+			storage.insert(record);
+
+			const desiredBirthYearRange = Array.from(range(1990, 1995));
+			function predicate(person: Person): boolean {
+				return desiredBirthYearRange.includes(person.birthYear);
+			}
+
+			const match = storage.find(predicate, Indexes.II_COUNTRY_CODE, countryCode);
+			expect(match).to.be.deep.eq(record);
+		});
+	});
+
+	describe('values spec', function () {
+		it('should return no values when storage is empty', () => {
+			const storage = new IndexedStore<Person>();
+			expect(storage.values.length).to.be.eq(0);
+		});
+
+		it('should return all values from storage', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+			expect(storage.values.length).to.be.eq(storage.size);
+			expect(storage.values).to.be.containingAllOf(PersonsRepo);
+		});
+	});
+
+	describe('iterator spec', function () {
+		it('should iterate over not records when storage is empty', () => {
+			const storage = new IndexedStore<Person>();
+			let counter = 0;
+			for (const _record of storage) {
+				counter += 1;
+			}
+			expect(counter).to.be.eq(0);
+		});
+
+		it('should iterate over all records from storage', () => {
+			const indexes = Object.values(Indexes);
+			const storage = new IndexedStore<Person>({ indexes });
+			storage.insert(...PersonsRepo);
+			expect(storage.size).to.be.eq(PersonsRepo.length);
+
+			const iterated = new Set<Person>();
+			for (const record of storage) {
+				iterated.add(record);
+			}
+			expect(iterated.size).to.be.eq(PersonsRepo.length);
 		});
 	});
 });

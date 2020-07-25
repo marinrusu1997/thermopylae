@@ -112,12 +112,27 @@ export type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<
 		[K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>;
 	}[Keys];
 
+export type Values<T extends ObjMap> = T[keyof T];
+
+export type Tuplize<T extends ObjMap[]> = Pick<T, Exclude<keyof T, Extract<keyof ObjMap[], string> | number>>;
+
+export type Xor<T extends ObjMap> = Values<
+	{
+		[K in keyof T]: T[K] &
+			{
+				[M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
+			};
+	}
+>;
+
+export type OneOf<T extends ObjMap[]> = Xor<Tuplize<T>>;
+
 export type Conditional<Dispatcher, Expectation, Truthy, Falsy> = Dispatcher extends Expectation ? Truthy : Falsy;
 
 export type Nullable<T> = T | null;
 export type Undefinable<T> = T | undefined;
 export type Voidable<T> = T | void;
-export type Optional<T> = Nullable<Undefinable<Voidable<T>>>;
+export type Optional<T> = Undefinable<T>;
 
 export type RecordKey = string | number | symbol;
 export type PersistableRecordKey = Exclude<RecordKey, symbol>;
@@ -125,7 +140,7 @@ export type PersistableRecordKey = Exclude<RecordKey, symbol>;
 export type Primitive = boolean | number | string | bigint;
 export type PersistablePrimitive = Nullable<Primitive>;
 
-export type ObjMap = Record<string, unknown>;
+export type ObjMap = Record<string, any>;
 export type PersistableObjMap = Record<PersistableRecordKey, PersistablePrimitive | { [Key in PersistableRecordKey]: PersistableObjMap }>;
 
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;

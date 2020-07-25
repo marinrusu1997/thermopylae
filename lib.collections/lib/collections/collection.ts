@@ -157,7 +157,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			Collection.validateDocuments(this.validator, documents);
 		}
 
-		this.storage.save(...documents);
+		this.storage.insert(...documents);
 
 		if (this.identity === DocumentIdentity.CLONE) {
 			documents = Collection.clone(documents);

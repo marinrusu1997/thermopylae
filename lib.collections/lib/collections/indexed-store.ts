@@ -29,7 +29,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		IndexedStore.defineIndexes(this.indexRepo, indexes);
 	}
 
-	public save(...records: Array<IndexedRecord>): void {
+	public insert(...records: Array<IndexedRecord>): void {
 		const { indexes } = this;
 
 		for (const record of records) {
@@ -89,25 +89,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return true;
 	}
 
-	public deIndex(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate: UnaryPredicate<IndexedRecord>): boolean {
-		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createError(ErrorCodes.NOT_ALLOWED, `Can't de-index from primary index '${indexName}'.`);
-		}
-
-		const records = this.getIndexRecords(indexName, indexValue);
-		if (records == null) {
-			return false;
-		}
-
-		return IndexedStore.removeRecord(records, predicate) != null;
-	}
-
-	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): boolean {
-		const records = this.getIndexRecords(indexName, indexValue);
-		if (records == null) {
-			return false;
-		}
-
+	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
 		if (indexName !== PRIMARY_KEY_INDEX) {
 			if (predicate == null) {
 				throw createError(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
@@ -116,17 +98,24 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			predicate = (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === indexValue;
 		}
 
+		const records = this.getIndexRecords(indexName, indexValue);
+		if (records == null) {
+			return undefined;
+		}
+
 		const record = IndexedStore.removeRecord(records, predicate);
 
 		if (record == null) {
-			return false;
+			return undefined;
 		}
 
 		for (const [registryIndexName, registryIndex] of this.indexRepo) {
 			IndexedStore.removeIndexedRecordBy(record, objectPath.get(record, registryIndexName), registryIndex);
 		}
 
-		return true;
+		this.indexRepo.get(PRIMARY_KEY_INDEX)!.delete(record[PRIMARY_KEY_INDEX]);
+
+		return record;
 	}
 
 	public clear(): void {
@@ -176,7 +165,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			return (index.get(withValue) || []).map(mapper);
+			let records: Optional<Array<IndexedRecord>>;
+			if ((records = index.get(withValue)) != null) {
+				return records.map(mapper);
+			}
+
+			return [];
 		}
 
 		let mappings = new Array<MappedType>();
@@ -195,7 +189,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			return (index.get(withValue) || []).filter(predicate);
+			let records: Optional<Array<IndexedRecord>>;
+			if ((records = index.get(withValue)) != null) {
+				return records.filter(predicate);
+			}
+
+			return [];
 		}
 
 		const filtered = new Array<IndexedRecord>();
@@ -218,7 +217,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			return (index.get(withValue) || []).find(predicate);
+			let records: Optional<Array<IndexedRecord>>;
+			if ((records = index.get(withValue)) != null) {
+				return records.find(predicate);
+			}
+
+			return undefined;
 		}
 
 		for (const indexRecords of index.values()) {
@@ -228,6 +232,19 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				}
 			}
 		}
+
+		return undefined;
+	}
+
+	public getIndexRecordsCount(indexName: IndexName<IndexedRecord>): number {
+		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+
+		let counter = 0;
+		for (const indexRecords of index.values()) {
+			counter += indexRecords.length;
+		}
+
+		return counter;
 	}
 
 	public get size(): number {

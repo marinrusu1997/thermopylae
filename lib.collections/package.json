@@ -45,7 +45,7 @@
     },
     "devDependencies": {
         "@b4dnewz/mongodb-operators": "0",
-        "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.declarations": "0.0.1595676466",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
