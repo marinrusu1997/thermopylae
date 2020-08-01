@@ -1,11 +1,11 @@
-import objectPath from 'object-path';
-import { Mapper, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import dotprop from 'dot-prop';
+import { Mapper, Nullable, ObjMap, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { createError, ErrorCodes } from '../error';
 
 const PRIMARY_KEY_INDEX = 'id';
 
-type IndexName<Recordable> = Exclude<keyof Recordable, symbol> | Exclude<PropertyKey, symbol>;
-type IndexValue = string | number;
+type IndexName<Recordable> = Exclude<keyof Recordable, symbol | number> | string;
+type IndexValue = Optional<Nullable<string | number>>;
 
 type Index<Recordable> = Map<IndexValue, Array<Recordable>>;
 
@@ -40,13 +40,14 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			IndexedStore.assertRecordIndexes(record, indexes);
 
 			for (const [indexName, index] of this.indexRepo) {
-				IndexedStore.indexRecordBy(record, objectPath.get(record, indexName), index);
+				IndexedStore.indexRecordBy(record, dotprop.get(record, indexName), index);
 			}
 		}
 	}
 
 	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): Array<IndexedRecord> {
-		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).get(indexValue) || [];
+		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+		return index.get(IndexedStore.assertNonNullableIndexValue(indexName, indexValue)) || [];
 	}
 
 	public readIndex(indexName: IndexName<IndexedRecord>): Index<IndexedRecord> {
@@ -54,7 +55,8 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	public contains(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): boolean {
-		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName)).has(indexValue);
+		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
+		return index.has(IndexedStore.assertNonNullableIndexValue(indexName, indexValue));
 	}
 
 	public containsIndex(indexName: IndexName<IndexedRecord>): boolean {
@@ -62,6 +64,10 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	public updateIndex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, predicate: UnaryPredicate<IndexedRecord>): boolean {
+		if (oldValue == null) {
+			return false;
+		}
+
 		if (oldValue === newValue) {
 			return false;
 		}
@@ -82,14 +88,19 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			return false;
 		}
 
-		objectPath.set(record, indexName, newValue);
-		IndexedStore.assertIndexValue(indexName, newValue);
-		IndexedStore.indexRecordBy(record, newValue, index);
+		dotprop.set(record, indexName, newValue);
+
+		if (newValue != null) {
+			IndexedStore.assertIndexValue(indexName, newValue, record);
+			IndexedStore.indexRecordBy(record, newValue, index);
+		}
 
 		return true;
 	}
 
 	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
+		indexValue = IndexedStore.assertNonNullableIndexValue(indexName, indexValue);
+
 		if (indexName !== PRIMARY_KEY_INDEX) {
 			if (predicate == null) {
 				throw createError(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
@@ -110,7 +121,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 
 		for (const [registryIndexName, registryIndex] of this.indexRepo) {
-			IndexedStore.removeIndexedRecordBy(record, objectPath.get(record, registryIndexName), registryIndex);
+			IndexedStore.removeIndexedRecordBy(record, dotprop.get(record, registryIndexName), registryIndex);
 		}
 
 		this.indexRepo.get(PRIMARY_KEY_INDEX)!.delete(record[PRIMARY_KEY_INDEX]);
@@ -133,9 +144,9 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		for (const newIndexProperty of newIndexProperties) {
 			newIndex = this.indexRepo.get(newIndexProperty)!;
 			for (const record of this) {
-				indexValue = objectPath.get(record, newIndexProperty);
+				indexValue = dotprop.get(record, newIndexProperty);
 
-				IndexedStore.assertIndexValue(newIndexProperty, indexValue);
+				IndexedStore.assertIndexValue(newIndexProperty, indexValue, record);
 				IndexedStore.indexRecordBy(record, indexValue, newIndex);
 			}
 		}
@@ -276,7 +287,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				const entry = iterator.next();
 				return {
 					done: entry.done,
-					value: entry.value && entry.value[0]
+					value: entry.value && entry.value[1]
 				};
 			}
 		};
@@ -306,16 +317,15 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	private static assertRecordIndexes<R>(record: R, indexes: ReadonlyArray<IndexName<R>>): R | never {
 		for (const indexName of indexes) {
-			// eslint-disable-next-line @typescript-eslint/ban-types
-			IndexedStore.assertIndexValue(indexName, objectPath.get((record as unknown) as object, indexName));
+			IndexedStore.assertIndexValue(indexName, dotprop.get((record as unknown) as ObjMap, indexName), record);
 		}
 		return record;
 	}
 
-	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue): IndexValue | never {
+	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue, record: R): IndexValue | never {
 		if (value == null) {
 			if (indexName === PRIMARY_KEY_INDEX) {
-				throw createError(ErrorCodes.NOT_ALLOWED, `Can't index record which has a nullable primary key.`);
+				throw createError(ErrorCodes.NOT_ALLOWED, `Can't index record '${JSON.stringify(record)}' which has a nullable primary key.`);
 			}
 			return value; // null values for other indexes are valid
 		}
@@ -330,6 +340,16 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 					`Index property '${String(indexName)}' is allowed to have a 'string' or 'number' value. Given: ${JSON.stringify(value)}`
 				);
 		}
+	}
+
+	private static assertNonNullableIndexValue<R>(indexName: IndexName<R>, indexValue: IndexValue): NonNullable<IndexValue> | never {
+		if (indexValue == null) {
+			throw createError(
+				ErrorCodes.INVALID_TYPE,
+				`Nullable index value is not allowed in current context for index name '${indexName}'. Given: ${indexValue}`
+			);
+		}
+		return indexValue;
 	}
 
 	private static indexRecordBy<R>(record: R, value: IndexValue, index: Index<R>): void {
@@ -357,6 +377,10 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	private static removeIndexedRecordBy<R>(record: R, value: IndexValue, index: Index<R>): void {
+		if (value == null) {
+			return; // this property was not indexed
+		}
+
 		const records = index.get(value);
 		if (records == null) {
 			return;

@@ -1,23 +1,19 @@
 import {
-	AsyncFunction,
 	Cloneable,
-	Comparable,
 	ComparisonResult,
-	Identity,
 	Mapper,
 	Nullable,
 	ObjMap,
 	Optional,
 	PersistablePrimitive,
-	PersistableRecordKey,
-	Same,
 	SortDirection,
-	SyncFunction,
 	UnaryPredicate,
 	Undefinable
 } from '@thermopylae/core.declarations';
 import { Observable, Subject } from 'rxjs';
 import sorter from 'thenby';
+// @ts-ignore
+import MongooseFilter from 'filtr';
 // @ts-ignore
 import mongoQuery from 'mongo-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -27,18 +23,17 @@ import { QueryConditions } from '@b4dnewz/mongodb-operators';
 import Ajv from 'ajv';
 // @ts-ignore
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
-import objectPath from 'object-path';
-import { IndexedStore, IndexName, PRIMARY_KEY_INDEX } from './indexed-store';
+import dotprop from 'dot-prop';
+import { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX } from './indexed-store';
 import { createError, ErrorCodes } from '../error';
 
-type KeyOf<Document> = Exclude<keyof Document, symbol>;
-type IndexedKey<Document> = KeyOf<Document> | Exclude<PropertyKey, symbol>;
-type IndexValue = string | number;
+type KeyOf<Document> = Exclude<keyof Document, symbol | number>;
+type IndexedKey<Document> = KeyOf<Document> | string;
 
 type Cursor<Document> = Iterator<Document>;
 type SortFields<Document> = Record<IndexedKey<Document>, SortDirection>;
 
-type DocumentBase = Record<PersistableRecordKey, PersistablePrimitive | SyncFunction | AsyncFunction | { [Key in PersistableRecordKey]: DocumentBase }>;
+type Query<Document> = QueryConditions<Document> | UnaryPredicate<Document>;
 
 const enum ProjectionType {
 	EXCLUDE,
@@ -76,8 +71,8 @@ interface Alteration<Document> {
 	shift?: boolean;
 }
 
-interface DocumentContract<DocType> extends DocumentBase, Cloneable<DocType>, Comparable<DocType>, Same<DocType>, Identity {
-	readonly id: IndexValue;
+interface DocumentContract<DocType> extends Cloneable<DocType> {
+	readonly [PRIMARY_KEY_INDEX]: IndexValue;
 }
 
 interface DocumentNotification<Document> {
@@ -115,10 +110,9 @@ interface MapReduceCriteria<Document> {
 }
 
 interface CollectionOptions<Document> {
-	name: string;
-	indexKeys?: ReadonlyArray<IndexedKey<Document>>;
-	schema?: JSONSchema;
-	documentsIdentity?: DocumentIdentity;
+	indexKeys: ReadonlyArray<IndexedKey<Document>>;
+	schema: JSONSchema;
+	documentsIdentity: DocumentIdentity;
 }
 
 /**
@@ -127,6 +121,8 @@ interface CollectionOptions<Document> {
  * @template {Document}
  */
 class Collection<Document extends DocumentContract<Document>> implements Iterable<Document> {
+	private static readonly RE_INDEXABLE_ALTERATIONS = new Set([AlterationType.SET, AlterationType.INC, AlterationType.RENAME, AlterationType.UNSET]);
+
 	private readonly storage: IndexedStore<Document>;
 
 	private readonly notifier: Subject<DocumentNotification<Document>>;
@@ -135,10 +131,12 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	private readonly validator: Nullable<Ajv.Ajv>;
 
-	public constructor(options: CollectionOptions<Document>) {
+	public constructor(options?: Partial<CollectionOptions<Document>>) {
+		options = options || {};
+
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
 		this.notifier = new Subject<DocumentNotification<Document>>();
-		this.identity = options.documentsIdentity || DocumentIdentity.ORIGINAL;
+		this.identity = options.documentsIdentity ?? DocumentIdentity.ORIGINAL;
 
 		if (options.schema) {
 			this.validator = new Ajv({ allErrors: true });
@@ -157,11 +155,11 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			Collection.validateDocuments(this.validator, documents);
 		}
 
-		this.storage.insert(...documents);
-
 		if (this.identity === DocumentIdentity.CLONE) {
 			documents = Collection.clone(documents);
 		}
+
+		this.storage.insert(...documents);
 
 		this.notifier.next({
 			action: DocumentOperation.CREATED,
@@ -169,7 +167,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 	}
 
-	public find(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
+	public find(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
 		const matches = this.retrieveMatches(query, criteria);
 
 		if (criteria && criteria.projection) {
@@ -183,7 +181,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public replace(query: QueryConditions<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): ReadonlyArray<Document> {
+	public replace(query: Query<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): ReadonlyArray<Document> {
 		let matches = this.findAndDelete(query, criteria);
 
 		this.insert(replacement);
@@ -195,7 +193,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public update(query: QueryConditions<Document>, update: ObjMap, criteria?: Partial<UpdateCriteria<Document>>): ReadonlyArray<Document> {
+	public update(query: Query<Document>, update: ObjMap, criteria?: Partial<UpdateCriteria<Document>>): ReadonlyArray<Document> {
 		if (criteria == null) {
 			criteria = {};
 		}
@@ -239,7 +237,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public delete(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
+	public delete(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
 		let matches = this.findAndDelete(query, criteria);
 
 		if (criteria && criteria.projection) {
@@ -249,7 +247,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	public count(): number {
+	public get count(): number {
 		return this.storage.size;
 	}
 
@@ -262,7 +260,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		this.notifier.complete();
 	}
 
-	public distinct(field: IndexedKey<Document>, query?: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Set<IndexValue> {
+	public distinct(field: IndexedKey<Document>, query?: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Set<IndexValue> {
 		if (field === PRIMARY_KEY_INDEX) {
 			throw createError(ErrorCodes.NOT_ALLOWED, `All of the documents are distinct based in their primary key '${field}'.`);
 		}
@@ -271,9 +269,9 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 		const distinctValues = new Set<IndexValue>();
 
-		let value: IndexValue;
+		let value: Optional<IndexValue>;
 		for (const candidate of candidates) {
-			if ((value = objectPath.get(candidate, field)) != null) {
+			if ((value = dotprop.get(candidate, field)) != null) {
 				distinctValues.add(value);
 			}
 		}
@@ -335,7 +333,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.storage[Symbol.iterator]();
 	}
 
-	private retrieveFirstMatch(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Optional<Document> {
+	private retrieveFirstMatch(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Optional<Document> {
 		let onIndex: Undefinable<IndexName<Document>>;
 		let withValue: Undefinable<IndexValue>;
 		if (criteria && criteria.hint) {
@@ -343,28 +341,26 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			withValue = criteria.hint.value;
 		}
 
-		const filter = mongoQuery.filter(query);
-		return this.storage.find(filter.test, onIndex, withValue);
+		return this.storage.find(Collection.queryToPredicate(query), onIndex, withValue);
 	}
 
-	private retrieveMatches(query?: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
+	private retrieveMatches(query?: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
 		if (query == null) {
 			return this.storage.values;
 		}
 
-		let onIndex: Undefinable<IndexName<Document>>;
-		let withValue: Undefinable<IndexValue>;
+		let onIndex: Optional<IndexName<Document>>;
+		let withValue: IndexValue;
 		if (criteria && criteria.hint) {
 			onIndex = criteria.hint.index;
 			withValue = criteria.hint.value;
 		}
 
-		const filter = mongoQuery.filter(query);
-		return this.storage.filter(filter.test, onIndex, withValue);
+		return this.storage.filter(Collection.queryToPredicate(query), onIndex, withValue);
 	}
 
 	private retrieveAlterationCandidates(
-		query: QueryConditions<Document>,
+		query: Query<Document>,
 		criteria: Partial<FindCriteria<Document>>,
 		replacement?: Document
 	): Nullable<ReadonlyArray<Document>> {
@@ -390,7 +386,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	private findAndDelete(query: QueryConditions<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
+	private findAndDelete(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): ReadonlyArray<Document> {
 		if (criteria == null) {
 			criteria = {};
 		}
@@ -405,7 +401,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 
 		for (let i = 0; i < matches.length; i++) {
-			this.storage.remove(PRIMARY_KEY_INDEX, matches[i].id);
+			this.storage.remove(PRIMARY_KEY_INDEX, matches[i][PRIMARY_KEY_INDEX]);
 		}
 
 		if (this.identity === DocumentIdentity.CLONE) {
@@ -418,6 +414,22 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 
 		return matches;
+	}
+
+	private static queryToPredicate<Document>(query: Query<Document>): UnaryPredicate<Document> {
+		if (query instanceof Function) {
+			return query;
+		}
+
+		const filter = new MongooseFilter(query);
+		if (filter == null || filter.test == null) {
+			throw createError(ErrorCodes.INVALID_QUERY, `Query must conform to mongoose standard. Given: ${JSON.stringify(query)}.`);
+		}
+
+		const testOptions = { type: 'single' };
+		return function predicate(document: Document): boolean {
+			return filter.test(document, testOptions);
+		};
 	}
 
 	private static project<Document extends DocumentContract<Document>>(
@@ -476,8 +488,8 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		second: Document,
 		field: IndexedKey<Document>
 	): ComparisonResult {
-		const firstValue = objectPath.get(first, field);
-		const secondValue = objectPath.get(second, field);
+		const firstValue = dotprop.get(first, field);
+		const secondValue = dotprop.get(second, field);
 
 		if (firstValue == null) {
 			return ComparisonResult.SMALLER;
@@ -487,28 +499,29 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			return ComparisonResult.GREATER;
 		}
 
-		switch (typeof firstValue) {
-			case 'string':
-				return firstValue.localeCompare(secondValue);
-			case 'number':
-				return firstValue - ((secondValue as unknown) as number);
-			default:
-				throw createError(ErrorCodes.UNKNOWN, `Type ${typeof firstValue} can't be compared.`);
+		if (typeof firstValue === 'string' && typeof secondValue === 'string') {
+			return firstValue.localeCompare(secondValue);
 		}
+
+		if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+			return firstValue - secondValue;
+		}
+
+		throw createError(ErrorCodes.UNKNOWN, `Type ${typeof firstValue} can't be compared.`);
 	}
 
 	private static applyProjection<Document>(document: Document, projection: Projection<Document>): any {
 		switch (projection.type) {
 			case ProjectionType.EXCLUDE:
 				for (const field of projection.fields) {
-					objectPath.del((document as unknown) as ObjMap, field);
+					dotprop.delete(document, field);
 				}
 				break;
 			case ProjectionType.INCLUDE:
 				// eslint-disable-next-line no-case-declarations
 				const replacement = {};
 				for (const field of projection.fields) {
-					objectPath.set(replacement, field, objectPath.get((document as unknown) as ObjMap, field));
+					dotprop.set(replacement, field, dotprop.get(document, field));
 				}
 
 				// @ts-ignore, fucking son of a bitch, know your place, I kno what I'm doing
@@ -523,34 +536,14 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	private static snapshotIndexes<Document extends DocumentContract<Document>>(
 		document: Document,
 		indexes: ReadonlyArray<IndexedKey<Document>>
-	): Record<IndexedKey<Document>, IndexValue> {
-		const snapshot = {} as Record<IndexedKey<Document>, IndexValue>;
+	): Record<IndexedKey<Document>, Optional<IndexValue>> {
+		const snapshot = {} as Record<IndexedKey<Document>, Optional<IndexValue>>;
 
 		for (const index of indexes) {
-			snapshot[index] = objectPath.get(document, index);
+			snapshot[index] = dotprop.get(document, index);
 		}
 
 		return snapshot;
-	}
-
-	private static updateIndexes<Document extends DocumentContract<Document>>(
-		storage: IndexedStore<Document>,
-		document: Document,
-		snapshot: Record<IndexedKey<Document>, IndexValue>,
-		changes: ReadonlyArray<Alteration<Document>>
-	): void {
-		const reindex = new Set([AlterationType.SET, AlterationType.INC, AlterationType.RENAME, AlterationType.UNSET]);
-
-		function matcher(record: Document): boolean {
-			return record.id === document.id;
-		}
-
-		for (const change of changes) {
-			if (reindex.has(change.op)) {
-				storage.updateIndex(change.key, matcher, snapshot[change.key], change.value! as IndexValue);
-				continue;
-			}
-		}
 	}
 
 	private static updateDocument<Document extends DocumentContract<Document>>(
@@ -564,14 +557,32 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		Collection.updateIndexes(storage, document, indexesSnapshot, changes);
 	}
 
+	private static updateIndexes<Document extends DocumentContract<Document>>(
+		storage: IndexedStore<Document>,
+		document: Document,
+		snapshot: Record<IndexedKey<Document>, Optional<IndexValue>>,
+		changes: ReadonlyArray<Alteration<Document>>
+	): void {
+		function matcher(record: Document): boolean {
+			return record[PRIMARY_KEY_INDEX] === document[PRIMARY_KEY_INDEX];
+		}
+
+		for (const change of changes) {
+			if (Collection.RE_INDEXABLE_ALTERATIONS.has(change.op) && storage.containsIndex(change.key)) {
+				storage.updateIndex(change.key, snapshot[change.key], change.value as IndexValue, matcher);
+				continue;
+			}
+		}
+	}
+
 	private static validateDocuments<Document>(validator: Ajv.Ajv, documents: ReadonlyArray<Document>): void | never {
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
 				AjvLocalizeEn(validator.errors);
-				throw new Error(validator.errorsText(validator.errors, { separator: '\n' }));
+				throw createError(ErrorCodes.INVALID_TYPE, validator.errorsText(validator.errors, { separator: '\n' }));
 			}
 		}
 	}
 }
 
-export { Collection };
+export { Collection, DocumentIdentity, DocumentNotification, DocumentOperation, DocumentContract, Query, QueryConditions, Projection, ProjectionType };

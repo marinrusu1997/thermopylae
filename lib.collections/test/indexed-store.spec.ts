@@ -1,112 +1,18 @@
-import { before, beforeEach, describe, it } from 'mocha';
+import { beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import mocker from 'mocker-data-generator';
-import objectPath from 'object-path';
+import dotprop from 'dot-prop';
 // @ts-ignore
 import range from 'range-generator';
 import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
-import { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX, Recordable } from '../lib/collections/indexed-store';
+import { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
+import { Indexes, IndexValueGenerators, Person, providePersonRepository } from './fixtures/persons-repo';
 
 const { expect } = chai;
 
-interface Transaction {
-	transactionType: string;
-	amount: number;
-	currencySymbol: string;
-}
-
-interface Person extends Recordable {
-	firstName: string;
-	birthYear: number; // Index (I)
-	address: {
-		countryCode: string; // Index (II)
-		city: string;
-	};
-	finance: {
-		bank: {
-			name: string; // Index (III)
-		};
-		transactions: Array<Transaction>;
-	};
-}
-
-enum Indexes {
-	I_BIRTH_YEAR = 'birthYear',
-	II_COUNTRY_CODE = 'address.countryCode',
-	III_BANK_NAME = 'finance.bank.name'
-}
-
-type IndexValueGenerator = () => IndexValue;
-const IndexValueGenerators = new Map<Indexes, IndexValueGenerator>([
-	[Indexes.I_BIRTH_YEAR, () => number.generateRandomInt(2000, 2020)],
-	[Indexes.II_COUNTRY_CODE, () => string.generateStringOfLength(5)],
-	[Indexes.III_BANK_NAME, () => string.generateStringOfLength(5)]
-]);
-
-const TRANSACTION_SCHEMA_NAME = 'transaction';
-const PERSON_SCHEMA_NAME = 'person';
-
-const TransactionSchema = {
-	transactionType: {
-		faker: 'finance.transactionType'
-	},
-	amount: {
-		faker: 'finance.amount'
-	},
-	currencySymbol: {
-		faker: 'finance.currencySymbol'
-	}
-};
-const PersonSchema = {
-	id: {
-		faker: 'random.uuid'
-	},
-	firstName: {
-		faker: 'name.firstName'
-	},
-	birthYear: {
-		function: () => number.generateRandomInt(1990, 2000)
-	},
-	address: {
-		countryCode: {
-			faker: 'address.countryCode'
-		},
-		city: {
-			faker: 'address.city'
-		}
-	},
-	finance: {
-		bank: {
-			name: {
-				faker: 'finance.accountName'
-			}
-		},
-		transactions: [
-			{
-				function(): Transaction {
-					// @ts-ignore
-					return this.faker.random.arrayElement(this.db[TRANSACTION_SCHEMA_NAME]);
-				},
-				length: 10,
-				fixedLength: false
-			}
-		]
-	}
-};
-
 let PersonsRepo: Array<Person>;
-let PersonsRepoSnapshot: Array<Person>;
-
-function generateTestData(amount: number): Promise<Array<Person>> {
-	return mocker()
-		.schema(TRANSACTION_SCHEMA_NAME, TransactionSchema, 10)
-		.schema(PERSON_SCHEMA_NAME, PersonSchema, amount)
-		.build()
-		.then((data) => data[PERSON_SCHEMA_NAME]);
-}
 
 function randomPerson(): Person {
 	return PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)];
@@ -114,14 +20,8 @@ function randomPerson(): Person {
 
 // eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${IndexedStore.name} spec`, function () {
-	before(async () => {
-		PersonsRepo = await generateTestData(100);
-		PersonsRepoSnapshot = PersonsRepo.map((person) => object.cloneDeep(person));
-	});
-
-	beforeEach(() => {
-		// this way we remove test inter-dependencies
-		PersonsRepo = PersonsRepoSnapshot.map((person) => object.cloneDeep(person));
+	beforeEach(async () => {
+		PersonsRepo = await providePersonRepository();
 	});
 
 	describe('constructor', function () {
@@ -273,16 +173,16 @@ describe(`${IndexedStore.name} spec`, function () {
 				for (const indexName of indexes) {
 					const personsPerIndex = new Map<string | number, number>();
 					for (const person of PersonsRepo) {
-						const indexValue = objectPath.get(person, indexName);
+						const indexValue = dotprop.get(person, indexName) as NonNullable<IndexValue>;
 						const no = personsPerIndex.get(indexValue);
 						personsPerIndex.set(indexValue, no == null ? 1 : no + 1);
 					}
 
 					const storageIndex = storage.readIndex(indexName);
 					for (const [indexValue, records] of storageIndex) {
-						expect(records.length).to.be.eq(personsPerIndex.get(indexValue));
+						expect(records.length).to.be.eq(personsPerIndex.get(indexValue as NonNullable<IndexValue>));
 						for (const record of records) {
-							expect(objectPath.get(record, indexName)).to.be.eq(indexValue);
+							expect(dotprop.get(record, indexName)).to.be.eq(indexValue);
 						}
 					}
 				}
@@ -499,7 +399,7 @@ describe(`${IndexedStore.name} spec`, function () {
 				const person: Person = { ...PersonsRepo[0] };
 				for (const indexName of indexNames) {
 					const value = indexName === nulledIndexName ? undefined : string.generateStringOfLength(10);
-					objectPath.set(person, indexName, value);
+					dotprop.set(person, indexName, value);
 				}
 				return person;
 			}
@@ -545,7 +445,7 @@ describe(`${IndexedStore.name} spec`, function () {
 				const person: Person = { ...PersonsRepo[0] };
 				for (const indexName of indexNames) {
 					const value = indexName === nulledIndexName ? null : string.generateStringOfLength(10);
-					objectPath.set(person, indexName, value);
+					dotprop.set(person, indexName, value);
 				}
 				return person;
 			}
@@ -636,7 +536,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			for (const indexName of indexes) {
 				for (const position of positionGenerator) {
 					const desired = PersonsRepo[position];
-					const records = storage.read(indexName, objectPath.get(desired, indexName));
+					const records = storage.read(indexName, dotprop.get(desired, indexName) as IndexValue);
 					const actual = records[records.indexOf(desired)];
 
 					expect(actual).to.be.deep.eq(desired);
@@ -653,11 +553,13 @@ describe(`${IndexedStore.name} spec`, function () {
 			const storage = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
 			const person = { ...PersonsRepo[0] };
-			objectPath.set(person, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(person, Indexes.I_BIRTH_YEAR, null);
 			storage.insert(person);
 
 			expect(storage.read(PRIMARY_KEY_INDEX, person.id)).to.be.equalTo([person]);
-			expect(storage.read(PRIMARY_KEY_INDEX, person.birthYear)).to.be.equalTo([]);
+			expect(() => storage.read(PRIMARY_KEY_INDEX, person.birthYear))
+				.to.throw(Exception)
+				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 		});
 
 		it('fails to read from invalid index', () => {
@@ -757,7 +659,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			const originalSize = store.size;
 
 			const candidate = randomPerson();
-			const oldVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const oldVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
 			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
@@ -774,13 +676,13 @@ describe(`${IndexedStore.name} spec`, function () {
 			let candidate: Person;
 			while ((candidate = randomPerson()) === indexed);
 
-			objectPath.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(candidate, Indexes.I_BIRTH_YEAR, null);
 			store.insert(candidate);
 
 			const originalSize = store.size;
 			expect(originalSize).to.be.eq(2);
 
-			const oldVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const oldVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
 			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
@@ -790,7 +692,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(
 				store.updateIndex(
 					Indexes.I_BIRTH_YEAR,
-					objectPath.get(indexed, Indexes.I_BIRTH_YEAR),
+					dotprop.get(indexed, Indexes.I_BIRTH_YEAR),
 					newVal,
 					(person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX]
 				)
@@ -867,7 +769,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			const originalSize = store.size;
 
 			for (const indexName of indexes) {
-				const oldValue = objectPath.get(originalCandidate, indexName);
+				const oldValue = dotprop.get(originalCandidate, indexName) as IndexValue;
 				const updateValue = IndexValueGenerators.get(indexName)!();
 
 				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.not.be.eq(-1);
@@ -875,14 +777,52 @@ describe(`${IndexedStore.name} spec`, function () {
 
 				expect(store.updateIndex(indexName, oldValue, updateValue, predicate)).to.be.eq(true);
 				expect(candidate).to.not.be.deep.eq(originalCandidate);
-				expect(objectPath.get(candidate, indexName)).to.be.deep.eq(updateValue);
-				objectPath.set(originalCandidate, indexName, updateValue);
+				expect(dotprop.get(candidate, indexName)).to.be.deep.eq(updateValue);
+				dotprop.set(originalCandidate, indexName, updateValue);
 				expect(candidate).to.be.deep.eq(originalCandidate);
 
 				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.be.eq(-1);
 				expect(store.read(indexName, updateValue)!.findIndex(predicate)).to.not.be.eq(-1);
 
 				expect(store.size).to.be.eq(originalSize);
+			}
+		});
+
+		it('should update nothing when old value is nullable (i.e. was not indexed)', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+
+			const predicate = () => true;
+			expect(store.updateIndex(PRIMARY_KEY_INDEX, null, null, predicate)).to.be.eq(false);
+		});
+
+		it('should de-index record when new index value is a nullable one', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+
+			const candidate = randomPerson();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+
+			for (const indexName of indexes) {
+				const originalCandidate = object.cloneDeep(candidate);
+
+				const oldIndexValue = dotprop.get(originalCandidate, indexName) as IndexValue;
+				const newIndexValue = null;
+
+				expect(store.updateIndex(indexName, oldIndexValue, newIndexValue, predicate)).to.be.eq(true);
+
+				// record was updated
+				expect(candidate).to.not.be.deep.eq(originalCandidate);
+				dotprop.set(originalCandidate, indexName, newIndexValue);
+				expect(candidate).to.be.deep.eq(originalCandidate);
+
+				// record was de-indexed
+				expect(store.read(indexName, oldIndexValue).find(predicate)).to.be.eq(undefined);
+				expect(() => store.read(indexName, newIndexValue).find(predicate))
+					.to.throw(Exception)
+					.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			}
 		});
 	});
@@ -894,7 +834,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			const originalSize = store.size;
 
 			const candidate = randomPerson();
-			const indexValue = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const indexValue = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
 			expect(store.remove(Indexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
@@ -910,16 +850,18 @@ describe(`${IndexedStore.name} spec`, function () {
 			let candidate: Person;
 			while ((candidate = randomPerson()) === indexed);
 
-			objectPath.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(candidate, Indexes.I_BIRTH_YEAR, null);
 			store.insert(candidate);
 
 			const originalSize = store.size;
 			expect(originalSize).to.be.eq(2);
 
-			const unIndexedVal = objectPath.get(candidate, Indexes.I_BIRTH_YEAR);
+			const unIndexedVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			expect(store.remove(Indexes.I_BIRTH_YEAR, unIndexedVal, predicate)).to.be.eq(undefined);
+			expect(() => store.remove(Indexes.I_BIRTH_YEAR, unIndexedVal, predicate))
+				.to.throw(Exception)
+				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
@@ -951,7 +893,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(removed).to.be.deep.eq(candidate);
 
 			for (const indexName of indexes) {
-				const match = store.read(indexName, objectPath.get(candidate, indexName))!.find(predicate);
+				const match = store.read(indexName, dotprop.get(candidate, indexName) as IndexValue)!.find(predicate);
 				expect(match).to.be.eq(undefined);
 			}
 		});
@@ -979,7 +921,7 @@ describe(`${IndexedStore.name} spec`, function () {
 
 			function assertNotFoundOnAllIndexes(candidate: Person, predicate: UnaryPredicate<Person>): void {
 				for (const indexName of indexes) {
-					const match = store.read(indexName, objectPath.get(candidate, indexName))!.find(predicate);
+					const match = store.read(indexName, dotprop.get(candidate, indexName) as IndexValue)!.find(predicate);
 					expect(match).to.be.eq(undefined);
 				}
 			}
@@ -987,7 +929,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			for (let i = 0; i < indexes.length; i++) {
 				const candidate = candidateForRemoval();
 				const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
-				const removed = store.remove(indexes[i], objectPath.get(candidate, indexes[i]), predicate);
+				const removed = store.remove(indexes[i], dotprop.get(candidate, indexes[i]) as IndexValue, predicate);
 
 				expect(store.size).to.be.eq(PersonsRepo.length - i - 1);
 				expect(removed).to.be.deep.eq(candidate);
@@ -1191,9 +1133,9 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const nonIndexed = object.cloneDeep(randomPerson());
-			objectPath.set(nonIndexed, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+			dotprop.set(nonIndexed, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
 			for (const indexName of indexes) {
-				objectPath.set(nonIndexed, indexName, null);
+				dotprop.set(nonIndexed, indexName, null);
 			}
 			storage.insert(nonIndexed);
 			expect(storage.size).to.be.eq(PersonsRepo.length + 1);
@@ -1222,7 +1164,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			}
 
 			const filtered = storage.filter(predicate, Indexes.II_COUNTRY_CODE, 'MX');
-			const crossCheckFiltered = PersonsRepo.filter((person) => objectPath.get(person, Indexes.II_COUNTRY_CODE) === 'MX' && predicate(person));
+			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, Indexes.II_COUNTRY_CODE) === 'MX' && predicate(person));
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
 			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
@@ -1291,11 +1233,11 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const record = object.cloneDeep(randomPerson());
-			objectPath.set(record, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+			dotprop.set(record, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
 
 			const countryCode = string.generateStringOfLength(6);
-			objectPath.set(record, Indexes.I_BIRTH_YEAR, 1990);
-			objectPath.set(record, Indexes.II_COUNTRY_CODE, countryCode);
+			dotprop.set(record, Indexes.I_BIRTH_YEAR, 1990);
+			dotprop.set(record, Indexes.II_COUNTRY_CODE, countryCode);
 			storage.insert(record);
 
 			const desiredBirthYearRange = Array.from(range(1990, 1995));
@@ -1329,7 +1271,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		it('should iterate over not records when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 			let counter = 0;
-			for (const _record of storage) {
+			for (const _ of storage) {
 				counter += 1;
 			}
 			expect(counter).to.be.eq(0);

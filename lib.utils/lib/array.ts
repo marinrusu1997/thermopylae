@@ -1,4 +1,5 @@
 import { UnaryPredicate, SyncFunction } from '@thermopylae/core.declarations';
+import { generateRandomInt } from './number';
 
 /**
  * @link https://stackoverflow.com/a/15996017
@@ -52,4 +53,8 @@ function filledWith<T>(length: number, value: T | SyncFunction<void, T>): Array<
 	return array;
 }
 
-export { remove, extractUnique, shuffle, filledWith };
+function random<T>(array: Array<T>): T {
+	return array[generateRandomInt(0, array.length - 1)];
+}
+
+export { remove, extractUnique, shuffle, filledWith, random };

@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { extractUnique, filledWith, remove } from '../lib/array';
+import { extractUnique, filledWith, random, remove } from '../lib/array';
 
 describe('array spec', () => {
 	// eslint-disable-next-line mocha/no-setup-in-describe
@@ -79,10 +79,27 @@ describe('array spec', () => {
 		});
 	});
 
-	it('extracts unique items from array', () => {
-		const numericArray = [1, 2, 1, 2, 2, 3];
-		expect(extractUnique(numericArray)).to.be.deep.eq([1, 2, 3]);
-		const stringsArray = ['a', 'b', 'c', 'a', 'd', 'b'];
-		expect(extractUnique(stringsArray)).to.be.deep.eq(['a', 'b', 'c', 'd']);
+	describe('extractUnique spec', function () {
+		it('extracts unique items from array', () => {
+			const numericArray = [1, 2, 1, 2, 2, 3];
+			expect(extractUnique(numericArray)).to.be.deep.eq([1, 2, 3]);
+			const stringsArray = ['a', 'b', 'c', 'a', 'd', 'b'];
+			expect(extractUnique(stringsArray)).to.be.deep.eq(['a', 'b', 'c', 'd']);
+		});
+	});
+
+	describe('random spec', function () {
+		it('returns undefined when array is empty', () => {
+			expect(random([])).to.be.eq(undefined);
+		});
+
+		it('returns first item when array contains a single element', () => {
+			expect(random([1])).to.be.eq(1);
+		});
+
+		it('returns random element from array', () => {
+			const arr = [1, 2];
+			expect(random(arr)).to.be.oneOf(arr);
+		});
 	});
 });
