@@ -134,6 +134,10 @@ export type Undefinable<T> = T | undefined;
 export type Voidable<T> = T | void;
 export type Optional<T> = Undefinable<T>;
 
+export type DotKeyOf<T> = Exclude<keyof T, symbol | number> | string;
+
+export type Class<T> = { new (...args: any[]): T };
+
 export type RecordKey = string | number | symbol;
 export type PersistableRecordKey = Exclude<RecordKey, symbol>;
 
@@ -166,3 +170,5 @@ export type Threshold = number;
 
 export type Label = string;
 export type Index = number;
+
+export type PackageID = string;
