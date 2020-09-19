@@ -38,15 +38,6 @@ function generateStringOfLength(length: number, allowedCharRegex?: RegExp): stri
 }
 
 /**
- * uppercase first char
- */
-function upperCaseFirstLetter(str: string): string {
-	str += '';
-	const f = str.charAt(0).toUpperCase();
-	return f + str.substr(1);
-}
-
-/**
  * removes trailing and ending dots from the string
  */
 function trimDots(str: string): string {
@@ -63,4 +54,4 @@ function trimDots(str: string): string {
 	return str;
 }
 
-export { replaceAt, generateStringOfLength, upperCaseFirstLetter, trimDots };
+export { replaceAt, generateStringOfLength, trimDots };

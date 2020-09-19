@@ -3,7 +3,7 @@ import { after, afterEach, describe, it } from 'mocha';
 import { getAllEnumValues } from 'enum-for';
 import { AsyncFunction, DotKeyOf, Milliseconds, Nullable, ObjMap, Optional, PromiseReject, PromiseResolve, SyncFunction } from '@thermopylae/core.declarations';
 import { number, string } from '@thermopylae/lib.utils';
-import { MemoizationBoundary, memoize, Storage } from '../../lib/aop/memoization';
+import { AmnesiaBoundary, memoize, Storage } from '../../lib/aop/memoization';
 
 enum CleanUpScope {
 	AFTER = 1,
@@ -58,10 +58,12 @@ class Spy<T extends ObjMap> {
 	private readonly intercepts: Map<DotKeyOf<T>, number>;
 
 	public constructor(instance: T) {
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
+		const self = this;
 		this.instance = new Proxy<T>(instance, {
-			apply: (target: T, thisArg: any, args?: any): any => {
-				this.increment(target.name);
-				return target.apply(thisArg, args);
+			get(target: T, p: Exclude<PropertyKey, symbol>): any {
+				self.increment(p.toString());
+				return target[p];
 			}
 		});
 		this.intercepts = new Map<DotKeyOf<T>, number>();
@@ -160,7 +162,7 @@ class ExternalService<T> {
 	// @ts-ignore
 	private wipeMemoization(): Promise<void> {
 		for (const region of getAllEnumValues(UniversityRegion)) {
-			Storage.forget(MemoizationBoundary.INSTANCE, this, region);
+			Storage.forget(AmnesiaBoundary.INSTANCE, this, region);
 		}
 		return Promise.resolve();
 	}
@@ -188,9 +190,8 @@ describe('memoization spec', function () {
 				const spy = new Spy(new ExternalService(result));
 
 				for (let i = 0; i < 3; i++) {
-					console.log(i);
 					expect(spy.suspect.syncMethodWithNoArgsMitMedicine()).to.be.eq(result);
-					expect(spy.calls(spy.suspect.syncMethodWithNoArgsMitMedicine.name)).to.be.eq(1);
+					expect(spy.calls('syncMethodWithNoArgsMitMedicine')).to.be.eq(1);
 				}
 			});
 

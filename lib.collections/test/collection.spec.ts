@@ -1,12 +1,12 @@
 import { beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
-import { Cloneable } from '@thermopylae/core.declarations';
+import { Cloneable, ObjMap, SortDirection } from '@thermopylae/core.declarations';
 import { array, number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 // @ts-ignore
 import range from 'range-generator';
 import dotProp from 'dot-prop';
-import { Collection, DocumentIdentity, DocumentOperation, Projection, ProjectionType, QueryConditions } from '../lib/collections/collection';
+import { Collection, DocumentIdentity, DocumentOperation, FindCriteria, Projection, ProjectionType, QueryConditions } from '../lib/collections/collection';
 import { Address, Finance, Indexes, Person, PersonJsonSchema, providePersonRepository } from './fixtures/persons-repo';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
@@ -24,12 +24,15 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 
 	public finance: Finance;
 
+	public visitedCountries: Array<string>;
+
 	public constructor(person: Person) {
 		this.id = person[PRIMARY_KEY_INDEX]!;
 		this.firstName = person.firstName;
 		this.address = person.address;
 		this.birthYear = person.birthYear;
 		this.finance = person.finance;
+		this.visitedCountries = person.visitedCountries;
 	}
 
 	public clone(): PersonDocument {
@@ -39,7 +42,8 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 				firstName: this.firstName,
 				birthYear: this.birthYear,
 				address: this.address,
-				finance: this.finance
+				finance: this.finance,
+				visitedCountries: this.visitedCountries
 			})
 		);
 	}
@@ -51,13 +55,15 @@ function randomPerson(): Person {
 	return PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)];
 }
 
-describe.only('Collection spec', function () {
+// eslint-disable-next-line mocha/no-setup-in-describe
+describe.only(`${Collection.name} spec`, function () {
 	beforeEach(async () => {
 		const persons = await providePersonRepository();
 		PersonsRepo = persons.map((person) => new PersonDocument(person));
 	});
 
-	describe('insert spec', function () {
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${Collection.prototype.insert.name} spec`, function () {
 		it('inserts documents without validating them', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(...PersonsRepo);
@@ -127,7 +133,16 @@ describe.only('Collection spec', function () {
 		});
 	});
 
-	describe('find spec', function () {
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${Collection.prototype.find.name} spec`, function () {
+		it('should return all documents when query is not specified', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const matches = collection.find();
+			expect(matches.length).to.be.eq(PersonsRepo.length);
+		});
+
 		it('should find a single document matching the query', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(...PersonsRepo);
@@ -142,7 +157,7 @@ describe.only('Collection spec', function () {
 				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
 				firstName: string.generateStringOfLength(5),
 				address: {
-					countryCode: array.random(countryCodes),
+					countryCode: array.randomElement(countryCodes),
 					city: string.generateStringOfLength(5)
 				},
 				finance: {
@@ -156,24 +171,14 @@ describe.only('Collection spec', function () {
 							transactionType: 'transfer'
 						}
 					]
-				}
+				},
+				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
 
 			const query: QueryConditions<PersonDocument> = {
-				birthYear: {
-					$gte: minBirthYear,
-					$lt: maxBirthYear
-				},
-				// @ts-ignore
-				'address.countryCode': {
-					$in: countryCodes
-				},
-				// only digits can be specified
-				'finance.transactions[0].currencySymbol': {
-					$eq: transactionCurrency
-				}
+				[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
 			};
 
 			const matches = collection.find(query);
@@ -200,7 +205,7 @@ describe.only('Collection spec', function () {
 				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
 				firstName: string.generateStringOfLength(5),
 				address: {
-					countryCode: array.random(countryCodes),
+					countryCode: array.randomElement(countryCodes),
 					city: string.generateStringOfLength(5)
 				},
 				finance: {
@@ -214,27 +219,21 @@ describe.only('Collection spec', function () {
 							transactionType: 'transfer'
 						}
 					]
-				}
+				},
+				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
 
 			function predicate(person: PersonDocument): boolean {
-				if (person.birthYear >= minBirthYear && person.birthYear <= maxBirthYear) {
-					if (countryCodes.includes(person.address.countryCode)) {
-						if (person.finance.transactions.some((tx) => tx.currencySymbol === transactionCurrency)) {
-							return true;
-						}
-					}
-				}
-				return false;
+				return person[PRIMARY_KEY_INDEX] === desired[PRIMARY_KEY_INDEX];
 			}
 
 			const matches = collection.find(predicate);
 			expect(matches.length).to.be.eq(1);
 
 			for (const match of matches) {
-				expect(match.birthYear).to.be.oneOf(Array.from(range(minBirthYear, maxBirthYear)));
+				expect(match.birthYear).to.be.oneOf(Array.from(range(minBirthYear, maxBirthYear + 1))); // upper bound is not inclusive in `range`
 				expect(match.address.countryCode).to.be.oneOf(countryCodes);
 				expect(match.finance.transactions.some((tx) => tx.currencySymbol === transactionCurrency)).to.be.eq(true);
 			}
@@ -254,7 +253,7 @@ describe.only('Collection spec', function () {
 				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
 				firstName: string.generateStringOfLength(5),
 				address: {
-					countryCode: array.random(countryCodes),
+					countryCode: array.randomElement(countryCodes),
 					city: string.generateStringOfLength(5)
 				},
 				finance: {
@@ -268,20 +267,14 @@ describe.only('Collection spec', function () {
 							transactionType: 'transfer'
 						}
 					]
-				}
+				},
+				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
 
 			function predicate(person: PersonDocument): boolean {
-				if (person.birthYear >= minBirthYear && person.birthYear <= maxBirthYear) {
-					if (countryCodes.includes(person.address.countryCode)) {
-						if (person.finance.transactions.some((tx) => tx.currencySymbol === transactionCurrency)) {
-							return true;
-						}
-					}
-				}
-				return false;
+				return person[PRIMARY_KEY_INDEX] === desired[PRIMARY_KEY_INDEX];
 			}
 
 			/** EXCLUDE */
@@ -293,8 +286,14 @@ describe.only('Collection spec', function () {
 			expect(matches.length).to.be.eq(1);
 
 			expect(matches[0]).to.be.instanceOf(PersonDocument);
-			expect(dotProp.get(matches[0], 'birthYear')).to.be.eq(undefined);
-			expect(dotProp.get(matches[0], 'finance.transactions')).to.be.eq(undefined);
+			expect(matches[0] === desired).to.be.eq(false); // this is a clone
+			expect(matches[0]).to.not.be.deep.eq(desired); // created new elem with projection
+
+			expect(matches[0][PRIMARY_KEY_INDEX]).to.be.eq(desired[PRIMARY_KEY_INDEX]); // just to be confident it found what we need
+
+			for (const excludedProp of excludeProjection.fields) {
+				expect(dotProp.get(matches[0], excludedProp)).to.be.eq(undefined);
+			}
 
 			/** INCLUDE */
 			const includeProjection: Projection<PersonDocument> = {
@@ -305,7 +304,286 @@ describe.only('Collection spec', function () {
 			expect(matches.length).to.be.eq(1);
 
 			expect(matches[0]).to.be.instanceOf(PersonDocument);
-			// FIXME
+			expect(matches[0] === desired).to.be.eq(false); // this is a clone
+			expect(matches[0]).to.not.be.deep.eq(desired); // created new elem with projection
+
+			expect(Object.keys(matches[0]).length).to.be.eq(includeProjection.fields.length); // only included fields
+
+			for (const includedProp of includeProjection.fields) {
+				expect(dotProp.get(matches[0], includedProp)).to.be.eq(dotProp.get(desired, includedProp));
+			}
+		});
+
+		it('should find a single document and sort it', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const desired = array.randomElement(PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$eq: desired[PRIMARY_KEY_INDEX]
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				sort: {
+					birthYear: SortDirection.ASCENDING
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+			expect(matches).to.be.equalTo([desired]);
+		});
+
+		it('should find multiple documents and sort them by a single property (ASCENDING)', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				birthYear: {
+					$gte: 1990,
+					$lt: 2000
+				},
+				// @ts-ignore
+				'address.countryCode': {
+					$in: ['EN', 'RU', 'DE']
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				sort: {
+					birthYear: SortDirection.ASCENDING
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+
+			function filter(doc: PersonDocument): boolean {
+				const birthYearRange = Array.from(range(dotProp.get(query.birthYear! as ObjMap, '$gte'), dotProp.get(query.birthYear! as ObjMap, '$lt')));
+				const isInBirthYearRange = birthYearRange.includes(doc.birthYear);
+
+				const countryCode = dotProp.get(doc, 'address.countryCode');
+				// @ts-ignore
+				const isInCountryCodeRange = query['address.countryCode'].$in.includes(countryCode);
+
+				return isInBirthYearRange && isInCountryCodeRange;
+			}
+			const crossCheck = PersonsRepo.filter(filter);
+
+			// we found all possible values...
+			expect(matches.length).to.be.eq(crossCheck.length);
+			crossCheck.sort((first, second) => first.birthYear - second.birthYear);
+
+			// ...and they are sorted by birth year
+			for (let i = 0; i < matches.length; i++) {
+				expect(matches[i]).to.be.deep.eq(crossCheck[i]);
+			}
+		});
+
+		it('should find multiple documents and sort them by a single property (DESCENDING)', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				birthYear: {
+					$gte: 1990,
+					$lt: 1995
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				sort: {
+					firstName: SortDirection.DESCENDING
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+			expect(matches.length).to.be.gte(2);
+
+			for (let i = 1; i < matches.length; i++) {
+				expect(matches[i].firstName.localeCompare(matches[i - 1].firstName)).to.be.lte(0);
+			}
+		});
+
+		it('should find multiple documents and sort them by multiple properties', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const toBeRetrievedLater = [
+				new PersonDocument({
+					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					birthYear: 1995,
+					firstName: 'John',
+					address: {
+						countryCode: array.randomElement(['EN', 'DE']),
+						city: string.generateStringOfLength(5)
+					},
+					finance: {
+						bank: {
+							name: string.generateStringOfLength(5)
+						},
+						transactions: [
+							{
+								currencySymbol: '$',
+								amount: '889.6',
+								transactionType: 'transfer'
+							}
+						]
+					},
+					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+				}),
+				new PersonDocument({
+					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					birthYear: 1999,
+					firstName: 'John',
+					address: {
+						countryCode: array.randomElement(['EN', 'DE']),
+						city: string.generateStringOfLength(5)
+					},
+					finance: {
+						bank: {
+							name: string.generateStringOfLength(5)
+						},
+						transactions: [
+							{
+								currencySymbol: '$',
+								amount: '889.6',
+								transactionType: 'transfer'
+							}
+						]
+					},
+					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+				}),
+				new PersonDocument({
+					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					birthYear: 1992,
+					firstName: 'Clint',
+					address: {
+						countryCode: array.randomElement(['EN', 'DE']),
+						city: string.generateStringOfLength(5)
+					},
+					finance: {
+						bank: {
+							name: string.generateStringOfLength(5)
+						},
+						transactions: [
+							{
+								currencySymbol: '$',
+								amount: '889.6',
+								transactionType: 'transfer'
+							}
+						]
+					},
+					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+				}),
+				new PersonDocument({
+					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					birthYear: 2000,
+					firstName: 'Easter',
+					address: {
+						countryCode: array.randomElement(['EN', 'DE']),
+						city: string.generateStringOfLength(5)
+					},
+					finance: {
+						bank: {
+							name: string.generateStringOfLength(5)
+						},
+						transactions: [
+							{
+								currencySymbol: '$',
+								amount: '889.6',
+								transactionType: 'transfer'
+							}
+						]
+					},
+					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+				})
+			];
+			collection.insert(...toBeRetrievedLater);
+
+			const query: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: toBeRetrievedLater.map((person) => person[PRIMARY_KEY_INDEX])
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				sort: {
+					firstName: SortDirection.DESCENDING,
+					birthYear: SortDirection.ASCENDING
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+
+			expect(matches.length).to.be.eq(toBeRetrievedLater.length);
+			expect(matches).to.containingAllOf(toBeRetrievedLater);
+
+			for (let i = 1; i < matches.length; i++) {
+				expect(matches[i].firstName.localeCompare(matches[i - 1].firstName)).to.be.lte(0); // first sort field
+
+				if (matches[i].firstName === matches[i - 1].firstName) {
+					expect(matches[i].birthYear - matches[i - 1].birthYear).to.be.gte(0); // second sort field
+				}
+			}
+		});
+
+		it('should find a single document and return a clone of it', () => {
+			const collection = new Collection<PersonDocument>({
+				documentsIdentity: DocumentIdentity.CLONE
+			});
+			collection.insert(...PersonsRepo);
+
+			const minBirthYear = 1990;
+			const maxBirthYear = 1995;
+			const countryCodes = ['DE', 'EN'];
+			const transactionCurrency = '$';
+
+			const desired = new PersonDocument({
+				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
+				firstName: string.generateStringOfLength(5),
+				address: {
+					countryCode: array.randomElement(countryCodes),
+					city: string.generateStringOfLength(5)
+				},
+				finance: {
+					bank: {
+						name: string.generateStringOfLength(5)
+					},
+					transactions: [
+						{
+							currencySymbol: transactionCurrency,
+							amount: '889.6',
+							transactionType: 'transfer'
+						}
+					]
+				},
+				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
+			});
+
+			collection.insert(desired);
+
+			const query: QueryConditions<PersonDocument> = {
+				birthYear: {
+					$gte: minBirthYear,
+					$lte: maxBirthYear
+				},
+				// @ts-ignore
+				'address.countryCode': {
+					$in: countryCodes
+				},
+				// only digits can be specified
+				'finance.transactions[0].currencySymbol': {
+					$eq: transactionCurrency
+				}
+			};
+
+			const matches = collection.find(query);
+			expect(matches.length).to.be.eq(1);
+
+			expect(matches[0] === desired).to.be.eq(false); // this is a clone
+			expect(matches[0][PRIMARY_KEY_INDEX]).to.be.eq(desired[PRIMARY_KEY_INDEX]);
 		});
 	});
 });

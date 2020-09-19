@@ -1,6 +1,8 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { extractUnique, filledWith, random, remove } from '../lib/array';
+import { ConcurrencyType } from '@thermopylae/core.declarations';
+import { extractUnique, filledWith, filterAsync, randomElement, remove, shuffle } from '../lib/array';
+import { chrono } from '../lib';
 
 describe('array spec', () => {
 	// eslint-disable-next-line mocha/no-setup-in-describe
@@ -49,6 +51,10 @@ describe('array spec', () => {
 			expect(() => filledWith(-1, undefined)).to.throw('Invalid array length');
 		});
 
+		it('returns empty array when length is 0', () => {
+			expect(filledWith(0, 0).length).to.be.eq(0);
+		});
+
 		it('fills array with provided value', () => {
 			const length = 10;
 			const toFill = `val-${Date.now()}`;
@@ -88,18 +94,72 @@ describe('array spec', () => {
 		});
 	});
 
-	describe('random spec', function () {
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${shuffle.name} spec`, function () {
+		it('shuffles in random order', () => {
+			const arr = [1, 2, 3, 4, 5];
+			const original = arr.slice();
+
+			shuffle(arr);
+			expect(arr).not.to.be.equalTo(original);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${randomElement.name} spec`, function () {
 		it('returns undefined when array is empty', () => {
-			expect(random([])).to.be.eq(undefined);
+			expect(randomElement([])).to.be.eq(undefined);
 		});
 
 		it('returns first item when array contains a single element', () => {
-			expect(random([1])).to.be.eq(1);
+			expect(randomElement([1])).to.be.eq(1);
 		});
 
 		it('returns random element from array', () => {
 			const arr = [1, 2];
-			expect(random(arr)).to.be.oneOf(arr);
+			expect(randomElement(arr)).to.be.oneOf(arr);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${filterAsync.name} spec`, function () {
+		it('filters in parallel', async () => {
+			const arr = [1, 2, 3, 4, 5];
+			async function filter(i: number): Promise<boolean> {
+				await chrono.sleep(10);
+				return i % 2 === 0;
+			}
+
+			const start = Date.now();
+			const filtered = await filterAsync(arr, filter);
+			const stop = Date.now();
+
+			expect(stop - start).to.be.at.most(20);
+			expect(filtered).to.be.equalTo([2, 4]);
+		});
+
+		it('filters sequentially', async () => {
+			const arr = [1, 2, 3, 4, 5];
+			async function filter(i: number): Promise<boolean> {
+				await chrono.sleep(10);
+				return i % 2 === 0;
+			}
+
+			const start = Date.now();
+			const filtered = await filterAsync(arr, filter, ConcurrencyType.SEQUENTIAL);
+			const stop = Date.now();
+
+			expect(stop - start).to.be.at.least(arr.length * 10);
+			expect(stop - start).to.be.at.most(arr.length * 10 + 10);
+			expect(filtered).to.be.equalTo([2, 4]);
+		});
+
+		it('fails to filter when unsupported concurrency is given', async () => {
+			const arr = new Array<number>();
+			const filter = () => Promise.resolve(true);
+			const concurrency = ConcurrencyType.BATCH;
+
+			await expect(filterAsync(arr, filter, concurrency)).to.be.rejectedWith(`Can't handle given concurrency ${concurrency}.`);
 		});
 	});
 });

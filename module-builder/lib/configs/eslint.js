@@ -43,8 +43,9 @@ module.exports = {
 		"no-await-in-loop": "warn",
 		"no-continue": "off",
 		"no-undef": "warn",
+		"no-case-declarations": "error",
 		"no-cond-assign": "warn",
-		"no-restricted-syntax": "warn",
+		"no-restricted-syntax": "off",
 		"no-bitwise": "warn",
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 

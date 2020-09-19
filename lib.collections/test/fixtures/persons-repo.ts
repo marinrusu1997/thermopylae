@@ -27,6 +27,7 @@ interface Person extends Recordable {
 	birthYear: number;
 	address: Address;
 	finance: Finance;
+	visitedCountries: Array<string>;
 }
 
 enum Indexes {
@@ -51,7 +52,7 @@ const TransactionSchema = {
 		faker: 'finance.transactionType'
 	},
 	amount: {
-		faker: 'finance.amount'
+		function: () => string.generateStringOfLength(3, /[0-9]/)
 	},
 	currencySymbol: {
 		faker: 'finance.currencySymbol'
@@ -91,7 +92,14 @@ const PersonSchema = {
 				fixedLength: false
 			}
 		]
-	}
+	},
+	visitedCountries: [
+		{
+			faker: 'address.countryCode',
+			length: 5,
+			fixedLength: false
+		}
+	]
 };
 deepfreeze(PersonSchema);
 
@@ -167,9 +175,17 @@ const PersonJsonSchema: JSONSchema = {
 			},
 			required: ['bank', 'transactions'],
 			additionalProperties: false
+		},
+		visitedCountries: {
+			type: 'array',
+			items: {
+				type: 'string',
+				minLength: 2,
+				maxLength: 3
+			}
 		}
 	},
-	required: ['id', 'firstName', 'birthYear', 'address', 'finance'],
+	required: ['id', 'firstName', 'birthYear', 'address', 'finance', 'visitedCountries'],
 	additionalProperties: false
 };
 deepfreeze(PersonJsonSchema);

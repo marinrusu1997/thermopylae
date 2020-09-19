@@ -10,7 +10,7 @@ type MemoizationRecord = NonNullable<any | Promise<any>>;
 
 type MemoizationLocationResolver = (args: any[]) => MemoizationLocation;
 
-const enum MemoizationBoundary {
+const enum AmnesiaBoundary {
 	INSTANCE,
 	CLASS,
 	CROSS
@@ -22,7 +22,7 @@ interface MemoizationStorage {
 	store(
 		region: MemoizationRegion,
 		zone: MemoizationZone,
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator,
 		location: MemoizationLocation,
 		record: MemoizationRecord
@@ -31,13 +31,13 @@ interface MemoizationStorage {
 	retrieve(
 		region: MemoizationRegion,
 		zone: MemoizationZone,
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator,
 		location: MemoizationLocation
 	): Optional<MemoizationRecord>;
 
 	forget(
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: Nullable<MemoizationBoundaryLocator>,
 		region: MemoizationRegion,
 		zone?: MemoizationZone,
@@ -47,9 +47,9 @@ interface MemoizationStorage {
 
 type ZoneCache = Map<MemoizationLocation, MemoizationRecord>;
 type BoundaryZoneCache = Partial<{
-	[MemoizationBoundary.INSTANCE]: WeakMap<ObjMap, ZoneCache>;
-	[MemoizationBoundary.CLASS]: Map<Class<any>, ZoneCache>;
-	[MemoizationBoundary.CROSS]: ZoneCache;
+	[AmnesiaBoundary.INSTANCE]: WeakMap<ObjMap, ZoneCache>;
+	[AmnesiaBoundary.CLASS]: Map<Class<any>, ZoneCache>;
+	[AmnesiaBoundary.CROSS]: ZoneCache;
 }>;
 type RegionCache = Map<MemoizationZone, BoundaryZoneCache>;
 
@@ -63,7 +63,7 @@ class Hippocampus implements MemoizationStorage {
 	public store(
 		region: MemoizationRegion,
 		zone: MemoizationZone,
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator,
 		location: MemoizationLocation,
 		record: MemoizationRecord
@@ -75,7 +75,7 @@ class Hippocampus implements MemoizationStorage {
 	public retrieve(
 		region: MemoizationRegion,
 		zone: MemoizationZone,
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator,
 		location: MemoizationLocation
 	): Optional<MemoizationRecord> {
@@ -98,7 +98,7 @@ class Hippocampus implements MemoizationStorage {
 	}
 
 	public forget(
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator,
 		region: MemoizationRegion,
 		zone?: MemoizationZone,
@@ -159,11 +159,11 @@ class Hippocampus implements MemoizationStorage {
 		return boundaryZoneCache;
 	}
 
-	private getZone(region: MemoizationRegion, zone: MemoizationZone, boundary: MemoizationBoundary, boundaryLocator: MemoizationBoundaryLocator): ZoneCache {
+	private getZone(region: MemoizationRegion, zone: MemoizationZone, boundary: AmnesiaBoundary, boundaryLocator: MemoizationBoundaryLocator): ZoneCache {
 		const boundaryZoneCache = this.getBoundaryZone(region, zone);
 
 		switch (boundary) {
-			case MemoizationBoundary.INSTANCE: {
+			case AmnesiaBoundary.INSTANCE: {
 				let zoneInstanceCache = boundaryZoneCache[boundary];
 
 				if (zoneInstanceCache == null) {
@@ -180,7 +180,7 @@ class Hippocampus implements MemoizationStorage {
 				return zoneCache;
 			}
 
-			case MemoizationBoundary.CLASS: {
+			case AmnesiaBoundary.CLASS: {
 				let zoneClassCache = boundaryZoneCache[boundary];
 
 				if (zoneClassCache == null) {
@@ -197,7 +197,7 @@ class Hippocampus implements MemoizationStorage {
 				return zoneCache;
 			}
 
-			case MemoizationBoundary.CROSS: {
+			case AmnesiaBoundary.CROSS: {
 				let zoneCache = boundaryZoneCache[boundary];
 
 				if (zoneCache == null) {
@@ -214,11 +214,11 @@ class Hippocampus implements MemoizationStorage {
 
 	private static getOptionalZoneCache(
 		boundaryZoneCache: BoundaryZoneCache,
-		boundary: MemoizationBoundary,
+		boundary: AmnesiaBoundary,
 		boundaryLocator: MemoizationBoundaryLocator
 	): Optional<ZoneCache> {
 		switch (boundary) {
-			case MemoizationBoundary.INSTANCE: {
+			case AmnesiaBoundary.INSTANCE: {
 				const zoneInstanceCache = boundaryZoneCache[boundary];
 				if (zoneInstanceCache == null) {
 					return undefined;
@@ -226,7 +226,7 @@ class Hippocampus implements MemoizationStorage {
 
 				return zoneInstanceCache.get(boundaryLocator);
 			}
-			case MemoizationBoundary.CLASS: {
+			case AmnesiaBoundary.CLASS: {
 				const zoneClassCache = boundaryZoneCache[boundary];
 				if (zoneClassCache == null) {
 					return undefined;
@@ -234,7 +234,7 @@ class Hippocampus implements MemoizationStorage {
 
 				return zoneClassCache.get(boundaryLocator as Class<any>);
 			}
-			case MemoizationBoundary.CROSS:
+			case AmnesiaBoundary.CROSS:
 				return boundaryZoneCache[boundary] as ZoneCache;
 			default:
 				throw new Error(`Unknown memoization boundary. Given: ${boundary}`);
@@ -253,7 +253,7 @@ function memoize(
 	region: MemoizationRegion,
 	zone: MemoizationZone,
 	locationResolver: MemoizationLocationResolver = implicitLocationResolver,
-	boundary?: MemoizationBoundary
+	boundary?: AmnesiaBoundary
 ): MethodDecorator {
 	return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>): void => {
 		if (typeof descriptor.value !== 'function') {
@@ -268,8 +268,8 @@ function memoize(
 
 		descriptor.value = function memoizationProxy(...impulses: any[]): any {
 			const location = locationResolver(impulses);
-			boundary = boundary || Object.getPrototypeOf(this) === target ? MemoizationBoundary.INSTANCE : MemoizationBoundary.CLASS;
-			const boundaryLocator = boundary === MemoizationBoundary.INSTANCE ? this : target;
+			boundary = boundary || Object.getPrototypeOf(this) === target ? AmnesiaBoundary.INSTANCE : AmnesiaBoundary.CLASS;
+			const boundaryLocator = boundary === AmnesiaBoundary.INSTANCE ? this : target;
 
 			let record: any;
 
@@ -306,7 +306,7 @@ memoize.use = function (storage: MemoizationStorage): void {
 	Storage = storage;
 };
 
-function amnesia(region: MemoizationRegion, zone?: MemoizationZone, location?: MemoizationLocation, boundary?: MemoizationBoundary): MethodDecorator {
+function amnesia(region: MemoizationRegion, zone?: MemoizationZone, location?: MemoizationLocation, boundary?: AmnesiaBoundary): MethodDecorator {
 	return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>): void => {
 		if (typeof descriptor.value !== 'function') {
 			throw new Error(`Property ${propertyKey.toString()} on ${target.constructor.name} has to be a method.`);
@@ -315,12 +315,12 @@ function amnesia(region: MemoizationRegion, zone?: MemoizationZone, location?: M
 		const synapse = descriptor.value;
 
 		descriptor.value = function amnesiaProxy(...impulses: any[]): any {
-			boundary = boundary || Object.getPrototypeOf(this) === target ? MemoizationBoundary.INSTANCE : MemoizationBoundary.CLASS;
-			const boundaryLocator = boundary === MemoizationBoundary.INSTANCE ? this : target;
+			boundary = boundary || Object.getPrototypeOf(this) === target ? AmnesiaBoundary.INSTANCE : AmnesiaBoundary.CLASS;
+			const boundaryLocator = boundary === AmnesiaBoundary.INSTANCE ? this : target;
 			Storage.forget(boundary, boundaryLocator, region, zone, location);
 			return synapse.apply(this, impulses);
 		};
 	};
 }
 
-export { MemoizationLocationResolver, MemoizationBoundary, MemoizationStorage, Storage, memoize, amnesia };
+export { MemoizationLocationResolver, AmnesiaBoundary, MemoizationStorage, Storage, memoize, amnesia };
