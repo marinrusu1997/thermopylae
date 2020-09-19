@@ -183,12 +183,7 @@ describe.only(`${Collection.name} spec`, function () {
 
 			const matches = collection.find(query);
 			expect(matches.length).to.be.eq(1);
-
-			for (const match of matches) {
-				expect(match.birthYear).to.be.oneOf(Array.from(range(minBirthYear, maxBirthYear)));
-				expect(match.address.countryCode).to.be.oneOf(countryCodes);
-				expect(match.finance.transactions.some((tx) => tx.currencySymbol === transactionCurrency)).to.be.eq(true);
-			}
+			expect(matches[0]).to.be.deep.eq(desired);
 		});
 
 		it('should find a single document matching the predicate', () => {
@@ -528,6 +523,71 @@ describe.only(`${Collection.name} spec`, function () {
 			}
 		});
 
+		it('should find multiple documents using specified index', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.II_COUNTRY_CODE]
+			});
+			collection.insert(...PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				// @ts-ignore
+				[Indexes.II_COUNTRY_CODE]: {
+					$in: array.filledWith(5, () => dotProp.get(array.randomElement(PersonsRepo), Indexes.II_COUNTRY_CODE))
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				hint: {
+					index: Indexes.II_COUNTRY_CODE
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+			expect(matches.length).to.be.gt(0);
+
+			const crossCheck = PersonsRepo.filter((person) => {
+				// @ts-ignore
+				const expected = query[Indexes.II_COUNTRY_CODE].$in as Array<string>;
+				const actual = dotProp.get(person, Indexes.II_COUNTRY_CODE) as string;
+				return expected.includes(actual);
+			});
+			expect(matches).to.be.containingAllOf(crossCheck);
+
+			for (const match of matches) {
+				const actual = dotProp.get(match, Indexes.II_COUNTRY_CODE) as string;
+				// @ts-ignore
+				const expected = query[Indexes.II_COUNTRY_CODE].$in as Array<string>;
+				expect(actual).to.be.oneOf(expected);
+			}
+		});
+
+		it("should find multiple documents using specified index and it's value", () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.II_COUNTRY_CODE]
+			});
+			collection.insert(...PersonsRepo);
+
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				hint: {
+					index: Indexes.II_COUNTRY_CODE,
+					value: dotProp.get(array.randomElement(PersonsRepo), Indexes.II_COUNTRY_CODE)
+				}
+			};
+
+			const matches = collection.find(null, criteria);
+			expect(matches.length).to.be.gt(0);
+
+			const crossCheck = PersonsRepo.filter((person) => dotProp.get(person, Indexes.II_COUNTRY_CODE) === criteria.hint!.value);
+			expect(matches).to.be.containingAllOf(crossCheck);
+
+			for (const match of matches) {
+				const actual = dotProp.get(match, Indexes.II_COUNTRY_CODE) as string;
+				const expected = criteria.hint!.value;
+				expect(actual).to.be.eq(expected);
+			}
+		});
+
 		it('should find a single document and return a clone of it', () => {
 			const collection = new Collection<PersonDocument>({
 				documentsIdentity: DocumentIdentity.CLONE
@@ -584,6 +644,53 @@ describe.only(`${Collection.name} spec`, function () {
 
 			expect(matches[0] === desired).to.be.eq(false); // this is a clone
 			expect(matches[0][PRIMARY_KEY_INDEX]).to.be.eq(desired[PRIMARY_KEY_INDEX]);
+		});
+
+		it("should not find documents using specified index and it's value, bot not matching on query", () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.II_COUNTRY_CODE]
+			});
+			collection.insert(...PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				// @ts-ignore
+				[Indexes.II_COUNTRY_CODE]: {
+					$eq: string.generateStringOfLength(5, /[0-9]/)
+				}
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: true,
+				hint: {
+					index: Indexes.II_COUNTRY_CODE,
+					value: dotProp.get(array.randomElement(PersonsRepo), Indexes.II_COUNTRY_CODE)
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+			expect(matches.length).to.be.eq(0);
+		});
+
+		it("should not find documents when query don't match anything", () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.II_COUNTRY_CODE]
+			});
+			collection.insert(...PersonsRepo);
+
+			const query: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(5, /[0-9]/)
+			};
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				multiple: false,
+				hint: { index: Indexes.II_COUNTRY_CODE },
+				sort: { birthYear: SortDirection.ASCENDING },
+				projection: {
+					fields: ['finance'],
+					type: ProjectionType.EXCLUDE
+				}
+			};
+
+			const matches = collection.find(query, criteria);
+			expect(matches.length).to.be.eq(0);
 		});
 	});
 });

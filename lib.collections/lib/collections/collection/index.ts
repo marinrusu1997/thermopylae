@@ -98,7 +98,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 	}
 
-	public find(query?: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
+	public find(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
 		return Retriever.retrieve(this.storage, query, criteria);
 	}
 

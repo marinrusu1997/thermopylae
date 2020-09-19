@@ -1,27 +1,26 @@
-import { UnaryPredicate } from '@thermopylae/core.declarations';
+import { Nullable, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
 // @ts-ignore
 import MongooseFilter from 'filtr';
 import { IndexedStore } from '../indexed-store';
 import { DocumentContract, FindCriteria, Hint, Query } from './typings';
-import { createError, ErrorCodes } from '../../error';
 import { Processor } from './processor';
 
 class Retriever {
 	public static retrieve<Document extends DocumentContract<Document>>(
 		storage: IndexedStore<Document>,
-		query?: Query<Document>,
+		query?: Nullable<Query<Document>>,
 		criteria?: Partial<FindCriteria<Document>>
 	): Array<Document> {
-		criteria = criteria || {};
+		let matches = Retriever.getMatches(storage, query, criteria);
 
-		let matches = Retriever.getMatches(storage, criteria, query);
+		if (criteria && matches.length) {
+			if (criteria.projection) {
+				matches = Processor.project(matches, criteria.projection);
+			}
 
-		if (criteria.projection) {
-			matches = Processor.project(matches, criteria.projection);
-		}
-
-		if (criteria.sort) {
-			matches = Processor.sort(matches, criteria.sort);
+			if (criteria.sort) {
+				matches = Processor.sort(matches, criteria.sort);
+			}
 		}
 
 		return matches;
@@ -29,17 +28,25 @@ class Retriever {
 
 	private static getMatches<Document extends DocumentContract<Document>>(
 		storage: IndexedStore<Document>,
-		criteria: Partial<FindCriteria<Document>>,
-		query?: Query<Document>
+		query?: Nullable<Query<Document>>,
+		criteria?: Partial<FindCriteria<Document>>
 	): Array<Document> {
-		if (query == null) {
-			return storage.values;
+		let hint: Partial<Hint<Document>>;
+		let multiple: Undefinable<boolean>;
+
+		if (criteria == null) {
+			if (query == null) {
+				return storage.values;
+			}
+			hint = {};
+		} else {
+			hint = criteria.hint || {};
+			multiple = criteria.multiple;
 		}
 
 		query = Retriever.queryToPredicate(query);
-		const hint: Partial<Hint<Document>> = criteria.hint || {};
 
-		if (criteria.multiple) {
+		if (multiple) {
 			return storage.filter(query, hint.index, hint.value);
 		}
 
@@ -47,18 +54,19 @@ class Retriever {
 		return match !== undefined ? [match] : [];
 	}
 
-	private static queryToPredicate<Document>(query: Query<Document>): UnaryPredicate<Document> {
+	private static queryToPredicate<Document>(query?: Nullable<Query<Document>>): UnaryPredicate<Document> {
+		if (query == null) {
+			return () => true; // match all documents
+		}
+
 		if (query instanceof Function) {
 			return query;
 		}
 
 		const filter = new MongooseFilter(query);
-		if (filter == null || filter.test == null) {
-			throw createError(ErrorCodes.INVALID_QUERY, `Query must conform to mongoose standard. Given: ${JSON.stringify(query)}.`);
-		}
-
 		const testOptions = { type: 'single' };
-		return function predicate(document: Document): boolean {
+
+		return function predicate(document: Document) {
 			return filter.test(document, testOptions);
 		};
 	}
