@@ -1,6 +1,6 @@
 {
   "name": "@thermopylae/module-builder",
-  "version": "0.0.1600623604",
+  "version": "0.0.1600637215",
   "description": "Builder and common stuff for typescript modules",
   "main": "lib/index.js",
   "files": [
@@ -30,6 +30,7 @@
     "eslint-plugin-security": "1",
     "esm": "3",
     "gulp": "4",
+    "gulp-replace": "1",
     "mocha": "8",
     "mochawesome": "6",
     "npm-run": "5",

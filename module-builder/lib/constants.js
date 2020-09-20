@@ -1,3 +1,5 @@
+const path = require('path');
+
 /**
  * @enum {string}
  */
@@ -8,7 +10,22 @@ const ModuleLang = {
 
 const SPAWN_OPTIONS = { stdio: "inherit" };
 
+const PLACEHOLDERS = {
+  HOMEPAGE_URL: "__HOMEPAGE_URL_PLACEHOLDER__",
+  DOCUMENTATION_URL: "__DOCUMENTATION_URL_PLACEHOLDER__",
+  LICENSE_URL: "__LICENSE_URL_PLACEHOLDER__",
+  VCS_URL: "__VCS_URL_PLACEHOLDER__"
+};
+
+const PLACEHOLDER_VALUES = new Map();
+PLACEHOLDER_VALUES.set(PLACEHOLDERS.HOMEPAGE_URL, "http://localhost:8080");
+PLACEHOLDER_VALUES.set(PLACEHOLDERS.DOCUMENTATION_URL, path.join(PLACEHOLDER_VALUES.get(PLACEHOLDERS.HOMEPAGE_URL), "doc"));
+PLACEHOLDER_VALUES.set(PLACEHOLDERS.LICENSE_URL, path.join(PLACEHOLDER_VALUES.get(PLACEHOLDERS.HOMEPAGE_URL), "license"));
+PLACEHOLDER_VALUES.set(PLACEHOLDERS.VCS_URL, "https://bitbucket.org/marinrusu1997/framework/src/master");
+
 module.exports = {
   ModuleLang,
-  SPAWN_OPTIONS
+  SPAWN_OPTIONS,
+  PLACEHOLDERS,
+  PLACEHOLDER_VALUES
 };

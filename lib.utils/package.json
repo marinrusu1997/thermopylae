@@ -5,10 +5,12 @@
         "library",
         "utils"
     ],
-    "version": "0.0.1600601354",
+    "version": "0.0.1600638577",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "repository": "https://bitbucket.org/marinrusu1997/framework/src/master/lib.utils/",
     "license": "ISC",
     "main": "dist/index.js",
+    "exports": "./dist/index.js",
     "typings": "dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -47,7 +49,7 @@
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0.0.1600623604",
+        "@thermopylae/module-builder": "0",
         "@types/convert-hrtime": "3",
         "@types/lodash.clone": "4",
         "@types/otplib": "10",
@@ -57,6 +59,5 @@
         "mocha": "8",
         "chai": "4"
     },
-    "exports": "./dist/index.js",
     "type": "commonjs"
 }

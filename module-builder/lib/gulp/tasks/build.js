@@ -2,7 +2,15 @@
 
 const fs = require("fs");
 const spawn = require("child_process").spawn;
-const constants = require('../../constants');
+const gulp = require('gulp');
+const replace = require('gulp-replace');
+const { notNull } = require('../../utils');
+const {
+    PLACEHOLDERS,
+    PLACEHOLDER_VALUES,
+    SPAWN_OPTIONS,
+    ModuleLang
+} = require('../../constants');
 
 function stageTsConfig(done) {
   fs.readFile("tsconfig.json", "utf8", (err, content) => {
@@ -48,7 +56,7 @@ function stagePackageJson(done) {
 }
 
 function tscVersion() {
-  const tsc = spawn("tsc", ['--version'], constants.SPAWN_OPTIONS);
+  const tsc = spawn("tsc", ['--version'], SPAWN_OPTIONS);
   tsc.on("close", code => {
     if (code !== 0) {
         throw new Error(`tsc --version exit code ${code}.`);
@@ -58,7 +66,7 @@ function tscVersion() {
 }
 
 function transpile() {
-  const tsc = spawn("tsc", [], constants.SPAWN_OPTIONS);
+  const tsc = spawn("tsc", [], SPAWN_OPTIONS);
   tsc.on("close", code => {
     if (code !== 0) {
       unStageTsConfig(err => {
@@ -83,9 +91,40 @@ function unStageTsConfig(done) {
   });
 }
 
+function replacePlaceholdersInReadme() {
+    return gulp.src(['./README.md'])
+        .pipe(
+            replace(
+                PLACEHOLDERS.HOMEPAGE_URL,
+                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.HOMEPAGE_URL))
+            )
+        )
+        .pipe(
+            replace(
+                PLACEHOLDERS.DOCUMENTATION_URL,
+                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.DOCUMENTATION_URL))
+            )
+        )
+        .pipe(
+            replace(
+                PLACEHOLDERS.LICENSE_URL,
+                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.LICENSE_URL))
+            )
+        )
+        .pipe(
+            replace(
+                PLACEHOLDERS.VCS_URL,
+                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.VCS_URL))
+            )
+        )
+        .pipe(
+            gulp.dest('./')
+        );
+}
+
 function buildFactory(module, gulp) {
-  if (module === constants.ModuleLang.TS) {
-    return gulp.series(stageTsConfig, stagePackageJson, tscVersion, transpile, unStageTsConfig);
+  if (module === ModuleLang.TS) {
+    return gulp.series(stageTsConfig, stagePackageJson, tscVersion, transpile, unStageTsConfig, replacePlaceholdersInReadme);
   }
 }
 
