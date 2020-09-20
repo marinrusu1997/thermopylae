@@ -1,7 +1,8 @@
+import { ObjMap } from '@thermopylae/core.declarations';
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
-import { makeHTTPRequest, makeHTTPSRequest, HTTPResponse, ErrorCodes } from '../lib/http';
+import { request, requestSecure, HTTPResponse, ErrorCodes } from '../lib/http';
 import { generateToken } from './utils';
 
 const { expect } = chai;
@@ -9,7 +10,7 @@ const { expect } = chai;
 describe('http spec', () => {
 	let statusCodeForGETRequest = 200;
 	let contentTypeForGETRequest = 'application/json';
-	let responseForGETRequest: any = { level1: { level2: 'value' } };
+	let responseForGETRequest: ObjMap | string = { level1: { level2: 'value' } };
 
 	let statusCodeForPOSTRequest = 200;
 	let dataWhichWasSentInPOSTReq = '';
@@ -53,7 +54,7 @@ describe('http spec', () => {
 
 	it('throws when unsupported status code is received (redirects)', (done) => {
 		statusCodeForGETRequest = 300;
-		makeHTTPRequest(baseURL, { method: 'GET' })
+		request(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
 			.catch((error) => {
 				expect(error).to.be.instanceOf(Error);
@@ -67,7 +68,7 @@ describe('http spec', () => {
 		statusCodeForGETRequest = 200;
 		contentTypeForGETRequest = 'text/plain';
 		responseForGETRequest = generateToken(100000);
-		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
+		const resp = await request(baseURL, { method: 'GET' });
 		expect(resp.status).to.be.eq(statusCodeForGETRequest);
 		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
@@ -77,7 +78,7 @@ describe('http spec', () => {
 		statusCodeForGETRequest = 200;
 		contentTypeForGETRequest = 'application/json';
 		responseForGETRequest = { level1: { level2: 'value' } };
-		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
+		const resp = await request(baseURL, { method: 'GET' });
 		expect(resp.status).to.be.eq(statusCodeForGETRequest);
 		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
@@ -87,7 +88,7 @@ describe('http spec', () => {
 		statusCodeForGETRequest = 200;
 		contentTypeForGETRequest = 'text/html; charset=utf-8';
 		responseForGETRequest = '<head></head>';
-		const resp = await makeHTTPRequest(baseURL, { method: 'GET' });
+		const resp = await request(baseURL, { method: 'GET' });
 		expect(resp.status).to.be.eq(statusCodeForGETRequest);
 		expect(resp.headers['content-type']).to.be.eq(contentTypeForGETRequest);
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
@@ -97,7 +98,7 @@ describe('http spec', () => {
 		statusCodeForGETRequest = 400;
 		contentTypeForGETRequest = 'application/json';
 		responseForGETRequest = { error: { message: 'failure' } };
-		makeHTTPRequest(baseURL, { method: 'GET' })
+		request(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
 			.catch((error: HTTPResponse) => {
 				expect(error).to.not.be.instanceOf(Error);
@@ -110,7 +111,7 @@ describe('http spec', () => {
 
 	it('makes GET request and handles network errors', (done) => {
 		statusCodeForGETRequest = 100;
-		makeHTTPRequest(baseURL, { method: 'GET' })
+		request(baseURL, { method: 'GET' })
 			.then(() => done(new Error('should not resolve')))
 			.catch((error) => {
 				expect(error).to.be.instanceOf(Error).and.to.have.property('message', 'socket hang up');
@@ -121,7 +122,7 @@ describe('http spec', () => {
 	it('makes POST request and handles no body response', (done) => {
 		statusCodeForPOSTRequest = 200;
 		dataWhichWasSentInPOSTReq = generateToken(100000);
-		makeHTTPRequest(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq })
+		request(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq })
 			.then((res: HTTPResponse) => {
 				expect(res.status).to.be.eq(statusCodeForPOSTRequest);
 				expect(res.headers['content-type']).to.be.eq(undefined);
@@ -132,7 +133,7 @@ describe('http spec', () => {
 	});
 
 	it('makes GET secure request', async () => {
-		const resp = await makeHTTPSRequest('https://jsonplaceholder.typicode.com', { method: 'GET', path: '/todos/1' });
+		const resp = await requestSecure('https://jsonplaceholder.typicode.com', { method: 'GET', path: '/todos/1' });
 		const expectedJSON: Record<string, unknown> = {
 			userId: 1,
 			id: 1,

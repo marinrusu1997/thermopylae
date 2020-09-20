@@ -1,37 +1,37 @@
-import { AsyncFunction, SyncFunction } from '@thermopylae/core.declarations';
+import { AsyncFunction, SyncFunction, Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 
 type ErrorHandler = (error: Error | Exception) => void;
 
-class MethodInvoker {
-	private readonly func: SyncFunction | AsyncFunction;
+class MethodInvoker<I, O> {
+	private readonly func: SyncFunction<I, O> | AsyncFunction<I, O>;
 
-	private readonly args: Array<any>;
+	private readonly args: Array<I>;
 
 	private thisArgument: Record<string, unknown> | null;
 
 	private errorHandler?: ErrorHandler;
 
-	constructor(func: SyncFunction | AsyncFunction, ...args: Array<any>) {
+	constructor(func: SyncFunction | AsyncFunction, ...args: Array<I>) {
 		this.func = func;
 		this.args = args;
 		this.thisArgument = null;
 	}
 
-	thisArg(thisArgument: Record<string, unknown>): MethodInvoker {
+	thisArg(thisArgument: Record<string, unknown>): MethodInvoker<I, O> {
 		this.thisArgument = thisArgument;
 		return this;
 	}
 
-	errHandler(errorHandler: ErrorHandler): MethodInvoker {
+	errHandler(errorHandler: ErrorHandler): MethodInvoker<I, O> {
 		this.errorHandler = errorHandler;
 		return this;
 	}
 
-	safeInvokeSync(): any | undefined {
-		let res: any | undefined;
+	safeInvokeSync(): Undefinable<O> {
+		let res: Undefinable<O>;
 		try {
-			res = this.func.apply(this.thisArgument, this.args);
+			res = (this.func as SyncFunction<I, O>).apply(this.thisArgument, this.args);
 		} catch (error) {
 			/* istanbul ignore else */
 			if (this.errorHandler) {
@@ -41,10 +41,10 @@ class MethodInvoker {
 		return res;
 	}
 
-	async safeInvokeAsync(): Promise<any | undefined> {
-		let res: any | undefined;
+	async safeInvokeAsync(): Promise<Undefinable<O>> {
+		let res: Undefinable<O>;
 		try {
-			res = await this.func.apply(this.thisArgument, this.args);
+			res = await (this.func as AsyncFunction<I, O>).apply(this.thisArgument, this.args);
 		} catch (error) {
 			/* istanbul ignore else */
 			if (this.errorHandler) {
@@ -55,4 +55,4 @@ class MethodInvoker {
 	}
 }
 
-export { MethodInvoker };
+export { MethodInvoker, ErrorHandler };

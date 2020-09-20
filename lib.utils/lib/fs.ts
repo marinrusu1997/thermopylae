@@ -1,12 +1,13 @@
 import { readFile, writeFile } from 'fs';
+import { ObjMap } from '@thermopylae/core.declarations';
 
 /**
- * Writes a JSON to file
+ * Writes a JSON to file.
  *
- * @param path
- * @param json
+ * @param path	Path of the file.
+ * @param json	Json object to be written.
  */
-function writeJsonToFile(path: string, json: Record<string, unknown>): Promise<void> {
+function writeJsonToFile(path: string, json: ObjMap): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		writeFile(path, JSON.stringify(json), { encoding: 'utf8' }, (err) => {
 			return err ? reject(err) : resolve();
@@ -15,12 +16,14 @@ function writeJsonToFile(path: string, json: Record<string, unknown>): Promise<v
 }
 
 /**
- * Reads json from specified path
+ * Reads json from file.
  *
- * @param {string}	path	FS path where json is located.
+ * @param path	Path to json file.
+ *
+ * @returns Parsed Json.
  */
-function readJsonFromFile(path: string): Promise<Record<string, unknown>> {
-	return new Promise<Record<string, unknown>>((resolve, reject) => {
+function readJsonFromFile(path: string): Promise<ObjMap> {
+	return new Promise<ObjMap>((resolve, reject) => {
 		readFile(path, 'utf8', (err, data) => {
 			if (err) {
 				return reject(err);

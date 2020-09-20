@@ -2,50 +2,50 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes, toBoolean } from '../lib/boolean';
+import { ErrorCodes, convertFrom } from '../lib/boolean';
 
 describe('boolean spec', () => {
-	describe('toBoolean spec', () => {
+	describe(`${convertFrom.name} spec`, () => {
 		it('returns false for null or undefined', () => {
-			expect(toBoolean(undefined)).to.be.eq(false);
-			expect(toBoolean(null)).to.be.eq(false);
+			expect(convertFrom(undefined)).to.be.eq(false);
+			expect(convertFrom(null)).to.be.eq(false);
 		});
 
 		it("returns true for 'true', 'TRUE', 'yes', 'YES', 'YeS', '1' strings", () => {
-			expect(toBoolean('true')).to.be.eq(true);
-			expect(toBoolean('TRUE')).to.be.eq(true);
-			expect(toBoolean('TruE')).to.be.eq(true);
+			expect(convertFrom('true')).to.be.eq(true);
+			expect(convertFrom('TRUE')).to.be.eq(true);
+			expect(convertFrom('TruE')).to.be.eq(true);
 
-			expect(toBoolean('yes')).to.be.eq(true);
-			expect(toBoolean('YES')).to.be.eq(true);
-			expect(toBoolean('YeS')).to.be.eq(true);
+			expect(convertFrom('yes')).to.be.eq(true);
+			expect(convertFrom('YES')).to.be.eq(true);
+			expect(convertFrom('YeS')).to.be.eq(true);
 
-			expect(toBoolean('1')).to.be.eq(true);
+			expect(convertFrom('1')).to.be.eq(true);
 		});
 
 		it("returns false for 'false', 'FALSE', 'no', 'NO', 'No', '0' strings", () => {
-			expect(toBoolean('false')).to.be.eq(false);
-			expect(toBoolean('FALSE')).to.be.eq(false);
-			expect(toBoolean('FalsE')).to.be.eq(false);
+			expect(convertFrom('false')).to.be.eq(false);
+			expect(convertFrom('FALSE')).to.be.eq(false);
+			expect(convertFrom('FalsE')).to.be.eq(false);
 
-			expect(toBoolean('no')).to.be.eq(false);
-			expect(toBoolean('NO')).to.be.eq(false);
-			expect(toBoolean('No')).to.be.eq(false);
+			expect(convertFrom('no')).to.be.eq(false);
+			expect(convertFrom('NO')).to.be.eq(false);
+			expect(convertFrom('No')).to.be.eq(false);
 
-			expect(toBoolean('0')).to.be.eq(false);
+			expect(convertFrom('0')).to.be.eq(false);
 		});
 
 		it('converts numbers to boolean', () => {
-			expect(toBoolean(1)).to.be.eq(true);
-			expect(toBoolean(Infinity)).to.be.eq(true);
+			expect(convertFrom(1)).to.be.eq(true);
+			expect(convertFrom(Infinity)).to.be.eq(true);
 
-			expect(toBoolean(0)).to.be.eq(false);
-			expect(toBoolean(NaN)).to.be.eq(false);
+			expect(convertFrom(0)).to.be.eq(false);
+			expect(convertFrom(NaN)).to.be.eq(false);
 		});
 
 		it('returns back the same value if it was a boolean', () => {
-			expect(toBoolean(true)).to.be.eq(true);
-			expect(toBoolean(false)).to.be.eq(false);
+			expect(convertFrom(true)).to.be.eq(true);
+			expect(convertFrom(false)).to.be.eq(false);
 		});
 
 		it('throws when value is null or undefined and strict mode is turned on', () => {
@@ -54,7 +54,7 @@ describe('boolean spec', () => {
 			let err;
 			try {
 				// @ts-ignore
-				toBoolean(valueToConvert, true);
+				convertFrom(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
@@ -66,7 +66,7 @@ describe('boolean spec', () => {
 
 			try {
 				// @ts-ignore
-				toBoolean(valueToConvert, true);
+				convertFrom(valueToConvert, true);
 			} catch (e) {
 				err = e;
 			}
@@ -75,12 +75,12 @@ describe('boolean spec', () => {
 		});
 
 		it("throws when can't convert to boolean (receiving value of type different than string or number)", () => {
-			let valueToConvert: any = {};
+			let valueToConvert = {};
 
 			let err;
 			try {
 				// @ts-ignore
-				toBoolean(valueToConvert);
+				convertFrom(valueToConvert);
 			} catch (e) {
 				err = e;
 			}
@@ -92,7 +92,7 @@ describe('boolean spec', () => {
 
 			try {
 				// @ts-ignore
-				toBoolean(valueToConvert);
+				convertFrom(valueToConvert);
 			} catch (e) {
 				err = e;
 			}

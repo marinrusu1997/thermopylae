@@ -1,37 +1,77 @@
 import lodashClone from 'lodash.clone';
-import lodashCloneDeep from 'lodash.clonedeep';
+import fastCopy from 'fast-copy';
+import { Nullable, ObjMap } from '@thermopylae/core.declarations';
 
+/**
+ * Clone top level properties of the object.
+ *
+ * @param value		Object to be cloned.
+ *
+ * @returns	Shallow copy of the object.
+ */
 function clone<T>(value: T): T {
 	return lodashClone(value);
 }
 
+/**
+ * Create a deep copy of the object.
+ *
+ * @param value		Object to be cloned.
+ *
+ * @returns Deep copy of the object.
+ */
 function cloneDeep<T>(value: T): T {
-	return lodashCloneDeep(value);
+	return fastCopy(value);
 }
 
-function isObject(item: unknown): boolean {
-	return typeof item === 'object' && !Array.isArray(item) && item !== null;
+/**
+ * Verify if `value` is an object.
+ *
+ * @param value		Value to test for.
+ *
+ * @returns  Whether value is an object.
+ */
+function isObject<T>(value: T): boolean {
+	return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function isEmpty(obj: Record<string, unknown>): boolean {
+/**
+ * Verify if object is empty and contains no keys.
+ *
+ * @template T	Object type.
+ *
+ * @param obj	Object to test for.
+ *
+ * @returns Whether object is empty.
+ */
+function isEmpty<T extends ObjMap>(obj: T): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
-/**
- * Processor for object leafs. After processing it must return new value or the old one.
- */
-type TraverseProcessor = (key: string, value: undefined | null | boolean | number | string) => undefined | null | boolean | number | string;
+interface TraverseProcessor {
+	/**
+	 * Processor for object leaves.
+	 * After processing it must return new value or the old one.
+	 *
+	 * @param currentPath	Path to current property in dot notation.
+	 * @param value			Value of current property.
+	 *
+	 * @returns	Processed value.
+	 */
+	(currentPath: string, value: undefined | null | boolean | number | string): undefined | null | boolean | number | string;
+}
 
 /**
- * Iterates over a provided object and processes it's leafs using provided processor.
- * After processing it must return new value or the old one !!!
- * If can option for altering of a clone of the provided object.
+ * Iterates over a provided object and processes it's leaves using provided processor.
+ * After processing it must return new value or the old one.
  *
  * @param objectOrArray			Object which needs to be iterated.
- * @param processor			Leaf processor
- * @param alterDeepClone	Alter a deep clone instead of the provided object.
+ * @param processor				Leaf processor
+ * @param alterDeepClone		Alter a deep clone instead of the provided object.
+ *
+ * @returns	Traversed object which might be altered by `processor`.
  */
-function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor: TraverseProcessor, alterDeepClone?: boolean): Record<string, unknown> {
+function traverse(objectOrArray: ObjMap | Array<unknown>, processor: TraverseProcessor, alterDeepClone?: boolean): ObjMap {
 	const isArray = Array.isArray(objectOrArray);
 
 	if (alterDeepClone && !isArray) {
@@ -40,7 +80,7 @@ function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor
 
 	let currentPath = '';
 
-	function traverseArray(arr: Array<any>, pathSeparator: string): void {
+	function traverseArray(arr: Array<unknown>, pathSeparator: string): void {
 		const appendIndex = currentPath.length;
 		for (let i = 0; i < arr.length; i++) {
 			currentPath += `${pathSeparator}[${i}]`;
@@ -49,7 +89,7 @@ function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor
 		}
 	}
 
-	function traverseObject(obj: Record<string, unknown>, pathSeparator: string): void {
+	function traverseObject(obj: ObjMap, pathSeparator: string): void {
 		const keys = Object.getOwnPropertyNames(obj);
 		const appendIndex = currentPath.length;
 		for (let i = 0; i < keys.length; i++) {
@@ -61,7 +101,7 @@ function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor
 		}
 	}
 
-	function continueTraversal(currentObject: Record<string, unknown> | Array<any>, key: string | number, value: any): void {
+	function continueTraversal(currentObject: ObjMap | Array<unknown>, key: string | number, value: unknown): void {
 		if (Array.isArray(value)) {
 			traverseArray(value, '.');
 		} else if (typeof value === 'object' && value !== null) {
@@ -73,22 +113,31 @@ function traverse(objectOrArray: Record<string, unknown> | Array<any>, processor
 	}
 
 	if (isArray) {
-		traverseArray(objectOrArray as Array<any>, '');
+		traverseArray(objectOrArray as Array<unknown>, '');
 	} else {
-		traverseObject(objectOrArray as Record<string, unknown>, '');
+		traverseObject(objectOrArray as ObjMap, '');
 	}
 
-	return objectOrArray as Record<string, unknown>;
+	return objectOrArray as ObjMap;
 }
 
 /**
- * deep-sort an object so its attributes are in lexical order.
- * Also sorts the arrays inside of the object if sortArray is set
+ * Deep-sort an object so its attributes are in lexical order.
+ *
+ * @param obj			Object to sort.
+ * @param sortArray		Whether to sort the arrays inside of the object.
+ *
+ * @returns	Sorted object.
  */
-function sort(obj: Record<string, unknown>, sortArray = true): Record<string, unknown> {
-	return doSortObject(obj, sortArray) as Record<string, unknown>;
+function sort(obj: ObjMap, sortArray = true): ObjMap {
+	return doSortObject(obj, sortArray) as ObjMap;
 }
-function doSortObject(obj: Record<string, unknown>, sortArray = true): Record<string, unknown> | Array<any> {
+/**
+ * @param obj
+ * @param sortArray
+ * @internal
+ */
+function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 	if (!obj) return obj; // do not sort null, false or undefined
 
 	// array
@@ -112,7 +161,7 @@ function doSortObject(obj: Record<string, unknown>, sortArray = true): Record<st
 			return obj;
 		}
 
-		const out: Record<string, unknown> = {};
+		const out: ObjMap = {};
 		Object.keys(obj)
 			.sort((a, b) => a.localeCompare(b))
 			.forEach((key) => {
@@ -127,15 +176,20 @@ function doSortObject(obj: Record<string, unknown>, sortArray = true): Record<st
 }
 
 /**
- * returns a flattened object
- * @link https://gist.github.com/penguinboy/762197
+ * Flatten an object, by creating a new one, having all of the nested keys top level.
+ *
+ * @param obj	Object to be flattened.
+ *
+ * @returns	Flattened object.
  */
-function flatten(obj: Record<string, unknown>): Record<string, unknown> | null {
+function flatten(obj: ObjMap): Nullable<ObjMap> {
+	// see https://gist.github.com/penguinboy/762197
+
 	if (obj === null) {
 		return null;
 	}
 
-	const toReturn: any = {};
+	const toReturn = {};
 
 	// eslint-disable-next-line no-restricted-syntax
 	for (const objKey in obj) {

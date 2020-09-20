@@ -1,6 +1,7 @@
 import { Exception } from '@thermopylae/lib.exception';
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
+import { ObjMap } from '@thermopylae/core.declarations';
 import { token as tokenModule } from '../lib';
 
 const { expect } = chai;
@@ -23,9 +24,9 @@ describe('token spec', () => {
 		}
 
 		// eslint-disable-next-line mocha/no-setup-in-describe
-		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL} generation type`, () => {
+		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHIC} generation type`, () => {
 			// eslint-disable-next-line mocha/no-setup-in-describe
-			generateTokenSpec(tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL);
+			generateTokenSpec(tokenModule.TokenGenerationType.CRYPTOGRAPHIC);
 		});
 
 		// eslint-disable-next-line mocha/no-setup-in-describe
@@ -46,7 +47,7 @@ describe('token spec', () => {
 			expect(err).to.haveOwnProperty('code', ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE);
 			expect(err).to.haveOwnProperty(
 				'message',
-				`Received: invalid. Allowed: ${tokenModule.TokenGenerationType.CRYPTOGRAPHYCAL}, ${tokenModule.TokenGenerationType.NORMAL}`
+				`Received: invalid. Allowed: ${tokenModule.TokenGenerationType.CRYPTOGRAPHIC}, ${tokenModule.TokenGenerationType.NORMAL}`
 			);
 		});
 	});
@@ -65,15 +66,15 @@ describe('token spec', () => {
 		});
 
 		it('hashes numbers', () => {
-			expect(fastUnSecureHash(1)).to.be.eq(49);
+			expect(fastUnSecureHash((1 as unknown) as ObjMap)).to.be.eq(49);
 		});
 
 		it('hashes null', () => {
-			expect(fastUnSecureHash(null)).to.be.eq(3392903);
+			expect(fastUnSecureHash((null as unknown) as ObjMap)).to.be.eq(3392903);
 		});
 
 		it('hashes boolean', () => {
-			expect(fastUnSecureHash(true)).to.be.eq(3569038);
+			expect(fastUnSecureHash((true as unknown) as ObjMap)).to.be.eq(3569038);
 		});
 	});
 });

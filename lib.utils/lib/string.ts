@@ -1,21 +1,26 @@
 /**
  * Replaces the string at a given position with another one.
  *
- * @param replacement	The replacement
- * @param index			Starting index from where replacement needs to be done
- * @param string		Initial string
+ * @param replacement	The replacement.
+ * @param index			Starting index from where replacement needs to be done.
+ * @param string		Initial string.
+ *
+ * @returns	String with replaced characters.
  */
 function replaceAt(replacement: string, index: number, string: string): string {
 	return string.substr(0, index) + replacement + string.substr(index + replacement.length);
 }
 
 /**
- * Generates random string. Generation can be controlled via regular expressions.
+ * Generates random string.
+ * Generation can be controlled via regular expressions.
  *
- * @param length				Length of the generated string
- * @param allowedCharRegex		Allowed chars that will be included in generated string
+ * @param length				Length of the generated string.
+ * @param allowedCharRegex		Allowed chars that will be included in generated string.
+ *
+ * @returns Generated string.
  */
-function generateStringOfLength(length: number, allowedCharRegex?: RegExp): string {
+function ofLength(length: number, allowedCharRegex?: RegExp): string {
 	let result = '';
 	const alphaNumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	const specialChars = ' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~';
@@ -38,7 +43,11 @@ function generateStringOfLength(length: number, allowedCharRegex?: RegExp): stri
 }
 
 /**
- * removes trailing and ending dots from the string
+ * Removes trailing and ending dots from the string.
+ *
+ * @param str	Input string.
+ *
+ * @returns Trimmed string.
  */
 function trimDots(str: string): string {
 	// start
@@ -54,4 +63,4 @@ function trimDots(str: string): string {
 	return str;
 }
 
-export { replaceAt, generateStringOfLength, trimDots };
+export { replaceAt, ofLength, trimDots };

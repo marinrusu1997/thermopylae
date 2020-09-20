@@ -1,4 +1,4 @@
-import { AsyncFunction, Milliseconds, Minutes, Seconds, SyncFunction } from '@thermopylae/core.declarations';
+import { AsyncFunction, Milliseconds, Minutes, ObjMap, Seconds, SyncFunction } from '@thermopylae/core.declarations';
 import convertHrTime, { HRTime } from 'convert-hrtime';
 import process from 'process';
 
@@ -23,7 +23,7 @@ interface TimedExecutionResult<R> {
  *
  * @param {number} ms	Number of milliseconds to sleep.
  *
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 function sleep(ms: Milliseconds): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,7 +41,7 @@ function sleep(ms: Milliseconds): Promise<void> {
  *
  * @returns		Function result and it's execution time.
  */
-function executionTime<I, O>(fn: SyncFunction<I, O>, context?: any, ...args: I[]): TimedExecutionResult<O> {
+function executionTime<I, O>(fn: SyncFunction<I, O>, context?: ObjMap, ...args: I[]): TimedExecutionResult<O> {
 	const start = process.hrtime();
 	const result = fn.apply(context, args);
 	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
@@ -60,7 +60,7 @@ function executionTime<I, O>(fn: SyncFunction<I, O>, context?: any, ...args: I[]
  *
  * @returns		Function result and it's execution time.
  */
-async function executionTimeAsync<I, O>(fn: AsyncFunction<I, O>, context?: any, ...args: I[]): Promise<TimedExecutionResult<O>> {
+async function executionTimeAsync<I, O>(fn: AsyncFunction<I, O>, context?: ObjMap, ...args: I[]): Promise<TimedExecutionResult<O>> {
 	const start = process.hrtime();
 	const result = await fn.apply(context, args);
 	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
@@ -68,43 +68,58 @@ async function executionTimeAsync<I, O>(fn: AsyncFunction<I, O>, context?: any, 
 }
 
 /**
- * Returns given time in seconds
- *
- * @returns {number}
- */
-function dateToUNIX(date = new Date()): number {
-	return millisecondsToSeconds(date.getTime());
-}
-
-/**
- * Returns JS Date from seconds timestamp
- *
- * @param {number}	seconds
- */
-function dateFromUNIX(seconds: Seconds): Date {
-	return new Date(seconds * 1000);
-}
-
-/**
  * Converts minutes to seconds.
  *
  * @param minutes
  */
-function minutesToSeconds(minutes: Minutes): number {
+function minutesToSeconds(minutes: Minutes): Seconds {
 	return minutes * 60;
+}
+
+/**
+ * Converts milliseconds to seconds.
+ *
+ * @param milliseconds
+ */
+function millisecondsToSeconds(milliseconds: Milliseconds): Seconds {
+	return Math.floor(milliseconds / 1000);
 }
 
 /**
  * Converts seconds to milliseconds.
  *
- * @param milliseconds
+ * @param seconds
  */
-function millisecondsToSeconds(milliseconds: Milliseconds): number {
-	return Math.floor(milliseconds / 1000);
+function secondsToMilliseconds(seconds: Seconds): Milliseconds {
+	return seconds * 1000;
+}
+
+/**
+ * Convert given `date` to UNIX time.
+ *
+ * @param date	Date to be converted.
+ *
+ * @returns 	UNIX time equivalent of the `date`.
+ */
+function unixTime(date = new Date()): Seconds {
+	return millisecondsToSeconds(date.getTime());
+}
+
+/**
+ * Converts given UNIX time to Date equivalent.
+ *
+ * @param elapsed	UNIX time.
+ *
+ * @returns	Date equivalent.
+ */
+function fromUnixTime(elapsed: Seconds): Date {
+	return new Date(secondsToMilliseconds(elapsed));
 }
 
 /**
  * Computes the date for next month at midnight time.
+ *
+ * @returns Date of first day for next month.
  */
 function firstDayOfNextMonth(): Date {
 	const now = new Date();
@@ -118,7 +133,10 @@ function firstDayOfNextMonth(): Date {
 }
 
 /**
- * Computes the date of tomorrow. Tomorrow computation will have current time.
+ * Computes the date of tomorrow.
+ * Tomorrow computation will have current time.
+ *
+ * @returns Date of tomorrow.
  */
 function tomorrow(): Date {
 	// see https://stackoverflow.com/questions/23081158/javascript-get-date-of-the-next-day/23081260
@@ -132,10 +150,11 @@ export {
 	sleep,
 	executionTime,
 	executionTimeAsync,
-	dateToUNIX,
-	dateFromUNIX,
+	unixTime,
+	fromUnixTime,
 	minutesToSeconds,
 	millisecondsToSeconds,
+	secondsToMilliseconds,
 	firstDayOfNextMonth,
 	tomorrow
 };

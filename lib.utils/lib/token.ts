@@ -1,23 +1,41 @@
 import { v1, v4 } from 'uuid';
+import { ObjMap } from '@thermopylae/core.declarations';
 import { createException } from './exception';
 
 const enum ErrorCodes {
 	UNKNOWN_TOKEN_GENERATION_TYPE = 'UNKNOWN_TOKEN_GENERATION_TYPE'
 }
 
+/**
+ * Specifies how token has to be generated.
+ */
 const enum TokenGenerationType {
-	CRYPTOGRAPHYCAL = 'CRYPTOGRAPHYCAL',
+	/**
+	 * Create a cryptographic secure token.
+	 */
+	CRYPTOGRAPHIC = 'CRYPTOGRAPHIC',
+	/**
+	 * Create a normal token using RFC version 1 (timestamp).
+	 */
 	NORMAL = 'NORMAL'
 }
 
 const UUID_DEFAULT_LENGTH = 32;
 const UUID_BUFFER_OFFSET = 16;
 
-function generate(generationType = TokenGenerationType.CRYPTOGRAPHYCAL, length = UUID_DEFAULT_LENGTH): string {
+/**
+ * Generate random token.
+ *
+ * @param generationType	Token generation type.
+ * @param length			Length of the token.
+ *
+ * @returns	Random token.
+ */
+function generate(generationType = TokenGenerationType.CRYPTOGRAPHIC, length = UUID_DEFAULT_LENGTH): string {
 	let alg;
 
 	switch (generationType) {
-		case TokenGenerationType.CRYPTOGRAPHYCAL:
+		case TokenGenerationType.CRYPTOGRAPHIC:
 			alg = v4;
 			break;
 		case TokenGenerationType.NORMAL:
@@ -26,7 +44,7 @@ function generate(generationType = TokenGenerationType.CRYPTOGRAPHYCAL, length =
 		default:
 			throw createException(
 				ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE,
-				`Received: ${generationType}. Allowed: ${TokenGenerationType.CRYPTOGRAPHYCAL}, ${TokenGenerationType.NORMAL}`
+				`Received: ${generationType}. Allowed: ${TokenGenerationType.CRYPTOGRAPHIC}, ${TokenGenerationType.NORMAL}`
 			);
 	}
 
@@ -42,11 +60,15 @@ function generate(generationType = TokenGenerationType.CRYPTOGRAPHYCAL, length =
 }
 
 /**
- * this is a very fast hashing but its un-secure
- * @link http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
- * @return a number as hash-result
+ * Creates a hash of the object is a very fast manner, but its un-secure.
+ *
+ * @param obj	Object to be hashed.
+ *
+ * @returns A number as hash-result.
  */
-function fastUnSecureHash(obj: any): number {
+function fastUnSecureHash(obj: string | ObjMap): number {
+	// see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+
 	if (typeof obj !== 'string') {
 		obj = JSON.stringify(obj);
 	}
@@ -74,4 +96,4 @@ function fastUnSecureHash(obj: any): number {
 	return hashValue;
 }
 
-export { ErrorCodes, TokenGenerationType, UUID_DEFAULT_LENGTH, generate, fastUnSecureHash };
+export { ErrorCodes, TokenGenerationType, generate, fastUnSecureHash };

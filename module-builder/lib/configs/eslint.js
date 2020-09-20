@@ -4,9 +4,14 @@ module.exports = {
 		"es6": true,
 		"node": true
 	},
+	"plugins": [
+		"@typescript-eslint",
+		"mocha",
+		"security"
+	],
 	"extends": [
 		"airbnb-base",
-
+		"prettier/@typescript-eslint",
 		"eslint:recommended",
 
 		"plugin:node/recommended",
@@ -14,9 +19,7 @@ module.exports = {
 		"plugin:security/recommended",
 
 		"plugin:@typescript-eslint/recommended",
-		"plugin:prettier/recommended",
-
-		"prettier/@typescript-eslint"
+		"plugin:prettier/recommended"
 	],
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
@@ -24,11 +27,6 @@ module.exports = {
 		"sourceType": "module",
 		"project": "./tsconfig.json"
 	},
-	"plugins": [
-		"@typescript-eslint",
-		"mocha",
-		"security"
-	],
 	"rules": {
 		"prettier/prettier": "error",
 
@@ -39,10 +37,10 @@ module.exports = {
 
 		"no-console": "error",
 		"no-param-reassign": "warn",
-		"no-use-before-define": "warn",
+		"no-use-before-define": "off",
 		"no-await-in-loop": "warn",
 		"no-continue": "off",
-		"no-undef": "warn",
+		"no-undef": "off",
 		"no-case-declarations": "error",
 		"no-cond-assign": "warn",
 		"no-restricted-syntax": "off",
@@ -72,13 +70,18 @@ module.exports = {
 		],
 		"import/no-cycle": "error",
 
-		"@typescript-eslint/ban-ts-comment": "warn",
-		"@typescript-eslint/no-use-before-define": "warn",
+		"@typescript-eslint/ban-ts-comment": "off",
+		"@typescript-eslint/no-explicit-any": "warn",
+		"@typescript-eslint/no-use-before-define": "off",
 		"@typescript-eslint/no-namespace": "warn",
 
 		"node/no-unsupported-features/es-syntax": "off",
-		"node/no-missing-import": "off",
-		"node/no-extraneous-import": "error"
+		"node/no-missing-import": "off", // never works as expected, broken rule
+		"node/no-extraneous-import": "error",
+
+		"mocha/no-setup-in-describe": "off",
+
+		"security/detect-object-injection": "off"
 	},
 	"globals": {
 		"Atomics": "readonly",

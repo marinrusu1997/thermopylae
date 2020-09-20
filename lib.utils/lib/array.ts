@@ -1,5 +1,5 @@
 import { UnaryPredicate, SyncFunction, ConcurrencyType, UnaryPredicateAsync } from '@thermopylae/core.declarations';
-import { generateRandomInt } from './number';
+import { randomInt } from './number';
 import { createException } from './exception';
 
 const enum ErrorCodes {
@@ -8,7 +8,8 @@ const enum ErrorCodes {
 
 /**
  * Removes element from `array`.
- * @link https://stackoverflow.com/a/15996017
+ *
+ * @template T	Elements type.
  *
  * @param array				Initial array.
  * @param predicate			Predicate function to mach needed element.
@@ -19,6 +20,8 @@ const enum ErrorCodes {
  * @returns	Array with removed elements.
  */
 function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true, firstOccurrence = true): Array<T> {
+	// inspired from https://stackoverflow.com/a/15996017
+
 	if (!inPlace) {
 		array = array.slice();
 	}
@@ -29,8 +32,6 @@ function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true
 			array.splice(i, 1);
 			if (firstOccurrence) {
 				break;
-			} else {
-				continue;
 			}
 		}
 	}
@@ -40,14 +41,20 @@ function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true
 /**
  * Creates a new array which contains unique items.
  *
- * @param items
+ * @template T	Elements type.
+ *
+ * @param array		Input array.
+ *
+ * @returns	Array with unique items.
  */
-function extractUnique<T>(items: Array<T>): Array<T> {
-	return Array.from(new Set(items));
+function unique<T>(array: Array<T>): Array<T> {
+	return Array.from(new Set(array));
 }
 
 /**
- * Shuffle the given array.
+ * Shuffle the given array in-place.
+ *
+ * @template T	Elements type.
  *
  * @param arr	Initial array.
  */
@@ -56,7 +63,9 @@ function shuffle<T>(arr: T[]): void {
 }
 
 /**
- * Creates a new array which contains the given value.
+ * Creates a new array which contains the given `value`.
+ *
+ * @template T	Elements type.
  *
  * @param length	Number of elements.
  * @param value		Value to fill with. For dynamical filling, provide a function.
@@ -82,20 +91,24 @@ function filledWith<T>(length: number, value: T | SyncFunction<void, T>): Array<
 /**
  * Extract a random element from the given `array`.
  *
- * @param array		Source data array.
+ * @template T	Elements type.
+ *
+ * @param array	Source data array.
  *
  * @returns Random element.
  */
 function randomElement<T>(array: Array<T>): T {
-	return array[generateRandomInt(0, array.length - 1)];
+	return array[randomInt(0, array.length - 1)];
 }
 
 /**
  * Filter array asynchronously.
  *
+ * @template T	Elements type.
+ *
  * @param array			Initial array.
  * @param predicate		Async predicate.
- * @param [concurrency]	Filtering concurrency.
+ * @param concurrency	Filtering concurrency.
  *
  * @returns Filtered elements.
  */
@@ -110,4 +123,4 @@ function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>, conc
 	}
 }
 
-export { remove, extractUnique, shuffle, filledWith, randomElement, filterAsync };
+export { remove, unique, shuffle, filledWith, randomElement, filterAsync };

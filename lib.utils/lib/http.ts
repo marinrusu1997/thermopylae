@@ -1,6 +1,7 @@
 import { URL } from 'url';
 import * as http from 'http';
 import * as https from 'https';
+import { Nullable, ObjMap } from '@thermopylae/core.declarations';
 import { createException } from './exception';
 
 interface HTTPPostData {
@@ -9,14 +10,16 @@ interface HTTPPostData {
 }
 
 interface HTTPResponse {
-	data: string | Record<string, unknown>;
+	data: Nullable<string | ObjMap>;
 	status: number;
 	headers: http.IncomingHttpHeaders;
 }
 
 const enum ErrorCodes {
 	NO_HTTP_STATUS_CODE = 'NO_HTTP_STATUS_CODE',
-	REDIRECT_NOT_SUPPORTED = 'REDIRECT_NOT_SUPPORTED'
+	NO_CONTENT_TYPE = 'NO_CONTENT_TYPE',
+	REDIRECT_NOT_SUPPORTED = 'REDIRECT_NOT_SUPPORTED',
+	UNSUPPORTED_CONTENT_TYPE = 'UNSUPPORTED_CONTENT_TYPE'
 }
 
 type HTTPRequestOpts = http.RequestOptions;
@@ -25,39 +28,65 @@ type HTTPRequest = (url: string | URL, options: HTTPRequestOpts, callback?: (res
 type HTTPSRequestOpts = https.RequestOptions;
 type HTTPSRequest = (url: string | URL, options: HTTPSRequestOpts, callback?: (res: http.IncomingMessage) => void) => http.ClientRequest;
 
-type BodyParser = (body: string) => any;
+type BodyParser = (body: string) => string | ObjMap;
 
 const parsersRepo = new Map<string, BodyParser>();
 parsersRepo.set('application/json', (body) => JSON.parse(body));
 parsersRepo.set('text/plain', (body) => body);
 parsersRepo.set('text/html', (body) => body);
 
+/**
+ * Extracts content type from `Content-Type` header.
+ *
+ * @internal
+ *
+ * @param contentTypeHeaderValue	Value of the `Content-Type` header.
+ *
+ * @returns	Content type.
+ */
 function extractContentType(contentTypeHeaderValue: string): string {
 	const contentTypeParts = contentTypeHeaderValue.split(';');
 	return contentTypeParts[0];
 }
 
-function parseBody(body: string, contentType?: string): any {
+/**
+ * Parses the body of HTTP response.
+ *
+ * @internal
+ *
+ * @param body			HTTP response body.
+ * @param contentType	Value of the `Content-Type` header.
+ *
+ * @returns	Parsed body.
+ */
+function parseBody(body: string, contentType?: string): string | ObjMap {
 	if (!contentType) {
-		return null;
+		throw createException(ErrorCodes.NO_CONTENT_TYPE, `Content-Type not present for body: ${body}`);
 	}
-	// let it throw TypeError exception if parser for requested content type was not registered
-	return parsersRepo.get(extractContentType(contentType))!.call(null, body);
+
+	const parser = parsersRepo.get(extractContentType(contentType));
+	if (parser == null) {
+		throw createException(ErrorCodes.UNSUPPORTED_CONTENT_TYPE, `Content-Type ${contentType} is not supported.`);
+	}
+
+	return parser.call(null, body);
 }
 
 /**
- * Makes a HTTP/HTTPS request
+ * Makes a HTTP/HTTPS request.
  *
- * @param {string|URL}										url				URL where request should be made
- * @param {HTTPRequest|HTTPSRequest}						request         NodeJs request object
- * @param {HTTPRequestOpts|HTTPSRequestOpts}  		params          Request options
- * @param {HTTPPostData}          								[postData]      Data which needs to be sent in the request body
+ * @internal
  *
- * @returns {Promise<string| object>}
+ * @param url			URL where request should be made.
+ * @param requestImpl       NodeJs request object.
+ * @param params        Request options.
+ * @param [postData]    Data which needs to be sent in the request body.
+ *
+ * @returns HTTP response.
  */
 function makeRequest(
 	url: string | URL,
-	request: HTTPRequest | HTTPSRequest,
+	requestImpl: HTTPRequest | HTTPSRequest,
 	params: HTTPRequestOpts | HTTPSRequestOpts,
 	postData?: HTTPPostData
 ): Promise<HTTPResponse> {
@@ -65,7 +94,7 @@ function makeRequest(
 
 	return new Promise((resolve, reject) => {
 		// eslint-disable-next-line consistent-return
-		const req = request(url, params, (res: http.IncomingMessage): void => {
+		const req = requestImpl(url, params, (res: http.IncomingMessage): void => {
 			// reject if no status code, WTF no status code
 			if (!res.statusCode) {
 				return reject(createException(ErrorCodes.NO_HTTP_STATUS_CODE, 'Status code not found'));
@@ -76,7 +105,7 @@ function makeRequest(
 			}
 
 			// accumulate data
-			const body: any[] = [];
+			const body = new Array<Buffer>();
 			res.on('data', (chunk) => body.push(chunk));
 
 			// resolve on end
@@ -84,7 +113,7 @@ function makeRequest(
 				const httpResponse: HTTPResponse = {
 					status: res.statusCode!,
 					headers: res.headers,
-					data: parseBody(Buffer.concat(body).toString(), res.headers['content-type'])
+					data: body.length ? parseBody(Buffer.concat(body).toString(), res.headers['content-type']) : null
 				};
 				return res.statusCode! >= 400 ? reject(httpResponse) : resolve(httpResponse);
 			});
@@ -107,30 +136,30 @@ function makeRequest(
 }
 
 /**
- * Makes a HTTP request
+ * Makes a HTTP request.
  *
- * @param {string|URL}			url				URL where request should be made
- * @param {HTTPRequestOpts} params          Request options
- * @param {HTTPPostData}          	[postData]      Data which needs to be sent in the request body
+ * @param url			URL where request should be made.
+ * @param params        Request options.
+ * @param [postData]    Data which needs to be sent in the request body.
  *
- * @returns {Promise<string| object>}
+ * @returns HTTP response.
  */
-function makeHTTPRequest(url: string | URL, params: HTTPRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
+function request(url: string | URL, params: HTTPRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
 	return makeRequest(url, http.request, params, postData);
 }
 
 /**
- * Makes a HTTPS request
+ * Makes a HTTPS request.
  *
- * @param {string|URL}				url			URL where request should be made
- * @param {HTTPSRequestOpts}	params  	Request options
- * @param {HTTPPostData}				[postData]	Data which needs to be sent in the request body
+ * @param url			URL where request should be made.
+ * @param params        Request options.
+ * @param [postData]    Data which needs to be sent in the request body.
  *
- * @returns {Promise<string|object>}
+ * @returns HTTP response.
  */
-function makeHTTPSRequest(url: string | URL, params: HTTPSRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
+function requestSecure(url: string | URL, params: HTTPSRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
 	return makeRequest(url, https.request, params, postData);
 }
 
 // eslint-disable-next-line no-undef
-export { makeHTTPRequest, makeHTTPSRequest, HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse, ErrorCodes };
+export { request, requestSecure, HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse, ErrorCodes };

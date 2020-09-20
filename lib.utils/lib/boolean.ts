@@ -4,11 +4,19 @@ const enum ErrorCodes {
 	BOOLEAN_TYPE_CASTING_FAILED = 'BOOLEAN_TYPE_CASTING_FAILED'
 }
 
-function toBoolean(value: null | undefined | string | number | boolean, strict?: boolean): boolean {
+/**
+ * Convert given `value` to boolean equivalent.
+ *
+ * @param value				Boolean like value.
+ * @param strictNullables	Whether to throw when given value is `null`.
+ *
+ * @returns		Boolean equivalent.
+ */
+function convertFrom(value: null | undefined | string | number | boolean, strictNullables?: boolean): boolean {
 	const valueType = typeof value;
 
 	if (valueType === 'undefined' || value === null) {
-		if (strict) {
+		if (strictNullables) {
 			throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);
 		}
 		return false;
@@ -36,4 +44,4 @@ function toBoolean(value: null | undefined | string | number | boolean, strict?:
 	throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);
 }
 
-export { ErrorCodes, toBoolean };
+export { ErrorCodes, convertFrom };

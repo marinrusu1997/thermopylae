@@ -1,9 +1,9 @@
 {
     "name": "@thermopylae/lib.utils",
-    "description": "Utility functions",
+    "description": "Utility functions.",
     "keywords": [
-        "utils",
-        "shared"
+        "library",
+        "utils"
     ],
     "version": "0.0.1600601354",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
@@ -16,7 +16,9 @@
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
+        "doc": "gulp doc",
         "test": "gulp test",
+        "report": "gulp report",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",
         "debug": "gulp debug",
@@ -32,23 +34,22 @@
         ]
     },
     "engines": {
-        "node": ">=12"
+        "node": ">=14"
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
         "convert-hrtime": "3",
+        "fast-copy": "2",
         "lodash.clone": "4",
-        "lodash.clonedeep": "4",
         "otplib": "11",
         "uuid": "7"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/module-builder": "0.0.1600623604",
         "@types/convert-hrtime": "3",
         "@types/lodash.clone": "4",
-        "@types/lodash.clonedeep": "4",
         "@types/otplib": "10",
         "@types/uuid": "7"
     },

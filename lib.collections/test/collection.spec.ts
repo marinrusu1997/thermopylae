@@ -1059,4 +1059,18 @@ describe.only(`${Collection.name} spec`, function () {
 			expect(notifications).to.be.ofSize(0);
 		});
 	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${Collection.prototype.update.name} spec`, function () {
+		it('should update a single document', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = array.randomElement(PersonsRepo);
+			const update: Partial<Person> = {
+				firstName: string.generateStringOfLength(5, /[A-Za-z]/)
+			};
+		});
+	});
 });

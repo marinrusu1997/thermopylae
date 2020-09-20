@@ -1,5 +1,6 @@
 /**
  * Generates random token of specified length
+ *
  * @param length
  */
 function generateToken(length: number): string {

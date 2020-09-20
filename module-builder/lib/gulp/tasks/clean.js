@@ -3,7 +3,7 @@
 const del = require("del");
 
 function clean() {
-  return del(["dist", "build", ".nyc_output", "coverage", "report"]);
+  return del(["dist", "build", ".nyc_output", "coverage", "report", "doc"]);
 }
 
 function purge() {

@@ -1,6 +1,6 @@
 {
   "name": "@thermopylae/module-builder",
-  "version": "0.0.1600604601",
+  "version": "0.0.1600623604",
   "description": "Builder and common stuff for typescript modules",
   "main": "lib/index.js",
   "files": [
@@ -36,6 +36,8 @@
     "nyc": "15",
     "prettier": "2",
     "ts-node": "8",
+    "typedoc": "0",
+    "typedoc-neo-theme": "1",
     "typescript": "4"
   }
 }

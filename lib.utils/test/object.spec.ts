@@ -1,11 +1,48 @@
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { flatten, isEmpty, isObject, sort, traverse } from '../lib/object';
+import { ObjMap } from '@thermopylae/core.declarations';
+import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse } from '../lib/object';
 
 const { expect } = chai;
 
 describe('object spec', () => {
-	describe('isObject spec', () => {
+	describe(`${clone.name} spec`, () => {
+		it('should do a shallow clone', () => {
+			const obj = {
+				a: 1,
+				b: {
+					c: 1
+				}
+			};
+			const copy = clone(obj);
+
+			expect(copy).not.to.be.eq(obj); // different references
+			expect(copy.a).to.be.eq(obj.a); // same values
+
+			obj.b.c = 2;
+			expect(copy.b.c).to.be.eq(obj.b.c); // they share same object under property
+		});
+	});
+
+	describe(`${cloneDeep.name} spec`, () => {
+		it('should do a deep clone', () => {
+			const obj = {
+				a: 1,
+				b: {
+					c: 1
+				}
+			};
+			const copy = cloneDeep(obj);
+
+			expect(copy).not.to.be.eq(obj); // different references
+			expect(copy.a).to.be.eq(obj.a); // same values
+
+			obj.b.c = 2;
+			expect(copy.b.c).not.to.be.eq(obj.b.c); // they don't share same object under property
+		});
+	});
+
+	describe(`${isObject.name} spec`, () => {
 		it('checks that value is an object', () => {
 			expect(isObject(undefined)).to.be.eq(false);
 			expect(isObject(null)).to.be.eq(false);
@@ -19,7 +56,7 @@ describe('object spec', () => {
 		});
 	});
 
-	describe('isEmpty spec', () => {
+	describe(`${isEmpty.name} spec`, () => {
 		it('checks correctly that an object is empty', () => {
 			expect(isEmpty({})).to.be.eq(true);
 			expect(isEmpty({ key: 'val' })).to.be.eq(false);
@@ -27,7 +64,7 @@ describe('object spec', () => {
 		});
 	});
 
-	describe('traverse spec', () => {
+	describe(`${traverse.name} spec`, () => {
 		it('traverses object and processes its leafs', () => {
 			const obj = {
 				strVal: 'value',
@@ -141,7 +178,7 @@ describe('object spec', () => {
 		});
 	});
 
-	describe('sort spec', () => {
+	describe(`${sort.name} spec`, () => {
 		const obj = {
 			b: {
 				b: [2, '1', '2'],
@@ -169,7 +206,7 @@ describe('object spec', () => {
 			d: null
 		};
 
-		function checkObjectIsSorted(sorted: any): void {
+		function checkObjectIsSorted(sorted: ObjMap): void {
 			expect(Object.keys(sorted)).to.be.equalTo(['a', 'b', 'c', 'd', 'e']);
 			expect(Object.keys(sorted.b)).to.be.equalTo(['a', 'b']);
 			expect(Object.keys(sorted.c)).to.be.equalTo(['a', 'b']);
@@ -178,7 +215,7 @@ describe('object spec', () => {
 		}
 
 		it('sorts an object (array sort disabled)', () => {
-			const sorted = sort(obj, false) as any;
+			const sorted = sort(obj, false) as ObjMap;
 
 			checkObjectIsSorted(sorted);
 
@@ -187,7 +224,7 @@ describe('object spec', () => {
 		});
 
 		it('sorts an object (array sort enabled)', () => {
-			const sorted = sort(obj) as any;
+			const sorted = sort(obj) as ObjMap;
 
 			checkObjectIsSorted(sorted);
 
@@ -196,7 +233,7 @@ describe('object spec', () => {
 		});
 	});
 
-	describe('flatten spec', () => {
+	describe(`${flatten.name} spec`, () => {
 		it('flattens an object', () => {
 			const symbol = Symbol('sym');
 

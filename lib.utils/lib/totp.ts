@@ -1,11 +1,21 @@
 import { authenticator } from 'otplib';
 import crypto from 'crypto';
+import { Seconds } from '@thermopylae/core.declarations';
 import { createException } from './exception';
 
 const { Authenticator } = authenticator;
 
+/**
+ * {@link Totp} construction options.
+ */
 interface Options {
-	ttl: number; // in seconds
+	/**
+	 * Number of seconds after which TOTP is considered invalid.
+	 */
+	ttl: Seconds;
+	/**
+	 * Secret used for TOTP generation.
+	 */
 	secret: string;
 }
 
@@ -13,7 +23,9 @@ const enum ErrorCodes {
 	TOTP_CHECK_FAILED = 'TOTP_CHECK_FAILED'
 }
 
-/** Class for operations which TOTP tokens */
+/**
+ * Class responsible for manipulations with TOTP tokens.
+ */
 class Totp {
 	private readonly impl: Authenticator;
 
@@ -29,24 +41,24 @@ class Totp {
 	}
 
 	/**
-	 * Generates TOTP
+	 * Generates TOTP.
 	 *
-	 * @returns {string}
+	 * @returns Generated TOTP.
 	 */
 	generate(): string {
 		return this.impl.generate(this.secret);
 	}
 
 	/**
-	 * Checks the provided TOTP against signature and stored TOTP
+	 * Checks the provided TOTP against signature and stored TOTP.
 	 *
-	 * @param {string}	received	Received plain TOTP. His signature will be verified.
-	 * @param {string}	[stored]    Stored plain TOTP. If provided, equality check will be provided against it.
-	 * @param {*}  		[logger]    Logger object which will log check signature failures
-	 *
-	 * @returns {boolean}   Status if TOTP is correct
+	 * @param received 		Received plain TOTP. His signature will be verified.
+	 * @param [stored]    	Stored plain TOTP. If provided, equality check will be provided against it.
+	 * @param [logger]    	Logger object which will log check signature failures
+	 * @param logger.error
+	 * @returns Whether TOTP is valid.
 	 */
-	check(received: string, stored?: string, logger?: any): boolean {
+	check(received: string, stored?: string, logger?: { error: (err: Error) => void }): boolean {
 		try {
 			return stored ? stored === received && this.impl.check(received, this.secret) : this.impl.check(received, this.secret);
 		} catch (error) {

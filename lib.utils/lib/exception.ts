@@ -1,7 +1,18 @@
 import { Exception } from '@thermopylae/lib.exception';
-import { Library } from '@thermopylae/core.declarations';
+import { Library, ObjMap } from '@thermopylae/core.declarations';
 
-function createException(code: string, message: string, cause?: any): Exception {
+/**
+ * Creates an `Exception` which is thrown by this library.
+ *
+ * @internal
+ *
+ * @param code		Error code.
+ * @param message	Error message.
+ * @param cause		Addition data which reveals the context of exception.
+ *
+ * @returns	Exception instance.
+ */
+function createException(code: string, message: string, cause?: ObjMap): Exception {
 	return new Exception(Library.UTILS, code, message, cause);
 }
 

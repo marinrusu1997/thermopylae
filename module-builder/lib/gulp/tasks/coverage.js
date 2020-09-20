@@ -18,7 +18,7 @@ function stageTsConfig(done) {
     if (!testIndex) {
         config.include.push("test/**/*.ts");
     }
-    config.compilerOptions.module = 'commonjs';
+    config.compilerOptions.module = 'commonjs'; // just to be sure nothing breaks
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
   });
@@ -31,7 +31,7 @@ function unStageTsConfig(done) {
     }
 
     const config = JSON.parse(content);
-    config.compilerOptions.module = 'esnext';
+    config.compilerOptions.module = 'commonjs'; // we stick with commonjs for the moment
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
   });

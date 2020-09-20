@@ -6,8 +6,8 @@ const { expect } = chai;
 
 describe('method invoker spec', () => {
 	it('invokes function whith provided this argument', () => {
-		function func(this: any): number {
-			// eslint-disable-next-line no-unused-expressions
+		function func(): number {
+			// @ts-ignore
 			return this.a + this.b;
 		}
 		const thisObj = { a: 1, b: 1 };
@@ -25,7 +25,7 @@ describe('method invoker spec', () => {
 		const func = (a: number, b: number): Promise<number> => Promise.resolve(a + b);
 		new MethodInvoker(func, 1, 1)
 			.safeInvokeAsync()
-			.then((sum: number) => {
+			.then((sum) => {
 				expect(sum).to.be.equal(2);
 				done();
 			})
@@ -70,7 +70,7 @@ describe('method invoker spec', () => {
 		};
 		new MethodInvoker(func, 1, 1)
 			.safeInvokeAsync()
-			.then((sum: number) => {
+			.then((sum) => {
 				expect(sum).to.be.equal(undefined);
 				done();
 			})
@@ -92,7 +92,7 @@ describe('method invoker spec', () => {
 		new MethodInvoker(func, 1, 1)
 			.errHandler(errorHandler)
 			.safeInvokeAsync()
-			.then((sum: number) => {
+			.then((sum) => {
 				expect(sum).to.be.equal(undefined);
 			})
 			.catch((error) => done(error));
