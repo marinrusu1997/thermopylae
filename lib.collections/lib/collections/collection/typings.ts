@@ -10,6 +10,24 @@ type SortFields<Document> = Record<IndexedKey<Document>, SortDirection>;
 
 type Query<Document> = QueryConditions<Document> | UnaryPredicate<Document>;
 
+const enum MongooseOperators {
+	GREATER = '$gt',
+	GREATER_OR_EQUAL = '$gte',
+	LESS = '$lt',
+	LESS_OR_EQUAL = '$lte',
+	EXISTS = '$exists',
+	MODULO = '$mod',
+	EQUAL = '$eq',
+	NOT_EQUAL = '$ne',
+	IN = '$in',
+	NOT_IN = '$nin',
+	ARRAY_ALL = '$all',
+	ARRAY_SIZE = '$size',
+	OR = '$or',
+	NOR = '$nor',
+	AND = '$and'
+}
+
 const enum AlterationType {
 	SET = '$set',
 	INC = '$inc',
@@ -86,5 +104,6 @@ export {
 	MapReduceCriteria,
 	Alteration,
 	DocumentContract,
-	QueryConditions
+	QueryConditions,
+	MongooseOperators
 };

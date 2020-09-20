@@ -223,14 +223,16 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	private findAndDelete(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
 		const matches = this.find(query, criteria);
 
-		for (let i = 0; i < matches.length; i++) {
-			this.storage.remove(PRIMARY_KEY_INDEX, matches[i][PRIMARY_KEY_INDEX]);
-		}
+		if (matches.length) {
+			for (let i = 0; i < matches.length; i++) {
+				this.storage.remove(PRIMARY_KEY_INDEX, matches[i][PRIMARY_KEY_INDEX]);
+			}
 
-		this.notifier.next({
-			action: DocumentOperation.DELETED,
-			documents: matches
-		});
+			this.notifier.next({
+				action: DocumentOperation.DELETED,
+				documents: matches
+			});
+		}
 
 		return matches;
 	}

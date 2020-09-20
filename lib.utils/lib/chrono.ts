@@ -1,12 +1,70 @@
+import { AsyncFunction, Milliseconds, Minutes, Seconds, SyncFunction } from '@thermopylae/core.declarations';
+import convertHrTime, { HRTime } from 'convert-hrtime';
+import process from 'process';
+
+/**
+ * Represent the result of the function which execution time was measured.
+ *
+ * @template R	Function return type.
+ */
+interface TimedExecutionResult<R> {
+	/**
+	 * Function result.
+	 */
+	result: R;
+	/**
+	 * Function execution high resolution time.
+	 */
+	time: HRTime;
+}
+
 /**
  * Sleeps for specified amount of milliseconds
  *
- * @param {number} ms
+ * @param {number} ms	Number of milliseconds to sleep.
  *
  * @return {Promise<void>}
  */
-function sleep(ms: number): Promise<void> {
+function sleep(ms: Milliseconds): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Measure execution time of the given function.
+ *
+ * @template I	Function arguments type.
+ * @template O	Function output type.
+ *
+ * @param fn		Function instance.
+ * @param context	Function calling context (i.e. `this`).
+ * @param args		Function arguments.
+ *
+ * @returns		Function result and it's execution time.
+ */
+function executionTime<I, O>(fn: SyncFunction<I, O>, context?: any, ...args: I[]): TimedExecutionResult<O> {
+	const start = process.hrtime();
+	const result = fn.apply(context, args);
+	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
+	return { result, time };
+}
+
+/**
+ * Measure execution time of the given async function.
+ *
+ * @template I	Function arguments type.
+ * @template O	Function output type.
+ *
+ * @param fn		Async function instance.
+ * @param context	Function calling context (i.e. `this`).
+ * @param args		Function arguments.
+ *
+ * @returns		Function result and it's execution time.
+ */
+async function executionTimeAsync<I, O>(fn: AsyncFunction<I, O>, context?: any, ...args: I[]): Promise<TimedExecutionResult<O>> {
+	const start = process.hrtime();
+	const result = await fn.apply(context, args);
+	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
+	return { result, time };
 }
 
 /**
@@ -23,7 +81,7 @@ function dateToUNIX(date = new Date()): number {
  *
  * @param {number}	seconds
  */
-function dateFromUNIX(seconds: number): Date {
+function dateFromUNIX(seconds: Seconds): Date {
 	return new Date(seconds * 1000);
 }
 
@@ -32,7 +90,7 @@ function dateFromUNIX(seconds: number): Date {
  *
  * @param minutes
  */
-function minutesToSeconds(minutes: number): number {
+function minutesToSeconds(minutes: Minutes): number {
 	return minutes * 60;
 }
 
@@ -41,7 +99,7 @@ function minutesToSeconds(minutes: number): number {
  *
  * @param milliseconds
  */
-function millisecondsToSeconds(milliseconds: number): number {
+function millisecondsToSeconds(milliseconds: Milliseconds): number {
 	return Math.floor(milliseconds / 1000);
 }
 
@@ -69,4 +127,15 @@ function tomorrow(): Date {
 	return tomorrowDate;
 }
 
-export { dateToUNIX, sleep, dateFromUNIX, minutesToSeconds, millisecondsToSeconds, firstDayOfNextMonth, tomorrow };
+export {
+	TimedExecutionResult,
+	sleep,
+	executionTime,
+	executionTimeAsync,
+	dateToUNIX,
+	dateFromUNIX,
+	minutesToSeconds,
+	millisecondsToSeconds,
+	firstDayOfNextMonth,
+	tomorrow
+};

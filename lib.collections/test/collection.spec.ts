@@ -1,15 +1,28 @@
 import { beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { Cloneable, ObjMap, SortDirection } from '@thermopylae/core.declarations';
-import { array, number, object, string } from '@thermopylae/lib.utils';
+import { array, chrono, number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 // @ts-ignore
 import range from 'range-generator';
+import uniqBy from 'lodash.uniqby';
 import dotProp from 'dot-prop';
-import { Collection, DocumentIdentity, DocumentOperation, FindCriteria, Projection, ProjectionType, QueryConditions } from '../lib/collections/collection';
+import { TimedExecutionResult } from '@thermopylae/lib.utils/dist/chrono';
+import {
+	Collection,
+	DocumentIdentity,
+	DocumentNotification,
+	DocumentOperation,
+	FindCriteria,
+	Projection,
+	ProjectionType,
+	Query,
+	QueryConditions
+} from '../lib/collections/collection';
 import { Address, Finance, Indexes, Person, PersonJsonSchema, providePersonRepository } from './fixtures/persons-repo';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
+import { MongooseOperators, ReplaceCriteria } from '../lib/collections/collection/typings';
 
 const { expect } = chai;
 
@@ -51,8 +64,27 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 
 let PersonsRepo: Array<PersonDocument>;
 
-function randomPerson(): Person {
-	return PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)];
+function generatePersonDocument(): PersonDocument {
+	return new PersonDocument({
+		[PRIMARY_KEY_INDEX]: string.generateStringOfLength(20),
+		firstName: string.generateStringOfLength(5),
+		birthYear: number.generateRandomInt(1990, 2000),
+		address: {
+			countryCode: string.generateStringOfLength(2, /[A-Z]/),
+			city: string.generateStringOfLength(5, /[A-Za-z]/)
+		},
+		finance: {
+			bank: {
+				name: string.generateStringOfLength(5, /[A-Za-z]/)
+			},
+			transactions: array.filledWith(number.generateRandomInt(0, 5), () => ({
+				amount: string.generateStringOfLength(3, /[0-9]/),
+				currencySymbol: string.generateStringOfLength(1, /\$/),
+				transactionType: string.generateStringOfLength(5, /[A-Za-z]/)
+			}))
+		},
+		visitedCountries: array.filledWith(number.generateRandomInt(0, 5), () => string.generateStringOfLength(2, /[A-Z]/))
+	});
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
@@ -77,7 +109,7 @@ describe.only(`${Collection.name} spec`, function () {
 			collection.insert(...PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const person = randomPerson();
+			const person = array.randomElement(PersonsRepo);
 			// @ts-ignore
 			delete person.birthYear;
 
@@ -135,6 +167,132 @@ describe.only(`${Collection.name} spec`, function () {
 
 	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${Collection.prototype.find.name} spec`, function () {
+		// eslint-disable-next-line mocha/no-setup-in-describe
+		describe(`${Collection.prototype.find.name}ById spec`, function () {
+			let suiteCollection: Collection<PersonDocument>;
+
+			beforeEach(() => {
+				suiteCollection = new Collection<PersonDocument>();
+				const docsNo = number.generateRandomInt(5_000, 10_000);
+
+				for (let i = 0; i < docsNo; i++) {
+					suiteCollection.insert(generatePersonDocument());
+				}
+
+				expect(suiteCollection.count).to.be.eq(docsNo);
+			});
+
+			function findSlowly(pk: NonNullable<IndexValue>): TimedExecutionResult<Array<PersonDocument>> {
+				const query: Query<PersonDocument> = {
+					$or: [{ [PRIMARY_KEY_INDEX]: pk }, { [PRIMARY_KEY_INDEX]: '' }] // it will never be an empty string
+				};
+				return chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+			}
+
+			it('should return a single document when providing query and hint to primary index', () => {
+				const desired = array.randomElement(suiteCollection.find());
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
+				};
+				const criteria: Partial<FindCriteria<PersonDocument>> = {
+					hint: {
+						index: PRIMARY_KEY_INDEX,
+						value: desired[PRIMARY_KEY_INDEX]
+					}
+				};
+				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query, criteria);
+				expect(measuredMatches.result).to.be.equalTo([desired]);
+
+				const slowMeasuredMatches = findSlowly(desired[PRIMARY_KEY_INDEX]);
+				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+
+				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
+			});
+
+			it('should return a single document when providing query with primary key value (no hint)', () => {
+				const desired = array.randomElement(suiteCollection.find());
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
+				};
+				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).to.be.equalTo([desired]);
+
+				const slowMeasuredMatches = findSlowly(desired[PRIMARY_KEY_INDEX]);
+				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+
+				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
+			});
+
+			it(`should return a single document when providing query with primary key and ${MongooseOperators.EQUAL} operator (no hint)`, () => {
+				const desired = array.randomElement(suiteCollection.find());
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: {
+						$eq: desired[PRIMARY_KEY_INDEX]
+					}
+				};
+				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).to.be.equalTo([desired]);
+
+				const slowMeasuredMatches = findSlowly(desired[PRIMARY_KEY_INDEX]);
+				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+
+				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
+			});
+
+			it(`should return a single document when providing query with primary key and ${MongooseOperators.IN} operator with single value in array (no hint)`, () => {
+				const desired = array.randomElement(suiteCollection.find());
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: {
+						$in: [desired[PRIMARY_KEY_INDEX]]
+					}
+				};
+				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).to.be.equalTo([desired]);
+
+				const slowMeasuredMatches = findSlowly(desired[PRIMARY_KEY_INDEX]);
+				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+
+				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
+			});
+
+			it(`should return a multiple documents when providing query with primary key and ${MongooseOperators.IN} operator with multiple value in array (no hint with index)`, () => {
+				const desiredDocuments = uniqBy(
+					array.filledWith(number.generateRandomInt(10, 15), () => array.randomElement(suiteCollection.find())),
+					PRIMARY_KEY_INDEX
+				);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: {
+						$in: desiredDocuments.map((doc) => doc[PRIMARY_KEY_INDEX])
+					}
+				};
+				const matches = suiteCollection.find(query, { multiple: true });
+
+				expect(matches).to.be.ofSize(desiredDocuments.length);
+				expect(matches).to.be.containingAllOf(desiredDocuments);
+			});
+
+			it('should not return document when providing query with primary key and another conditions that are not met by that single document (no hint)', () => {
+				const desired = array.randomElement(suiteCollection.find());
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: {
+						$eq: desired[PRIMARY_KEY_INDEX]
+					},
+					birthYear: {
+						$ne: desired.birthYear
+					}
+				};
+				const matches = suiteCollection.find(query, { multiple: true });
+
+				expect(matches).to.be.ofSize(0);
+			});
+		});
+
 		it('should return all documents when query is not specified', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(...PersonsRepo);
@@ -691,6 +849,214 @@ describe.only(`${Collection.name} spec`, function () {
 
 			const matches = collection.find(query, criteria);
 			expect(matches.length).to.be.eq(0);
+		});
+	});
+
+	// eslint-disable-next-line mocha/no-setup-in-describe
+	describe(`${Collection.prototype.replace.name} spec`, function () {
+		it('should replace a single document', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const replaced = array.randomElement(PersonsRepo);
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replaced[PRIMARY_KEY_INDEX]
+			};
+			const oldDoc = collection.replace(queryForOldDoc, replacement);
+
+			expect(collection.count).to.be.eq(PersonsRepo.length); // same number of elements remained
+			expect(oldDoc).to.be.equalTo([replaced]); // returned old doc
+			expect(collection.find(queryForOldDoc)).to.be.equalTo([]); // removed old doc
+
+			const queryForNewDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replacement[PRIMARY_KEY_INDEX]
+			};
+			const newDoc = collection.find(queryForNewDoc);
+
+			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
+		});
+
+		it('should replace multiple documents with a single one', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const docsToBeReplaced = uniqBy(
+				array.filledWith(number.generateRandomInt(10, 15), () => array.randomElement(PersonsRepo)),
+				PRIMARY_KEY_INDEX
+			);
+			const replacement = generatePersonDocument();
+
+			const queryForOldDocs: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: docsToBeReplaced.map((doc) => doc[PRIMARY_KEY_INDEX])
+				}
+			};
+			const criteria: Partial<ReplaceCriteria<PersonDocument>> = {
+				multiple: true,
+				hint: { index: PRIMARY_KEY_INDEX }
+			};
+			const oldDocs = collection.replace(queryForOldDocs, replacement, criteria);
+
+			expect(collection.count).to.be.eq(PersonsRepo.length - docsToBeReplaced.length + 1); // number of elements dropped
+			expect(oldDocs.length).to.be.eq(docsToBeReplaced.length); // returned all old docs ...
+			expect(oldDocs).to.be.containingAllOf(docsToBeReplaced); // ... in their exemplars
+			expect(collection.find(queryForOldDocs)).to.be.equalTo([]); // ... and removed all of them
+
+			const queryForNewDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replacement[PRIMARY_KEY_INDEX]
+			};
+			const newDoc = collection.find(queryForNewDoc, criteria);
+
+			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
+		});
+
+		it('should upsert replacement if document for given query was not found', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const replaced = generatePersonDocument(); // it's not present
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replaced[PRIMARY_KEY_INDEX]
+			};
+			const criteria: Partial<ReplaceCriteria<PersonDocument>> = {
+				upsert: true
+			};
+			const oldDoc = collection.replace(queryForOldDoc, replacement, criteria);
+
+			expect(collection.count).to.be.eq(PersonsRepo.length + 1); // there was an upsert
+			expect(oldDoc).to.be.equalTo([]); // no old docs found
+			expect(collection.find(queryForOldDoc)).to.be.equalTo([]); // pedantic check that no old docs are present
+
+			const queryForNewDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replacement[PRIMARY_KEY_INDEX]
+			};
+			const newDoc = collection.find(queryForNewDoc);
+
+			expect(newDoc).to.be.equalTo([replacement]); // upserted the replacement
+		});
+
+		it('when search criteria says not to upsert should not upsert replacement if document for given query was not found', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const replaced = generatePersonDocument(); // it's not present
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replaced[PRIMARY_KEY_INDEX]
+			};
+			const oldDoc = collection.replace(queryForOldDoc, replacement);
+
+			expect(collection.count).to.be.eq(PersonsRepo.length); // old doc not found, so replacement (i.e. upsert) didn't took place
+			expect(oldDoc).to.be.equalTo([]); // no old docs found
+
+			const queryForNewDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replacement[PRIMARY_KEY_INDEX]
+			};
+			const newDoc = collection.find(queryForNewDoc);
+
+			expect(newDoc).to.be.equalTo([]); // replacement was not upserted
+		});
+
+		it('should clone replacement when document identity is set to clone', () => {
+			const collection = new Collection<PersonDocument>({
+				documentsIdentity: DocumentIdentity.CLONE
+			});
+			collection.insert(...PersonsRepo);
+
+			const replaced = array.randomElement(PersonsRepo);
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replaced[PRIMARY_KEY_INDEX]
+			};
+			collection.replace(queryForOldDoc, replacement);
+
+			const queryForNewDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replacement[PRIMARY_KEY_INDEX]
+			};
+			const newDoc = collection.find(queryForNewDoc);
+
+			expect(newDoc).to.not.be.equalTo([replacement]); // new doc is a clone of replacement ...
+			expect(newDoc).to.be.ofSize(1);
+			expect(newDoc[0][PRIMARY_KEY_INDEX]).to.be.eq(replacement[PRIMARY_KEY_INDEX]); // ... although they have the same values
+		});
+
+		it('should notify when old document was removed and replaced', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			const replaced = array.randomElement(PersonsRepo);
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: replaced[PRIMARY_KEY_INDEX]
+			};
+			const oldDocs = collection.replace(queryForOldDoc, replacement);
+
+			expect(notifications).to.be.ofSize(2); // delete + insert
+
+			expect(notifications[0].action).to.be.eq(DocumentOperation.DELETED);
+			expect(notifications[0].documents).to.be.equalTo([replaced]);
+			expect(notifications[0].documents).to.be.equalTo(oldDocs); // they are same references
+
+			expect(notifications[1].action).to.be.eq(DocumentOperation.CREATED);
+			expect(notifications[1].documents).to.be.equalTo([replacement]);
+		});
+
+		it('should notify when replacement was upserted', () => {
+			const collection = new Collection<PersonDocument>();
+			expect(collection.count).to.be.eq(0);
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(2)
+			};
+			const criteria: Partial<ReplaceCriteria<PersonDocument>> = {
+				upsert: true
+			};
+			const oldDocs = collection.replace(queryForOldDoc, replacement, criteria);
+			expect(oldDocs).to.be.ofSize(0);
+			expect(collection.count).to.be.eq(1);
+
+			expect(notifications).to.be.ofSize(1); // insert
+
+			expect(notifications[0].action).to.be.eq(DocumentOperation.CREATED);
+			expect(notifications[0].documents).to.be.equalTo([replacement]);
+		});
+
+		it('should not notify when replacement was not upserted', () => {
+			const collection = new Collection<PersonDocument>();
+			expect(collection.count).to.be.eq(0);
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			const replacement = generatePersonDocument();
+
+			const queryForOldDoc: QueryConditions<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(2)
+			};
+			const oldDocs = collection.replace(queryForOldDoc, replacement);
+			expect(oldDocs).to.be.ofSize(0);
+			expect(collection.count).to.be.eq(0);
+
+			expect(notifications).to.be.ofSize(0);
 		});
 	});
 });

@@ -5,7 +5,7 @@
         "utils",
         "shared"
     ],
-    "version": "0.0.1600514073",
+    "version": "0.0.1600601354",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -36,6 +36,7 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
+        "convert-hrtime": "3",
         "lodash.clone": "4",
         "lodash.clonedeep": "4",
         "otplib": "11",
@@ -45,6 +46,7 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@types/convert-hrtime": "3",
         "@types/lodash.clone": "4",
         "@types/lodash.clonedeep": "4",
         "@types/otplib": "10",

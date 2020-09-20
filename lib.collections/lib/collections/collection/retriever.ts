@@ -1,8 +1,10 @@
-import { Nullable, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
+import { Nullable, ObjMap, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
+import isObject from 'isobject';
 // @ts-ignore
 import MongooseFilter from 'filtr';
-import { IndexedStore } from '../indexed-store';
-import { DocumentContract, FindCriteria, Hint, Query } from './typings';
+import dotProp from 'dot-prop';
+import { IndexedStore, PRIMARY_KEY_INDEX } from '../indexed-store';
+import { DocumentContract, FindCriteria, Hint, MongooseOperators, Query } from './typings';
 import { Processor } from './processor';
 
 class Retriever {
@@ -31,19 +33,17 @@ class Retriever {
 		query?: Nullable<Query<Document>>,
 		criteria?: Partial<FindCriteria<Document>>
 	): Array<Document> {
-		let hint: Partial<Hint<Document>>;
 		let multiple: Undefinable<boolean>;
 
 		if (criteria == null) {
 			if (query == null) {
 				return storage.values;
 			}
-			hint = {};
 		} else {
-			hint = criteria.hint || {};
 			multiple = criteria.multiple;
 		}
 
+		const hint = Retriever.inferHints(query, criteria); // needs to be above!
 		query = Retriever.queryToPredicate(query);
 
 		if (multiple) {
@@ -69,6 +69,36 @@ class Retriever {
 		return function predicate(document: Document) {
 			return filter.test(document, testOptions);
 		};
+	}
+
+	private static inferHints<Document>(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Partial<Hint<Document>> {
+		if (criteria == null) {
+			if (isObject(query)) {
+				const primaryKeyCondition = dotProp.get(query as ObjMap, PRIMARY_KEY_INDEX);
+
+				if (typeof primaryKeyCondition === 'string' || typeof primaryKeyCondition === 'number') {
+					return { index: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
+				}
+
+				if (isObject(primaryKeyCondition)) {
+					const operators = Object.entries(primaryKeyCondition as ObjMap);
+
+					if (operators.length === 1) {
+						if (operators[0][0] === MongooseOperators.EQUAL) {
+							return { index: PRIMARY_KEY_INDEX, value: operators[0][1] };
+						}
+
+						if (operators[0][0] === MongooseOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
+							return { index: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
+						}
+					}
+				}
+			}
+
+			return {};
+		}
+
+		return criteria.hint || {};
 	}
 }
 

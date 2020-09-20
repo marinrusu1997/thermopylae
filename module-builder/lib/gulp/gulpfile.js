@@ -8,6 +8,7 @@ module.exports = {
 
     test: tasks.test.test,
     debug: tasks.test.debug,
+    report: tasks.test.report,
 
     clean: tasks.clean.clean,
     purge: tasks.clean.purge,

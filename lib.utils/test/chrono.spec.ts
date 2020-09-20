@@ -1,10 +1,39 @@
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { dateFromUNIX, minutesToSeconds, dateToUNIX, sleep, tomorrow, firstDayOfNextMonth } from '../lib/chrono';
+import { dateFromUNIX, minutesToSeconds, dateToUNIX, sleep, tomorrow, firstDayOfNextMonth, executionTime, executionTimeAsync } from '../lib/chrono';
 
-const { assert } = chai;
+const { assert, expect } = chai;
 
 describe('chrono spec', () => {
+	describe('measured execution time spec', () => {
+		it('measures execution time of sync function', () => {
+			function add(a: number, b: number): number {
+				for (let i = 0; i < 1000; i++) {
+					// busy waiting
+				}
+
+				// @ts-ignore
+				return this + a + b;
+			}
+
+			const measured = executionTime(add, 0, 1, 1);
+			expect(measured.result).to.be.eq(2);
+			expect(measured.time.seconds).to.be.lessThan(1);
+		});
+
+		it('measures execution time of async function', async () => {
+			async function add(a: number, b: number): Promise<number> {
+				await sleep(1000);
+				// @ts-ignore
+				return this + a + b;
+			}
+
+			const measured = await executionTimeAsync(add, 0, 1, 1);
+			expect(measured.result).to.be.eq(2);
+			expect(measured.time.seconds).to.be.greaterThan(1);
+		});
+	});
+
 	it('returns current time in seconds', () => {
 		assert(dateToUNIX() === Math.floor(Date.now() / 1000));
 	});
