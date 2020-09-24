@@ -1,6 +1,6 @@
 import dotprop from 'dot-prop';
 import { Mapper, Nullable, ObjMap, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
-import { createError, ErrorCodes } from '../error';
+import { createException, ErrorCodes } from '../error';
 
 const PRIMARY_KEY_INDEX = 'id';
 
@@ -34,7 +34,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 		for (const record of records) {
 			if (this.indexRepo.get(PRIMARY_KEY_INDEX)!.has(record.id)) {
-				throw createError(ErrorCodes.REDEFINITION, `Record with primary key '${record.id}' has been added already.`);
+				throw createException(ErrorCodes.REDEFINITION, `Record with primary key '${record.id}' has been added already.`);
 			}
 
 			IndexedStore.assertRecordIndexes(record, indexes);
@@ -63,7 +63,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return this.indexRepo.has(indexName);
 	}
 
-	public updateIndex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, predicate: UnaryPredicate<IndexedRecord>): boolean {
+	public updateIndex(
+		indexName: IndexName<IndexedRecord>,
+		oldValue: IndexValue,
+		newValue: IndexValue,
+		matcher: UnaryPredicate<IndexedRecord> | IndexValue
+	): boolean {
 		if (oldValue == null) {
 			return false;
 		}
@@ -73,7 +78,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 
 		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createError(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
+			throw createException(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
 		}
 
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -82,6 +87,8 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		if (records == null) {
 			return false;
 		}
+
+		const predicate = !(matcher instanceof Function) ? (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === matcher : matcher;
 
 		const record = IndexedStore.removeRecord(records, predicate);
 		if (record == null) {
@@ -103,7 +110,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 		if (indexName !== PRIMARY_KEY_INDEX) {
 			if (predicate == null) {
-				throw createError(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
+				throw createException(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
 			}
 		} else {
 			predicate = (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === indexValue;
@@ -154,7 +161,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	public dropIndex(indexName: IndexName<IndexedRecord>): boolean {
 		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createError(ErrorCodes.NOT_ALLOWED, `Primary index '${indexName}' can't be dropped.`);
+			throw createException(ErrorCodes.NOT_ALLOWED, `Primary index '${indexName}' can't be dropped.`);
 		}
 		return this.indexRepo.delete(indexName);
 	}
@@ -302,7 +309,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		let i = indexNames.length;
 		while (i--) {
 			if (indexes.has(indexNames[i])) {
-				throw createError(ErrorCodes.REDEFINITION, `Index '${String(indexNames[i])} has been redefined already.`);
+				throw createException(ErrorCodes.REDEFINITION, `Index '${String(indexNames[i])} has been redefined already.`);
 			}
 			indexes.set(indexNames[i], new Map<IndexValue, Array<R>>());
 		}
@@ -310,7 +317,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	private static assertIndex<R>(indexName: IndexName<R>, index?: Index<R>): Index<R> | never {
 		if (index == null) {
-			throw createError(ErrorCodes.NOT_FOUND, `Property '${indexName} is not indexed.`);
+			throw createException(ErrorCodes.NOT_FOUND, `Property '${indexName} is not indexed.`);
 		}
 		return index;
 	}
@@ -325,7 +332,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue, record: R): IndexValue | never {
 		if (value == null) {
 			if (indexName === PRIMARY_KEY_INDEX) {
-				throw createError(ErrorCodes.NOT_ALLOWED, `Can't index record '${JSON.stringify(record)}' which has a nullable primary key.`);
+				throw createException(ErrorCodes.NOT_ALLOWED, `Can't index record '${JSON.stringify(record)}' which has a nullable primary key.`);
 			}
 			return value; // null values for other indexes are valid
 		}
@@ -335,7 +342,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			case 'number':
 				return value;
 			default:
-				throw createError(
+				throw createException(
 					ErrorCodes.INVALID_TYPE,
 					`Index property '${String(indexName)}' is allowed to have a 'string' or 'number' value. Given: ${JSON.stringify(value)}`
 				);
@@ -344,7 +351,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	private static assertNonNullableIndexValue<R>(indexName: IndexName<R>, indexValue: IndexValue): NonNullable<IndexValue> | never {
 		if (indexValue == null) {
-			throw createError(
+			throw createException(
 				ErrorCodes.INVALID_TYPE,
 				`Nullable index value is not allowed in current context for index name '${indexName}'. Given: ${indexValue}`
 			);

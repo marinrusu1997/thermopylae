@@ -110,8 +110,8 @@ describe('array spec', () => {
 	});
 
 	describe(`${randomElement.name} spec`, () => {
-		it('returns undefined when array is empty', () => {
-			expect(randomElement([])).to.be.eq(undefined);
+		it('throws when array is empty', () => {
+			expect(() => randomElement([])).to.throw('0 is greater than -1');
 		});
 
 		it('returns first item when array contains a single element', () => {
@@ -127,9 +127,6 @@ describe('array spec', () => {
 	describe(`${filterAsync.name} spec`, () => {
 		it('filters in parallel', async () => {
 			const arr = [1, 2, 3, 4, 5];
-			/**
-			 * @param i
-			 */
 			async function filter(i: number): Promise<boolean> {
 				await chrono.sleep(10);
 				return i % 2 === 0;
@@ -145,9 +142,6 @@ describe('array spec', () => {
 
 		it('filters sequentially', async () => {
 			const arr = [1, 2, 3, 4, 5];
-			/**
-			 * @param i
-			 */
 			async function filter(i: number): Promise<boolean> {
 				await chrono.sleep(10);
 				return i % 2 === 0;

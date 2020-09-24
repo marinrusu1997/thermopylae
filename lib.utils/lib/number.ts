@@ -1,7 +1,8 @@
 import { createException } from './exception';
 
 const enum ErrorCodes {
-	NUMBER_TYPE_CASTING_FAILED = 'NUMBER_TYPE_CASTING_FAILED'
+	NUMBER_TYPE_CASTING_FAILED = 'NUMBER_TYPE_CASTING_FAILED',
+	GREATER_THAN = 'GREATER_THAN'
 }
 
 /**
@@ -13,6 +14,10 @@ const enum ErrorCodes {
  * @returns		Random number.
  */
 function random(min: number, max: number): number {
+	if (min > max) {
+		throw createException(ErrorCodes.GREATER_THAN, `${min} is greater than ${max}`);
+	}
+
 	return Math.random() * (max - min) + min;
 }
 
@@ -28,8 +33,13 @@ function random(min: number, max: number): number {
  * @returns		Random integer.
  */
 function randomInt(min: number, max: number): number {
+	if (min > max) {
+		throw createException(ErrorCodes.GREATER_THAN, `${min} is greater than ${max}`);
+	}
+
 	min = Math.ceil(min);
 	max = Math.floor(max);
+
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 

@@ -7,7 +7,7 @@ import Ajv from 'ajv';
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
 import dotprop from 'dot-prop';
 import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
-import { createError, ErrorCodes } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 import {
 	DeleteCriteria,
 	DocumentContract,
@@ -46,7 +46,10 @@ interface CollectionOptions<Document> {
 	indexKeys: ReadonlyArray<IndexedKey<Document>>;
 	schema: JSONSchema;
 	documentsIdentity: DocumentIdentity;
+	validateQueries: boolean;
 }
+
+// FIXME take a look at https://www.npmjs.com/package/mingo
 
 /**
  * Collection of volatile documents which are kept indexed in process memory.
@@ -62,12 +65,19 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	private readonly validator: Nullable<Ajv.Ajv>;
 
+	private readonly retriever: Retriever<Document>;
+
+	private readonly processor: Processor<Document>;
+
 	public constructor(options?: Partial<CollectionOptions<Document>>) {
 		options = options || {};
 
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
 		this.notifier = new Subject<DocumentNotification<Document>>();
 		this.identity = options.documentsIdentity != null ? options.documentsIdentity : DocumentIdentity.ORIGINAL;
+
+		this.retriever = new Retriever<Document>(this.storage, options.validateQueries);
+		this.processor = new Processor<Document>(this.storage, options.validateQueries);
 
 		if (options.schema) {
 			this.validator = new Ajv({ allErrors: true });
@@ -98,8 +108,9 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 	}
 
+	// FIXME multiple should be enabled by default
 	public find(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
-		return Retriever.retrieve(this.storage, query, criteria);
+		return this.retriever.retrieve(query, criteria);
 	}
 
 	public replace(query: Query<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): Array<Document> {
@@ -120,7 +131,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			original = Processor.clone(matches);
 		}
 
-		Processor.update(matches, update, this.storage);
+		this.processor.update(matches, update);
 
 		this.notifier.next({
 			action: DocumentOperation.UPDATED,
@@ -147,12 +158,14 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		this.notifier.complete();
 	}
 
+	// FIXME diff and aggregate
+
 	public distinct(field: IndexedKey<Document>, query?: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Set<IndexValue> {
 		if (field === PRIMARY_KEY_INDEX) {
-			throw createError(ErrorCodes.NOT_ALLOWED, `All of the documents are distinct based in their primary key '${field}'.`);
+			throw createException(ErrorCodes.NOT_ALLOWED, `All of the documents are distinct based in their primary key '${field}'.`);
 		}
 
-		const candidates = Retriever.retrieve(this.storage, query, criteria);
+		const candidates = this.retriever.retrieve(query, criteria);
 
 		const distinctValues = new Set<IndexValue>();
 
@@ -241,7 +254,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
 				AjvLocalizeEn(validator.errors);
-				throw createError(ErrorCodes.INVALID_TYPE, validator.errorsText(validator.errors, { separator: '\n' }), document);
+				throw createException(ErrorCodes.INVALID_TYPE, validator.errorsText(validator.errors, { separator: '\n' }), document);
 			}
 		}
 	}

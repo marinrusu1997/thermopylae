@@ -6,6 +6,7 @@ import { Exception } from '@thermopylae/lib.exception';
 // @ts-ignore
 import range from 'range-generator';
 import uniqBy from 'lodash.uniqby';
+import orderBy from 'lodash.orderby';
 import dotProp from 'dot-prop';
 import { TimedExecutionResult } from '@thermopylae/lib.utils/dist/chrono';
 import {
@@ -19,10 +20,10 @@ import {
 	Query,
 	QueryConditions
 } from '../lib/collections/collection';
-import { Address, Finance, Indexes, Person, PersonJsonSchema, providePersonRepository } from './fixtures/persons-repo';
+import { Address, Finance, Indexes, Person, PersonJsonSchema, providePersonRepository, Transaction } from './fixtures/persons-repo';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
-import { MongooseOperators, ReplaceCriteria } from '../lib/collections/collection/typings';
+import { MongooseOperators, ReplaceCriteria, UpdateCriteria } from '../lib/collections/collection/typings';
 
 const { expect } = chai;
 
@@ -64,27 +65,42 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 
 let PersonsRepo: Array<PersonDocument>;
 
+function generateTransaction(): Transaction {
+	return {
+		amount: string.ofLength(3, /[0-9]/),
+		currencySymbol: string.ofLength(1, /\$/),
+		transactionType: string.ofLength(5, /[A-Za-z]/)
+	};
+}
+
 function generatePersonDocument(): PersonDocument {
 	return new PersonDocument({
-		[PRIMARY_KEY_INDEX]: string.generateStringOfLength(20),
-		firstName: string.generateStringOfLength(5),
-		birthYear: number.generateRandomInt(1990, 2000),
+		[PRIMARY_KEY_INDEX]: string.ofLength(20),
+		firstName: string.ofLength(5),
+		birthYear: number.randomInt(1990, 2000),
 		address: {
-			countryCode: string.generateStringOfLength(2, /[A-Z]/),
-			city: string.generateStringOfLength(5, /[A-Za-z]/)
+			countryCode: string.ofLength(2, /[A-Z]/),
+			city: string.ofLength(5, /[A-Za-z]/)
 		},
 		finance: {
 			bank: {
-				name: string.generateStringOfLength(5, /[A-Za-z]/)
+				name: string.ofLength(5, /[A-Za-z]/)
 			},
-			transactions: array.filledWith(number.generateRandomInt(0, 5), () => ({
-				amount: string.generateStringOfLength(3, /[0-9]/),
-				currencySymbol: string.generateStringOfLength(1, /\$/),
-				transactionType: string.generateStringOfLength(5, /[A-Za-z]/)
-			}))
+			transactions: array.filledWith(number.randomInt(0, 5), generateTransaction)
 		},
-		visitedCountries: array.filledWith(number.generateRandomInt(0, 5), () => string.generateStringOfLength(2, /[A-Z]/))
+		visitedCountries: array.filledWith(number.randomInt(0, 5), () => string.ofLength(2, /[A-Z]/))
 	});
+}
+
+function randomDocuments(min?: number, max?: number): Array<PersonDocument> {
+	return uniqBy(
+		array.filledWith(number.randomInt(min || 10, max || 15), () => array.randomElement(PersonsRepo)),
+		PRIMARY_KEY_INDEX
+	);
+}
+
+function ordered(matches: Array<PersonDocument>): Array<PersonDocument> {
+	return orderBy(matches, [PRIMARY_KEY_INDEX], ['asc']);
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
@@ -166,14 +182,14 @@ describe.only(`${Collection.name} spec`, function () {
 	});
 
 	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${Collection.prototype.find.name} spec`, function () {
+	describe(`${Collection.prototype.find.name} spec`, () => {
 		// eslint-disable-next-line mocha/no-setup-in-describe
-		describe(`${Collection.prototype.find.name}ById spec`, function () {
+		describe(`${Collection.prototype.find.name}ById spec`, () => {
 			let suiteCollection: Collection<PersonDocument>;
 
 			beforeEach(() => {
 				suiteCollection = new Collection<PersonDocument>();
-				const docsNo = number.generateRandomInt(5_000, 10_000);
+				const docsNo = number.randomInt(5_000, 10_000);
 
 				for (let i = 0; i < docsNo; i++) {
 					suiteCollection.insert(generatePersonDocument());
@@ -229,9 +245,7 @@ describe.only(`${Collection.name} spec`, function () {
 				const desired = array.randomElement(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
-					[PRIMARY_KEY_INDEX]: {
-						$eq: desired[PRIMARY_KEY_INDEX]
-					}
+					[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
 				};
 				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
 				expect(measuredMatches.result).to.be.equalTo([desired]);
@@ -261,7 +275,7 @@ describe.only(`${Collection.name} spec`, function () {
 
 			it(`should return a multiple documents when providing query with primary key and ${MongooseOperators.IN} operator with multiple value in array (no hint with index)`, () => {
 				const desiredDocuments = uniqBy(
-					array.filledWith(number.generateRandomInt(10, 15), () => array.randomElement(suiteCollection.find())),
+					array.filledWith(number.randomInt(10, 15), () => array.randomElement(suiteCollection.find())),
 					PRIMARY_KEY_INDEX
 				);
 
@@ -280,9 +294,7 @@ describe.only(`${Collection.name} spec`, function () {
 				const desired = array.randomElement(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
-					[PRIMARY_KEY_INDEX]: {
-						$eq: desired[PRIMARY_KEY_INDEX]
-					},
+					[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX],
 					birthYear: {
 						$ne: desired.birthYear
 					}
@@ -290,6 +302,49 @@ describe.only(`${Collection.name} spec`, function () {
 				const matches = suiteCollection.find(query, { multiple: true });
 
 				expect(matches).to.be.ofSize(0);
+			});
+		});
+
+		describe('query validation spec', () => {
+			it('validates query by default', () => {
+				const collection = new Collection<PersonDocument>();
+
+				const query: Query<PersonDocument> = {
+					birthYear: {
+						$eq: number.randomInt(1990, 2000)
+					}
+				};
+
+				expect(() => collection.find(query)).to.throw('Invalid query: Unrecognized expression operator: $eq');
+			});
+
+			it('validates query explicitly', () => {
+				const collection = new Collection<PersonDocument>({
+					validateQueries: true
+				});
+
+				const query: Query<PersonDocument> = {
+					birthYear: {
+						$eq: number.randomInt(1990, 2000)
+					}
+				};
+
+				expect(() => collection.find(query)).to.throw('Invalid query: Unrecognized expression operator: $eq');
+			});
+
+			it('does not validate query', () => {
+				const collection = new Collection<PersonDocument>({
+					validateQueries: false
+				});
+				collection.insert(...PersonsRepo);
+
+				const query: Query<PersonDocument> = {
+					birthYear: {
+						$eq: number.randomInt(1990, 2000)
+					}
+				};
+
+				expect(() => collection.find(query)).to.throw('Invalid query: Unrecognized expression operator: undefined');
 			});
 		});
 
@@ -311,16 +366,16 @@ describe.only(`${Collection.name} spec`, function () {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
-				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
-				firstName: string.generateStringOfLength(5),
+				[PRIMARY_KEY_INDEX]: string.ofLength(10),
+				birthYear: number.randomInt(minBirthYear, maxBirthYear),
+				firstName: string.ofLength(5),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.generateStringOfLength(5)
+					city: string.ofLength(5)
 				},
 				finance: {
 					bank: {
-						name: string.generateStringOfLength(5)
+						name: string.ofLength(5)
 					},
 					transactions: [
 						{
@@ -330,7 +385,7 @@ describe.only(`${Collection.name} spec`, function () {
 						}
 					]
 				},
-				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
+				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
@@ -354,16 +409,16 @@ describe.only(`${Collection.name} spec`, function () {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
-				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
-				firstName: string.generateStringOfLength(5),
+				[PRIMARY_KEY_INDEX]: string.ofLength(10),
+				birthYear: number.randomInt(minBirthYear, maxBirthYear),
+				firstName: string.ofLength(5),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.generateStringOfLength(5)
+					city: string.ofLength(5)
 				},
 				finance: {
 					bank: {
-						name: string.generateStringOfLength(5)
+						name: string.ofLength(5)
 					},
 					transactions: [
 						{
@@ -373,7 +428,7 @@ describe.only(`${Collection.name} spec`, function () {
 						}
 					]
 				},
-				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
+				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
@@ -402,16 +457,16 @@ describe.only(`${Collection.name} spec`, function () {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
-				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
-				firstName: string.generateStringOfLength(5),
+				[PRIMARY_KEY_INDEX]: string.ofLength(10),
+				birthYear: number.randomInt(minBirthYear, maxBirthYear),
+				firstName: string.ofLength(5),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.generateStringOfLength(5)
+					city: string.ofLength(5)
 				},
 				finance: {
 					bank: {
-						name: string.generateStringOfLength(5)
+						name: string.ofLength(5)
 					},
 					transactions: [
 						{
@@ -421,7 +476,7 @@ describe.only(`${Collection.name} spec`, function () {
 						}
 					]
 				},
-				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
+				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
@@ -474,9 +529,7 @@ describe.only(`${Collection.name} spec`, function () {
 			const desired = array.randomElement(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
-				[PRIMARY_KEY_INDEX]: {
-					$eq: desired[PRIMARY_KEY_INDEX]
-				}
+				[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				sort: {
@@ -564,16 +617,16 @@ describe.only(`${Collection.name} spec`, function () {
 
 			const toBeRetrievedLater = [
 				new PersonDocument({
-					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					[PRIMARY_KEY_INDEX]: string.ofLength(10),
 					birthYear: 1995,
 					firstName: 'John',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.generateStringOfLength(5)
+						city: string.ofLength(5)
 					},
 					finance: {
 						bank: {
-							name: string.generateStringOfLength(5)
+							name: string.ofLength(5)
 						},
 						transactions: [
 							{
@@ -583,19 +636,19 @@ describe.only(`${Collection.name} spec`, function () {
 							}
 						]
 					},
-					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					[PRIMARY_KEY_INDEX]: string.ofLength(10),
 					birthYear: 1999,
 					firstName: 'John',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.generateStringOfLength(5)
+						city: string.ofLength(5)
 					},
 					finance: {
 						bank: {
-							name: string.generateStringOfLength(5)
+							name: string.ofLength(5)
 						},
 						transactions: [
 							{
@@ -605,19 +658,19 @@ describe.only(`${Collection.name} spec`, function () {
 							}
 						]
 					},
-					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					[PRIMARY_KEY_INDEX]: string.ofLength(10),
 					birthYear: 1992,
 					firstName: 'Clint',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.generateStringOfLength(5)
+						city: string.ofLength(5)
 					},
 					finance: {
 						bank: {
-							name: string.generateStringOfLength(5)
+							name: string.ofLength(5)
 						},
 						transactions: [
 							{
@@ -627,19 +680,19 @@ describe.only(`${Collection.name} spec`, function () {
 							}
 						]
 					},
-					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
+					[PRIMARY_KEY_INDEX]: string.ofLength(10),
 					birthYear: 2000,
 					firstName: 'Easter',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.generateStringOfLength(5)
+						city: string.ofLength(5)
 					},
 					finance: {
 						bank: {
-							name: string.generateStringOfLength(5)
+							name: string.ofLength(5)
 						},
 						transactions: [
 							{
@@ -649,7 +702,7 @@ describe.only(`${Collection.name} spec`, function () {
 							}
 						]
 					},
-					visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(['EN', 'DE']))
+					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				})
 			];
 			collection.insert(...toBeRetrievedLater);
@@ -758,16 +811,16 @@ describe.only(`${Collection.name} spec`, function () {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(10),
-				birthYear: number.generateRandomInt(minBirthYear, maxBirthYear),
-				firstName: string.generateStringOfLength(5),
+				[PRIMARY_KEY_INDEX]: string.ofLength(10),
+				birthYear: number.randomInt(minBirthYear, maxBirthYear),
+				firstName: string.ofLength(5),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.generateStringOfLength(5)
+					city: string.ofLength(5)
 				},
 				finance: {
 					bank: {
-						name: string.generateStringOfLength(5)
+						name: string.ofLength(5)
 					},
 					transactions: [
 						{
@@ -777,7 +830,7 @@ describe.only(`${Collection.name} spec`, function () {
 						}
 					]
 				},
-				visitedCountries: array.filledWith(number.generateRandomInt(0, 5), array.randomElement(countryCodes))
+				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
 			});
 
 			collection.insert(desired);
@@ -791,9 +844,8 @@ describe.only(`${Collection.name} spec`, function () {
 				'address.countryCode': {
 					$in: countryCodes
 				},
-				// only digits can be specified
-				'finance.transactions[0].currencySymbol': {
-					$eq: transactionCurrency
+				'finance.transactions': {
+					$elemMatch: desired.finance.transactions[0]
 				}
 			};
 
@@ -812,9 +864,7 @@ describe.only(`${Collection.name} spec`, function () {
 
 			const query: QueryConditions<PersonDocument> = {
 				// @ts-ignore
-				[Indexes.II_COUNTRY_CODE]: {
-					$eq: string.generateStringOfLength(5, /[0-9]/)
-				}
+				[Indexes.II_COUNTRY_CODE]: string.ofLength(5, /[0-9]/)
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: true,
@@ -835,7 +885,7 @@ describe.only(`${Collection.name} spec`, function () {
 			collection.insert(...PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(5, /[0-9]/)
+				[PRIMARY_KEY_INDEX]: string.ofLength(5, /[0-9]/)
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: false,
@@ -884,10 +934,7 @@ describe.only(`${Collection.name} spec`, function () {
 			collection.insert(...PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const docsToBeReplaced = uniqBy(
-				array.filledWith(number.generateRandomInt(10, 15), () => array.randomElement(PersonsRepo)),
-				PRIMARY_KEY_INDEX
-			);
+			const docsToBeReplaced = randomDocuments();
 			const replacement = generatePersonDocument();
 
 			const queryForOldDocs: QueryConditions<PersonDocument> = {
@@ -1025,7 +1072,7 @@ describe.only(`${Collection.name} spec`, function () {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: QueryConditions<PersonDocument> = {
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(2)
+				[PRIMARY_KEY_INDEX]: string.ofLength(2)
 			};
 			const criteria: Partial<ReplaceCriteria<PersonDocument>> = {
 				upsert: true
@@ -1050,7 +1097,7 @@ describe.only(`${Collection.name} spec`, function () {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: QueryConditions<PersonDocument> = {
-				[PRIMARY_KEY_INDEX]: string.generateStringOfLength(2)
+				[PRIMARY_KEY_INDEX]: string.ofLength(2)
 			};
 			const oldDocs = collection.replace(queryForOldDoc, replacement);
 			expect(oldDocs).to.be.ofSize(0);
@@ -1061,16 +1108,222 @@ describe.only(`${Collection.name} spec`, function () {
 	});
 
 	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${Collection.prototype.update.name} spec`, function () {
+	describe(`${Collection.prototype.update.name} spec`, () => {
+		describe('update validation spec', () => {
+			it('should validate update by default', () => {});
+
+			it('should validate update explicitly', () => {});
+
+			it('should not validate update', () => {});
+		});
+
 		it('should update a single document', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(...PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const toBeUpdated = array.randomElement(PersonsRepo);
-			const update: Partial<Person> = {
-				firstName: string.generateStringOfLength(5, /[A-Za-z]/)
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: toBeUpdated[PRIMARY_KEY_INDEX]
 			};
+			const update = {
+				$set: {
+					firstName: string.ofLength(5, /[A-Za-z]/)
+				}
+			};
+
+			const originalSnapshot = collection.find(query)[0].clone();
+
+			const oldDoc = collection.update(query, update);
+			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
+
+			expect(oldDoc).to.be.ofSize(1);
+			expect(oldDoc[0]).not.to.be.equal(toBeUpdated); // it returned a clone of old document...
+			expect(oldDoc[0]).not.to.be.deep.equal(toBeUpdated); // ...with different values
+			expect(oldDoc[0]).to.be.deep.equal(originalSnapshot); // just to be sure it returned old value
+
+			const updatedDoc = collection.find(query);
+
+			expect(updatedDoc).to.be.ofSize(1);
+			expect(updatedDoc[0][PRIMARY_KEY_INDEX]).to.be.eq(toBeUpdated[PRIMARY_KEY_INDEX]);
+
+			for (const [prop, value] of Object.entries(update.$set)) {
+				expect(dotProp.get(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
+			}
 		});
+
+		it('should update multiple documents', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(2, 5));
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: toBeUpdated.map((doc) => doc[PRIMARY_KEY_INDEX])
+				}
+			};
+			const criteria: Partial<UpdateCriteria<PersonDocument>> = {
+				multiple: true
+			};
+			const update = {
+				$unset: {
+					firstName: ''
+				},
+				$inc: {
+					birthYear: 10
+				},
+				$rename: {
+					'finance.bank.name': 'finance.bank.id'
+				},
+				$push: {
+					'finance.transactions': {
+						$each: array.filledWith(2, generateTransaction)
+					}
+				}
+			};
+
+			const originalSnapshots = ordered(collection.find(query, criteria).map((doc) => doc.clone()));
+			expect(originalSnapshots).to.be.ofSize(toBeUpdated.length);
+
+			const oldDocs = ordered(collection.update(query, update, criteria));
+			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
+
+			// returned originals ...
+			for (let i = 0; i < originalSnapshots.length; i++) {
+				expect(oldDocs[i]).to.be.deep.equal(originalSnapshots[i]); // they are both clones
+			}
+			expect(oldDocs).not.to.be.equalTo(toBeUpdated); // ... and updated in the collection
+
+			const updatedDocs = ordered(collection.find(query, criteria));
+
+			expect(updatedDocs).to.be.equalTo(toBeUpdated); // returned updates
+			for (let i = 0; i < updatedDocs.length; i++) {
+				// removed property
+				expect(dotProp.get(updatedDocs[i], 'firstName')).to.be.eq(undefined);
+				// incremented property
+				expect(updatedDocs[i].birthYear).to.be.eq(oldDocs[i].birthYear + 10);
+				// renamed property
+				expect(dotProp.get(updatedDocs[i], 'finance.bank.id')).to.be.eq(dotProp.get(oldDocs[i], 'finance.bank.name'));
+				// additional elements
+				expect(updatedDocs[i].finance.transactions).to.be.containingAllOf(update.$push['finance.transactions'].$each);
+			}
+		});
+
+		it('should return updated documents', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = array.randomElement(PersonsRepo);
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: toBeUpdated[PRIMARY_KEY_INDEX]
+			};
+			const criteria: Partial<UpdateCriteria<PersonDocument>> = {
+				returnUpdates: true
+			};
+			const update = {
+				$pop: {
+					'finance.transactions': -1
+				}
+			};
+
+			const originalSnapshot = collection.find(query)[0].clone();
+
+			const updatedDocs = collection.update(query, update, criteria);
+			expect(updatedDocs).to.be.ofSize(1);
+
+			// returned the update ...
+			expect(updatedDocs).not.to.be.eq(originalSnapshot);
+			expect(updatedDocs).not.to.be.deep.eq(originalSnapshot);
+
+			// ... with right values
+			const updatedTx = orderBy(updatedDocs[0].finance.transactions, ['amount'], ['asc']);
+			const slicedOriginalTx = orderBy(originalSnapshot.finance.transactions.slice(1), ['amount'], ['asc']);
+
+			expect(updatedTx).to.be.ofSize(slicedOriginalTx.length);
+			for (let i = 0; i < updatedTx.length; i++) {
+				expect(updatedTx[i]).to.be.deep.equal(slicedOriginalTx[i]);
+			}
+		});
+
+		it('should not allow update of the primary index', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const original = array.randomElement(PersonsRepo).clone();
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: original[PRIMARY_KEY_INDEX]
+			};
+			const update = {
+				$set: {
+					[PRIMARY_KEY_INDEX]: string.ofLength(5)
+				}
+			};
+
+			expect(() => collection.update(query, update)).to.throw(`Updating ${PRIMARY_KEY_INDEX} is not allowed.`);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const match = collection.find(query);
+			expect(match).to.be.ofSize(1);
+			expect(match[0]).to.be.deep.eq(original); // it didn't touched anything
+		});
+
+		it.only('should update indexes when they are changed', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: Object.values(Indexes)
+			});
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			function findByIndexes(documents: Array<PersonDocument>): void {
+				for (const document of documents) {
+					for (const index of Object.values(Indexes)) {
+						const criteria: Partial<FindCriteria<PersonDocument>> = {
+							hint: { index, value: dotProp.get(document, index) }
+						};
+						const matches = collection.find(null, criteria);
+						expect(matches).to.be.containing(document);
+					}
+				}
+			}
+
+			const toBeUpdated = ordered(randomDocuments(2, 5));
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: toBeUpdated.map((doc) => doc[PRIMARY_KEY_INDEX])
+				}
+			};
+			const criteria: Partial<UpdateCriteria<PersonDocument>> = {
+				multiple: true,
+				returnUpdates: true
+			};
+			const update = {
+				$set: {
+					[Indexes.I_BIRTH_YEAR]: number.randomInt(1990, 2000),
+					[Indexes.II_COUNTRY_CODE]: string.ofLength(2, /[A-Z]/),
+					[Indexes.III_BANK_NAME]: string.ofLength(5, /[a-zA-Z]/)
+				}
+			};
+
+			findByIndexes(toBeUpdated); // finds by old values of indexes
+
+			const updatedDocs = collection.update(query, update, criteria);
+			expect(updatedDocs).to.be.ofSize(toBeUpdated.length);
+
+			findByIndexes(updatedDocs); // finds by new values of indexes
+		});
+
+		it('should remove indexes when they are nullified', () => {});
+
+		it('should remove indexes when they are removed', () => {});
+
+		it("should reindex when index is set after it's removal", () => {});
 	});
 });

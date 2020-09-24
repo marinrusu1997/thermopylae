@@ -1,15 +1,56 @@
 import sorter from 'thenby';
-import { ComparisonResult, ObjMap, Optional, SortDirection } from '@thermopylae/core.declarations';
+import { ComparisonResult, ObjMap, Optional, SortDirection, SyncFunction } from '@thermopylae/core.declarations';
 import dotprop from 'dot-prop';
 // @ts-ignore
-import mongoQuery from 'mongo-query';
-import { createError, ErrorCodes } from '../../error';
-import { Alteration, AlterationType, DocumentContract, IndexedKey, Projection, ProjectionType, SortFields } from './typings';
+import { createUpdate } from 'common-query';
+import { createException, ErrorCodes } from '../../error';
+import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields } from './typings';
 import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
 import { CompareFunction } from '../../commons';
 
-class Processor {
-	private static readonly RE_INDEXABLE_ALTERATIONS = new Set([AlterationType.SET, AlterationType.INC, AlterationType.RENAME, AlterationType.UNSET]);
+interface IndexChange<Document> {
+	name: IndexedKey<Document>;
+	newValue: IndexValue;
+}
+
+class Processor<Document extends DocumentContract<Document>> {
+	private readonly storage: IndexedStore<Document>;
+
+	private readonly skipQueryValidation: boolean;
+
+	public constructor(storage: IndexedStore<Document>, validateQueries?: boolean) {
+		this.storage = storage;
+		this.skipQueryValidation = validateQueries == null ? false : !validateQueries;
+	}
+
+	public update(matches: Array<Document>, update: ObjMap): void {
+		const { indexes } = this.storage; // they are expensive to compute
+		const changedIndexes = new Array<IndexChange<Document>>();
+
+		update = createUpdate(update, { skipValidate: this.skipQueryValidation });
+		if (update.getUpdatedFields().includes(PRIMARY_KEY_INDEX)) {
+			throw createException(ErrorCodes.INVALID_UPDATE, `Updating ${PRIMARY_KEY_INDEX} is not allowed.`);
+		}
+
+		update.on('modifiedField', (field: IndexedKey<Document>, newValue: IndexValue) => {
+			if (this.storage.containsIndex(field)) {
+				changedIndexes.push({ name: field, newValue });
+			}
+		});
+
+		const updateFn = update.createUpdateFn() as SyncFunction<Document, boolean>;
+
+		for (const match of matches) {
+			const snapshot = Processor.snapshotIndexableProperties(match, indexes);
+
+			updateFn(match);
+			for (const changedIndex of changedIndexes) {
+				this.storage.updateIndex(changedIndex.name, snapshot[changedIndex.name], changedIndex.newValue, match[PRIMARY_KEY_INDEX]);
+			}
+
+			changedIndexes.length = 0; // prepare for next iteration
+		}
+	}
 
 	public static clone<Document extends DocumentContract<Document>>(matches: Array<Document>): Array<Document> {
 		return matches.map((document) => document.clone());
@@ -17,16 +58,6 @@ class Processor {
 
 	public static project<Document extends DocumentContract<Document>>(matches: Array<Document>, projection: Projection<Document>): Array<Document> {
 		return matches.map((document) => Processor.applyProjection(document.clone(), projection));
-	}
-
-	public static update<Document extends DocumentContract<Document>>(matches: Array<Document>, update: ObjMap, storage: IndexedStore<Document>): void {
-		const { indexes } = storage; // they are expensive to compute
-
-		for (const match of matches) {
-			const snapshot = Processor.snapshotIndexableProperties(match, indexes);
-			const changes = mongoQuery(match, {}, update);
-			Processor.updateIndexableProperties(storage, match, snapshot, changes);
-		}
 	}
 
 	public static sort<Document extends DocumentContract<Document>>(matches: Array<Document>, sortFields: SortFields<Document>): Array<Document> {
@@ -68,7 +99,7 @@ class Processor {
 			case SortDirection.DESCENDING:
 				return Processor.compareFields(second, first, field);
 			default:
-				throw createError(ErrorCodes.UNKNOWN, `Sort direction ${direction} for field ${field} can't be processed.`);
+				throw createException(ErrorCodes.UNKNOWN, `Sort direction ${direction} for field ${field} can't be processed.`);
 		}
 	}
 
@@ -100,7 +131,7 @@ class Processor {
 			return firstValue.length - secondValue.length;
 		}
 
-		throw createError(ErrorCodes.UNKNOWN, `Type ${typeof firstValue} can't be compared.`);
+		throw createException(ErrorCodes.UNKNOWN, `Type ${typeof firstValue} can't be compared.`);
 	}
 
 	private static applyProjection<Document extends DocumentContract<Document>>(documentClone: Document, projection: Projection<Document>): any {
@@ -120,27 +151,9 @@ class Processor {
 				}
 				break;
 			default:
-				throw createError(ErrorCodes.UNKNOWN, `Projection type '${projection.type} can't be handled.`);
+				throw createException(ErrorCodes.UNKNOWN, `Projection type '${projection.type} can't be handled.`);
 		}
 		return documentClone;
-	}
-
-	private static updateIndexableProperties<Document extends DocumentContract<Document>>(
-		storage: IndexedStore<Document>,
-		document: Document,
-		snapshot: Record<IndexedKey<Document>, Optional<IndexValue>>,
-		changes: ReadonlyArray<Alteration<Document>>
-	): void {
-		function matcher(record: Document): boolean {
-			return record[PRIMARY_KEY_INDEX] === document[PRIMARY_KEY_INDEX];
-		}
-
-		for (const change of changes) {
-			if (Processor.RE_INDEXABLE_ALTERATIONS.has(change.op) && storage.containsIndex(change.key)) {
-				storage.updateIndex(change.key, snapshot[change.key], change.value as IndexValue, matcher);
-				continue;
-			}
-		}
 	}
 
 	private static snapshotIndexableProperties<Document extends DocumentContract<Document>>(

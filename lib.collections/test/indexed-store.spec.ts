@@ -1,6 +1,6 @@
 import { beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
-import { number, object, string } from '@thermopylae/lib.utils';
+import { array, number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 import dotprop from 'dot-prop';
 // @ts-ignore
@@ -15,7 +15,7 @@ const { expect } = chai;
 let PersonsRepo: Array<Person>;
 
 function randomPerson(): Person {
-	return PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)];
+	return array.randomElement(PersonsRepo);
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
@@ -193,7 +193,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		describe(`${IndexedStore.prototype.dropIndex.name} spec`, function () {
 			it('fails to drop index which does not exist', () => {
 				const store = new IndexedStore<Person>();
-				expect(store.dropIndex(string.generateStringOfLength(5))).to.be.eq(false);
+				expect(store.dropIndex(string.ofLength(5))).to.be.eq(false);
 			});
 
 			it('fails to drop primary index', () => {
@@ -327,7 +327,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			/** ARRAY INDEX */
 			storage.createIndexes([Indexes.I_BIRTH_YEAR]);
 			invalidPerson = {
-				id: string.generateStringOfLength(5),
+				id: string.ofLength(5),
 				birthYear: []
 			};
 			// @ts-ignore
@@ -339,8 +339,8 @@ describe(`${IndexedStore.name} spec`, function () {
 			/** OBJECT INDEX */
 			storage.createIndexes([Indexes.II_COUNTRY_CODE]);
 			invalidPerson = {
-				id: string.generateStringOfLength(5),
-				birthYear: number.generateRandomInt(1990, 2000),
+				id: string.ofLength(5),
+				birthYear: number.randomInt(1990, 2000),
 				address: {
 					countryCode: {}
 				}
@@ -354,10 +354,10 @@ describe(`${IndexedStore.name} spec`, function () {
 			/** BOOLEAN INDEX */
 			storage.createIndexes([Indexes.III_BANK_NAME]);
 			invalidPerson = {
-				id: string.generateStringOfLength(5),
-				birthYear: number.generateRandomInt(1990, 2000),
+				id: string.ofLength(5),
+				birthYear: number.randomInt(1990, 2000),
 				address: {
-					countryCode: string.generateStringOfLength(5)
+					countryCode: string.ofLength(5)
 				},
 				finance: {
 					bank: {
@@ -377,7 +377,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			expect(() => storage.insert(PersonsRepo[number.generateRandomInt(0, PersonsRepo.length - 1)]))
+			expect(() => storage.insert(PersonsRepo[number.randomInt(0, PersonsRepo.length - 1)]))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.REDEFINITION);
 		});
@@ -398,7 +398,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			function generatePerson(nulledIndexName: string): Person {
 				const person: Person = { ...PersonsRepo[0] };
 				for (const indexName of indexNames) {
-					const value = indexName === nulledIndexName ? undefined : string.generateStringOfLength(10);
+					const value = indexName === nulledIndexName ? undefined : string.ofLength(10);
 					dotprop.set(person, indexName, value);
 				}
 				return person;
@@ -444,7 +444,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			function generatePerson(nulledIndexName: string): Person {
 				const person: Person = { ...PersonsRepo[0] };
 				for (const indexName of indexNames) {
-					const value = indexName === nulledIndexName ? null : string.generateStringOfLength(10);
+					const value = indexName === nulledIndexName ? null : string.ofLength(10);
 					dotprop.set(person, indexName, value);
 				}
 				return person;
@@ -508,10 +508,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const positionGenerator = range(
-				number.generateRandomInt(0, PersonsRepo.length / 10),
-				number.generateRandomInt(PersonsRepo.length / 5, PersonsRepo.length / 2)
-			);
+			const positionGenerator = range(number.randomInt(0, PersonsRepo.length / 10), number.randomInt(PersonsRepo.length / 5, PersonsRepo.length / 2));
 
 			for (const position of positionGenerator) {
 				const desired = PersonsRepo[position];
@@ -528,10 +525,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const positionGenerator = range(
-				number.generateRandomInt(0, PersonsRepo.length / 10),
-				number.generateRandomInt(PersonsRepo.length / 5, PersonsRepo.length / 2)
-			);
+			const positionGenerator = range(number.randomInt(0, PersonsRepo.length / 10), number.randomInt(PersonsRepo.length / 5, PersonsRepo.length / 2));
 
 			for (const indexName of indexes) {
 				for (const position of positionGenerator) {
@@ -546,7 +540,7 @@ describe(`${IndexedStore.name} spec`, function () {
 
 		it('reads records from empty storage', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.read(PRIMARY_KEY_INDEX, string.generateStringOfLength(5))).to.be.equalTo([]);
+			expect(storage.read(PRIMARY_KEY_INDEX, string.ofLength(5))).to.be.equalTo([]);
 		});
 
 		it('reads records from empty index', () => {
@@ -564,7 +558,7 @@ describe(`${IndexedStore.name} spec`, function () {
 
 		it('fails to read from invalid index', () => {
 			const storage = new IndexedStore<Person>();
-			expect(() => storage.read(string.generateStringOfLength(5), string.generateStringOfLength(5)))
+			expect(() => storage.read(string.ofLength(5), string.ofLength(5)))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 		});
@@ -599,7 +593,7 @@ describe(`${IndexedStore.name} spec`, function () {
 
 		it('fails to read invalid index', () => {
 			const storage = new IndexedStore<Person>();
-			expect(() => storage.readIndex(string.generateStringOfLength(5)))
+			expect(() => storage.readIndex(string.ofLength(5)))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 		});
@@ -608,7 +602,7 @@ describe(`${IndexedStore.name} spec`, function () {
 	describe('contains spec', function () {
 		it('should return false when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.contains(PRIMARY_KEY_INDEX, string.generateStringOfLength(5))).to.be.eq(false);
+			expect(storage.contains(PRIMARY_KEY_INDEX, string.ofLength(5))).to.be.eq(false);
 		});
 
 		it('should return false when record is in the index', () => {
@@ -637,8 +631,8 @@ describe(`${IndexedStore.name} spec`, function () {
 		it('should not update primary index', () => {
 			const store = new IndexedStore<Person>();
 
-			const oldVal = string.generateStringOfLength(5);
-			const newVal = string.generateStringOfLength(5);
+			const oldVal = string.ofLength(5);
+			const newVal = string.ofLength(5);
 			const update = () => store.updateIndex(PRIMARY_KEY_INDEX, oldVal, newVal, () => true);
 
 			expect(update).to.throw(Exception).haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
@@ -736,7 +730,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(birthYearIndex.get(oldBirthYearValue)!.findIndex(predicate)).to.not.be.eq(-1);
 
 			/** UPDATE */
-			const updatedBirthYear = number.generateRandomInt(2000, 2020);
+			const updatedBirthYear = number.randomInt(2000, 2020);
 			const updated = store.updateIndex(Indexes.I_BIRTH_YEAR, candidate.birthYear, updatedBirthYear, predicate);
 			expect(updated).to.be.eq(true);
 
@@ -965,7 +959,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			const indexes = Object.values(Indexes);
 			const store = new IndexedStore<Person>({ indexes });
 
-			const throwable = () => store.remove(Indexes.I_BIRTH_YEAR, string.generateStringOfLength(5));
+			const throwable = () => store.remove(Indexes.I_BIRTH_YEAR, string.ofLength(5));
 			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
 		});
 	});
@@ -1133,7 +1127,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const nonIndexed = object.cloneDeep(randomPerson());
-			dotprop.set(nonIndexed, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+			dotprop.set(nonIndexed, PRIMARY_KEY_INDEX, string.ofLength(10));
 			for (const indexName of indexes) {
 				dotprop.set(nonIndexed, indexName, null);
 			}
@@ -1201,7 +1195,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			storage.insert(...PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const desiredId = string.generateStringOfLength(15);
+			const desiredId = string.ofLength(15);
 			function predicate(person: Person): boolean {
 				return person[PRIMARY_KEY_INDEX] === desiredId;
 			}
@@ -1233,9 +1227,9 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const record = object.cloneDeep(randomPerson());
-			dotprop.set(record, PRIMARY_KEY_INDEX, string.generateStringOfLength(10));
+			dotprop.set(record, PRIMARY_KEY_INDEX, string.ofLength(10));
 
-			const countryCode = string.generateStringOfLength(6);
+			const countryCode = string.ofLength(6);
 			dotprop.set(record, Indexes.I_BIRTH_YEAR, 1990);
 			dotprop.set(record, Indexes.II_COUNTRY_CODE, countryCode);
 			storage.insert(record);

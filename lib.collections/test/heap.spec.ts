@@ -38,7 +38,7 @@ describe('Heap spec', () => {
 			const heap = new Heap<number>(comparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push(number.generateRandomInt(i, MAX_ITEMS));
+				heap.push(number.randomInt(i, MAX_ITEMS));
 			}
 
 			assertHeapSortedOrder(heap.clone(), comparator);
@@ -51,7 +51,7 @@ describe('Heap spec', () => {
 			const heap = new Heap<string>(comparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push(string.generateStringOfLength(i));
+				heap.push(string.ofLength(i));
 			}
 
 			assertHeapSortedOrder(heap.clone(), comparator);
@@ -64,7 +64,7 @@ describe('Heap spec', () => {
 			const heap = new Heap<{ x: number }>(comparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push({ x: number.generateRandomInt(i, MAX_ITEMS) });
+				heap.push({ x: number.randomInt(i, MAX_ITEMS) });
 			}
 
 			assertHeapSortedOrder(heap, comparator);
@@ -285,13 +285,13 @@ describe('Heap spec', () => {
 
 			let generated;
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				generated = number.generateRandomInt(i, MAX_ITEMS);
+				generated = number.randomInt(i, MAX_ITEMS);
 				items[i] = generated;
 				heap.push(generated);
 			}
 
 			while (items.length) {
-				const itemsIndex = number.generateRandomInt(0, items.length - 1);
+				const itemsIndex = number.randomInt(0, items.length - 1);
 				const heapIndex = heap.findIndex((n) => n === items[itemsIndex]);
 
 				heap.remove(heapIndex);

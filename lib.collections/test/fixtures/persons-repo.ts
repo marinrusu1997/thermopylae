@@ -38,9 +38,9 @@ enum Indexes {
 
 type IndexValueGenerator = () => IndexValue;
 const IndexValueGenerators = new Map<Indexes, IndexValueGenerator>([
-	[Indexes.I_BIRTH_YEAR, () => number.generateRandomInt(2000, 2020)],
-	[Indexes.II_COUNTRY_CODE, () => string.generateStringOfLength(5)],
-	[Indexes.III_BANK_NAME, () => string.generateStringOfLength(5)]
+	[Indexes.I_BIRTH_YEAR, () => number.randomInt(2000, 2020)],
+	[Indexes.II_COUNTRY_CODE, () => string.ofLength(5)],
+	[Indexes.III_BANK_NAME, () => string.ofLength(5)]
 ]);
 deepfreeze(IndexValueGenerators);
 
@@ -52,7 +52,7 @@ const TransactionSchema = {
 		faker: 'finance.transactionType'
 	},
 	amount: {
-		function: () => string.generateStringOfLength(3, /[0-9]/)
+		function: () => string.ofLength(3, /[0-9]/)
 	},
 	currencySymbol: {
 		faker: 'finance.currencySymbol'
@@ -66,7 +66,7 @@ const PersonSchema = {
 		faker: 'name.firstName'
 	},
 	birthYear: {
-		function: () => number.generateRandomInt(1990, 2000)
+		function: () => number.randomInt(1990, 2000)
 	},
 	address: {
 		countryCode: {
