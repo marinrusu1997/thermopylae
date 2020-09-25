@@ -18,8 +18,10 @@ function randomPerson(): Person {
 	return array.randomElement(PersonsRepo);
 }
 
+const NOT_FOUND_IDX = -1;
+
 // eslint-disable-next-line mocha/no-setup-in-describe
-describe(`${IndexedStore.name} spec`, function () {
+describe.only(`${IndexedStore.name} spec`, function () {
 	beforeEach(async () => {
 		PersonsRepo = await providePersonRepository();
 	});
@@ -279,7 +281,6 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${IndexedStore.prototype.insert.name} spec`, function () {
 		it('saves persons without indexing', () => {
 			const storage = new IndexedStore<Person>();
@@ -501,7 +502,6 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${IndexedStore.prototype.read.name} spec`, function () {
 		it('reads records by their id', () => {
 			const storage = new IndexedStore<Person>();
@@ -564,7 +564,6 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${IndexedStore.prototype.readIndex.name} spec`, function () {
 		it('reads primary index', () => {
 			const store = new IndexedStore<Person>();
@@ -599,7 +598,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('contains spec', function () {
+	describe(`${IndexedStore.prototype.contains.name} spec`, function () {
 		it('should return false when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 			expect(storage.contains(PRIMARY_KEY_INDEX, string.ofLength(5))).to.be.eq(false);
@@ -614,7 +613,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('contains index spec', function () {
+	describe(`${IndexedStore.prototype.containsIndex.name} spec`, () => {
 		it('should return false when index is not present', () => {
 			const storage = new IndexedStore<Person>();
 			expect(storage.containsIndex(Indexes.I_BIRTH_YEAR)).to.be.eq(false);
@@ -626,29 +625,28 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${IndexedStore.prototype.updateIndex.name} spec`, function () {
+	describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		it('should not update primary index', () => {
 			const store = new IndexedStore<Person>();
 
 			const oldVal = string.ofLength(5);
 			const newVal = string.ofLength(5);
-			const update = () => store.updateIndex(PRIMARY_KEY_INDEX, oldVal, newVal, () => true);
+			const reindex = () => store.reindex(PRIMARY_KEY_INDEX, oldVal, newVal, () => true);
 
-			expect(update).to.throw(Exception).haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+			expect(reindex).to.throw(Exception).haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
 		});
 
-		it('should not update index if values are the same', () => {
+		it('should throw if values are the same', () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
 			const oldVal = '';
 			const newVal = oldVal;
-			const update = () => store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, () => true);
+			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, () => true);
 
-			expect(update()).to.be.eq(false);
+			expect(reindex).to.throw(`New and old values for index '${Indexes.I_BIRTH_YEAR}' are the same: ${JSON.stringify(oldVal)}.`);
 		});
 
-		it('should not update index if index is empty', () => {
+		it('should throw if old record was not found (empty index)', () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 			const originalSize = store.size;
 
@@ -657,11 +655,28 @@ describe(`${IndexedStore.name} spec`, function () {
 			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
+			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
+			expect(reindex).to.throw(`Failed to de-index record from index '${Indexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
-		it('should not update record if it is not indexed', () => {
+		it("should throw record if it doesn't exist", () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			store.insert(indexed);
+			const originalSize = store.size;
+
+			const oldVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+
+			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
+			expect(reindex).to.throw(`Failed to de-index record from index '${Indexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it('should index record if it was not indexed', () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
@@ -677,41 +692,50 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(originalSize).to.be.eq(2);
 
 			const oldVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
-			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
-			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			const newVal = dotprop.get(indexed, Indexes.I_BIRTH_YEAR) as IndexValue;
 
-			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
+			store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PRIMARY_KEY_INDEX]);
 			expect(store.size).to.be.eq(originalSize);
 
-			expect(
-				store.updateIndex(
-					Indexes.I_BIRTH_YEAR,
-					dotprop.get(indexed, Indexes.I_BIRTH_YEAR),
-					newVal,
-					(person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX]
-				)
-			).to.be.eq(true);
+			const indexedRecords = store.read(Indexes.I_BIRTH_YEAR, newVal);
+			expect(indexedRecords).to.be.equalTo([indexed, candidate]);
 		});
 
-		it("should not update record if it doesn't exist", () => {
+		it('should throw when reindex record that was not indexed before and matcher is not value of primary key', () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
-			const indexed = randomPerson();
-			const originalIndexed = object.cloneDeep(indexed);
+			const record = randomPerson();
+			dotprop.delete(record, Indexes.I_BIRTH_YEAR);
+			store.insert(record);
 
-			store.insert(indexed);
-			const originalSize = store.size;
-
-			const oldVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const oldVal = dotprop.get(record, Indexes.I_BIRTH_YEAR) as IndexValue;
 			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
-			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+			const matcher = (rec: Person) => rec[PRIMARY_KEY_INDEX] === record[PRIMARY_KEY_INDEX];
 
-			expect(store.updateIndex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate)).to.be.eq(false);
-			expect(store.size).to.be.eq(originalSize);
-			expect(indexed).to.be.deep.eq(originalIndexed);
+			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
+			expect(reindex).to.throw(
+				`Matcher needs to be primary key index when indexing record that was not indexed before. Context: index '${
+					Indexes.I_BIRTH_YEAR
+				}', new value '${JSON.stringify(newVal)}'.`
+			);
 		});
 
-		it('should update first level index', () => {
+		it('should throw when reindex record that was not indexed before and it was not found by value of primary index', () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const record = randomPerson();
+			dotprop.delete(record, Indexes.I_BIRTH_YEAR);
+			store.insert(record);
+
+			const oldVal = dotprop.get(record, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const matcher = string.ofLength(10);
+
+			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
+			expect(reindex).to.throw(`No record found for index '${PRIMARY_KEY_INDEX} with matching value '${matcher}'.`);
+		});
+
+		it('should update first level index value', () => {
 			const indexes = Object.values(Indexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(...PersonsRepo);
@@ -719,37 +743,38 @@ describe(`${IndexedStore.name} spec`, function () {
 			const birthYearIndex = store.readIndex(Indexes.I_BIRTH_YEAR);
 
 			const candidate = randomPerson();
-			const oldBirthYearValue = candidate.birthYear;
+			const oldBirthYear = candidate.birthYear;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			/** BEFORE UPDATE */
-			const countryCodeIndexRecordsLenBefore = store.readIndex(Indexes.II_COUNTRY_CODE).get(candidate.address.countryCode)!.length;
-			const bankNameIndexRecordsLen = store.readIndex(Indexes.III_BANK_NAME).get(candidate.finance.bank.name)!.length;
+			/** BEFORE REINDEX (assert some invariants) */
+			const countryCodeIndexRecordsLenBefore = store.read(Indexes.II_COUNTRY_CODE, candidate.address.countryCode).length;
+			const bankNameIndexRecordsLen = store.read(Indexes.III_BANK_NAME, candidate.finance.bank.name).length;
 			const originalCandidate = object.cloneDeep(candidate);
 
-			expect(birthYearIndex.get(oldBirthYearValue)!.findIndex(predicate)).to.not.be.eq(-1);
+			expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
-			/** UPDATE */
-			const updatedBirthYear = number.randomInt(2000, 2020);
-			const updated = store.updateIndex(Indexes.I_BIRTH_YEAR, candidate.birthYear, updatedBirthYear, predicate);
-			expect(updated).to.be.eq(true);
+			/** REINDEX */
+			const newBirthYear = number.randomInt(2000, 2020);
+			store.reindex(Indexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PRIMARY_KEY_INDEX]);
 
-			expect(originalCandidate).to.not.be.deep.eq(candidate);
-			expect(candidate.birthYear).to.be.eq(updatedBirthYear);
-			expect({ ...originalCandidate, birthYear: updatedBirthYear }).to.be.deep.eq(candidate);
+			// it not touched record, just reindex it
+			expect(originalCandidate).to.be.deep.eq(candidate);
+			expect(candidate.birthYear).to.not.be.eq(newBirthYear);
 
-			/** AFTER UPDATE */
-			expect(birthYearIndex.get(oldBirthYearValue)!.findIndex(predicate)).to.be.eq(-1);
-			expect(birthYearIndex.get(updatedBirthYear)!.findIndex(predicate)).to.not.be.eq(-1);
+			/** AFTER REINDEX */
+			candidate.birthYear = newBirthYear;
 
-			const countryCodeIndexRecords = store.readIndex(Indexes.II_COUNTRY_CODE).get(originalCandidate.address.countryCode)!;
-			const bankNameIndexRecords = store.readIndex(Indexes.III_BANK_NAME).get(originalCandidate.finance.bank.name)!;
+			expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
+			expect(birthYearIndex.get(newBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
+
+			const countryCodeIndexRecords = store.read(Indexes.II_COUNTRY_CODE, candidate.address.countryCode);
+			const bankNameIndexRecords = store.read(Indexes.III_BANK_NAME, originalCandidate.finance.bank.name);
 
 			expect(countryCodeIndexRecordsLenBefore).to.be.eq(countryCodeIndexRecords.length);
-			expect(countryCodeIndexRecords.findIndex(predicate)).to.not.be.eq(-1);
+			expect(countryCodeIndexRecords.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
 			expect(bankNameIndexRecordsLen).to.be.eq(bankNameIndexRecords.length);
-			expect(bankNameIndexRecords.findIndex(predicate)).to.not.be.eq(-1);
+			expect(bankNameIndexRecords.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 		});
 
 		it('should update nested level index', () => {
@@ -758,37 +783,29 @@ describe(`${IndexedStore.name} spec`, function () {
 			store.insert(...PersonsRepo);
 
 			const candidate = randomPerson();
-			const originalCandidate = object.cloneDeep(candidate);
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 			const originalSize = store.size;
 
 			for (const indexName of indexes) {
+				const originalCandidate = object.cloneDeep(candidate);
+
 				const oldValue = dotprop.get(originalCandidate, indexName) as IndexValue;
-				const updateValue = IndexValueGenerators.get(indexName)!();
+				const newValue = IndexValueGenerators.get(indexName)!();
 
-				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.not.be.eq(-1);
-				expect(store.read(indexName, updateValue)!.findIndex(predicate)).to.be.eq(-1);
+				expect(store.read(indexName, oldValue).findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
+				expect(store.read(indexName, newValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 
-				expect(store.updateIndex(indexName, oldValue, updateValue, predicate)).to.be.eq(true);
-				expect(candidate).to.not.be.deep.eq(originalCandidate);
-				expect(dotprop.get(candidate, indexName)).to.be.deep.eq(updateValue);
-				dotprop.set(originalCandidate, indexName, updateValue);
-				expect(candidate).to.be.deep.eq(originalCandidate);
+				store.reindex(indexName, oldValue, newValue, predicate);
+				expect(candidate).to.be.deep.eq(originalCandidate); // it didn't touched record
+				expect(dotprop.get(candidate, indexName)).to.not.be.deep.eq(newValue); // and not updated value
 
-				expect(store.read(indexName, oldValue)!.findIndex(predicate)).to.be.eq(-1);
-				expect(store.read(indexName, updateValue)!.findIndex(predicate)).to.not.be.eq(-1);
+				dotprop.set(candidate, indexName, newValue); // update the record
 
-				expect(store.size).to.be.eq(originalSize);
+				expect(store.read(indexName, oldValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX); // de-indexed
+				expect(store.read(indexName, newValue).findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX); // indexed under new value
+
+				expect(store.size).to.be.eq(originalSize); // nothing changed in records no
 			}
-		});
-
-		it('should update nothing when old value is nullable (i.e. was not indexed)', () => {
-			const indexes = Object.values(Indexes);
-			const store = new IndexedStore<Person>({ indexes });
-			store.insert(...PersonsRepo);
-
-			const predicate = () => true;
-			expect(store.updateIndex(PRIMARY_KEY_INDEX, null, null, predicate)).to.be.eq(false);
 		});
 
 		it('should de-index record when new index value is a nullable one', () => {
@@ -798,6 +815,7 @@ describe(`${IndexedStore.name} spec`, function () {
 
 			const candidate = randomPerson();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			const originalSize = store.size;
 
 			for (const indexName of indexes) {
 				const originalCandidate = object.cloneDeep(candidate);
@@ -805,15 +823,17 @@ describe(`${IndexedStore.name} spec`, function () {
 				const oldIndexValue = dotprop.get(originalCandidate, indexName) as IndexValue;
 				const newIndexValue = null;
 
-				expect(store.updateIndex(indexName, oldIndexValue, newIndexValue, predicate)).to.be.eq(true);
+				store.reindex(indexName, oldIndexValue, newIndexValue, predicate);
+				expect(store.size).to.be.eq(originalSize); // nothing changed in records no
 
-				// record was updated
-				expect(candidate).to.not.be.deep.eq(originalCandidate);
-				dotprop.set(originalCandidate, indexName, newIndexValue);
+				// record remained untouched
 				expect(candidate).to.be.deep.eq(originalCandidate);
+				expect(dotprop.get(candidate, indexName)).to.not.be.deep.eq(newIndexValue); // and not updated value
+
+				dotprop.set(candidate, indexName, newIndexValue); // update the record
 
 				// record was de-indexed
-				expect(store.read(indexName, oldIndexValue).find(predicate)).to.be.eq(undefined);
+				expect(store.read(indexName, oldIndexValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 				expect(() => store.read(indexName, newIndexValue).find(predicate))
 					.to.throw(Exception)
 					.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
@@ -821,7 +841,6 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		it('should not delete record if index is empty', () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
@@ -859,7 +878,7 @@ describe(`${IndexedStore.name} spec`, function () {
 			expect(store.size).to.be.eq(originalSize);
 		});
 
-		it("should not delete record if it doesn't exist", () => {
+		it("should not delete record if it doesn't exist under index value", () => {
 			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
@@ -870,6 +889,20 @@ describe(`${IndexedStore.name} spec`, function () {
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
 
 			expect(store.remove(Indexes.I_BIRTH_YEAR, nonExistentVal, predicate)).to.be.eq(undefined);
+			expect(store.size).to.be.eq(originalSize);
+		});
+
+		it("should not delete record if it doesn't passed predicate", () => {
+			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+
+			const indexed = randomPerson();
+			store.insert(indexed);
+			const originalSize = store.size;
+
+			const indexedVal = dotprop.get(indexed, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const predicate = () => false;
+
+			expect(store.remove(Indexes.I_BIRTH_YEAR, indexedVal, predicate)).to.be.eq(undefined);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
@@ -962,9 +995,34 @@ describe(`${IndexedStore.name} spec`, function () {
 			const throwable = () => store.remove(Indexes.I_BIRTH_YEAR, string.ofLength(5));
 			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
 		});
+
+		it('should remove record that was not indexed for one of the indexes', () => {
+			const indexes = Object.values(Indexes);
+			const store = new IndexedStore<Person>({ indexes });
+			store.insert(...PersonsRepo);
+
+			const candidate = object.cloneDeep(randomPerson());
+			dotprop.set(candidate, PRIMARY_KEY_INDEX, string.ofLength(10));
+			for (const index of indexes) {
+				dotprop.set(candidate, index, null);
+			}
+
+			const indexWithVal = Indexes.II_COUNTRY_CODE;
+			dotprop.set(candidate, indexWithVal, string.ofLength(2));
+			store.insert(candidate);
+
+			const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+
+			expect(removed).to.be.deep.eq(candidate);
+			expect(store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])).to.be.ofSize(0);
+
+			const predicate = (rec: Person) => rec[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			const indexVal = dotprop.get(candidate, indexWithVal) as IndexValue;
+			expect(store.read(indexWithVal, indexVal).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
+		});
 	});
 
-	describe('clear spec', () => {
+	describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 		it('clears no entries when storage is empty', () => {
 			const store = new IndexedStore<Person>();
 			expect(store.size).to.be.eq(0);
@@ -1003,7 +1061,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('get index records count spec', function () {
+	describe(`${IndexedStore.prototype.getIndexRecordsCount.name} spec`, () => {
 		it('each index contains distinct records', () => {
 			const indexes: Array<IndexName<Person>> = Object.values(Indexes);
 			const storage = new IndexedStore<Person>({ indexes });
@@ -1030,7 +1088,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('map spec', () => {
+	describe(`${IndexedStore.prototype.map.name} spec`, () => {
 		it('should return empty array when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 
@@ -1092,7 +1150,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('filter spec', () => {
+	describe(`${IndexedStore.prototype.filter.name} spec`, () => {
 		it('should filter nothing when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 
@@ -1157,15 +1215,16 @@ describe(`${IndexedStore.name} spec`, function () {
 				return desiredBirthYearRange.includes(person.birthYear);
 			}
 
-			const filtered = storage.filter(predicate, Indexes.II_COUNTRY_CODE, 'MX');
-			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, Indexes.II_COUNTRY_CODE) === 'MX' && predicate(person));
+			const indexVal = dotprop.get(randomPerson(), Indexes.II_COUNTRY_CODE) as IndexValue;
+			const filtered = storage.filter(predicate, Indexes.II_COUNTRY_CODE, indexVal);
+			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, Indexes.II_COUNTRY_CODE) === indexVal && predicate(person));
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
 			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
 		});
 	});
 
-	describe('find spec', function () {
+	describe(`${IndexedStore.prototype.find.name} spec`, () => {
 		it('should find nothing on empty storage', () => {
 			const storage = new IndexedStore<Person>();
 			function predicate(person: Person): boolean {
@@ -1244,7 +1303,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('values spec', function () {
+	describe('values spec', () => {
 		it('should return no values when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 			expect(storage.values.length).to.be.eq(0);
@@ -1261,7 +1320,7 @@ describe(`${IndexedStore.name} spec`, function () {
 		});
 	});
 
-	describe('iterator spec', function () {
+	describe('iterator spec', () => {
 		it('should iterate over not records when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 			let counter = 0;

@@ -1,4 +1,4 @@
-import { Nullable, ObjMap, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
+import { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
 import isObject from 'isobject';
 // @ts-ignore
 import { createQuery } from 'common-query';
@@ -34,13 +34,13 @@ class Retriever<Document extends DocumentContract<Document>> {
 	}
 
 	private getMatches(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
-		let multiple: Undefinable<boolean>;
+		let multiple = true;
 
 		if (criteria == null) {
 			if (query == null) {
 				return this.storage.values;
 			}
-		} else {
+		} else if (criteria.multiple != null) {
 			multiple = criteria.multiple;
 		}
 

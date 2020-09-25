@@ -104,7 +104,7 @@ function ordered(matches: Array<PersonDocument>): Array<PersonDocument> {
 }
 
 // eslint-disable-next-line mocha/no-setup-in-describe
-describe.only(`${Collection.name} spec`, function () {
+describe(`${Collection.name} spec`, function () {
 	beforeEach(async () => {
 		const persons = await providePersonRepository();
 		PersonsRepo = persons.map((person) => new PersonDocument(person));
@@ -397,6 +397,24 @@ describe.only(`${Collection.name} spec`, function () {
 			const matches = collection.find(query);
 			expect(matches.length).to.be.eq(1);
 			expect(matches[0]).to.be.deep.eq(desired);
+		});
+
+		it('should return the first document when multiple docs were matched', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(...PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const query: Query<PersonDocument> = {
+				birthYear: {
+					$in: Array.from(range(1990, 2000))
+				}
+			};
+
+			const multipleMatches = collection.find(query, { multiple: true });
+			expect(multipleMatches.length).to.be.greaterThan(1);
+
+			const singleMatch = collection.find(query, { multiple: false });
+			expect(singleMatch).to.be.ofSize(1);
 		});
 
 		it('should find a single document matching the predicate', () => {
@@ -1274,7 +1292,7 @@ describe.only(`${Collection.name} spec`, function () {
 			expect(match[0]).to.be.deep.eq(original); // it didn't touched anything
 		});
 
-		it.only('should update indexes when they are changed', () => {
+		it('should update indexes when they are changed', () => {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: Object.values(Indexes)
 			});
@@ -1288,7 +1306,12 @@ describe.only(`${Collection.name} spec`, function () {
 							hint: { index, value: dotProp.get(document, index) }
 						};
 						const matches = collection.find(null, criteria);
-						expect(matches).to.be.containing(document);
+						expect(
+							matches,
+							`Document '${JSON.stringify(document)}' not found for index '${index}' with value '${
+								criteria.hint!.value
+							}'. Matches were: ${JSON.stringify(matches)}.`
+						).to.be.containing(document);
 					}
 				}
 			}

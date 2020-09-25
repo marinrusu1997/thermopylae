@@ -63,48 +63,6 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return this.indexRepo.has(indexName);
 	}
 
-	public updateIndex(
-		indexName: IndexName<IndexedRecord>,
-		oldValue: IndexValue,
-		newValue: IndexValue,
-		matcher: UnaryPredicate<IndexedRecord> | IndexValue
-	): boolean {
-		if (oldValue == null) {
-			return false;
-		}
-
-		if (oldValue === newValue) {
-			return false;
-		}
-
-		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
-		}
-
-		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
-
-		const records = index.get(oldValue);
-		if (records == null) {
-			return false;
-		}
-
-		const predicate = !(matcher instanceof Function) ? (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === matcher : matcher;
-
-		const record = IndexedStore.removeRecord(records, predicate);
-		if (record == null) {
-			return false;
-		}
-
-		dotprop.set(record, indexName, newValue);
-
-		if (newValue != null) {
-			IndexedStore.assertIndexValue(indexName, newValue, record);
-			IndexedStore.indexRecordBy(record, newValue, index);
-		}
-
-		return true;
-	}
-
 	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
 		indexValue = IndexedStore.assertNonNullableIndexValue(indexName, indexValue);
 
@@ -134,6 +92,63 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		this.indexRepo.get(PRIMARY_KEY_INDEX)!.delete(record[PRIMARY_KEY_INDEX]);
 
 		return record;
+	}
+
+	public reindex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, matcher: UnaryPredicate<IndexedRecord> | IndexValue): void {
+		if (indexName === PRIMARY_KEY_INDEX) {
+			throw createException(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
+		}
+
+		if (oldValue === newValue) {
+			throw createException(ErrorCodes.NOT_ALLOWED, `New and old values for index '${indexName}' are the same: ${JSON.stringify(oldValue)}.`);
+		}
+
+		if (oldValue == null) {
+			if (newValue != null) {
+				// creation
+
+				if (matcher instanceof Function) {
+					throw createException(
+						ErrorCodes.REQUIRED,
+						`Matcher needs to be primary key index when indexing record that was not indexed before. Context: index '${indexName}', new value '${JSON.stringify(
+							newValue
+						)}'.`
+					);
+				}
+
+				const primaryIndex = this.readIndex(PRIMARY_KEY_INDEX);
+
+				const record = primaryIndex.get(matcher);
+				if (record == null || record.length !== 1) {
+					throw createException(ErrorCodes.NOT_FOUND, `No record found for index '${PRIMARY_KEY_INDEX} with matching value '${matcher}'.`);
+				}
+
+				IndexedStore.assertIndexValue(indexName, newValue, record[0]);
+				const storageIndex = this.readIndex(indexName);
+				IndexedStore.indexRecordBy(record[0], newValue, storageIndex);
+			}
+		} else {
+			// removal
+
+			const records = this.read(indexName, oldValue);
+			const predicate = matcher instanceof Function ? matcher : (record: IndexedRecord) => record[PRIMARY_KEY_INDEX] === matcher;
+
+			const removed = IndexedStore.removeRecord(records, predicate);
+			if (removed == null) {
+				throw createException(
+					ErrorCodes.NOT_FOUND,
+					`Failed to de-index record from index '${indexName}' with value '${oldValue}', because it wasn't found.`
+				);
+			}
+
+			if (newValue != null) {
+				// update
+
+				IndexedStore.assertIndexValue(indexName, newValue, removed);
+				const storageIndex = this.readIndex(indexName);
+				IndexedStore.indexRecordBy(removed, newValue, storageIndex);
+			}
+		}
 	}
 
 	public clear(): void {

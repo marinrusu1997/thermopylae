@@ -108,7 +108,6 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 	}
 
-	// FIXME multiple should be enabled by default
 	public find(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
 		return this.retriever.retrieve(query, criteria);
 	}

@@ -1,5 +1,5 @@
 import sorter from 'thenby';
-import { ComparisonResult, ObjMap, Optional, SortDirection, SyncFunction } from '@thermopylae/core.declarations';
+import { ComparisonResult, ObjMap, Optional, SortDirection } from '@thermopylae/core.declarations';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import { createUpdate } from 'common-query';
@@ -7,11 +7,6 @@ import { createException, ErrorCodes } from '../../error';
 import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields } from './typings';
 import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
 import { CompareFunction } from '../../commons';
-
-interface IndexChange<Document> {
-	name: IndexedKey<Document>;
-	newValue: IndexValue;
-}
 
 class Processor<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
@@ -25,30 +20,19 @@ class Processor<Document extends DocumentContract<Document>> {
 
 	public update(matches: Array<Document>, update: ObjMap): void {
 		const { indexes } = this.storage; // they are expensive to compute
-		const changedIndexes = new Array<IndexChange<Document>>();
 
 		update = createUpdate(update, { skipValidate: this.skipQueryValidation });
-		if (update.getUpdatedFields().includes(PRIMARY_KEY_INDEX)) {
-			throw createException(ErrorCodes.INVALID_UPDATE, `Updating ${PRIMARY_KEY_INDEX} is not allowed.`);
-		}
-
-		update.on('modifiedField', (field: IndexedKey<Document>, newValue: IndexValue) => {
-			if (this.storage.containsIndex(field)) {
-				changedIndexes.push({ name: field, newValue });
-			}
-		});
-
-		const updateFn = update.createUpdateFn() as SyncFunction<Document, boolean>;
+		const updatedIndexes = update.getUpdatedFields().filter((field: string) => indexes.includes(field)) as Array<IndexedKey<Document>>;
 
 		for (const match of matches) {
-			const snapshot = Processor.snapshotIndexableProperties(match, indexes);
+			const snapshot = Processor.snapshotIndexableProperties(match, updatedIndexes);
 
-			updateFn(match);
-			for (const changedIndex of changedIndexes) {
-				this.storage.updateIndex(changedIndex.name, snapshot[changedIndex.name], changedIndex.newValue, match[PRIMARY_KEY_INDEX]);
+			update.apply(match);
+
+			for (const updatedIndex of updatedIndexes) {
+				const newValue = dotprop.get(match, updatedIndex) as IndexValue;
+				this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PRIMARY_KEY_INDEX]);
 			}
-
-			changedIndexes.length = 0; // prepare for next iteration
 		}
 	}
 
@@ -134,7 +118,7 @@ class Processor<Document extends DocumentContract<Document>> {
 		throw createException(ErrorCodes.UNKNOWN, `Type ${typeof firstValue} can't be compared.`);
 	}
 
-	private static applyProjection<Document extends DocumentContract<Document>>(documentClone: Document, projection: Projection<Document>): any {
+	private static applyProjection<Document>(documentClone: Document, projection: Projection<Document>): any {
 		switch (projection.type) {
 			case ProjectionType.EXCLUDE:
 				for (const field of projection.fields) {
@@ -156,9 +140,9 @@ class Processor<Document extends DocumentContract<Document>> {
 		return documentClone;
 	}
 
-	private static snapshotIndexableProperties<Document extends DocumentContract<Document>>(
+	private static snapshotIndexableProperties<Document>(
 		document: Document,
-		indexes: ReadonlyArray<IndexedKey<Document>>
+		indexes: Array<IndexedKey<Document>>
 	): Record<IndexedKey<Document>, Optional<IndexValue>> {
 		const snapshot = {} as Record<IndexedKey<Document>, Optional<IndexValue>>;
 
