@@ -36,7 +36,7 @@ module.exports = {
 		"consistent-return": "warn",
 
 		"no-console": "error",
-		"no-param-reassign": "warn",
+		"no-param-reassign": "off",
 		"no-use-before-define": "off",
 		"no-await-in-loop": "warn",
 		"no-continue": "off",

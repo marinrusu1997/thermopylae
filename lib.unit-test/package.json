@@ -6,9 +6,13 @@
         "library",
         "unit testing"
     ],
-    "version": "0.0.1595168219",
+    "version": "0.0.1601126588",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
+    "exports": {
+        ".": "./dist/index.js",
+        "./dist/fixtures/person": "./dist/fixtures/person/index.js"
+    },
     "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -29,14 +33,19 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/lib.utils": "0",
         "@types/chai-arrays": "1",
         "@types/chai-as-promised": "7",
         "chai-arrays": "2",
         "chai-as-promised": "7",
-        "chai-asserttype": "1"
+        "chai-asserttype": "1",
+        "deep-freeze": "0",
+        "mocker-data-generator": "2",
+        "json-schema-typed": "7"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "0"
+        "@thermopylae/module-builder": "0",
+        "@types/deep-freeze": "0"
     },
     "peerDependencies": {
         "mocha": "8",
@@ -50,5 +59,6 @@
     "engines": {
         "node": ">= 14"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "type": "commonjs"
 }

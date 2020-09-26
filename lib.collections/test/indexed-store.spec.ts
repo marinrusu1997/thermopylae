@@ -1,14 +1,14 @@
-import { beforeEach, describe, it } from 'mocha';
-import { chai } from '@thermopylae/lib.unit-test';
+import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { array, number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
+import { Person, PersonIndexes, IndexValueGenerators, getPersonRepositoryClone } from '@thermopylae/lib.unit-test/dist/fixtures/person';
+import { chai } from '@thermopylae/lib.unit-test';
+import { beforeEach, describe, it } from 'mocha';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import range from 'range-generator';
-import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { IndexedStore, IndexName, IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
-import { Indexes, IndexValueGenerators, Person, providePersonRepository } from './fixtures/persons-repo';
 
 const { expect } = chai;
 
@@ -22,7 +22,7 @@ const NOT_FOUND_IDX = -1;
 
 describe(`${IndexedStore.name} spec`, () => {
 	beforeEach(async () => {
-		PersonsRepo = await providePersonRepository();
+		PersonsRepo = await getPersonRepositoryClone();
 	});
 
 	describe('constructor', () => {
@@ -35,14 +35,13 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('creates store with secondary indexes', () => {
-			const indexes: Array<string> = Object.values(Indexes);
+			const indexes: Array<string> = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PRIMARY_KEY_INDEX]));
 		});
 	});
 
 	describe('index spec', () => {
-		// eslint-disable-next-line mocha/no-setup-in-describe
 		describe(`${IndexedStore.prototype.createIndexes.name} spec`, () => {
 			it('creates no indexes when are passed empty array', () => {
 				const storage = new IndexedStore<Person>();
@@ -56,7 +55,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				const storage = new IndexedStore<Person>();
 				expect(storage.indexes).to.be.equalTo([PRIMARY_KEY_INDEX]);
 
-				const indexes: Array<string> = Object.values(Indexes);
+				const indexes: Array<string> = Object.values(PersonIndexes);
 				storage.createIndexes(indexes);
 				expect(storage.indexes).to.be.containingAllOf(indexes.concat([PRIMARY_KEY_INDEX]));
 			});
@@ -65,7 +64,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				const storage = new IndexedStore<Person>();
 				expect(storage.indexes).to.be.equalTo([PRIMARY_KEY_INDEX]);
 
-				const indexes: Array<string> = Object.values(Indexes);
+				const indexes: Array<string> = Object.values(PersonIndexes);
 				storage.createIndexes(indexes);
 				expect(storage.indexes).to.be.containingAllOf(indexes.concat([PRIMARY_KEY_INDEX]));
 
@@ -102,7 +101,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				storage.insert(PersonsRepo);
 				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
-				storage.createIndexes([Indexes.I_BIRTH_YEAR]);
+				storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 
 				const personsPerYear = new Map<number, number>();
 				for (const person of PersonsRepo) {
@@ -110,7 +109,7 @@ describe(`${IndexedStore.name} spec`, () => {
 					personsPerYear.set(person.birthYear, no == null ? 1 : no + 1);
 				}
 
-				const index = storage.readIndex(Indexes.I_BIRTH_YEAR);
+				const index = storage.readIndex(PersonIndexes.I_BIRTH_YEAR);
 				for (const [indexValue, records] of index) {
 					expect(records.length).to.be.eq(personsPerYear.get(indexValue as number));
 					for (const record of records) {
@@ -124,7 +123,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				storage.insert(PersonsRepo);
 				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
-				storage.createIndexes([Indexes.II_COUNTRY_CODE]);
+				storage.createIndexes([PersonIndexes.II_COUNTRY_CODE]);
 
 				const personsPerCountry = new Map<string, number>();
 				for (const person of PersonsRepo) {
@@ -132,7 +131,7 @@ describe(`${IndexedStore.name} spec`, () => {
 					personsPerCountry.set(person.address.countryCode, no == null ? 1 : no + 1);
 				}
 
-				const index = storage.readIndex(Indexes.II_COUNTRY_CODE);
+				const index = storage.readIndex(PersonIndexes.II_COUNTRY_CODE);
 				for (const [indexValue, records] of index) {
 					expect(records.length).to.be.eq(personsPerCountry.get(indexValue as string));
 					for (const record of records) {
@@ -146,7 +145,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				storage.insert(PersonsRepo);
 				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
-				storage.createIndexes([Indexes.III_BANK_NAME]);
+				storage.createIndexes([PersonIndexes.III_BANK_NAME]);
 
 				const personsPerBank = new Map<string, number>();
 				for (const person of PersonsRepo) {
@@ -154,7 +153,7 @@ describe(`${IndexedStore.name} spec`, () => {
 					personsPerBank.set(person.finance.bank.name, no == null ? 1 : no + 1);
 				}
 
-				const index = storage.readIndex(Indexes.III_BANK_NAME);
+				const index = storage.readIndex(PersonIndexes.III_BANK_NAME);
 				for (const [indexValue, records] of index) {
 					expect(records.length).to.be.eq(personsPerBank.get(indexValue as string));
 					for (const record of records) {
@@ -168,7 +167,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				storage.insert(PersonsRepo);
 				expect(storage.size).to.be.eq(PersonsRepo.length); // insert was ok
 
-				const indexes = Object.values(Indexes);
+				const indexes = Object.values(PersonIndexes);
 				storage.createIndexes(indexes);
 
 				for (const indexName of indexes) {
@@ -190,8 +189,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			});
 		});
 
-		// eslint-disable-next-line mocha/no-setup-in-describe
-		describe(`${IndexedStore.prototype.dropIndex.name} spec`, function () {
+		describe(`${IndexedStore.prototype.dropIndex.name} spec`, () => {
 			it('fails to drop index which does not exist', () => {
 				const store = new IndexedStore<Person>();
 				expect(store.dropIndex(string.ofLength(5))).to.be.eq(false);
@@ -205,19 +203,19 @@ describe(`${IndexedStore.name} spec`, () => {
 			});
 
 			it('drops existing index', () => {
-				const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+				const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 				store.insert(PersonsRepo);
 				expect(store.size).to.be.eq(PersonsRepo.length);
 
-				expect(store.indexes).to.be.containingAllOf([PRIMARY_KEY_INDEX, Indexes.I_BIRTH_YEAR]);
+				expect(store.indexes).to.be.containingAllOf([PRIMARY_KEY_INDEX, PersonIndexes.I_BIRTH_YEAR]);
 
-				expect(store.dropIndex(Indexes.I_BIRTH_YEAR)).to.be.eq(true);
+				expect(store.dropIndex(PersonIndexes.I_BIRTH_YEAR)).to.be.eq(true);
 				expect(store.indexes).to.be.equalTo([PRIMARY_KEY_INDEX]);
 				expect(store.size).to.be.eq(PersonsRepo.length);
 			});
 
 			it('drops multiple existing indexes', () => {
-				const indexes = Object.values(Indexes) as Array<string>;
+				const indexes = Object.values(PersonIndexes) as Array<string>;
 				const store = new IndexedStore<Person>({ indexes });
 				store.insert(PersonsRepo);
 				expect(store.size).to.be.eq(PersonsRepo.length);
@@ -241,8 +239,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			});
 		});
 
-		// eslint-disable-next-line mocha/no-setup-in-describe
-		describe(`${IndexedStore.prototype.dropIndexes.name} spec`, function () {
+		describe(`${IndexedStore.prototype.dropIndexes.name} spec`, () => {
 			it('drops nothing when there are no secondary indexes', () => {
 				const storage = new IndexedStore<Person>();
 				expect(storage.indexes).to.be.ofSize(1);
@@ -252,7 +249,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			});
 
 			it('drops all indexes except the primary one when there is no records', () => {
-				const indexes = Object.values(Indexes) as Array<string>;
+				const indexes = Object.values(PersonIndexes) as Array<string>;
 				const storage = new IndexedStore<Person>({ indexes });
 
 				expect(storage.indexes).to.be.ofSize(indexes.length + 1);
@@ -264,7 +261,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			});
 
 			it('drops all indexes except the primary one when there are records', () => {
-				const indexes = Object.values(Indexes) as Array<string>;
+				const indexes = Object.values(PersonIndexes) as Array<string>;
 				const storage = new IndexedStore<Person>({ indexes });
 				storage.insert(PersonsRepo);
 
@@ -280,7 +277,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 	});
 
-	describe(`${IndexedStore.prototype.insert.name} spec`, function () {
+	describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		it('saves persons without indexing', () => {
 			const storage = new IndexedStore<Person>();
 			storage.insert(PersonsRepo);
@@ -288,25 +285,25 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('saves persons with indexing on level 1 index', () => {
-			const storage = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 2 index', () => {
-			const storage = new IndexedStore<Person>({ indexes: [Indexes.II_COUNTRY_CODE] });
+			const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.II_COUNTRY_CODE] });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 3 index', () => {
-			const storage = new IndexedStore<Person>({ indexes: [Indexes.III_BANK_NAME] });
+			const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.III_BANK_NAME] });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
 
 		it('saves persons with indexing on level 1, 2, 3 index', () => {
-			const storage = new IndexedStore<Person>({ indexes: Object.values(Indexes) });
+			const storage = new IndexedStore<Person>({ indexes: Object.values(PersonIndexes) });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 		});
@@ -324,7 +321,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
 
 			/** ARRAY INDEX */
-			storage.createIndexes([Indexes.I_BIRTH_YEAR]);
+			storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 			invalidPerson = {
 				id: string.ofLength(5),
 				// @ts-ignore
@@ -337,7 +334,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			/** OBJECT INDEX */
-			storage.createIndexes([Indexes.II_COUNTRY_CODE]);
+			storage.createIndexes([PersonIndexes.II_COUNTRY_CODE]);
 			invalidPerson = {
 				id: string.ofLength(5),
 				birthYear: number.randomInt(1990, 2000),
@@ -353,7 +350,7 @@ describe(`${IndexedStore.name} spec`, () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			/** BOOLEAN INDEX */
-			storage.createIndexes([Indexes.III_BANK_NAME]);
+			storage.createIndexes([PersonIndexes.III_BANK_NAME]);
 			invalidPerson = {
 				id: string.ofLength(5),
 				birthYear: number.randomInt(1990, 2000),
@@ -386,7 +383,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('saves records with undefined index properties', () => {
-			const indexNames = Object.values(Indexes) as Array<string>;
+			const indexNames = Object.values(PersonIndexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes: indexNames });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -420,7 +417,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				}
 			}
 
-			for (const nulledIndexName of Object.values(Indexes)) {
+			for (const nulledIndexName of Object.values(PersonIndexes)) {
 				storage.insert([generatePerson(nulledIndexName)]);
 				increaseAdditions(nulledIndexName);
 
@@ -432,7 +429,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('saves records with null index properties', () => {
-			const indexNames = Object.values(Indexes) as Array<string>;
+			const indexNames = Object.values(PersonIndexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes: indexNames });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -466,7 +463,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				}
 			}
 
-			for (const nulledIndexName of Object.values(Indexes)) {
+			for (const nulledIndexName of Object.values(PersonIndexes)) {
 				storage.insert([generatePerson(nulledIndexName)]);
 				increaseAdditions(nulledIndexName);
 
@@ -478,7 +475,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('saves records partially while error not encountered', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			expect(store.size).to.be.eq(0);
 
@@ -521,7 +518,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('reads records by their index', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -545,10 +542,10 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('reads records from empty index', () => {
-			const storage = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const person = { ...PersonsRepo[0] };
-			dotprop.set(person, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(person, PersonIndexes.I_BIRTH_YEAR, null);
 			storage.insert([person]);
 
 			expect(storage.read(PRIMARY_KEY_INDEX, person.id)).to.be.equalTo([person]);
@@ -565,7 +562,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 	});
 
-	describe(`${IndexedStore.prototype.readIndex.name} spec`, function () {
+	describe(`${IndexedStore.prototype.readIndex.name} spec`, () => {
 		it('reads primary index', () => {
 			const store = new IndexedStore<Person>();
 			expect(store.readIndex(PRIMARY_KEY_INDEX).size).to.be.eq(0);
@@ -575,7 +572,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('reads secondary indexes', () => {
-			const indexes = Object.values(Indexes) as Array<string>;
+			const indexes = Object.values(PersonIndexes) as Array<string>;
 			const store = new IndexedStore<Person>({ indexes });
 
 			indexes.push(PRIMARY_KEY_INDEX);
@@ -599,7 +596,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 	});
 
-	describe(`${IndexedStore.prototype.contains.name} spec`, function () {
+	describe(`${IndexedStore.prototype.contains.name} spec`, () => {
 		it('should return false when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 			expect(storage.contains(PRIMARY_KEY_INDEX, string.ofLength(5))).to.be.eq(false);
@@ -617,7 +614,7 @@ describe(`${IndexedStore.name} spec`, () => {
 	describe(`${IndexedStore.prototype.containsIndex.name} spec`, () => {
 		it('should return false when index is not present', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.containsIndex(Indexes.I_BIRTH_YEAR)).to.be.eq(false);
+			expect(storage.containsIndex(PersonIndexes.I_BIRTH_YEAR)).to.be.eq(false);
 		});
 
 		it('should return true when index is present', () => {
@@ -638,49 +635,49 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should throw if values are the same', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const oldVal = '';
 			const newVal = oldVal;
-			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, () => true);
+			const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, () => true);
 
-			expect(reindex).to.throw(`New and old values for index '${Indexes.I_BIRTH_YEAR}' are the same: ${JSON.stringify(oldVal)}.`);
+			expect(reindex).to.throw(`New and old values for index '${PersonIndexes.I_BIRTH_YEAR}' are the same: ${JSON.stringify(oldVal)}.`);
 		});
 
 		it('should throw if old record was not found (empty index)', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 			const originalSize = store.size;
 
 			const candidate = randomPerson();
-			const oldVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
-			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+			const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
-			expect(reindex).to.throw(`Failed to de-index record from index '${Indexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
+			const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
+			expect(reindex).to.throw(`Failed to de-index record from index '${PersonIndexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it("should throw record if it doesn't exist", () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
 			store.insert([indexed]);
 			const originalSize = store.size;
 
-			const oldVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const oldVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
 			let newVal: IndexValue;
-			while ((newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!()) === oldVal);
+			while ((newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!()) === oldVal);
 
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
 
-			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
-			expect(reindex).to.throw(`Failed to de-index record from index '${Indexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
+			const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
+			expect(reindex).to.throw(`Failed to de-index record from index '${PersonIndexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it('should index record if it was not indexed', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
 			store.insert([indexed]);
@@ -688,77 +685,77 @@ describe(`${IndexedStore.name} spec`, () => {
 			let candidate: Person;
 			while ((candidate = randomPerson()) === indexed);
 
-			dotprop.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(candidate, PersonIndexes.I_BIRTH_YEAR, null);
 			store.insert([candidate]);
 
 			const originalSize = store.size;
 			expect(originalSize).to.be.eq(2);
 
-			const oldVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
-			const newVal = dotprop.get(indexed, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+			const newVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 
-			store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PRIMARY_KEY_INDEX]);
+			store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PRIMARY_KEY_INDEX]);
 			expect(store.size).to.be.eq(originalSize);
 
-			const indexedRecords = store.read(Indexes.I_BIRTH_YEAR, newVal);
+			const indexedRecords = store.read(PersonIndexes.I_BIRTH_YEAR, newVal);
 			expect(indexedRecords).to.be.equalTo([indexed, candidate]);
 		});
 
 		it('should throw when reindex record that was not indexed before and matcher is not value of primary key', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const record = randomPerson();
-			dotprop.delete(record, Indexes.I_BIRTH_YEAR);
+			dotprop.delete(record, PersonIndexes.I_BIRTH_YEAR);
 			store.insert([record]);
 
-			const oldVal = dotprop.get(record, Indexes.I_BIRTH_YEAR) as IndexValue;
-			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+			const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
 			const matcher = (rec: Person) => rec[PRIMARY_KEY_INDEX] === record[PRIMARY_KEY_INDEX];
 
-			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
+			const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 			expect(reindex).to.throw(
 				`Matcher needs to be primary key index when indexing record that was not indexed before. Context: index '${
-					Indexes.I_BIRTH_YEAR
+					PersonIndexes.I_BIRTH_YEAR
 				}', new value '${JSON.stringify(newVal)}'.`
 			);
 		});
 
 		it('should throw when reindex record that was not indexed before and it was not found by value of primary index', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const record = randomPerson();
-			dotprop.delete(record, Indexes.I_BIRTH_YEAR);
+			dotprop.delete(record, PersonIndexes.I_BIRTH_YEAR);
 			store.insert([record]);
 
-			const oldVal = dotprop.get(record, Indexes.I_BIRTH_YEAR) as IndexValue;
-			const newVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+			const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
 			const matcher = string.ofLength(10);
 
-			const reindex = () => store.reindex(Indexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
+			const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 			expect(reindex).to.throw(`No record found for index '${PRIMARY_KEY_INDEX} with matching value '${matcher}'.`);
 		});
 
 		it('should update first level index value', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 
-			const birthYearIndex = store.readIndex(Indexes.I_BIRTH_YEAR);
+			const birthYearIndex = store.readIndex(PersonIndexes.I_BIRTH_YEAR);
 
 			const candidate = randomPerson();
 			const oldBirthYear = candidate.birthYear;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
 			/** BEFORE REINDEX (assert some invariants) */
-			const countryCodeIndexRecordsLenBefore = store.read(Indexes.II_COUNTRY_CODE, candidate.address.countryCode).length;
-			const bankNameIndexRecordsLen = store.read(Indexes.III_BANK_NAME, candidate.finance.bank.name).length;
+			const countryCodeIndexRecordsLenBefore = store.read(PersonIndexes.II_COUNTRY_CODE, candidate.address.countryCode).length;
+			const bankNameIndexRecordsLen = store.read(PersonIndexes.III_BANK_NAME, candidate.finance.bank.name).length;
 			const originalCandidate = object.cloneDeep(candidate);
 
 			expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
 			/** REINDEX */
-			const newBirthYear = number.randomInt(2000, 2020);
-			store.reindex(Indexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PRIMARY_KEY_INDEX]);
+			const newBirthYear = number.randomInt(2010, 2020);
+			store.reindex(PersonIndexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PRIMARY_KEY_INDEX]);
 
 			// it not touched record, just reindex it
 			expect(originalCandidate).to.be.deep.eq(candidate);
@@ -770,8 +767,8 @@ describe(`${IndexedStore.name} spec`, () => {
 			expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 			expect(birthYearIndex.get(newBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
-			const countryCodeIndexRecords = store.read(Indexes.II_COUNTRY_CODE, candidate.address.countryCode);
-			const bankNameIndexRecords = store.read(Indexes.III_BANK_NAME, originalCandidate.finance.bank.name);
+			const countryCodeIndexRecords = store.read(PersonIndexes.II_COUNTRY_CODE, candidate.address.countryCode);
+			const bankNameIndexRecords = store.read(PersonIndexes.III_BANK_NAME, originalCandidate.finance.bank.name);
 
 			expect(countryCodeIndexRecordsLenBefore).to.be.eq(countryCodeIndexRecords.length);
 			expect(countryCodeIndexRecords.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
@@ -781,7 +778,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should update nested level index', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 
@@ -812,7 +809,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should de-index record when new index value is a nullable one', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 
@@ -846,19 +843,19 @@ describe(`${IndexedStore.name} spec`, () => {
 
 	describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		it('should not delete record if index is empty', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 			const originalSize = store.size;
 
 			const candidate = randomPerson();
-			const indexValue = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const indexValue = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			expect(store.remove(Indexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
+			expect(store.remove(PersonIndexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it('should not delete record if it is not indexed', () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
 			store.insert([indexed]);
@@ -866,51 +863,51 @@ describe(`${IndexedStore.name} spec`, () => {
 			let candidate: Person;
 			while ((candidate = randomPerson()) === indexed);
 
-			dotprop.set(candidate, Indexes.I_BIRTH_YEAR, null);
+			dotprop.set(candidate, PersonIndexes.I_BIRTH_YEAR, null);
 			store.insert([candidate]);
 
 			const originalSize = store.size;
 			expect(originalSize).to.be.eq(2);
 
-			const unIndexedVal = dotprop.get(candidate, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const unIndexedVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
 
-			expect(() => store.remove(Indexes.I_BIRTH_YEAR, unIndexedVal, predicate))
+			expect(() => store.remove(PersonIndexes.I_BIRTH_YEAR, unIndexedVal, predicate))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it("should not delete record if it doesn't exist under index value", () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
 			store.insert([indexed]);
 			const originalSize = store.size;
 
-			const nonExistentVal = IndexValueGenerators.get(Indexes.I_BIRTH_YEAR)!();
+			const nonExistentVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
 			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
 
-			expect(store.remove(Indexes.I_BIRTH_YEAR, nonExistentVal, predicate)).to.be.eq(undefined);
+			expect(store.remove(PersonIndexes.I_BIRTH_YEAR, nonExistentVal, predicate)).to.be.eq(undefined);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it("should not delete record if it doesn't passed predicate", () => {
-			const store = new IndexedStore<Person>({ indexes: [Indexes.I_BIRTH_YEAR] });
+			const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 			const indexed = randomPerson();
 			store.insert([indexed]);
 			const originalSize = store.size;
 
-			const indexedVal = dotprop.get(indexed, Indexes.I_BIRTH_YEAR) as IndexValue;
+			const indexedVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 			const predicate = () => false;
 
-			expect(store.remove(Indexes.I_BIRTH_YEAR, indexedVal, predicate)).to.be.eq(undefined);
+			expect(store.remove(PersonIndexes.I_BIRTH_YEAR, indexedVal, predicate)).to.be.eq(undefined);
 			expect(store.size).to.be.eq(originalSize);
 		});
 
 		it('should delete entries from primary index', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 			expect(store.size).to.be.eq(PersonsRepo.length);
@@ -929,7 +926,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should remove entries from secondary indexes', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 
@@ -970,7 +967,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should be able to insert same record after it was deleted', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 			expect(store.size).to.be.eq(PersonsRepo.length);
@@ -992,15 +989,15 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('throw when predicate is not provided for secondary indexes', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 
-			const throwable = () => store.remove(Indexes.I_BIRTH_YEAR, string.ofLength(5));
+			const throwable = () => store.remove(PersonIndexes.I_BIRTH_YEAR, string.ofLength(5));
 			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
 		});
 
 		it('should remove record that was not indexed for one of the indexes', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 
@@ -1010,7 +1007,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				dotprop.set(candidate, index, null);
 			}
 
-			const indexWithVal = Indexes.II_COUNTRY_CODE;
+			const indexWithVal = PersonIndexes.II_COUNTRY_CODE;
 			dotprop.set(candidate, indexWithVal, string.ofLength(2));
 			store.insert([candidate]);
 
@@ -1035,7 +1032,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('clears all entries from storage', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 			expect(store.size).to.be.eq(PersonsRepo.length);
@@ -1050,7 +1047,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('clears all entries but preserves indexes', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const store = new IndexedStore<Person>({ indexes });
 			store.insert(PersonsRepo);
 			expect(store.size).to.be.eq(PersonsRepo.length);
@@ -1066,7 +1063,7 @@ describe(`${IndexedStore.name} spec`, () => {
 
 	describe(`${IndexedStore.prototype.getIndexRecordsCount.name} spec`, () => {
 		it('each index contains distinct records', () => {
-			const indexes: Array<IndexName<Person>> = Object.values(Indexes);
+			const indexes: Array<IndexName<Person>> = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1119,7 +1116,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should map values from secondary index', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1136,7 +1133,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should map values from index value', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1166,7 +1163,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should filter storage records', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1182,7 +1179,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should filter secondary index records', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1208,7 +1205,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should filter records from index value', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1218,9 +1215,9 @@ describe(`${IndexedStore.name} spec`, () => {
 				return desiredBirthYearRange.includes(person.birthYear);
 			}
 
-			const indexVal = dotprop.get(randomPerson(), Indexes.II_COUNTRY_CODE) as IndexValue;
-			const filtered = storage.filter(predicate, Indexes.II_COUNTRY_CODE, indexVal);
-			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, Indexes.II_COUNTRY_CODE) === indexVal && predicate(person));
+			const indexVal = dotprop.get(randomPerson(), PersonIndexes.II_COUNTRY_CODE) as IndexValue;
+			const filtered = storage.filter(predicate, PersonIndexes.II_COUNTRY_CODE, indexVal);
+			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, PersonIndexes.II_COUNTRY_CODE) === indexVal && predicate(person));
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
 			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
@@ -1238,7 +1235,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should find record from storage', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1252,7 +1249,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should not find non existing record in the storage', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1267,7 +1264,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should find record in the secondary indexes', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1283,7 +1280,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should find records from index value', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
@@ -1292,8 +1289,8 @@ describe(`${IndexedStore.name} spec`, () => {
 			dotprop.set(record, PRIMARY_KEY_INDEX, string.ofLength(10));
 
 			const countryCode = string.ofLength(6);
-			dotprop.set(record, Indexes.I_BIRTH_YEAR, 1990);
-			dotprop.set(record, Indexes.II_COUNTRY_CODE, countryCode);
+			dotprop.set(record, PersonIndexes.I_BIRTH_YEAR, 1990);
+			dotprop.set(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
 			storage.insert([record]);
 
 			const desiredBirthYearRange = Array.from(range(1990, 1995));
@@ -1301,7 +1298,7 @@ describe(`${IndexedStore.name} spec`, () => {
 				return desiredBirthYearRange.includes(person.birthYear);
 			}
 
-			const match = storage.find(predicate, Indexes.II_COUNTRY_CODE, countryCode);
+			const match = storage.find(predicate, PersonIndexes.II_COUNTRY_CODE, countryCode);
 			expect(match).to.be.deep.eq(record);
 		});
 	});
@@ -1313,7 +1310,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should return all values from storage', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 
@@ -1334,7 +1331,7 @@ describe(`${IndexedStore.name} spec`, () => {
 		});
 
 		it('should iterate over all records from storage', () => {
-			const indexes = Object.values(Indexes);
+			const indexes = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);

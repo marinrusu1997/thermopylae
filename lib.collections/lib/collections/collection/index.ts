@@ -1,5 +1,5 @@
-import { Mapper, Nullable, ObjMap } from '@thermopylae/core.declarations';
-import { Observable, Subject } from 'rxjs';
+import { Mapper, Nullable, ObjMap, Optional } from '@thermopylae/core.declarations';
+import createSubject, { Subject, Subscribable } from 'rx-subject';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { JSONSchema } from 'json-schema-typed';
 import Ajv from 'ajv';
@@ -71,7 +71,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		options = options || {};
 
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
-		this.notifier = new Subject<DocumentNotification<Document>>();
+		this.notifier = createSubject<DocumentNotification<Document>>();
 		this.identity = options.documentsIdentity != null ? options.documentsIdentity : DocumentIdentity.ORIGINAL;
 
 		this.retriever = new Retriever<Document>(this.storage, options.validateQueries);
@@ -104,7 +104,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 		this.storage.insert(documents);
 
-		this.notifier.next({
+		this.notifier.sink.next({
 			action: DocumentOperation.CREATED,
 			documents
 		});
@@ -127,19 +127,19 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	public update(query: Query<Document>, update: ObjMap, criteria?: Partial<UpdateCriteria<Document>>): Array<Document> {
 		const matches = this.find(query, criteria);
 
-		let original: Array<Document>;
+		let original: Optional<Array<Document>>;
 		if (!(criteria && criteria.returnUpdates)) {
 			original = Processor.clone(matches);
 		}
 
 		this.processor.update(matches, update);
 
-		this.notifier.next({
+		this.notifier.sink.next({
 			action: DocumentOperation.UPDATED,
 			documents: matches
 		});
 
-		return original! || matches;
+		return original || matches;
 	}
 
 	public delete(query: Query<Document>, criteria?: Partial<DeleteCriteria<Document>>): Array<Document> {
@@ -152,7 +152,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	public clear(): void {
 		this.storage.clear();
-		this.notifier.next({
+		this.notifier.sink.next({
 			action: DocumentOperation.CLEARED,
 			// @ts-ignore
 			documents: null
@@ -161,7 +161,9 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	public drop(): void {
 		this.clear();
-		this.notifier.complete();
+		if (this.notifier.sink.complete != null) {
+			this.notifier.sink.complete();
+		}
 	}
 
 	// FIXME aggregate
@@ -174,8 +176,8 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.storage.map(mapper, criteria.index.key, criteria.index.value);
 	}
 
-	public watch(): Observable<DocumentNotification<Document>> {
-		return this.notifier;
+	public watch(): Subscribable<DocumentNotification<Document>> {
+		return this.notifier.source$;
 	}
 
 	public createIndexes(...indexes: Array<IndexedKey<Document>>): void {
@@ -196,9 +198,8 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			return;
 		}
 
-		let i = indexes.length;
-		while (i--) {
-			this.storage.dropIndex(indexes[i]);
+		for (const index of indexes) {
+			this.storage.dropIndex(index);
 		}
 	}
 
@@ -214,7 +215,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 				this.storage.remove(PRIMARY_KEY_INDEX, matches[i][PRIMARY_KEY_INDEX]);
 			}
 
-			this.notifier.next({
+			this.notifier.sink.next({
 				action: DocumentOperation.DELETED,
 				documents: matches
 			});

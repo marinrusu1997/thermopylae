@@ -6,7 +6,6 @@ const gulp = require('gulp');
 const replace = require('gulp-replace');
 const { notNull } = require('../../utils');
 const {
-    PLACEHOLDERS,
     PLACEHOLDER_VALUES,
     SPAWN_OPTIONS,
     ModuleLang
@@ -92,34 +91,19 @@ function unStageTsConfig(done) {
 }
 
 function replacePlaceholdersInReadme() {
-    return gulp.src(['./README.md'])
-        .pipe(
-            replace(
-                PLACEHOLDERS.HOMEPAGE_URL,
-                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.HOMEPAGE_URL))
-            )
-        )
-        .pipe(
-            replace(
-                PLACEHOLDERS.DOCUMENTATION_URL,
-                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.DOCUMENTATION_URL))
-            )
-        )
-        .pipe(
-            replace(
-                PLACEHOLDERS.LICENSE_URL,
-                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.LICENSE_URL))
-            )
-        )
-        .pipe(
-            replace(
-                PLACEHOLDERS.VCS_URL,
-                notNull(PLACEHOLDER_VALUES.get(PLACEHOLDERS.VCS_URL))
-            )
-        )
-        .pipe(
-            gulp.dest('./')
-        );
+    const pathToTemplate = './templates/README.md';
+    if (!fs.existsSync(pathToTemplate)) {
+        console.warn(`README template not found at path ${pathToTemplate}.`);
+        return Promise.resolve();
+    }
+
+    let pipeline = gulp.src([pathToTemplate]);
+
+    for (const [placeholder, value] of PLACEHOLDER_VALUES) {
+        pipeline = pipeline.pipe(replace(placeholder, notNull(value)));
+    }
+
+    return pipeline.pipe(gulp.dest('./'));
 }
 
 function buildFactory(module, gulp) {

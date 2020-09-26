@@ -5,7 +5,7 @@
         "library",
         "utils"
     ],
-    "version": "0.0.1600887552",
+    "version": "0.0.1601132809",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://bitbucket.org/marinrusu1997/framework/src/master/lib.utils/",
     "license": "ISC",
@@ -39,6 +39,7 @@
         "node": ">=14"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "convert-hrtime": "3",
         "fast-copy": "2",
@@ -47,7 +48,6 @@
         "uuid": "7"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/convert-hrtime": "3",

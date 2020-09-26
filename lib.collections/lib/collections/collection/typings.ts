@@ -1,4 +1,4 @@
-import { Cloneable, SortDirection, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Cloneable, UnaryPredicate } from '@thermopylae/core.declarations';
 // eslint-disable-next-line import/no-unresolved
 import { QueryConditions } from '@b4dnewz/mongodb-operators';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
@@ -9,6 +9,11 @@ type IndexedKey<Document> = KeyOf<Document> | string;
 type SortFields<Document> = Record<IndexedKey<Document>, SortDirection>;
 
 type Query<Document> = QueryConditions<Document> | UnaryPredicate<Document>;
+
+const enum SortDirection {
+	ASCENDING = 'asc',
+	DESCENDING = 'desc'
+}
 
 const enum MongooseOperators {
 	GREATER = '$gt',
@@ -96,5 +101,6 @@ export {
 	IndexCriteria,
 	DocumentContract,
 	QueryConditions,
-	MongooseOperators
+	MongooseOperators,
+	SortDirection
 };

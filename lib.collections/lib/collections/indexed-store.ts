@@ -1,11 +1,11 @@
 import dotprop from 'dot-prop';
-import { Mapper, Nullable, ObjMap, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Mapper, Nullable, ObjMap, Optional, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../error';
 
 const PRIMARY_KEY_INDEX = 'id';
 
 type IndexName<Recordable> = Exclude<keyof Recordable, symbol | number> | string;
-type IndexValue = Optional<Nullable<string | number>>;
+type IndexValue = Undefinable<Nullable<string | number>>;
 
 type Index<Recordable> = Map<IndexValue, Array<Recordable>>;
 
@@ -157,7 +157,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	public createIndexes(newIndexProperties: ReadonlyArray<IndexName<IndexedRecord>>): void {
+	public createIndexes(newIndexProperties: Array<IndexName<IndexedRecord>>): void {
 		IndexedStore.defineIndexes(this.indexRepo, newIndexProperties);
 
 		let newIndex: Index<IndexedRecord>;
