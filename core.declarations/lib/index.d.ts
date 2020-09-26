@@ -30,10 +30,22 @@ export interface Identity {
 	hashCode(): string;
 }
 
+export const enum ErrorCodes {
+	NOT_ALLOWED = 'NOT_ALLOWED',
+	NOT_FOUND = 'NOT_FOUND',
+	INVALID_TYPE = 'INVALID_TYPE',
+	INVALID_VALUE = 'INVALID_VALUE',
+	EXISTS = 'EXISTS',
+	REQUIRED = 'REQUIRED',
+	UNKNOWN = 'UNKNOWN'
+}
+
 export const enum Library {
 	ASYNC = 'LIB_ASYNC',
 	CACHE = 'LIB_CACHE',
-	COLLECTIONS = 'LIB_COLLECTIONS',
+	INDEXED_STORE = 'LIB_INDEXED_STORE',
+	COLLECTION = 'LIB_COLLECTION',
+	HEAP = 'LIB_HEAP',
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
@@ -165,6 +177,7 @@ export type Mapper<T, U = T> = (val: T) => U;
 export type AsyncMapper<T, U = T> = (val: T) => Promise<U>;
 
 export type Equals<T> = (first: T, second: T) => boolean;
+export type Comparator<T> = (first: T, second: T) => ComparisonResult;
 
 export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 export type PromiseReject = (reason?: any) => void;

@@ -1,0 +1,56 @@
+{
+    "name": "@thermopylae/lib.heap",
+    "description": "Binary heap.",
+    "keywords": [
+        "thermopylae",
+        "library",
+        "heap"
+    ],
+    "version": "0.0.1601154758",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "license": "ISC",
+    "main": "dist/index.js",
+    "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "test": "gulp test",
+        "report": "gulp report",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": ">= 14"
+    },
+    "dependencies": {
+        "@thermopylae/lib.exception": "0",
+        "lodash.isfunction": "3"
+    },
+    "devDependencies": {
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/lib.utils": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/lodash.isfunction": "3"
+    },
+    "peerDependencies": {
+        "mocha": "8"
+    },
+    "type": "commonjs"
+}
