@@ -164,6 +164,8 @@ export type BinaryPredicateAsync<T, V> = (first: T, second: V) => Promise<boolea
 export type Mapper<T, U = T> = (val: T) => U;
 export type AsyncMapper<T, U = T> = (val: T) => Promise<U>;
 
+export type Equals<T> = (first: T, second: T) => boolean;
+
 export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 export type PromiseReject = (reason?: any) => void;
 

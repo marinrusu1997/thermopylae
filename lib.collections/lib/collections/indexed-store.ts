@@ -29,7 +29,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		IndexedStore.defineIndexes(this.indexRepo, indexes);
 	}
 
-	public insert(...records: Array<IndexedRecord>): void {
+	public insert(records: Array<IndexedRecord>): void {
 		const { indexes } = this;
 
 		for (const record of records) {
@@ -96,7 +96,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	public reindex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, matcher: UnaryPredicate<IndexedRecord> | IndexValue): void {
 		if (indexName === PRIMARY_KEY_INDEX) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Can't update primary index '${indexName}' value.`);
+			throw createException(ErrorCodes.NOT_ALLOWED, `Can't reindex primary index '${indexName}' value.`);
 		}
 
 		if (oldValue === newValue) {
@@ -284,7 +284,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return IndexedStore.assertIndex(PRIMARY_KEY_INDEX, this.indexRepo.get(PRIMARY_KEY_INDEX)).size;
 	}
 
-	public get indexes(): ReadonlyArray<IndexName<IndexedRecord>> {
+	public get indexes(): Array<IndexName<IndexedRecord>> {
 		return Array.from(this.indexRepo.keys());
 	}
 
@@ -309,7 +309,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				const entry = iterator.next();
 				return {
 					done: entry.done,
-					value: entry.value && entry.value[1]
+					value: entry.value && entry.value[1][0]
 				};
 			}
 		};
@@ -332,7 +332,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	private static assertIndex<R>(indexName: IndexName<R>, index?: Index<R>): Index<R> | never {
 		if (index == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Property '${indexName} is not indexed.`);
+			throw createException(ErrorCodes.NOT_FOUND, `Property '${indexName}' is not indexed.`);
 		}
 		return index;
 	}

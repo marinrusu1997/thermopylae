@@ -18,21 +18,31 @@ class Processor<Document extends DocumentContract<Document>> {
 		this.skipQueryValidation = validateQueries == null ? false : !validateQueries;
 	}
 
+	// FIXME mention about index renaming: delete + set
 	public update(matches: Array<Document>, update: ObjMap): void {
 		const { indexes } = this.storage; // they are expensive to compute
 
 		update = createUpdate(update, { skipValidate: this.skipQueryValidation });
 		const updatedIndexes = update.getUpdatedFields().filter((field: string) => indexes.includes(field)) as Array<IndexedKey<Document>>;
 
-		for (const match of matches) {
-			const snapshot = Processor.snapshotIndexableProperties(match, updatedIndexes);
+		// this code was duplicated for speed
+		if (updatedIndexes.length) {
+			for (const match of matches) {
+				const snapshot = Processor.snapshotIndexableProperties(match, updatedIndexes);
 
-			update.apply(match);
+				update.apply(match);
 
-			for (const updatedIndex of updatedIndexes) {
-				const newValue = dotprop.get(match, updatedIndex) as IndexValue;
-				this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PRIMARY_KEY_INDEX]);
+				for (const updatedIndex of updatedIndexes) {
+					const newValue = dotprop.get(match, updatedIndex) as IndexValue;
+					this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PRIMARY_KEY_INDEX]);
+				}
 			}
+
+			return;
+		}
+
+		for (const match of matches) {
+			update.apply(match);
 		}
 	}
 
@@ -51,7 +61,7 @@ class Processor<Document extends DocumentContract<Document>> {
 
 		const fields = Object.keys(sortFields);
 		if (fields.length === 0) {
-			return matches;
+			throw createException(ErrorCodes.REQUIRED, 'At leas one sorting field needs to be present. Found: 0.');
 		}
 
 		let fieldIndex = 0;

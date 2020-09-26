@@ -1,25 +1,24 @@
-import { Mapper, Nullable, ObjMap, Optional, UnaryPredicate, Undefinable } from '@thermopylae/core.declarations';
+import { Mapper, Nullable, ObjMap } from '@thermopylae/core.declarations';
 import { Observable, Subject } from 'rxjs';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { JSONSchema } from 'json-schema-typed';
 import Ajv from 'ajv';
 // @ts-ignore
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
-import dotprop from 'dot-prop';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
+import { IndexedStore, PRIMARY_KEY_INDEX } from '../indexed-store';
 import { createException, ErrorCodes } from '../../error';
 import {
 	DeleteCriteria,
 	DocumentContract,
 	FindCriteria,
+	IndexCriteria,
 	IndexedKey,
-	MapReduceCriteria,
-	Query,
-	ReplaceCriteria,
-	UpdateCriteria,
 	Projection,
 	ProjectionType,
-	QueryConditions
+	Query,
+	QueryConditions,
+	ReplaceCriteria,
+	UpdateCriteria
 } from './typings';
 import { Processor } from './processor';
 import { Retriever } from './retriever';
@@ -34,7 +33,8 @@ const enum DocumentIdentity {
 const enum DocumentOperation {
 	CREATED = 'created',
 	UPDATED = 'updated',
-	DELETED = 'deleted'
+	DELETED = 'deleted',
+	CLEARED = 'cleared'
 }
 
 interface DocumentNotification<Document> {
@@ -48,8 +48,6 @@ interface CollectionOptions<Document> {
 	documentsIdentity: DocumentIdentity;
 	validateQueries: boolean;
 }
-
-// FIXME take a look at https://www.npmjs.com/package/mingo
 
 /**
  * Collection of volatile documents which are kept indexed in process memory.
@@ -87,11 +85,15 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 	}
 
-	public get indexes(): ReadonlyArray<IndexedKey<Document>> {
+	public get indexes(): Array<IndexedKey<Document>> {
 		return this.storage.indexes;
 	}
 
-	public insert(...documents: Array<Document>): void {
+	public insert(documents: Document | Array<Document>): void {
+		if (!Array.isArray(documents)) {
+			documents = [documents];
+		}
+
 		if (this.validator) {
 			Collection.validateDocuments(this.validator, documents);
 		}
@@ -100,7 +102,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			documents = Processor.clone(documents);
 		}
 
-		this.storage.insert(...documents);
+		this.storage.insert(documents);
 
 		this.notifier.next({
 			action: DocumentOperation.CREATED,
@@ -150,6 +152,11 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	public clear(): void {
 		this.storage.clear();
+		this.notifier.next({
+			action: DocumentOperation.CLEARED,
+			// @ts-ignore
+			documents: null
+		});
 	}
 
 	public drop(): void {
@@ -157,74 +164,41 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		this.notifier.complete();
 	}
 
-	// FIXME diff and aggregate
+	// FIXME aggregate
 
-	public distinct(field: IndexedKey<Document>, query?: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Set<IndexValue> {
-		if (field === PRIMARY_KEY_INDEX) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `All of the documents are distinct based in their primary key '${field}'.`);
+	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, criteria?: Partial<IndexCriteria<Document>>): Array<MappedDocument> {
+		if (criteria == null || criteria.index == null) {
+			return this.storage.map(mapper);
 		}
 
-		const candidates = this.retriever.retrieve(query, criteria);
-
-		const distinctValues = new Set<IndexValue>();
-
-		let value: Optional<IndexValue>;
-		for (const candidate of candidates) {
-			if ((value = dotprop.get(candidate, field)) != null) {
-				distinctValues.add(value);
-			}
-		}
-
-		return distinctValues;
-	}
-
-	public mapReduce<MappedDocument>(
-		mapper: Mapper<Document, MappedDocument>,
-		filter?: UnaryPredicate<MappedDocument>,
-		criteria?: Partial<MapReduceCriteria<Document>>
-	): ReadonlyArray<MappedDocument> {
-		if (criteria == null) {
-			criteria = {};
-		}
-
-		let onIndex: Undefinable<IndexedKey<Document>>;
-		let withValue: Undefinable<IndexValue>;
-		if (criteria.hint) {
-			onIndex = criteria.hint.index;
-			withValue = criteria.hint.value;
-		}
-
-		let transformations = this.storage.map(mapper, onIndex, withValue);
-
-		if (filter != null) {
-			transformations = transformations.filter(filter);
-		}
-
-		return transformations;
+		return this.storage.map(mapper, criteria.index.key, criteria.index.value);
 	}
 
 	public watch(): Observable<DocumentNotification<Document>> {
-		return this.notifier.asObservable();
+		return this.notifier;
 	}
 
 	public createIndexes(...indexes: Array<IndexedKey<Document>>): void {
 		this.storage.createIndexes(indexes);
 	}
 
+	public createIndexIfMissing(index: IndexedKey<Document>): boolean {
+		if (!this.storage.containsIndex(index)) {
+			this.createIndexes(index);
+			return true;
+		}
+		return false;
+	}
+
 	public dropIndexes(...indexes: Array<IndexedKey<Document>>): void {
 		if (!indexes.length) {
-			return this.storage.dropIndexes();
+			this.storage.dropIndexes();
+			return;
 		}
 
 		let i = indexes.length;
 		while (i--) {
 			this.storage.dropIndex(indexes[i]);
-		}
-	}
-
-	public ensureIndex(index: IndexedKey<Document>): void {
-		if (!this.storage.containsIndex(index)) {
-			this.createIndexes(index);
 		}
 	}
 

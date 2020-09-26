@@ -1,13 +1,17 @@
 import { beforeEach, describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
-import { Cloneable, ObjMap, SortDirection } from '@thermopylae/core.declarations';
+import { Cloneable, Equals, ObjMap, SortDirection } from '@thermopylae/core.declarations';
 import { array, chrono, number, object, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
+import { $enum } from 'ts-enum-util';
 // @ts-ignore
 import range from 'range-generator';
 import uniqBy from 'lodash.uniqby';
 import orderBy from 'lodash.orderby';
 import dotProp from 'dot-prop';
+import difference from 'array-differ';
+// @ts-ignore
+import duplicates from 'array-find-duplicates';
 import { TimedExecutionResult } from '@thermopylae/lib.utils/dist/chrono';
 import {
 	Collection,
@@ -20,10 +24,10 @@ import {
 	Query,
 	QueryConditions
 } from '../lib/collections/collection';
-import { Address, Finance, Indexes, Person, PersonJsonSchema, providePersonRepository, Transaction } from './fixtures/persons-repo';
+import { Address, Finance, Indexes, IndexValueGenerators, Person, PersonJsonSchema, providePersonRepository, Transaction } from './fixtures/persons-repo';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../lib/collections/indexed-store';
 import { ErrorCodes } from '../lib/error';
-import { MongooseOperators, ReplaceCriteria, UpdateCriteria } from '../lib/collections/collection/typings';
+import { IndexCriteria, IndexedKey, KeyOf, MongooseOperators, ReplaceCriteria, UpdateCriteria } from '../lib/collections/collection/typings';
 
 const { expect } = chai;
 
@@ -103,18 +107,53 @@ function ordered(matches: Array<PersonDocument>): Array<PersonDocument> {
 	return orderBy(matches, [PRIMARY_KEY_INDEX], ['asc']);
 }
 
-// eslint-disable-next-line mocha/no-setup-in-describe
-describe(`${Collection.name} spec`, function () {
+function assertFoundByIndexes(
+	collection: Collection<PersonDocument>,
+	documents: PersonDocument | Array<PersonDocument>,
+	indexed?: Array<IndexedKey<PersonDocument>>,
+	nonIndexed?: Array<IndexedKey<PersonDocument>>
+): void {
+	documents = Array.isArray(documents) ? documents : [documents];
+	indexed = indexed == null ? $enum(Indexes).getValues() : indexed;
+	nonIndexed = nonIndexed == null ? [] : nonIndexed;
+
+	const equals: Equals<PersonDocument> = (first, second) => first[PRIMARY_KEY_INDEX] === second[PRIMARY_KEY_INDEX];
+
+	for (const document of documents) {
+		for (const index of indexed) {
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				index: { key: index, value: dotProp.get(document, index) }
+			};
+			const matches = collection.find(null, criteria);
+			expect(matches).to.be.containing(document);
+
+			expect(duplicates(matches)).to.be.ofSize(0); // by ref
+			expect(duplicates(matches, equals)).to.be.ofSize(0); // by value
+		}
+
+		for (const nonIndex of nonIndexed) {
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				index: { key: nonIndex, value: dotProp.get(document, nonIndex) }
+			};
+			const matches = collection.find(null, criteria);
+			expect(matches).to.not.be.containing(document);
+
+			expect(duplicates(matches)).to.be.ofSize(0); // by ref
+			expect(duplicates(matches, equals)).to.be.ofSize(0); // by value
+		}
+	}
+}
+
+describe(`${Collection.name} spec`, () => {
 	beforeEach(async () => {
 		const persons = await providePersonRepository();
 		PersonsRepo = persons.map((person) => new PersonDocument(person));
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${Collection.prototype.insert.name} spec`, function () {
+	describe(`${Collection.prototype.insert.name} spec`, () => {
 		it('inserts documents without validating them', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 		});
 
@@ -122,7 +161,7 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				schema: PersonJsonSchema
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const person = array.randomElement(PersonsRepo);
@@ -137,7 +176,7 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: Object.values(Indexes)
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 			expect(collection.indexes).to.be.containingAllOf(Object.values(Indexes));
 		});
@@ -159,7 +198,7 @@ describe(`${Collection.name} spec`, function () {
 				}
 			});
 
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 		});
 
 		it('emits notifications with inserted documents', (done) => {
@@ -177,13 +216,11 @@ describe(`${Collection.name} spec`, function () {
 				}
 			});
 
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${Collection.prototype.find.name} spec`, () => {
-		// eslint-disable-next-line mocha/no-setup-in-describe
 		describe(`${Collection.prototype.find.name}ById spec`, () => {
 			let suiteCollection: Collection<PersonDocument>;
 
@@ -212,8 +249,8 @@ describe(`${Collection.name} spec`, function () {
 					[PRIMARY_KEY_INDEX]: desired[PRIMARY_KEY_INDEX]
 				};
 				const criteria: Partial<FindCriteria<PersonDocument>> = {
-					hint: {
-						index: PRIMARY_KEY_INDEX,
+					index: {
+						key: PRIMARY_KEY_INDEX,
 						value: desired[PRIMARY_KEY_INDEX]
 					}
 				};
@@ -336,7 +373,7 @@ describe(`${Collection.name} spec`, function () {
 				const collection = new Collection<PersonDocument>({
 					validateQueries: false
 				});
-				collection.insert(...PersonsRepo);
+				collection.insert(PersonsRepo);
 
 				const query: Query<PersonDocument> = {
 					birthYear: {
@@ -350,7 +387,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should return all documents when query is not specified', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const matches = collection.find();
 			expect(matches.length).to.be.eq(PersonsRepo.length);
@@ -358,7 +395,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find a single document matching the query', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const minBirthYear = 1990;
 			const maxBirthYear = 1995;
@@ -401,7 +438,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should return the first document when multiple docs were matched', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const query: Query<PersonDocument> = {
@@ -419,7 +456,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find a single document matching the predicate', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const minBirthYear = 1990;
 			const maxBirthYear = 1995;
@@ -467,7 +504,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find a single document and apply projection', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const minBirthYear = 1990;
 			const maxBirthYear = 1995;
@@ -542,7 +579,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find a single document and sort it', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const desired = array.randomElement(PersonsRepo);
 
@@ -561,7 +598,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find multiple documents and sort them by a single property (ASCENDING)', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
 				birthYear: {
@@ -606,7 +643,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find multiple documents and sort them by a single property (DESCENDING)', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
 				birthYear: {
@@ -631,7 +668,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should find multiple documents and sort them by multiple properties', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const toBeRetrievedLater = [
 				new PersonDocument({
@@ -723,7 +760,7 @@ describe(`${Collection.name} spec`, function () {
 					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				})
 			];
-			collection.insert(...toBeRetrievedLater);
+			collection.insert(toBeRetrievedLater);
 
 			const query: QueryConditions<PersonDocument> = {
 				[PRIMARY_KEY_INDEX]: {
@@ -752,11 +789,79 @@ describe(`${Collection.name} spec`, function () {
 			}
 		});
 
+		it('should find documents from index and sort them (ASCENDING)', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.I_BIRTH_YEAR]
+			});
+			collection.insert(PersonsRepo);
+
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				index: {
+					key: Indexes.I_BIRTH_YEAR
+				},
+				sort: {
+					[Indexes.I_BIRTH_YEAR]: SortDirection.ASCENDING
+				}
+			};
+			const matches = collection.find(null, criteria);
+			const crossCheck = orderBy(PersonsRepo, [Indexes.I_BIRTH_YEAR], ['asc']);
+
+			expect(matches).to.be.ofSize(crossCheck.length);
+			for (let i = 0; i < crossCheck.length; i++) {
+				expect(matches[i]).to.be.eq(crossCheck[i]);
+			}
+		});
+
+		it('should find documents and sort them on properties that might be null', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.I_BIRTH_YEAR]
+			});
+
+			const sortFields: Array<KeyOf<Person>> = ['birthYear', 'firstName'];
+			const nullables = [null, undefined];
+
+			const docsNo = number.randomInt(1, 10);
+			const documents = new Array<PersonDocument>(docsNo);
+
+			for (let i = 0; i < docsNo; i++) {
+				const document = generatePersonDocument();
+				dotProp.set(document, array.randomElement(sortFields), array.randomElement(nullables));
+				collection.insert(document);
+				documents[i] = document;
+			}
+
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				sort: {
+					birthYear: SortDirection.DESCENDING,
+					firstName: SortDirection.ASCENDING
+				}
+			};
+			const matches = collection.find(null, criteria);
+			const crossCheck = orderBy(documents, sortFields, ['desc', 'asc']);
+
+			expect(matches).to.be.ofSize(crossCheck.length);
+			for (let i = 0; i < crossCheck.length; i++) {
+				expect(matches[i]).to.be.eq(crossCheck[i]);
+			}
+		});
+
+		it('should throw when no sorting fields are given', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+
+			const criteria: Partial<FindCriteria<PersonDocument>> = {
+				sort: {}
+			};
+
+			const throwable = () => collection.find(null, criteria);
+			expect(throwable).to.throw('At leas one sorting field needs to be present. Found: 0.');
+		});
+
 		it('should find multiple documents using specified index', () => {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: [Indexes.II_COUNTRY_CODE]
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
 				// @ts-ignore
@@ -766,8 +871,8 @@ describe(`${Collection.name} spec`, function () {
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: true,
-				hint: {
-					index: Indexes.II_COUNTRY_CODE
+				index: {
+					key: Indexes.II_COUNTRY_CODE
 				}
 			};
 
@@ -794,12 +899,12 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: [Indexes.II_COUNTRY_CODE]
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: true,
-				hint: {
-					index: Indexes.II_COUNTRY_CODE,
+				index: {
+					key: Indexes.II_COUNTRY_CODE,
 					value: dotProp.get(array.randomElement(PersonsRepo), Indexes.II_COUNTRY_CODE)
 				}
 			};
@@ -807,12 +912,12 @@ describe(`${Collection.name} spec`, function () {
 			const matches = collection.find(null, criteria);
 			expect(matches.length).to.be.gt(0);
 
-			const crossCheck = PersonsRepo.filter((person) => dotProp.get(person, Indexes.II_COUNTRY_CODE) === criteria.hint!.value);
+			const crossCheck = PersonsRepo.filter((person) => dotProp.get(person, Indexes.II_COUNTRY_CODE) === criteria.index!.value);
 			expect(matches).to.be.containingAllOf(crossCheck);
 
 			for (const match of matches) {
 				const actual = dotProp.get(match, Indexes.II_COUNTRY_CODE) as string;
-				const expected = criteria.hint!.value;
+				const expected = criteria.index!.value;
 				expect(actual).to.be.eq(expected);
 			}
 		});
@@ -821,7 +926,7 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				documentsIdentity: DocumentIdentity.CLONE
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const minBirthYear = 1990;
 			const maxBirthYear = 1995;
@@ -878,7 +983,7 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: [Indexes.II_COUNTRY_CODE]
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
 				// @ts-ignore
@@ -886,8 +991,8 @@ describe(`${Collection.name} spec`, function () {
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: true,
-				hint: {
-					index: Indexes.II_COUNTRY_CODE,
+				index: {
+					key: Indexes.II_COUNTRY_CODE,
 					value: dotProp.get(array.randomElement(PersonsRepo), Indexes.II_COUNTRY_CODE)
 				}
 			};
@@ -900,14 +1005,14 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: [Indexes.II_COUNTRY_CODE]
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const query: QueryConditions<PersonDocument> = {
 				[PRIMARY_KEY_INDEX]: string.ofLength(5, /[0-9]/)
 			};
 			const criteria: Partial<FindCriteria<PersonDocument>> = {
 				multiple: false,
-				hint: { index: Indexes.II_COUNTRY_CODE },
+				index: { key: Indexes.II_COUNTRY_CODE },
 				sort: { birthYear: SortDirection.ASCENDING },
 				projection: {
 					fields: ['finance'],
@@ -920,11 +1025,10 @@ describe(`${Collection.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
-	describe(`${Collection.prototype.replace.name} spec`, function () {
+	describe(`${Collection.prototype.replace.name} spec`, () => {
 		it('should replace a single document', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const replaced = array.randomElement(PersonsRepo);
@@ -949,7 +1053,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should replace multiple documents with a single one', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const docsToBeReplaced = randomDocuments();
@@ -962,7 +1066,7 @@ describe(`${Collection.name} spec`, function () {
 			};
 			const criteria: Partial<ReplaceCriteria<PersonDocument>> = {
 				multiple: true,
-				hint: { index: PRIMARY_KEY_INDEX }
+				index: { key: PRIMARY_KEY_INDEX }
 			};
 			const oldDocs = collection.replace(queryForOldDocs, replacement, criteria);
 
@@ -981,7 +1085,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should upsert replacement if document for given query was not found', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const replaced = generatePersonDocument(); // it's not present
@@ -1009,7 +1113,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('when search criteria says not to upsert should not upsert replacement if document for given query was not found', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const replaced = generatePersonDocument(); // it's not present
@@ -1035,7 +1139,7 @@ describe(`${Collection.name} spec`, function () {
 			const collection = new Collection<PersonDocument>({
 				documentsIdentity: DocumentIdentity.CLONE
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const replaced = array.randomElement(PersonsRepo);
 			const replacement = generatePersonDocument();
@@ -1057,7 +1161,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should notify when old document was removed and replaced', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 
 			const notifications = new Array<DocumentNotification<PersonDocument>>();
 			collection.watch().subscribe((notification) => notifications.push(notification));
@@ -1125,19 +1229,67 @@ describe(`${Collection.name} spec`, function () {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${Collection.prototype.update.name} spec`, () => {
 		describe('update validation spec', () => {
-			it('should validate update by default', () => {});
+			it('should validate update by default', () => {
+				const collection = new Collection<PersonDocument>();
+				collection.insert(PersonsRepo);
 
-			it('should validate update explicitly', () => {});
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: randomDocuments(1, 1)[0][PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$fff: {
+						$bb: string.ofLength(5, /[A-Za-z]/)
+					}
+				};
 
-			it('should not validate update', () => {});
+				const updateOp = () => collection.update(query, update);
+				expect(updateOp).to.throw('Invalid update: Unrecognized updated operator: $fff');
+			});
+
+			it('should validate update explicitly', () => {
+				const collection = new Collection<PersonDocument>({
+					validateQueries: true
+				});
+				collection.insert(PersonsRepo);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: randomDocuments(1, 1)[0][PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$fff: {
+						$bb: string.ofLength(5, /[A-Za-z]/)
+					}
+				};
+
+				const updateOp = () => collection.update(query, update);
+				expect(updateOp).to.throw('Invalid update: Unrecognized updated operator: $fff');
+			});
+
+			it('should not validate update', () => {
+				const collection = new Collection<PersonDocument>({
+					validateQueries: false
+				});
+				collection.insert(PersonsRepo);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: randomDocuments(1, 1)[0][PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$fff: {
+						$bb: string.ofLength(5, /[A-Za-z]/)
+					}
+				};
+
+				const updateOp = () => collection.update(query, update);
+				expect(updateOp).to.not.throw('bla bla');
+			});
 		});
 
 		it('should update a single document', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const toBeUpdated = array.randomElement(PersonsRepo);
@@ -1173,7 +1325,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should update multiple documents', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const toBeUpdated = ordered(randomDocuments(2, 5));
@@ -1232,7 +1384,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should return updated documents', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const toBeUpdated = array.randomElement(PersonsRepo);
@@ -1270,7 +1422,7 @@ describe(`${Collection.name} spec`, function () {
 
 		it('should not allow update of the primary index', () => {
 			const collection = new Collection<PersonDocument>();
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const original = array.randomElement(PersonsRepo).clone();
@@ -1284,39 +1436,21 @@ describe(`${Collection.name} spec`, function () {
 				}
 			};
 
-			expect(() => collection.update(query, update)).to.throw(`Updating ${PRIMARY_KEY_INDEX} is not allowed.`);
+			expect(() => collection.update(query, update)).to.throw(`Can't reindex primary index '${PRIMARY_KEY_INDEX}' value.`);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const match = collection.find(query);
-			expect(match).to.be.ofSize(1);
-			expect(match[0]).to.be.deep.eq(original); // it didn't touched anything
+			const nonExistentDoc = collection.find(query);
+			expect(nonExistentDoc).to.be.ofSize(0);
 		});
 
-		it('should update indexes when they are changed', () => {
+		it('should update indexes when they values are changed', () => {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: Object.values(Indexes)
 			});
-			collection.insert(...PersonsRepo);
+			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			function findByIndexes(documents: Array<PersonDocument>): void {
-				for (const document of documents) {
-					for (const index of Object.values(Indexes)) {
-						const criteria: Partial<FindCriteria<PersonDocument>> = {
-							hint: { index, value: dotProp.get(document, index) }
-						};
-						const matches = collection.find(null, criteria);
-						expect(
-							matches,
-							`Document '${JSON.stringify(document)}' not found for index '${index}' with value '${
-								criteria.hint!.value
-							}'. Matches were: ${JSON.stringify(matches)}.`
-						).to.be.containing(document);
-					}
-				}
-			}
-
-			const toBeUpdated = ordered(randomDocuments(2, 5));
+			const toBeUpdated = ordered(randomDocuments(20, 30));
 
 			const query: Query<PersonDocument> = {
 				[PRIMARY_KEY_INDEX]: {
@@ -1329,24 +1463,535 @@ describe(`${Collection.name} spec`, function () {
 			};
 			const update = {
 				$set: {
-					[Indexes.I_BIRTH_YEAR]: number.randomInt(1990, 2000),
-					[Indexes.II_COUNTRY_CODE]: string.ofLength(2, /[A-Z]/),
+					[Indexes.I_BIRTH_YEAR]: number.randomInt(2010, 2020),
+					[Indexes.II_COUNTRY_CODE]: string.ofLength(3, /[A-Z]/),
 					[Indexes.III_BANK_NAME]: string.ofLength(5, /[a-zA-Z]/)
 				}
 			};
 
-			findByIndexes(toBeUpdated); // finds by old values of indexes
+			assertFoundByIndexes(collection, toBeUpdated); // finds by old values of indexes
 
 			const updatedDocs = collection.update(query, update, criteria);
 			expect(updatedDocs).to.be.ofSize(toBeUpdated.length);
 
-			findByIndexes(updatedDocs); // finds by new values of indexes
+			assertFoundByIndexes(collection, updatedDocs); // finds by new values of indexes
 		});
 
-		it('should remove indexes when they are nullified', () => {});
+		it('should update indexes when one of the updates nullifies index, but another sets it back to new value', () => {
+			const indexNames = Object.values(Indexes);
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-		it('should remove indexes when they are removed', () => {});
+			const toBeUpdated = ordered(randomDocuments(20, 30));
 
-		it("should reindex when index is set after it's removal", () => {});
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate);
+
+				const updatedIdx = array.randomElement(indexNames);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$unset: {
+						[updatedIdx]: ''
+					},
+					$set: {
+						[updatedIdx]: IndexValueGenerators.get(updatedIdx)!()
+					}
+				};
+
+				expect(collection.update(query, update)).to.be.ofSize(1);
+
+				assertFoundByIndexes(collection, toUpdate); // index was updated with new value
+			}
+		});
+
+		it('should remove indexes when they are nullified', () => {
+			const indexNames = Object.values(Indexes);
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(30, 40));
+			const nullables = [null, undefined];
+
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate);
+
+				const nullifiedIndex = array.randomElement(indexNames);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$set: {
+						[nullifiedIndex]: array.randomElement(nullables)
+					}
+				};
+
+				expect(collection.update(query, update)).to.be.ofSize(1);
+
+				const nonIndexed = [nullifiedIndex];
+				const indexed = difference(indexNames, nonIndexed);
+				assertFoundByIndexes(collection, toUpdate, indexed, nonIndexed);
+			}
+		});
+
+		it('should remove indexes when their property names are removed', () => {
+			const indexNames = Object.values(Indexes);
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(30, 40));
+
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate);
+
+				const nullifiedIndex = array.randomElement(indexNames);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$unset: {
+						[nullifiedIndex]: ''
+					}
+				};
+
+				expect(collection.update(query, update)).to.be.ofSize(1);
+
+				const nonIndexed = [nullifiedIndex];
+				const indexed = difference(indexNames, nonIndexed);
+				assertFoundByIndexes(collection, toUpdate, indexed, nonIndexed);
+			}
+		});
+
+		it('should remove indexes when their property names are renamed', () => {
+			const indexNames = Object.values(Indexes);
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(30, 40));
+
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate);
+
+				const renamedIndex = array.randomElement(indexNames);
+				const newName = string.ofLength(5, /[a-zA-z]/);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$rename: {
+						[renamedIndex]: newName
+					}
+				};
+
+				expect(collection.update(query, update)).to.be.ofSize(1);
+
+				const nonIndexed = [renamedIndex];
+				const indexed = difference(indexNames, nonIndexed);
+				assertFoundByIndexes(collection, toUpdate, indexed, nonIndexed);
+
+				const bringNameBackUpdate = {
+					$unset: {
+						[newName]: ''
+					},
+					$set: {
+						[renamedIndex]: dotProp.get(toUpdate, newName)
+					}
+				};
+				expect(collection.update(query, bringNameBackUpdate)).to.be.ofSize(1);
+
+				assertFoundByIndexes(collection, toUpdate);
+			}
+		});
+
+		it('should index again after index removal', () => {
+			const indexNames = Object.values(Indexes);
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(30, 40));
+			const nullables = [null, undefined];
+
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate);
+
+				const nullifiedIndex = array.randomElement(indexNames);
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$set: {
+						[nullifiedIndex]: array.randomElement(nullables)
+					}
+				};
+
+				expect(collection.update(query, update)).to.be.ofSize(1);
+
+				const nonIndexed = [nullifiedIndex];
+				const indexed = difference(indexNames, nonIndexed);
+				assertFoundByIndexes(collection, toUpdate, indexed, nonIndexed);
+
+				const createIndexBackUpdate = {
+					$set: {
+						[nullifiedIndex]: IndexValueGenerators.get(nullifiedIndex)!()
+					}
+				};
+
+				expect(collection.update(query, createIndexBackUpdate)).to.be.ofSize(1);
+				assertFoundByIndexes(collection, toUpdate);
+			}
+		});
+
+		it('should throw when updates for index cancel each other (i.e. it remains with same value after all updates)', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: [Indexes.I_BIRTH_YEAR]
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeUpdated = ordered(randomDocuments(10, 15));
+
+			for (const toUpdate of toBeUpdated) {
+				assertFoundByIndexes(collection, toUpdate, [Indexes.I_BIRTH_YEAR]); // it finds it
+
+				const query: Query<PersonDocument> = {
+					[PRIMARY_KEY_INDEX]: toUpdate[PRIMARY_KEY_INDEX]
+				};
+				const update = {
+					$inc: {
+						[Indexes.I_BIRTH_YEAR]: 10
+					},
+					$set: {
+						[Indexes.I_BIRTH_YEAR]: dotProp.get(toUpdate, Indexes.I_BIRTH_YEAR)
+					}
+				};
+
+				const throwable = () => collection.update(query, update);
+				expect(throwable).to.throw(`New and old values for index 'birthYear' are the same: ${dotProp.get(toUpdate, Indexes.I_BIRTH_YEAR)}.`);
+
+				assertFoundByIndexes(collection, toUpdate, [Indexes.I_BIRTH_YEAR]); // finds it again because it was not modified
+			}
+		});
+
+		it('should notify with updates', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			const toBeUpdated = array.randomElement(PersonsRepo);
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: toBeUpdated[PRIMARY_KEY_INDEX]
+			};
+			const update = {
+				$set: {
+					firstName: string.ofLength(5, /[A-Za-z]/)
+				}
+			};
+			const criteria: Partial<UpdateCriteria<PersonDocument>> = {
+				returnUpdates: true
+			};
+			const updatedDocs = collection.update(query, update, criteria);
+			expect(updatedDocs).to.be.ofSize(1);
+
+			expect(notifications).to.be.ofSize(1);
+			expect(notifications[0].action).to.be.eq(DocumentOperation.UPDATED);
+			expect(notifications[0].documents).to.be.equalTo(updatedDocs);
+		});
+	});
+
+	describe(`${Collection.prototype.delete.name} spec`, () => {
+		it('should delete document by id', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeDeleted = array.randomElement(PersonsRepo);
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: toBeDeleted[PRIMARY_KEY_INDEX]
+			};
+
+			const deleted = collection.delete(query);
+			expect(collection.count).to.be.eq(PersonsRepo.length - 1); // it was removed
+			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+
+			const notFoundDoc = collection.find(query);
+			expect(notFoundDoc).to.be.ofSize(0);
+		});
+
+		it('should delete multiple documents', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeDeleted = randomDocuments(10, 15);
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: toBeDeleted.map((doc) => doc[PRIMARY_KEY_INDEX])
+				}
+			};
+
+			const deleted = collection.delete(query);
+			expect(collection.count).to.be.eq(PersonsRepo.length - toBeDeleted.length); // it was removed
+			expect(deleted).to.be.ofSize(toBeDeleted.length);
+			expect(deleted).to.be.containingAllOf(toBeDeleted); // the right ones
+
+			const notFoundDoc = collection.find(query);
+			expect(notFoundDoc).to.be.ofSize(0);
+		});
+
+		it('should de-index deleted documents', () => {
+			const collection = new Collection<PersonDocument>({
+				indexKeys: $enum(Indexes).getValues()
+			});
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeDeleted = randomDocuments(10, 15);
+			assertFoundByIndexes(collection, toBeDeleted);
+
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: {
+					$in: toBeDeleted.map((doc) => doc[PRIMARY_KEY_INDEX])
+				}
+			};
+			const deleted = collection.delete(query);
+			expect(deleted).to.be.ofSize(toBeDeleted.length);
+			const notFoundDoc = collection.find(query);
+			expect(notFoundDoc).to.be.ofSize(0);
+
+			assertFoundByIndexes(collection, toBeDeleted, [], collection.indexes);
+		});
+
+		it('should notify about removed documents', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			const toBeDeleted = array.randomElement(PersonsRepo);
+			const query: Query<PersonDocument> = {
+				[PRIMARY_KEY_INDEX]: toBeDeleted[PRIMARY_KEY_INDEX]
+			};
+			const deleted = collection.delete(query);
+			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+
+			expect(notifications).to.be.ofSize(1);
+			expect(notifications[0].action).to.be.eq(DocumentOperation.DELETED);
+			expect(notifications[0].documents).to.be.equalTo(deleted);
+		});
+	});
+
+	describe(`${Collection.prototype.clear.name} spec`, () => {
+		it('clears all documents', () => {
+			const collection = new Collection<PersonDocument>();
+
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			collection.clear();
+			expect(collection.count).to.be.eq(0);
+
+			expect(collection.find()).to.be.equalTo([]);
+		});
+
+		it('notifies about clearing', () => {
+			const collection = new Collection<PersonDocument>();
+
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe((notification) => notifications.push(notification));
+
+			collection.clear();
+			expect(notifications).to.be.ofSize(1);
+			expect(notifications[0].action).to.be.eq(DocumentOperation.CLEARED);
+			expect(notifications[0].documents).to.be.eq(null);
+		});
+	});
+
+	describe(`${Collection.prototype.drop.name} spec`, () => {
+		it('clears documents and cancels observables', () => {
+			const collection = new Collection<PersonDocument>();
+
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			let completions = 0;
+			const notifications = new Array<DocumentNotification<PersonDocument>>();
+			collection.watch().subscribe({
+				next(notification) {
+					notifications.push(notification);
+				},
+				complete() {
+					completions += 1;
+				}
+			});
+			collection.watch().subscribe({
+				next(notification) {
+					notifications.push(notification);
+				},
+				complete() {
+					completions += 1;
+				}
+			});
+
+			collection.drop();
+
+			expect(notifications).to.be.ofSize(2);
+			for (const notification of notifications) {
+				expect(notification.action).to.be.eq(DocumentOperation.CLEARED);
+				expect(notification.documents).to.be.eq(null);
+			}
+
+			expect(completions).to.be.eq(2);
+		});
+	});
+
+	describe(`${Collection.prototype.map.name} spec`, () => {
+		it('should map all documents', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+
+			const primaryKeys = collection.map((doc) => doc[PRIMARY_KEY_INDEX]);
+			const primaryKeysCrossCheck = PersonsRepo.map((person) => person[PRIMARY_KEY_INDEX]);
+
+			expect(primaryKeys).to.be.ofSize(PersonsRepo.length);
+			expect(primaryKeysCrossCheck).to.be.ofSize(PersonsRepo.length);
+			expect(primaryKeys).to.be.containingAllOf(primaryKeysCrossCheck);
+		});
+
+		it('should map documents from index', () => {
+			const indexNames = $enum(Indexes).getValues();
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+
+			const indexName = array.randomElement(indexNames);
+			const indexValue = dotProp.get(randomDocuments(1, 1)[0], indexName) as IndexValue;
+			const criteria: IndexCriteria<PersonDocument> = {
+				index: {
+					key: indexName,
+					value: indexValue
+				}
+			};
+			const primaryKeys = collection.map((doc) => doc[PRIMARY_KEY_INDEX], criteria);
+
+			const primaryKeysCrossCheck = PersonsRepo.filter((person) => dotProp.get(person, indexName) === indexValue).map(
+				(person) => person[PRIMARY_KEY_INDEX]
+			);
+
+			expect(primaryKeys).to.be.ofSize(primaryKeysCrossCheck.length);
+			expect(primaryKeys).to.be.containingAllOf(primaryKeysCrossCheck);
+		});
+	});
+
+	describe('indexes spec', () => {
+		it('should create index', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+
+			const indexNames = $enum(Indexes).getValues();
+			collection.createIndexes(...indexNames);
+
+			assertFoundByIndexes(collection, PersonsRepo, indexNames);
+		});
+
+		it('should create index only if missing', () => {
+			const indexNames = $enum(Indexes).getValues();
+			const initialIndexes = [Indexes.I_BIRTH_YEAR];
+
+			const collection = new Collection<PersonDocument>({
+				indexKeys: initialIndexes
+			});
+			collection.insert(PersonsRepo);
+
+			for (const index of indexNames) {
+				const needsToBeCreated = !initialIndexes.includes(index);
+				const created = collection.createIndexIfMissing(index);
+				expect(created).to.be.eq(needsToBeCreated);
+			}
+
+			assertFoundByIndexes(collection, PersonsRepo, indexNames);
+		});
+
+		it('should drop all indexes', () => {
+			const indexNames = $enum(Indexes).getValues();
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+
+			assertFoundByIndexes(collection, PersonsRepo, indexNames);
+
+			collection.dropIndexes();
+			for (const droppedIndex of indexNames) {
+				const criteria: Partial<FindCriteria<PersonDocument>> = {
+					index: { key: droppedIndex }
+				};
+				const throwable = () => collection.find(null, criteria);
+				expect(throwable).to.throw(`Property '${droppedIndex}' is not indexed.`);
+			}
+		});
+
+		it('should drop specified indexes', () => {
+			const indexNames = $enum(Indexes).getValues();
+			const collection = new Collection<PersonDocument>({
+				indexKeys: indexNames
+			});
+			collection.insert(PersonsRepo);
+
+			assertFoundByIndexes(collection, PersonsRepo, indexNames);
+
+			const toDrop = [Indexes.I_BIRTH_YEAR, Indexes.III_BANK_NAME];
+			collection.dropIndexes(...toDrop);
+			assertFoundByIndexes(collection, PersonsRepo, difference(indexNames, toDrop)); // will find only on remained indexes
+
+			for (const droppedIndex of toDrop) {
+				const criteria: Partial<FindCriteria<PersonDocument>> = {
+					index: { key: droppedIndex }
+				};
+				const throwable = () => collection.find(null, criteria);
+				expect(throwable).to.throw(`Property '${droppedIndex}' is not indexed.`);
+			}
+		});
+	});
+
+	describe('iterate spec', () => {
+		it('should iterate over all entries', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+
+			let iterations = 0;
+			for (const document of collection) {
+				expect(PersonsRepo).to.be.containing(document);
+				iterations += 1;
+			}
+			expect(iterations).to.be.eq(PersonsRepo.length);
+		});
 	});
 });

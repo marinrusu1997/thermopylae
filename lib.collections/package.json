@@ -49,17 +49,20 @@
         "@b4dnewz/mongodb-operators": "0",
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/lib.utils": "0.0.1600887552",
+        "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "@types/deep-freeze": "0",
         "@types/lodash.orderby": "4",
         "@types/lodash.uniqby": "4",
+        "array-differ": "3",
+        "array-find-duplicates": "2",
         "deep-freeze": "0",
         "json-schema-typed": "7",
         "lodash.orderby": "4",
         "lodash.uniqby": "4",
         "mocker-data-generator": "2",
-        "range-generator": "1"
+        "range-generator": "1",
+        "ts-enum-util": "4"
     },
     "peerDependencies": {
         "mocha": "8"

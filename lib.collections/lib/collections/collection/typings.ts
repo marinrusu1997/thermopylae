@@ -1,4 +1,4 @@
-import { Cloneable, PersistablePrimitive, SortDirection, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Cloneable, SortDirection, UnaryPredicate } from '@thermopylae/core.declarations';
 // eslint-disable-next-line import/no-unresolved
 import { QueryConditions } from '@b4dnewz/mongodb-operators';
 import { IndexValue, PRIMARY_KEY_INDEX } from '../indexed-store';
@@ -51,15 +51,18 @@ interface Projection<Document> {
 	fields: ReadonlyArray<IndexedKey<Document>>;
 }
 
-interface Hint<Document> {
-	index: IndexedKey<Document>;
+interface IndexedProperty<Document> {
+	key: IndexedKey<Document>;
 	value?: IndexValue;
 }
 
-interface FindCriteria<Document> {
+interface IndexCriteria<Document> {
+	index: IndexedProperty<Document>;
+}
+
+interface FindCriteria<Document> extends IndexCriteria<Document> {
 	multiple: boolean;
 	sort: SortFields<Document>;
-	hint: Hint<Document>;
 	projection: Projection<Document>;
 }
 
@@ -73,17 +76,6 @@ interface UpdateCriteria<Document> extends Omit<FindCriteria<Document>, 'sort' |
 
 type DeleteCriteria<Document> = Omit<FindCriteria<Document>, 'sort' | 'projection'>;
 
-interface MapReduceCriteria<Document> {
-	hint: Hint<Document>;
-}
-
-interface Alteration<Document> {
-	key: IndexedKey<Document>;
-	op: AlterationType;
-	value?: PersistablePrimitive | Array<PersistablePrimitive>;
-	shift?: boolean;
-}
-
 interface DocumentContract<DocType> extends Cloneable<DocType> {
 	readonly [PRIMARY_KEY_INDEX]: IndexValue;
 }
@@ -96,13 +88,12 @@ export {
 	AlterationType,
 	ProjectionType,
 	Projection,
-	Hint,
+	IndexedProperty,
 	FindCriteria,
 	ReplaceCriteria,
 	UpdateCriteria,
 	DeleteCriteria,
-	MapReduceCriteria,
-	Alteration,
+	IndexCriteria,
 	DocumentContract,
 	QueryConditions,
 	MongooseOperators

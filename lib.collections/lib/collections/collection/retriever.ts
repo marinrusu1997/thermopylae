@@ -4,7 +4,7 @@ import isObject from 'isobject';
 import { createQuery } from 'common-query';
 import dotProp from 'dot-prop';
 import { IndexedStore, PRIMARY_KEY_INDEX } from '../indexed-store';
-import { DocumentContract, FindCriteria, Hint, MongooseOperators, Query } from './typings';
+import { DocumentContract, FindCriteria, IndexedProperty, MongooseOperators, Query } from './typings';
 import { Processor } from './processor';
 
 class Retriever<Document extends DocumentContract<Document>> {
@@ -48,10 +48,10 @@ class Retriever<Document extends DocumentContract<Document>> {
 		query = this.queryToPredicate(query);
 
 		if (multiple) {
-			return this.storage.filter(query, hint.index, hint.value);
+			return this.storage.filter(query, hint.key, hint.value);
 		}
 
-		const match = this.storage.find(query, hint.index, hint.value);
+		const match = this.storage.find(query, hint.key, hint.value);
 		return match !== undefined ? [match] : [];
 	}
 
@@ -68,13 +68,13 @@ class Retriever<Document extends DocumentContract<Document>> {
 		return (value) => (query as ObjMap).matches(value);
 	}
 
-	private static inferHints<Document>(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Partial<Hint<Document>> {
+	private static inferHints<Document>(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Partial<IndexedProperty<Document>> {
 		if (criteria == null) {
 			if (isObject(query)) {
 				const primaryKeyCondition = dotProp.get(query as ObjMap, PRIMARY_KEY_INDEX);
 
 				if (typeof primaryKeyCondition === 'string' || typeof primaryKeyCondition === 'number') {
-					return { index: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
+					return { key: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
 				}
 
 				if (isObject(primaryKeyCondition)) {
@@ -82,11 +82,11 @@ class Retriever<Document extends DocumentContract<Document>> {
 
 					if (operators.length === 1) {
 						if (operators[0][0] === MongooseOperators.EQUAL) {
-							return { index: PRIMARY_KEY_INDEX, value: operators[0][1] };
+							return { key: PRIMARY_KEY_INDEX, value: operators[0][1] };
 						}
 
 						if (operators[0][0] === MongooseOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
-							return { index: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
+							return { key: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
 						}
 					}
 				}
@@ -95,7 +95,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 			return {};
 		}
 
-		return criteria.hint || {};
+		return criteria.index || {};
 	}
 }
 
