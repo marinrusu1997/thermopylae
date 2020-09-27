@@ -6,14 +6,23 @@ import Ajv from 'ajv';
 // @ts-ignore
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
 import { createException, ErrorCodes } from './error';
-import { DeleteCriteria, DocumentContract, FindCriteria, IndexCriteria, IndexedKey, Query, ReplaceCriteria, UpdateCriteria } from './typings';
+import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions } from './typings';
 import { Processor } from './processor';
 import { Retriever } from './retriever';
 
 type Cursor<Document> = Iterator<Document>;
 
-const enum DocumentIdentity {
+/**
+ * Describes which version of document needs to be stored by {@link Collection}.
+ */
+const enum DocumentOriginality {
+	/**
+	 * Store a clone of the document.
+	 */
 	CLONE,
+	/**
+	 * Store it's original.
+	 */
 	ORIGINAL
 }
 
@@ -24,29 +33,62 @@ const enum DocumentOperation {
 	CLEARED = 'cleared'
 }
 
+/**
+ * Notification sent to observers when {@link Collection} suffers modifications.
+ */
 interface DocumentNotification<Document> {
-	action: DocumentOperation;
-	documents: ReadonlyArray<Document>;
+	/**
+	 * Operation that took place.
+	 */
+	operation: DocumentOperation;
+	/**
+	 * Affected documents.
+	 */
+	documents: Array<Document>;
 }
 
+/**
+ * {@link Collection} construction options.
+ */
 interface CollectionOptions<Document> {
-	indexKeys: ReadonlyArray<IndexedKey<Document>>;
+	/**
+	 * Name of document keys, in dot notation, that need to be indexed.
+	 *
+	 * @default null	Only primary key property will be indexed.
+	 */
+	indexKeys: Array<IndexedKey<Document>>;
+	/**
+	 * [JSON Schema]{@link https://json-schema.org/} used for document validation.
+	 *
+	 * @default null	Documents won't be validated.
+	 */
 	schema: JSONSchema;
-	documentsIdentity: DocumentIdentity;
+	/**
+	 * Which version of document to store: clone or original.
+	 *
+	 * @default {@link DocumentOriginality.ORIGINAL}
+	 */
+	documentsOriginality: DocumentOriginality;
+	/**
+	 * Whether search and update mongoose queries need to be validated before respective operations.
+	 *
+	 * @default true
+	 */
 	validateQueries: boolean;
 }
 
 /**
- * Collection of volatile documents which are kept indexed in process memory.
+ * Collection of documents which are kept indexed.
  *
- * @template {Document}
+ * @template Document	Type of the document. <br/>
+ * 						Document must implement {@link DocumentContract}.
  */
 class Collection<Document extends DocumentContract<Document>> implements Iterable<Document> {
 	private readonly storage: IndexedStore<Document>;
 
 	private readonly notifier: Subject<DocumentNotification<Document>>;
 
-	private readonly identity: DocumentIdentity;
+	private readonly originality: DocumentOriginality;
 
 	private readonly validator: Nullable<Ajv.Ajv>;
 
@@ -59,7 +101,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
 		this.notifier = createSubject<DocumentNotification<Document>>();
-		this.identity = options.documentsIdentity != null ? options.documentsIdentity : DocumentIdentity.ORIGINAL;
+		this.originality = options.documentsOriginality != null ? options.documentsOriginality : DocumentOriginality.ORIGINAL;
 
 		this.retriever = new Retriever<Document>(this.storage, options.validateQueries);
 		this.processor = new Processor<Document>(this.storage, options.validateQueries);
@@ -72,10 +114,19 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 	}
 
+	/**
+	 * Returns the indexed properties.
+	 */
 	public get indexes(): Array<IndexedKey<Document>> {
 		return this.storage.indexes;
 	}
 
+	/**
+	 * Inserts `documents` into {@link Collection}. <br/>
+	 * Documents are validated according to JSON Schema (if given). <br/>
+	 * When documents originality is {@link DocumentOriginality.CLONE}, they will be cloned, prior indexing. <br/>
+	 * After indexing, {@link DocumentNotification} which contains inserted documents is emitted. <br/>
+	 */
 	public insert(documents: Document | Array<Document>): void {
 		if (!Array.isArray(documents)) {
 			documents = [documents];
@@ -85,52 +136,95 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			Collection.validateDocuments(this.validator, documents);
 		}
 
-		if (this.identity === DocumentIdentity.CLONE) {
+		if (this.originality === DocumentOriginality.CLONE) {
 			documents = Processor.clone(documents);
 		}
 
 		this.storage.insert(documents);
 
 		this.notifier.sink.next({
-			action: DocumentOperation.CREATED,
+			operation: DocumentOperation.CREATED,
 			documents
 		});
 	}
 
-	public find(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
-		return this.retriever.retrieve(query, criteria);
+	/**
+	 * Selects documents in a collection and returns them. <br>
+	 * Found documents are post-processed according to `options`.
+	 *
+	 * Find all documents
+	 * ------------------
+	 * <pre><code>collection.find()</code></pre>
+	 *
+	 * Find document by id
+	 * -------------------
+	 * <pre><code>collection.find('unique-id')</code></pre>
+	 *
+	 * Find documents by indexed property
+	 * -------------------
+	 * <pre><code>// returns all documents having `birthYear` equals to 2000
+	 * collection.find(null, {
+	 *    index: {
+	 *        name: 'birthYear',
+	 *        value: 2000
+	 *    }
+	 * });
+	 * </code></pre>
+	 *
+	 * Find documents and post-process them
+	 * -------------------
+	 * <pre><code>// returns all documents having `birthYear` greater than 2000, sorted by `firstName`
+	 * const query = { birthYear: { $gt: 2000 } };
+	 * const options = { sort: { firstName: {@link SortDirection.ASCENDING} } };
+	 * const matches = collection.find(query, options);
+	 * </code></pre>
+	 */
+	public find(query?: Nullable<Query<Document>>, options?: Partial<FindOptions<Document>>): Array<Document> {
+		return this.retriever.retrieve(query, options);
 	}
 
-	public replace(query: Query<Document>, replacement: Document, criteria?: Partial<ReplaceCriteria<Document>>): Array<Document> {
-		const matches = this.findAndDelete(query, criteria);
+	/**
+	 * Replace documents that match the `query` with the `replacement`.
+	 *
+	 * Replace document by id
+	 * -------------------
+	 * <pre><code>collection.replace('unique-id', replacement)</code></pre>
+	 *
+	 * Replace multiple documents with a single one
+	 * <pre><code> // replace all
+	 *
+	 * </code></pre>
+	 */
+	public replace(query: Query<Document>, replacement: Document, options?: Partial<ReplaceOptions<Document>>): Array<Document> {
+		const matches = this.findAndDelete(query, options);
 
-		if (matches.length || (matches.length === 0 && criteria && criteria.upsert)) {
+		if (matches.length || (matches.length === 0 && options && options.upsert)) {
 			this.insert(replacement);
 		}
 
 		return matches;
 	}
 
-	public update(query: Query<Document>, update: ObjMap, criteria?: Partial<UpdateCriteria<Document>>): Array<Document> {
-		const matches = this.find(query, criteria);
+	public update(query: Query<Document>, update: ObjMap, options?: Partial<UpdateOptions<Document>>): Array<Document> {
+		const matches = this.find(query, options);
 
 		let original: Optional<Array<Document>>;
-		if (!(criteria && criteria.returnUpdates)) {
+		if (!(options && options.returnUpdated)) {
 			original = Processor.clone(matches);
 		}
 
 		this.processor.update(matches, update);
 
 		this.notifier.sink.next({
-			action: DocumentOperation.UPDATED,
+			operation: DocumentOperation.UPDATED,
 			documents: matches
 		});
 
 		return original || matches;
 	}
 
-	public delete(query: Query<Document>, criteria?: Partial<DeleteCriteria<Document>>): Array<Document> {
-		return this.findAndDelete(query, criteria);
+	public delete(query: Query<Document>, options?: Partial<DeleteOptions<Document>>): Array<Document> {
+		return this.findAndDelete(query, options);
 	}
 
 	public get count(): number {
@@ -140,7 +234,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	public clear(): void {
 		this.storage.clear();
 		this.notifier.sink.next({
-			action: DocumentOperation.CLEARED,
+			operation: DocumentOperation.CLEARED,
 			// @ts-ignore
 			documents: null
 		});
@@ -153,12 +247,12 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 	}
 
-	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, criteria?: Partial<IndexCriteria<Document>>): Array<MappedDocument> {
-		if (criteria == null || criteria.index == null) {
+	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, options?: Partial<IndexOptions<Document>>): Array<MappedDocument> {
+		if (options == null || options.index == null) {
 			return this.storage.map(mapper);
 		}
 
-		return this.storage.map(mapper, criteria.index.key, criteria.index.value);
+		return this.storage.map(mapper, options.index.name, options.index.value);
 	}
 
 	public watch(): Subscribable<DocumentNotification<Document>> {
@@ -192,8 +286,8 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.storage[Symbol.iterator]();
 	}
 
-	private findAndDelete(query: Query<Document>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
-		const matches = this.find(query, criteria);
+	private findAndDelete(query: Query<Document>, options?: Partial<FindOptions<Document>>): Array<Document> {
+		const matches = this.find(query, options);
 
 		if (matches.length) {
 			for (let i = 0; i < matches.length; i++) {
@@ -201,7 +295,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 			}
 
 			this.notifier.sink.next({
-				action: DocumentOperation.DELETED,
+				operation: DocumentOperation.DELETED,
 				documents: matches
 			});
 		}
@@ -219,4 +313,4 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 }
 
-export { Collection, CollectionOptions, DocumentIdentity, DocumentOperation, DocumentNotification };
+export { Collection, CollectionOptions, DocumentOriginality, DocumentOperation, DocumentNotification };

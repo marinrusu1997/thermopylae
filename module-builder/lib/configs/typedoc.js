@@ -17,7 +17,7 @@ module.exports = {
     "out": "doc/html",
     "json": "doc/json/index.json",
     "readme": "README.md",
-    "includeVersion": true,
+    "includeVersion": false,
     "hideGenerator": true,
     "disableSources": true,
     "theme": "./node_modules/typedoc-neo-theme/bin/default",

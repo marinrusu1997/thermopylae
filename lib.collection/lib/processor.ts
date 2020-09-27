@@ -7,6 +7,9 @@ import { createUpdate } from 'common-query';
 import { createException, ErrorCodes } from './error';
 import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields } from './typings';
 
+/**
+ * @internal
+ */
 class Processor<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
 

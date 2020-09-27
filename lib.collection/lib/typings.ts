@@ -1,85 +1,205 @@
 import { Cloneable, UnaryPredicate } from '@thermopylae/core.declarations';
-import { QueryConditions } from '@b4dnewz/mongodb-operators';
 import { IndexValue, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
+import { QueryConditions } from '@b4dnewz/mongodb-operators';
 
+/**
+ * Top level string key of document.
+ */
 type KeyOf<Document> = Exclude<keyof Document, symbol | number>;
+
+/**
+ * Indexed key of document. Can be expressed in dot notation for nested keys.
+ */
 type IndexedKey<Document> = KeyOf<Document> | string;
 
+/**
+ * Sort order for found documents. <br>
+ * Documents will be sorted by specified fields, in the order they appear as keys in the object. <br>
+ *
+ * @example
+ * <pre><code>// Sorts ascending by `firstName`, then descending by `birthYear`.
+ * const sortFields = {
+ * 	firstName: {@link SortDirection.ASCENDING},
+ * 	birthYear: {@link SortDirection.DESCENDING}
+ * };
+ * </code></pre>
+ */
 type SortFields<Document> = Record<IndexedKey<Document>, SortDirection>;
 
-type Query<Document> = QueryConditions<Document> | UnaryPredicate<Document>;
+/**
+ * Represents the query for documents, and can take one of the values:
+ *
+ * Value type  		| Query behaviour
+ * ---------------- | -------------
+ * IndexValue  		| Search documents by their primary key.
+ * QueryConditions  | Search documents by [mongoose]{@link https://mongoosejs.com/docs/2.7.x/docs/query.html} schema.<br>Only a limited subset of operators are [supported]{@link QueryOperators}.
+ * UnaryPredicate	| Search documents by predicate function.
+ */
+type Query<Document> = IndexValue | QueryConditions<Document> | UnaryPredicate<Document>;
 
+/**
+ * Sorting direction for document field.
+ */
 const enum SortDirection {
 	ASCENDING = 'asc',
 	DESCENDING = 'desc'
 }
 
-const enum MongooseOperators {
+/**
+ * [Supported query operators]{@link https://github.com/zipscene/common-query#supported-operators}.
+ */
+const enum QueryOperators {
+	AND = '$and',
+	OR = '$or',
+	NOR = '$nor',
+	EXISTS = '$exists',
+	NOT = '$not',
+	ELEM_MATCH = '$elemMatch',
+	IN = '$in',
+	NOT_IN = '$nin',
+	ALL = '$all',
+	SIZE = '$size',
+	TEXT = '$text',
+	REGEX = '$regex',
 	GREATER = '$gt',
 	GREATER_OR_EQUAL = '$gte',
 	LESS = '$lt',
 	LESS_OR_EQUAL = '$lte',
-	EXISTS = '$exists',
-	MODULO = '$mod',
-	EQUAL = '$eq',
 	NOT_EQUAL = '$ne',
-	IN = '$in',
-	NOT_IN = '$nin',
-	ARRAY_ALL = '$all',
-	ARRAY_SIZE = '$size',
-	OR = '$or',
-	NOR = '$nor',
-	AND = '$and'
+	WILDCARD = '$wildcard'
 }
 
-const enum AlterationType {
+/**
+ * [Supported update operators]{@link https://github.com/zipscene/common-query#supported-operators}.
+ */
+const enum UpdateOperators {
 	SET = '$set',
-	INC = '$inc',
-	POP = '$pop',
-	RENAME = '$rename',
-	PUSH = '$push',
-	PUSH_ALL = '$pushAll',
-	PULL = '$pull',
-	PULL_ALL = '$pullAll',
 	UNSET = '$unset',
-	ADD_TO_SET = '$addToSet'
+	INC = '$inc',
+	MUL = '$mul',
+	RENAME = '$rename',
+	MIN = '$min',
+	MAX = '$max',
+	ADD_TO_SET = '$addToSet',
+	PUSH = '$push',
+	POP = '$pop'
 }
 
+/**
+ * Projection type for a set of fields.
+ */
 const enum ProjectionType {
+	/**
+	 * Specifies the exclusion of a field.
+	 */
 	EXCLUDE,
+	/**
+	 * Specifies the inclusion of a field.
+	 */
 	INCLUDE
 }
 
+/**
+ * Determines which fields are returned in the matching documents. <br>
+ * Projection is applied on document clones.
+ */
 interface Projection<Document> {
+	/**
+	 * Projection type. Applies to all {@link Projection.fields}.
+	 */
 	type: ProjectionType;
-	fields: ReadonlyArray<IndexedKey<Document>>;
+	/**
+	 * Document fields that need to be projected.
+	 */
+	fields: Array<IndexedKey<Document>>;
 }
 
+/**
+ * Represents an indexed property of the document.
+ */
 interface IndexedProperty<Document> {
-	key: IndexedKey<Document>;
+	/**
+	 * Property name.
+	 */
+	name: IndexedKey<Document>;
+	/**
+	 * Property value.
+	 */
 	value?: IndexValue;
 }
 
-interface IndexCriteria<Document> {
+/**
+ * Index options when searching for documents.
+ */
+interface IndexOptions<Document> {
+	/**
+	 * Determines on which index to perform search.<br>
+	 * When {@link IndexedProperty.value} is given, will perform search only on documents
+	 * having {@link IndexedProperty.name} equal to that value.
+	 */
 	index: IndexedProperty<Document>;
 }
 
-interface FindCriteria<Document> extends IndexCriteria<Document> {
+/**
+ * Options for documents searching.
+ */
+interface FindOptions<Document> extends IndexOptions<Document> {
+	/**
+	 * Whether to return all found documents, or the first one.
+	 *
+	 * @default true
+	 */
 	multiple: boolean;
-	sort: SortFields<Document>;
+	/**
+	 * {@link Projection} to apply on found documents.
+	 */
 	projection: Projection<Document>;
+	/**
+	 * Sort found documents before returning them.
+	 */
+	sort: SortFields<Document>;
 }
 
-interface ReplaceCriteria<Document> extends Omit<FindCriteria<Document>, 'sort' | 'projection'> {
+/**
+ * Options for documents replacing.
+ *
+ * @inheritDoc {@link FindOptions}
+ */
+interface ReplaceOptions<Document> extends Omit<FindOptions<Document>, 'sort' | 'projection'> {
+	/**
+	 * Whether to insert replacement if no matches found.
+	 *
+	 * @default false
+	 */
 	upsert: boolean;
 }
 
-interface UpdateCriteria<Document> extends Omit<FindCriteria<Document>, 'sort' | 'projection'> {
-	returnUpdates: boolean;
+/**
+ * Options for documents updating.
+ *
+ * @inheritDoc {@link FindOptions}
+ */
+interface UpdateOptions<Document> extends Omit<FindOptions<Document>, 'sort' | 'projection'> {
+	/**
+	 * Whether to return updated documents, or the old ones.
+	 *
+	 * @default false
+	 */
+	returnUpdated: boolean;
 }
 
-type DeleteCriteria<Document> = Omit<FindCriteria<Document>, 'sort' | 'projection'>;
+/**
+ * Options for documents deleting.
+ *
+ * @inheritDoc {@link FindOptions}
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface DeleteOptions<Document> extends Omit<FindOptions<Document>, 'sort' | 'projection'> {}
 
+/**
+ * Contract that documents have to implement. <br>
+ * Documents must be cloneable and have a immutable primary key.
+ */
 interface DocumentContract<DocType> extends Cloneable<DocType> {
 	readonly [PRIMARY_KEY_INDEX]: IndexValue;
 }
@@ -89,17 +209,17 @@ export {
 	IndexedKey,
 	SortFields,
 	Query,
-	AlterationType,
+	UpdateOperators,
 	ProjectionType,
 	Projection,
 	IndexedProperty,
-	FindCriteria,
-	ReplaceCriteria,
-	UpdateCriteria,
-	DeleteCriteria,
-	IndexCriteria,
+	FindOptions,
+	ReplaceOptions,
+	UpdateOptions,
+	DeleteOptions,
+	IndexOptions,
 	DocumentContract,
 	QueryConditions,
-	MongooseOperators,
+	QueryOperators,
 	SortDirection
 };

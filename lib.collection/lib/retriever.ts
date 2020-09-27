@@ -1,12 +1,16 @@
-import { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
+import { ErrorCodes, Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
 import { IndexedStore, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
 import isObject from 'isobject';
 // @ts-ignore
 import { createQuery } from 'common-query';
 import dotProp from 'dot-prop';
-import { DocumentContract, FindCriteria, IndexedProperty, MongooseOperators, Query } from './typings';
+import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators } from './typings';
 import { Processor } from './processor';
+import { createException } from './error';
 
+/**
+ * @internal
+ */
 class Retriever<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
 
@@ -17,41 +21,46 @@ class Retriever<Document extends DocumentContract<Document>> {
 		this.skipQueryValidation = validateQueries == null ? false : !validateQueries;
 	}
 
-	public retrieve(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
-		let matches = this.getMatches(query, criteria);
+	public retrieve(query?: Nullable<Query<Document>>, options?: Partial<FindOptions<Document>>): Array<Document> {
+		let matches = this.getMatches(query, options);
 
-		if (criteria && matches.length) {
-			if (criteria.projection) {
-				matches = Processor.project(matches, criteria.projection);
+		if (options && matches.length) {
+			if (options.projection) {
+				matches = Processor.project(matches, options.projection);
 			}
 
-			if (criteria.sort) {
-				matches = Processor.sort(matches, criteria.sort);
+			if (options.sort) {
+				matches = Processor.sort(matches, options.sort);
 			}
 		}
 
 		return matches;
 	}
 
-	private getMatches(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Array<Document> {
+	private getMatches(query?: Nullable<Query<Document>>, options?: Partial<FindOptions<Document>>): Array<Document> {
 		let multiple = true;
 
-		if (criteria == null) {
+		if (options == null) {
 			if (query == null) {
 				return this.storage.values;
 			}
-		} else if (criteria.multiple != null) {
-			multiple = criteria.multiple;
+		} else if (options.multiple != null) {
+			multiple = options.multiple;
 		}
 
-		const hint = Retriever.inferHints(query, criteria); // needs to be above!
+		if (typeof query === 'string' || typeof query === 'number') {
+			// read by primary key
+			return this.storage.read(PRIMARY_KEY_INDEX, query);
+		}
+
+		const indexedProperty = Retriever.inferIndexedProperty(query, options); // needs to be above!
 		query = this.queryToPredicate(query);
 
 		if (multiple) {
-			return this.storage.filter(query, hint.key, hint.value);
+			return this.storage.filter(query, indexedProperty.name, indexedProperty.value);
 		}
 
-		const match = this.storage.find(query, hint.key, hint.value);
+		const match = this.storage.find(query, indexedProperty.name, indexedProperty.value);
 		return match !== undefined ? [match] : [];
 	}
 
@@ -65,28 +74,31 @@ class Retriever<Document extends DocumentContract<Document>> {
 		}
 
 		query = createQuery(query, { skipValidate: this.skipQueryValidation });
-		return (value) => (query as ObjMap).matches(value);
+		return (doc) => (query as ObjMap).matches(doc);
 	}
 
-	private static inferHints<Document>(query?: Nullable<Query<Document>>, criteria?: Partial<FindCriteria<Document>>): Partial<IndexedProperty<Document>> {
-		if (criteria == null) {
+	private static inferIndexedProperty<Document>(
+		query?: Nullable<Query<Document>>,
+		options?: Partial<FindOptions<Document>>
+	): Partial<IndexedProperty<Document>> {
+		if (options == null) {
 			if (isObject(query)) {
 				const primaryKeyCondition = dotProp.get(query as ObjMap, PRIMARY_KEY_INDEX);
 
 				if (typeof primaryKeyCondition === 'string' || typeof primaryKeyCondition === 'number') {
-					return { key: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
+					return { name: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
 				}
 
 				if (isObject(primaryKeyCondition)) {
 					const operators = Object.entries(primaryKeyCondition as ObjMap);
 
 					if (operators.length === 1) {
-						if (operators[0][0] === MongooseOperators.EQUAL) {
-							return { key: PRIMARY_KEY_INDEX, value: operators[0][1] };
+						if (operators[0][0] === '$eq') {
+							throw createException(ErrorCodes.INVALID_VALUE, "Operator '$eq' is not supported. Specify value directly.");
 						}
 
-						if (operators[0][0] === MongooseOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
-							return { key: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
+						if (operators[0][0] === QueryOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
+							return { name: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
 						}
 					}
 				}
@@ -95,7 +107,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 			return {};
 		}
 
-		return criteria.index || {};
+		return options.index || {};
 	}
 }
 

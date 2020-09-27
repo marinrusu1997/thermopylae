@@ -1,6 +1,6 @@
 {
   "name": "@thermopylae/module-builder",
-  "version": "0.0.1601129726",
+  "version": "0.0.1601195792",
   "description": "Builder and common stuff for typescript modules",
   "main": "lib/index.js",
   "files": [
@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "purge": "rm -rf node_modules package-lock.json",
-    "prepublishOnly": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp"
+    "prepublishOnly": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+    "unpublish": "npm unpublish --force $npm_package_name"
   },
   "author": "Rusu Marin <dimarusu2000@gmail.com>",
   "license": "ISC",
