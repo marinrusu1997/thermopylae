@@ -50,7 +50,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 
 		if (typeof query === 'string' || typeof query === 'number') {
 			// read by primary key
-			return this.storage.read(PRIMARY_KEY_INDEX, query);
+			return this.storage.read(PRIMARY_KEY_INDEX, query); // @fixme test fails because of this, write more unit tests with this scenario
 		}
 
 		const indexedProperty = Retriever.inferIndexedProperty(query, options); // needs to be above!

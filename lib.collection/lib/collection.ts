@@ -152,6 +152,8 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	 * Selects documents in a collection and returns them. <br>
 	 * Found documents are post-processed according to `options`.
 	 *
+	 * @example <br>
+	 *
 	 * Find all documents
 	 * ------------------
 	 * <pre><code>collection.find()</code></pre>
@@ -184,15 +186,29 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	/**
-	 * Replace documents that match the `query` with the `replacement`.
+	 * Replace documents that match the `query` with the `replacement`. <br>
+	 * Emits 2 {@link DocumentNotification} when matches were replaced:
+	 * 1. {@link DocumentOperation.DELETED} with the matches that were removed.
+	 * 2. {@link DocumentOperation.CREATED} with the replacement.
+	 *
+	 * @example <br>
 	 *
 	 * Replace document by id
 	 * -------------------
-	 * <pre><code>collection.replace('unique-id', replacement)</code></pre>
+	 * <pre><code>collection.replace('unique-id', replacement);</code></pre>
 	 *
 	 * Replace multiple documents with a single one
-	 * <pre><code> // replace all
+	 * -------------------
+	 * <pre><code> // replace all documents having `birthYear` greater than 2000
+	 * const query = { birthYear: { $gt: 2000 } };
+	 * collection.replace(query, replacement);
+	 * </code></pre>
 	 *
+	 * Insert replacement if no matches found
+	 * -------------------
+	 * <pre><code> // no persons with name 'John' are present in the collection
+	 * const query = { firstName: 'John' };
+	 * collection.replace(query, replacement, { upsert: true });
 	 * </code></pre>
 	 */
 	public replace(query: Query<Document>, replacement: Document, options?: Partial<ReplaceOptions<Document>>): Array<Document> {
@@ -205,6 +221,67 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
+	/**
+	 * Modifies an existing document or documents.
+	 * The method can modify specific fields of an existing document or documents. <br>
+	 * When one of the indexed properties is updated, documents will be re-indexed with
+	 * the new values of them. <br>
+	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.UPDATED} which
+	 * contains the updated documents.
+	 *
+	 * @example <br>
+	 *
+	 * Update document by id
+	 * -------------------
+	 * <pre><code>const update = {
+	 *   $set: {
+	 *       birthYear: 2000
+	 *   }
+	 * };
+	 * // returns old document
+	 * collection.update('unique-id', update);
+	 * </code></pre>
+	 *
+	 * Update multiple documents
+	 * -------------------
+	 * <pre><code>const update = {
+	 *   $inc: {
+	 *       salary: 100
+	 *   }
+	 * };
+	 * const query = {
+	 *   commits: {
+	 *       $gt: 25
+	 *   }
+	 * };
+	 * const options = {
+	 *   returnUpdates: true
+	 * };
+	 * // returns updated documents
+	 * collection.update(query, update, options);
+	 * </code></pre>
+	 *
+	 * Reindex renamed property
+	 * -------------------
+	 * <pre><code>const update = {
+	 *    $rename: {
+	 *        oldIndexName: newName
+	 *    }
+	 * };
+	 * // will de-index renamed index property
+	 * collection.update('unique-id', update);
+	 *
+	 * const bringBackIndex = {
+	 *   $unset: {
+	 *       newName: ''
+	 *   },
+	 *   $set: {
+	 *       oldIndexName: 'new-value'
+	 *   }
+	 * };
+	 * collection.update('unique-id', bringBackIndex);
+	 * </code></pre>
+	 */
 	public update(query: Query<Document>, update: ObjMap, options?: Partial<UpdateOptions<Document>>): Array<Document> {
 		const matches = this.find(query, options);
 
@@ -223,6 +300,28 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return original || matches;
 	}
 
+	/**
+	 * Removes documents that match the `query`.
+	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.DELETED} which
+	 * contains the deleted documents.
+	 *
+	 * @example <br>
+	 *
+	 * Delete document by id
+	 * -------------------
+	 * <pre><code>collection.delete('unique-id');</code></pre>
+	 *
+	 * Delete multiple documents
+	 * -------------------
+	 * <pre><code>// removes all documents having `fullName` equal to 'John'
+	 * const query = {
+	 *    fullName: 'John'
+	 * };
+	 * collection.delete(query);
+	 * </code></pre>
+	 *
+	 * @returns     Deleted documents.
+	 */
 	public delete(query: Query<Document>, options?: Partial<DeleteOptions<Document>>): Array<Document> {
 		return this.findAndDelete(query, options);
 	}

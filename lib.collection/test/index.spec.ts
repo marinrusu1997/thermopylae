@@ -1393,6 +1393,36 @@ describe(`${Collection.name} spec`, () => {
 			}
 		});
 
+		it('should update document by id', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+
+			const toBeUpdated = array.randomElement(PersonsRepo);
+
+			const query: Query<PersonDocument> = toBeUpdated[PRIMARY_KEY_INDEX];
+			const update = {
+				$set: {
+					birthYear: number.randomInt(2000, 2010)
+				}
+			};
+
+			const oldDoc = collection.update(query, update);
+			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
+
+			expect(oldDoc).to.be.ofSize(1);
+			expect(oldDoc[0]).not.to.be.equal(toBeUpdated); // it returned a clone of old document...
+			expect(oldDoc[0]).not.to.be.deep.equal(toBeUpdated); // ...with different values
+
+			const updatedDoc = collection.find(query);
+
+			expect(updatedDoc).to.be.ofSize(1);
+			expect(updatedDoc[0][PRIMARY_KEY_INDEX]).to.be.eq(toBeUpdated[PRIMARY_KEY_INDEX]);
+
+			for (const [prop, value] of Object.entries(update.$set)) {
+				expect(dotProp.get(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
+			}
+		});
+
 		it('should update multiple documents', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
@@ -1794,7 +1824,7 @@ describe(`${Collection.name} spec`, () => {
 	});
 
 	describe(`${Collection.prototype.delete.name} spec`, () => {
-		it('should delete document by id', () => {
+		it('should delete a single document', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
@@ -1803,6 +1833,22 @@ describe(`${Collection.name} spec`, () => {
 			const query: Query<PersonDocument> = {
 				[PRIMARY_KEY_INDEX]: toBeDeleted[PRIMARY_KEY_INDEX]
 			};
+
+			const deleted = collection.delete(query);
+			expect(collection.count).to.be.eq(PersonsRepo.length - 1); // it was removed
+			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+
+			const notFoundDoc = collection.find(query);
+			expect(notFoundDoc).to.be.ofSize(0);
+		});
+
+		it('should delete document by id', () => {
+			const collection = new Collection<PersonDocument>();
+			collection.insert(PersonsRepo);
+			expect(collection.count).to.be.eq(PersonsRepo.length);
+
+			const toBeDeleted = array.randomElement(PersonsRepo);
+			const query: Query<PersonDocument> = toBeDeleted[PRIMARY_KEY_INDEX];
 
 			const deleted = collection.delete(query);
 			expect(collection.count).to.be.eq(PersonsRepo.length - 1); // it was removed
