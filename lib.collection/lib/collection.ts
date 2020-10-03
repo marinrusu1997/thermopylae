@@ -1,12 +1,12 @@
 import { Mapper, Nullable, ObjMap, Optional } from '@thermopylae/core.declarations';
-import { IndexedStore, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
+import { IndexedStore } from '@thermopylae/lib.indexed-store';
 import createSubject, { Subject, Subscribable } from 'rx-subject';
 import { JSONSchema } from 'json-schema-typed';
 import Ajv from 'ajv';
 // @ts-ignore
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
 import { createException, ErrorCodes } from './error';
-import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions } from './typings';
+import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions, PK_INDEX_NAME } from './typings';
 import { Processor } from './processor';
 import { Retriever } from './retriever';
 
@@ -440,7 +440,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 		if (matches.length) {
 			for (let i = 0; i < matches.length; i++) {
-				this.storage.remove(PRIMARY_KEY_INDEX, matches[i][PRIMARY_KEY_INDEX]);
+				this.storage.remove(PK_INDEX_NAME, matches[i][PK_INDEX_NAME]);
 			}
 
 			this.notifier.sink.next({

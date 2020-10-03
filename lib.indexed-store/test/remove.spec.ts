@@ -5,7 +5,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { object, string } from '@thermopylae/lib.utils';
 import { ErrorCodes } from '../lib/error';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
 import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
 
 describe(`${IndexedStore.prototype.remove.name} spec`, () => {
@@ -15,7 +15,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 
 		const candidate = randomPerson();
 		const indexValue = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		expect(store.remove(PersonIndexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
 		expect(store.size).to.be.eq(originalSize);
@@ -37,7 +37,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		expect(originalSize).to.be.eq(2);
 
 		const unIndexedVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		expect(() => store.remove(PersonIndexes.I_BIRTH_YEAR, unIndexedVal, predicate))
 			.to.throw(Exception)
@@ -53,7 +53,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		const originalSize = store.size;
 
 		const nonExistentVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === indexed[PK_INDEX_NAME];
 
 		expect(store.remove(PersonIndexes.I_BIRTH_YEAR, nonExistentVal, predicate)).to.be.eq(undefined);
 		expect(store.size).to.be.eq(originalSize);
@@ -80,9 +80,9 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		expect(store.size).to.be.eq(PersonsRepo.length);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
-		const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+		const removed = store.remove(PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
 		expect(store.size).to.be.eq(PersonsRepo.length - 1);
 		expect(removed).to.be.deep.eq(candidate);
 
@@ -122,7 +122,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 
 		for (let i = 0; i < indexes.length; i++) {
 			const candidate = candidateForRemoval();
-			const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+			const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 			const removed = store.remove(indexes[i], dotprop.get(candidate, indexes[i]) as IndexValue, predicate);
 
 			expect(store.size).to.be.eq(PersonsRepo.length - i - 1);
@@ -140,18 +140,18 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		expect(store.size).to.be.eq(PersonsRepo.length);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		let match: Optional<Person>;
 
-		const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!;
+		const removed = store.remove(PK_INDEX_NAME, candidate[PK_INDEX_NAME])!;
 		expect(store.size).to.be.eq(PersonsRepo.length - 1);
 		expect(removed).to.be.deep.eq(candidate);
-		match = store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!.find(predicate);
+		match = store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])!.find(predicate);
 		expect(match).to.be.eq(undefined);
 
 		store.insert([removed]);
 		expect(store.size).to.be.eq(PersonsRepo.length);
-		match = store.read(PRIMARY_KEY_INDEX, removed[PRIMARY_KEY_INDEX])!.find(predicate);
+		match = store.read(PK_INDEX_NAME, removed[PK_INDEX_NAME])!.find(predicate);
 		expect(match).to.be.deep.eq(removed);
 	});
 
@@ -169,7 +169,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		store.insert(PersonsRepo);
 
 		const candidate = object.cloneDeep(randomPerson());
-		dotprop.set(candidate, PRIMARY_KEY_INDEX, string.ofLength(10));
+		dotprop.set(candidate, PK_INDEX_NAME, string.ofLength(10));
 		for (const index of indexes) {
 			dotprop.set(candidate, index, null);
 		}
@@ -178,12 +178,12 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		dotprop.set(candidate, indexWithVal, string.ofLength(2));
 		store.insert([candidate]);
 
-		const removed = store.remove(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+		const removed = store.remove(PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
 
 		expect(removed).to.be.deep.eq(candidate);
-		expect(store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])).to.be.ofSize(0);
+		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])).to.be.ofSize(0);
 
-		const predicate = (rec: Person) => rec[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (rec: Person) => rec[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		const indexVal = dotprop.get(candidate, indexWithVal) as IndexValue;
 		expect(store.read(indexWithVal, indexVal).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 	});

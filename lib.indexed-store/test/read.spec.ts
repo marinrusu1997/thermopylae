@@ -5,7 +5,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
 import { ErrorCodes } from '../lib/error';
 import { expect, PersonsRepo } from './utils';
 
@@ -19,7 +19,7 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 
 		for (const position of positionGenerator) {
 			const desired = PersonsRepo[position];
-			const records = storage.read(PRIMARY_KEY_INDEX, desired.id);
+			const records = storage.read(PK_INDEX_NAME, desired.id);
 
 			expect(records.length).to.be.eq(1);
 			expect(records).to.be.containing(desired);
@@ -47,7 +47,7 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 
 	it('reads records from empty storage', () => {
 		const storage = new IndexedStore<Person>();
-		expect(storage.read(PRIMARY_KEY_INDEX, string.ofLength(5))).to.be.equalTo([]);
+		expect(storage.read(PK_INDEX_NAME, string.ofLength(5))).to.be.equalTo([]);
 	});
 
 	it('reads records from empty index', () => {
@@ -57,8 +57,8 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 		dotprop.set(person, PersonIndexes.I_BIRTH_YEAR, null);
 		storage.insert([person]);
 
-		expect(storage.read(PRIMARY_KEY_INDEX, person.id)).to.be.equalTo([person]);
-		expect(() => storage.read(PRIMARY_KEY_INDEX, person.birthYear))
+		expect(storage.read(PK_INDEX_NAME, person.id)).to.be.equalTo([person]);
+		expect(() => storage.read(PK_INDEX_NAME, person.birthYear))
 			.to.throw(Exception)
 			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
 	});

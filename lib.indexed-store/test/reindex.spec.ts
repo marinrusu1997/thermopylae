@@ -3,7 +3,7 @@ import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/lib.un
 import { number, object, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 import { Exception } from '@thermopylae/lib.exception';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
 import { ErrorCodes } from '../lib/error';
 import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
 
@@ -13,9 +13,9 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		const oldVal = string.ofLength(5);
 		const newVal = string.ofLength(5);
-		const reindex = () => store.reindex(PRIMARY_KEY_INDEX, oldVal, newVal, () => true);
+		const reindex = () => store.reindex(PK_INDEX_NAME, oldVal, newVal, () => true);
 
-		expect(reindex).to.throw(`Can't reindex primary index '${PRIMARY_KEY_INDEX}' value.`);
+		expect(reindex).to.throw(`Can't reindex primary index '${PK_INDEX_NAME}' value.`);
 	});
 
 	it('should throw if values are the same', () => {
@@ -35,7 +35,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const candidate = randomPerson();
 		const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
 		expect(reindex).to.throw(`Failed to de-index record from index '${PersonIndexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
@@ -53,7 +53,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		let newVal: IndexValue;
 		while ((newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!()) === oldVal);
 
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === indexed[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === indexed[PK_INDEX_NAME];
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
 		expect(reindex).to.throw(`Failed to de-index record from index '${PersonIndexes.I_BIRTH_YEAR}' with value '${oldVal}', because it wasn't found.`);
@@ -78,7 +78,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const newVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 
-		store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PRIMARY_KEY_INDEX]);
+		store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PK_INDEX_NAME]);
 		expect(store.size).to.be.eq(originalSize);
 
 		const indexedRecords = store.read(PersonIndexes.I_BIRTH_YEAR, newVal);
@@ -94,7 +94,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		const matcher = (rec: Person) => rec[PRIMARY_KEY_INDEX] === record[PRIMARY_KEY_INDEX];
+		const matcher = (rec: Person) => rec[PK_INDEX_NAME] === record[PK_INDEX_NAME];
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 		expect(reindex).to.throw(
@@ -116,7 +116,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const matcher = string.ofLength(10);
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
-		expect(reindex).to.throw(`No record found for index '${PRIMARY_KEY_INDEX} with matching value '${matcher}'.`);
+		expect(reindex).to.throw(`No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
 	});
 
 	it('should update first level index value', () => {
@@ -128,7 +128,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		const candidate = randomPerson();
 		const oldBirthYear = candidate.birthYear;
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		/** BEFORE REINDEX (assert some invariants) */
 		const countryCodeIndexRecordsLenBefore = store.read(PersonIndexes.II_COUNTRY_CODE, candidate.address.countryCode).length;
@@ -139,7 +139,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		/** REINDEX */
 		const newBirthYear = number.randomInt(2010, 2020);
-		store.reindex(PersonIndexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PRIMARY_KEY_INDEX]);
+		store.reindex(PersonIndexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PK_INDEX_NAME]);
 
 		// it not touched record, just reindex it
 		expect(originalCandidate).to.be.deep.eq(candidate);
@@ -167,7 +167,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		store.insert(PersonsRepo);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		const originalSize = store.size;
 
 		for (const indexName of indexes) {
@@ -198,7 +198,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		store.insert(PersonsRepo);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		const originalSize = store.size;
 
 		for (const indexName of indexes) {

@@ -18,7 +18,7 @@
 ## Install
 
 ```sh
-npm install
+npm install @thermopylae/lib.indexed-store
 ```
 
 ## Run tests

@@ -7,7 +7,7 @@
         "indexing",
         "storage"
     ],
-    "version": "0.0.1601150040",
+    "version": "0.0.1601759113",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",

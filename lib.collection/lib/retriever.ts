@@ -1,10 +1,10 @@
 import { ErrorCodes, Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
-import { IndexedStore, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
+import { IndexedStore } from '@thermopylae/lib.indexed-store';
 import isObject from 'isobject';
 // @ts-ignore
 import { createQuery } from 'common-query';
 import dotProp from 'dot-prop';
-import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators } from './typings';
+import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators, PK_INDEX_NAME } from './typings';
 import { Processor } from './processor';
 import { createException } from './error';
 
@@ -50,7 +50,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 
 		if (typeof query === 'string' || typeof query === 'number') {
 			// read by primary key, we clone index, so that caller can't alter our internal state
-			return [...this.storage.read(PRIMARY_KEY_INDEX, query)];
+			return [...this.storage.read(PK_INDEX_NAME, query)];
 		}
 
 		const indexedProperty = Retriever.inferIndexedProperty(query, options); // needs to be above!
@@ -83,10 +83,10 @@ class Retriever<Document extends DocumentContract<Document>> {
 	): Partial<IndexedProperty<Document>> {
 		if (options == null) {
 			if (isObject(query)) {
-				const primaryKeyCondition = dotProp.get(query as ObjMap, PRIMARY_KEY_INDEX);
+				const primaryKeyCondition = dotProp.get(query as ObjMap, PK_INDEX_NAME);
 
 				if (typeof primaryKeyCondition === 'string' || typeof primaryKeyCondition === 'number') {
-					return { name: PRIMARY_KEY_INDEX, value: primaryKeyCondition };
+					return { name: PK_INDEX_NAME, value: primaryKeyCondition };
 				}
 
 				if (isObject(primaryKeyCondition)) {
@@ -98,7 +98,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 						}
 
 						if (operators[0][0] === QueryOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
-							return { name: PRIMARY_KEY_INDEX, value: operators[0][1][0] };
+							return { name: PK_INDEX_NAME, value: operators[0][1][0] };
 						}
 					}
 				}

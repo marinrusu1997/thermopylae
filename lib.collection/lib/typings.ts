@@ -1,5 +1,6 @@
 import { Cloneable, UnaryPredicate } from '@thermopylae/core.declarations';
-import { IndexValue, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
+import { IndexValue, Recordable, PK_INDEX_NAME } from '@thermopylae/lib.indexed-store';
+// eslint-disable-next-line import/no-unresolved
 import { QueryConditions } from '@b4dnewz/mongodb-operators';
 
 /**
@@ -200,9 +201,7 @@ interface DeleteOptions<Document> extends Omit<FindOptions<Document>, 'sort' | '
  * Contract that documents have to implement. <br>
  * Documents must be cloneable and have a immutable primary key.
  */
-interface DocumentContract<DocType> extends Cloneable<DocType> {
-	readonly [PRIMARY_KEY_INDEX]: IndexValue;
-}
+interface DocumentContract<DocType> extends Cloneable<DocType>, Recordable {}
 
 export {
 	KeyOf,
@@ -221,5 +220,6 @@ export {
 	DocumentContract,
 	QueryConditions,
 	QueryOperators,
-	SortDirection
+	SortDirection,
+	PK_INDEX_NAME
 };

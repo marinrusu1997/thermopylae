@@ -4,7 +4,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import { number, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 import { ErrorCodes } from '../lib/error';
-import { IndexedStore, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';
 
 describe(`${IndexedStore.prototype.insert.name} spec`, () => {
@@ -118,7 +118,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		indexNames.push(PRIMARY_KEY_INDEX);
+		indexNames.push(PK_INDEX_NAME);
 
 		const initialIndexLoad = new Map<string, number>();
 		for (const index of indexNames) {
@@ -164,7 +164,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		indexNames.push(PRIMARY_KEY_INDEX);
+		indexNames.push(PK_INDEX_NAME);
 
 		const initialIndexLoad = new Map<string, number>();
 		for (const index of indexNames) {

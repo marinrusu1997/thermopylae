@@ -1,11 +1,11 @@
 import { ObjMap, Optional } from '@thermopylae/core.declarations';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '@thermopylae/lib.indexed-store';
+import { IndexedStore, IndexValue } from '@thermopylae/lib.indexed-store';
 import orderBy from 'lodash.orderby';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import { createUpdate } from 'common-query';
 import { createException, ErrorCodes } from './error';
-import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields } from './typings';
+import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields, PK_INDEX_NAME } from './typings';
 
 /**
  * @internal
@@ -36,7 +36,7 @@ class Processor<Document extends DocumentContract<Document>> {
 
 				for (const updatedIndex of updatedIndexes) {
 					const newValue = dotprop.get(match, updatedIndex) as IndexValue;
-					this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PRIMARY_KEY_INDEX]);
+					this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PK_INDEX_NAME]);
 				}
 			}
 

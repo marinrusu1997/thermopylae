@@ -4,7 +4,7 @@ import { object, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo, randomPerson } from './utils';
 
 describe('stream operations spec', () => {
@@ -13,7 +13,7 @@ describe('stream operations spec', () => {
 			const storage = new IndexedStore<Person>();
 
 			function mapper(person: Person): IndexValue {
-				return person[PRIMARY_KEY_INDEX];
+				return person[PK_INDEX_NAME];
 			}
 
 			const mappings = storage.map(mapper);
@@ -26,7 +26,7 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			function mapper(person: Person): IndexValue {
-				return person[PRIMARY_KEY_INDEX];
+				return person[PK_INDEX_NAME];
 			}
 
 			const mappings = storage.map(mapper);
@@ -42,7 +42,7 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			function mapper(person: Person): IndexValue {
-				return person[PRIMARY_KEY_INDEX];
+				return person[PK_INDEX_NAME];
 			}
 
 			for (const indexName of indexes) {
@@ -59,14 +59,14 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			function mapper(person: Person): IndexValue {
-				return person[PRIMARY_KEY_INDEX];
+				return person[PK_INDEX_NAME];
 			}
 
 			const candidate = randomPerson();
-			const mappings = storage.map(mapper, PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX]);
+			const mappings = storage.map(mapper, PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
 
 			expect(mappings.length).to.be.eq(1);
-			expect(mappings[0]).to.be.deep.eq(candidate[PRIMARY_KEY_INDEX]);
+			expect(mappings[0]).to.be.deep.eq(candidate[PK_INDEX_NAME]);
 		});
 	});
 
@@ -105,7 +105,7 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const nonIndexed = object.cloneDeep(randomPerson());
-			dotprop.set(nonIndexed, PRIMARY_KEY_INDEX, string.ofLength(10));
+			dotprop.set(nonIndexed, PK_INDEX_NAME, string.ofLength(10));
 			for (const indexName of indexes) {
 				dotprop.set(nonIndexed, indexName, null);
 			}
@@ -176,7 +176,7 @@ describe('stream operations spec', () => {
 
 			const desiredId = string.ofLength(15);
 			function predicate(person: Person): boolean {
-				return person[PRIMARY_KEY_INDEX] === desiredId;
+				return person[PK_INDEX_NAME] === desiredId;
 			}
 
 			const match = storage.find(predicate);
@@ -206,7 +206,7 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const record = object.cloneDeep(randomPerson());
-			dotprop.set(record, PRIMARY_KEY_INDEX, string.ofLength(10));
+			dotprop.set(record, PK_INDEX_NAME, string.ofLength(10));
 
 			const countryCode = string.ofLength(6);
 			dotprop.set(record, PersonIndexes.I_BIRTH_YEAR, 1990);

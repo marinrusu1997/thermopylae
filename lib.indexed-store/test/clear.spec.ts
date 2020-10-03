@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { Person, PersonIndexes } from '@thermopylae/lib.unit-test/dist/fixtures/person';
-import { IndexedStore, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo, randomPerson } from './utils';
 
 describe(`${IndexedStore.prototype.clear.name} spec`, () => {
@@ -22,9 +22,9 @@ describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 		expect(store.size).to.be.eq(0);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PRIMARY_KEY_INDEX] === candidate[PRIMARY_KEY_INDEX];
+		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
-		expect(store.read(PRIMARY_KEY_INDEX, candidate[PRIMARY_KEY_INDEX])!.find(predicate)).to.be.eq(undefined);
+		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])!.find(predicate)).to.be.eq(undefined);
 	});
 
 	it('clears all entries but preserves indexes', () => {

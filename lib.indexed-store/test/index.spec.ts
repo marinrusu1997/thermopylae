@@ -1,22 +1,22 @@
 import { Person, PersonIndexes } from '@thermopylae/lib.unit-test/dist/fixtures/person';
 import { describe, it } from 'mocha';
-import { IndexedStore, PRIMARY_KEY_INDEX } from '../lib';
+import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';
 
 describe(`${IndexedStore.name} spec`, () => {
 	describe('constructor', () => {
 		it('creates store with primary index', () => {
 			let storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PRIMARY_KEY_INDEX]);
+			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
 
 			storage = new IndexedStore<Person>({ indexes: [] });
-			expect(storage.indexes).to.be.equalTo([PRIMARY_KEY_INDEX]);
+			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
 		});
 
 		it('creates store with secondary indexes', () => {
 			const indexes: Array<string> = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PRIMARY_KEY_INDEX]));
+			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
 		});
 	});
 
