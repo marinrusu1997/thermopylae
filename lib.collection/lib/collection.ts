@@ -326,10 +326,20 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return this.findAndDelete(query, options);
 	}
 
+	/**
+	 * Get the number of documents in the {@link Collection}.
+	 *
+	 * @returns		Total number of documents.
+	 */
 	public get count(): number {
 		return this.storage.size;
 	}
 
+	/**
+	 * Clear the {@link Collection} by removing all documents. <br>
+	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.CLEARED} and documents `null`. <br>
+	 * After clearing you can add new documents. <br>
+	 */
 	public clear(): void {
 		this.storage.clear();
 		this.notifier.sink.next({
@@ -339,6 +349,12 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		});
 	}
 
+	/**
+	 * Clear the {@link Collection} by removing all documents. <br>
+	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.CLEARED} and documents `null`. <br>
+	 * After dropping, collection becomes non-reactive, and no more {@link DocumentNotification} will be emitted.
+	 * Therefore it's recommended to not reuse {@link Collection} object after this operation.
+	 */
 	public drop(): void {
 		this.clear();
 		if (this.notifier.sink.complete != null) {
@@ -346,41 +362,75 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 	}
 
+	/**
+	 * Maps {@link Collection} documents. <br>
+	 * If you need to map only a subset of documents, you can specify an index that needs to be mapped by using `options` argument.
+	 *
+	 * @param mapper	Mapping function.
+	 * @param options	Options which control set of documents that needs to be mapped.
+	 *
+	 * @returns		Mapped documents.
+	 */
 	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, options?: Partial<IndexOptions<Document>>): Array<MappedDocument> {
 		if (options == null || options.index == null) {
 			return this.storage.map(mapper);
 		}
-
 		return this.storage.map(mapper, options.index.name, options.index.value);
 	}
 
+	/**
+	 * Watch the collection and receive {@link DocumentNotification} when something changes.
+	 *
+	 * @returns	Subscribable for subscribing to notifications.
+	 */
 	public watch(): Subscribable<DocumentNotification<Document>> {
 		return this.notifier.source$;
 	}
 
-	public createIndexes(...indexes: Array<IndexedKey<Document>>): void {
-		this.storage.createIndexes(indexes);
+	/**
+	 * Create indexes for document keys.
+	 *
+	 * @param keys	Keys to be indexed.
+	 */
+	public createIndexes(...keys: Array<IndexedKey<Document>>): void {
+		this.storage.createIndexes(keys);
 	}
 
-	public createIndexIfMissing(index: IndexedKey<Document>): boolean {
-		if (!this.storage.containsIndex(index)) {
-			this.createIndexes(index);
+	/**
+	 * Create index for property only if is not indexed already.
+	 *
+	 * @param key	Key to be indexed.
+	 *
+	 * @returns		Whether index was created or not.
+	 * 				Returning `false` means index was present already.
+	 */
+	public createIndexIfMissing(key: IndexedKey<Document>): boolean {
+		if (!this.storage.containsIndex(key)) {
+			this.createIndexes(key);
 			return true;
 		}
 		return false;
 	}
 
-	public dropIndexes(...indexes: Array<IndexedKey<Document>>): void {
-		if (!indexes.length) {
+	/**
+	 * Remove indexes associated with `keys`.
+	 *
+	 * @param keys	Name of properties, associated indexes of which needs to be removed.
+	 */
+	public dropIndexes(...keys: Array<IndexedKey<Document>>): void {
+		if (!keys.length) {
 			this.storage.dropIndexes();
 			return;
 		}
 
-		for (const index of indexes) {
+		for (const index of keys) {
 			this.storage.dropIndex(index);
 		}
 	}
 
+	/**
+	 * Iterate over {@link Collection} documents.
+	 */
 	[Symbol.iterator](): Cursor<Document> {
 		return this.storage[Symbol.iterator]();
 	}

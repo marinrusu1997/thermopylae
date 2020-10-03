@@ -1100,7 +1100,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
 		});
 
-		it('should replace document by id', () => {
+		it('should replace document by id when providing as query the value of id', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
@@ -1393,7 +1393,7 @@ describe(`${Collection.name} spec`, () => {
 			}
 		});
 
-		it('should update document by id', () => {
+		it('should update document by id when providing as query the value of id', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
@@ -1842,7 +1842,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(notFoundDoc).to.be.ofSize(0);
 		});
 
-		it('should delete document by id', () => {
+		it('should delete document by id when providing as query the value of id', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
