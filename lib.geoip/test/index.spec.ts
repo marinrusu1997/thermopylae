@@ -1,11 +1,11 @@
 import { before, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { config as dotEnvConfig } from 'dotenv';
-import LoggerInstance from '@marin/lib.logger';
 import { chrono } from '@marin/lib.utils';
 // eslint-disable-next-line import/no-unresolved
 import { Libraries } from '@marin/lib.utils/dist/declarations';
 import Exception from '@marin/lib.error';
+import LoggerInstance from '../../lib.logger.bk';
 import { GeoIP, ExternalService, ErrorCodes } from '../lib';
 import { HttpClientMock, ServiceFailureType } from './http-client-mock';
 

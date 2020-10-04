@@ -1,6 +1,6 @@
-<h1 align="center">@thermopylae/lib.logger</h1>
+<h1 align="center">@thermopylae/lib.unit-test</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1601806066-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1601805160-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/node-%3E%3D%2014-blue.svg" />
 <a href="http:/localhost:8080/doc" target="_blank">
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Logger for backend services.
+> Unit tests environment
 
 ### 🏠 [Homepage](http://localhost:8080)
 
@@ -18,7 +18,7 @@
 ## Install
 
 ```sh
-npm install @thermopylae/lib.logger
+npm install @thermopylae/lib.unit-test
 ```
 
 ## Run tests

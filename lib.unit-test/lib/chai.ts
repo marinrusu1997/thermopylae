@@ -3,10 +3,13 @@ import chaiArrays from 'chai-arrays';
 import chaiAsPromised from 'chai-as-promised';
 // @ts-ignore
 import chaiAssertType from 'chai-asserttype';
+// @ts-ignore
+import chaiDateString from 'chai-date-string';
 
 chai.use(chaiArrays);
 chai.use(chaiAsPromised);
 chai.use(chaiAssertType);
+chai.use(chaiDateString);
 
 Assertion.addChainableMethod('in', function isNumber(args): void {
 	const comparison = typeof args === 'number';
@@ -23,4 +26,6 @@ Assertion.addMethod('range', function isInRange(...args): void {
 	this.assert(comparison, expectation, expectation, `${args[0]}-${args[1]}`, num);
 });
 
-export { chai };
+const { expect, assert } = chai;
+
+export { chai, expect, assert };

@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
 import { google } from 'googleapis';
 import { config as dotEnvConfig } from 'dotenv';
-import Logger from '@marin/lib.logger';
 import fs from 'fs';
+import Logger from '../../lib.logger.bk';
 import { EmailClient } from '../lib';
 
 const { OAuth2 } = google.auth;

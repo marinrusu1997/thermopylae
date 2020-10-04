@@ -6,7 +6,7 @@
         "library",
         "unit testing"
     ],
-    "version": "0.0.1601126588",
+    "version": "0.0.1601805160",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": {
@@ -29,7 +29,7 @@
         "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
         "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
         "precommit": "npm run lint",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
@@ -39,9 +39,10 @@
         "chai-arrays": "2",
         "chai-as-promised": "7",
         "chai-asserttype": "1",
+        "chai-date-string": "0",
         "deep-freeze": "0",
-        "mocker-data-generator": "2",
-        "json-schema-typed": "7"
+        "json-schema-typed": "7",
+        "mocker-data-generator": "2"
     },
     "devDependencies": {
         "@thermopylae/module-builder": "0",

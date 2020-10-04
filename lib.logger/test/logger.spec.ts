@@ -1,10 +1,8 @@
 import { describe, it } from 'mocha';
-import { chai } from './chai';
-import { Logger } from '../lib/logger/logger';
+import { expect } from '@thermopylae/lib.unit-test';
+import { Logger } from '../lib/logger';
 
 describe('Logger spec', () => {
-	const { expect } = chai;
-
 	it('returns logging managers', () => {
 		const instance = new Logger();
 		expect(instance.formatting).to.not.be.equal(undefined);
@@ -14,15 +12,15 @@ describe('Logger spec', () => {
 	});
 
 	it('throws when getting logger if bad configuration', () => {
-		expect(() => new Logger().for('realsys')).to.throw('No transports for realsys');
+		expect(() => new Logger().for('realsys')).to.throw('No transports were configured for realsys.');
 	});
 
 	it('creates logger for system, then does not cache it, but delegates this responsibility to the module which uses it', () => {
 		const logger = new Logger();
 		logger.graylog2.register('input', { host: 'fake', port: 1 });
-		logger.graylog2.recipeFor('realsys', { level: 'fake', input: 'input' });
+		logger.graylog2.setChannel('realsys', { level: 'fake', input: 'input' });
 		const loggerFirst = logger.for('realsys');
-		logger.graylog2.recipeFor('realsys', { level: 'fake', input: 'input' }); // register again, first get removed it
+		logger.graylog2.setChannel('realsys', { level: 'fake', input: 'input' }); // register again, first get removed it
 		const loggerSecond = logger.for('realsys');
 
 		expect(loggerFirst).to.not.be.deep.equal(loggerSecond);
@@ -30,10 +28,11 @@ describe('Logger spec', () => {
 
 	it("can't alter created logger object", () => {
 		const logger = new Logger();
-		logger.console.setConfig({ level: 'info' });
+		logger.console.createTransport({ level: 'info' });
 		const instance = logger.for('realsys');
 		expect(() => {
-			instance.log = () => {};
+			// @ts-ignore
+			instance.log = null;
 		}).to.throw('Cannot add property log, object is not extensible');
 	});
 });

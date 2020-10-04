@@ -1,4 +1,4 @@
-import { FormattingManager, GrayLogsManager } from '@marin/lib.logger';
+import { FormattingManager, GrayLogsManager } from '../../lib.logger.bk';
 
 export interface GeneralConfig {
 	contacts: {

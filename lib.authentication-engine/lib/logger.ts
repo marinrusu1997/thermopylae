@@ -1,4 +1,4 @@
-import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
+import LoggerInstance, { WinstonLogger } from '../../lib.logger.bk';
 import { Libraries } from '@marin/lib.utils/dist/declarations';
 
 let logger: WinstonLogger | undefined;

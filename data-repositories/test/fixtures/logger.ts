@@ -1,4 +1,4 @@
-import LoggerInstance, { FormattingManager, WinstonLogger } from '@marin/lib.logger';
+import LoggerInstance, { FormattingManager, WinstonLogger } from '../../../lib.logger.bk';
 
 const LOG_LEVEL = process.env.ENV_LOG_LEVEL || 'debug';
 const LOGGER_NAME = process.env.ENV_LOGGER_NAME || 'TEST_ENV';

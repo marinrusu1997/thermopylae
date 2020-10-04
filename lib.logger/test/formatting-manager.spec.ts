@@ -1,48 +1,55 @@
 import { describe, it } from 'mocha';
+import { expect } from '@thermopylae/lib.unit-test';
 import { format } from 'winston';
-import { chai } from './chai';
-import { FormattingManager } from '../lib/formatting/formatting-manager';
+import { TransformableInfo } from 'logform';
+import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager';
 
-describe('Formatting manager spec', () => {
-	const { expect } = chai;
-
-	describe('default orders spec', () => {
+// eslint-disable-next-line mocha/no-skipped-tests
+describe.skip(`${FormattingManager.name} spec`, () => {
+	describe(`${FormattingManager.prototype.setDefaultRecipe.name} spec`, () => {
 		it('throws when invalid output specified', () => {
 			const formattingManager = new FormattingManager();
-			expect(() => formattingManager.applyOrderFor('INVALID FOR SURE')).to.throw('Invalid output format');
+			// @ts-ignore
+			expect(() => formattingManager.setDefaultRecipe('INVALID FOR SURE')).to.throw('Unknown output format: INVALID FOR SURE.');
 		});
 
 		it('applies order for uncolored printf', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('PRINTF');
+			formattingManager.setDefaultRecipe(OutputFormat.PRINTF);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
-			const info = { level, message };
+			const info: any = { level, message };
 			info[Symbol.for('level')] = level;
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
-			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				`${loggedInfo.timestamp} [${loggedInfo.label}] ${level}: \t${message}`
-			);
+			// @ts-ignore
+			expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${level}: \t${message}`);
 		});
 
 		it('applies order for colored printf', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('PRINTF', true);
+			formattingManager.setDefaultRecipe(OutputFormat.PRINTF, true);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
-			const info = { level, message };
+			const info: any = { level, message };
 			info[Symbol.for('level')] = level;
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				`${loggedInfo.timestamp} [${loggedInfo.label}] \u001b[32m${level}\u001b[39m: \u001b[32m	${message}\u001b[39m`
 			);
@@ -50,16 +57,20 @@ describe('Formatting manager spec', () => {
 
 		it('applies order for uncolored json', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('JSON');
+			formattingManager.setDefaultRecipe(OutputFormat.JSON);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
@@ -76,17 +87,22 @@ describe('Formatting manager spec', () => {
 
 		it('applies order for colored json', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('JSON', true);
+			formattingManager.setDefaultRecipe(OutputFormat.JSON, true);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
+			// @ts-ignore
 			info[Symbol.for('level')] = level;
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
@@ -103,16 +119,20 @@ describe('Formatting manager spec', () => {
 
 		it('applies order for uncolored pretty print', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('PRETTY_PRINT');
+			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo.timestamp}\'\n}`
@@ -121,17 +141,22 @@ describe('Formatting manager spec', () => {
 
 		it('applies order for colored pretty print', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.applyOrderFor('PRETTY_PRINT', true);
+			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT, true);
+
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
+			// @ts-ignore
 			info[Symbol.for('level')] = level;
-			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info);
+
+			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
+			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo.timestamp}\'\n}`
@@ -139,7 +164,7 @@ describe('Formatting manager spec', () => {
 		});
 	});
 
-	describe('formatterFor function spec', () => {
+	describe(`${FormattingManager.prototype.formatterFor.name} spec`, () => {
 		it('throws when no recipe is registered', () => {
 			const formattingManager = new FormattingManager();
 			formattingManager.remove('align');
@@ -150,9 +175,7 @@ describe('Formatting manager spec', () => {
 			const formattingManager = new FormattingManager();
 			formattingManager.remove('align');
 			formattingManager.order(['not existing formatter']);
-			expect(() => formattingManager.formatterFor('SUBSYSTEM')).to.throw(
-				"Formatter 'not existing formatter' from the recipe is not registered"
-			);
+			expect(() => formattingManager.formatterFor('SUBSYSTEM')).to.throw("Formatter 'not existing formatter' from the recipe is not registered");
 		});
 	});
 
@@ -161,33 +184,39 @@ describe('Formatting manager spec', () => {
 		const SUBSYSTEM = 'SUBSYSTEM';
 		let level;
 		let loggedInfo;
+
 		/* message formatting */
 		const message = 'message';
 		level = 'info';
 		loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
 			message
-		});
+		}) as TransformableInfo;
+
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${message}`);
+		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
-		expect(loggedInfo[Symbol.for(message)]).to.equal(
-			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}: \t${message}`
-		);
+		// @ts-ignore
+		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${message}`);
+
 		/* error formatting */
 		level = 'err';
 		const err = new Error(message);
 		loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
-			message: err
-		});
+			message: err as any
+		}) as TransformableInfo;
+
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${err.message}`);
+		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		// @ts-ignore
 		expect(loggedInfo[Symbol.for(message)]).to.equal(
-			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}: \t${err.message}\n${err.stack}`
+			`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${err.message}\n${err.stack}`
 		);
 	});
 
@@ -197,41 +226,49 @@ describe('Formatting manager spec', () => {
 		const logLevel = 'info';
 		const logMessage = 'message';
 		let loggedInfo;
+
 		/* overwrite existing one */
 		formattingManager1.set(
-			'printf',
+			DefaultFormatters.PRINTF,
 			// eslint-disable-next-line no-unused-vars
-			format.printf(({ level, message, label, timestamp, stack }) => {
+			format.printf(({ level, label, timestamp }) => {
 				return `${timestamp} [${label}] ${level}`;
 			})
 		);
+
 		/* recipe must be invalidated */
 		expect(() => formattingManager1.formatterFor(SUBSYSTEM)).to.throw('Order recipe is not configured');
 		formattingManager1.order(['timestamp', 'errors', 'splat', 'align', 'printf']);
+
 		/* assert existing was overwritten */
 		loggedInfo = formattingManager1.formatterFor(SUBSYSTEM).transform({
 			level: logLevel,
 			message: logMessage
-		});
+		}) as TransformableInfo;
+
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`\t${logMessage}`);
+		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
-		expect(loggedInfo[Symbol.for('message')]).to.equal(
-			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}`
-		);
+		// @ts-ignore
+		expect(loggedInfo[Symbol.for('message')]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}`);
+
 		/* add new formatter */
 		const formattingManager2 = new FormattingManager();
-		formattingManager2.set('json', format.json({ space: 4 }));
+		formattingManager2.set(DefaultFormatters.JSON, format.json({ space: 4 }));
 		formattingManager2.order(['timestamp', 'errors', 'splat', 'json']);
 		loggedInfo = formattingManager2.formatterFor(SUBSYSTEM).transform({
 			level: logLevel,
 			message: logMessage
-		});
+		}) as TransformableInfo;
+
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`${logMessage}`);
+		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		// @ts-ignore
 		expect(loggedInfo[Symbol.for('message')]).to.equal(
 			JSON.stringify(
 				{
@@ -253,21 +290,23 @@ describe('Formatting manager spec', () => {
 		const level = 'info';
 		const message = 'message';
 		formattingManager.order(['timestamp', 'errors', 'splat', 'printf']);
+
 		const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
 			message
-		});
+		}) as TransformableInfo;
+
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(message);
+		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo.label).to.equal(SUBSYSTEM);
-		expect(loggedInfo[Symbol.for(message)]).to.equal(
-			`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}: ${message}`
-		);
+		// @ts-ignore
+		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}: ${message}`);
 	});
 
 	it('order throws when recipe was defined already', () => {
 		const formattingManager = new FormattingManager();
-		expect(() => formattingManager.order(['foo formatter'])).to.throw('Order recipe configured already');
+		expect(() => formattingManager.order(['foo formatter'])).to.throw('Order recipe configured already.');
 	});
 });

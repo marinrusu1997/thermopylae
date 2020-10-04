@@ -1,5 +1,5 @@
-import LoggerInstance, { WinstonLogger } from '@marin/lib.logger';
 import { Services } from '@marin/declarations/lib/services';
+import LoggerInstance, { WinstonLogger } from '../../lib.logger.bk';
 
 let logger: WinstonLogger | undefined;
 function getLogger(): WinstonLogger {

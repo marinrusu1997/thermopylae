@@ -1,5 +1,5 @@
 import { before } from 'mocha';
-import Logger, { FormattingManager } from '@marin/lib.logger';
+import Logger, { FormattingManager } from '../../lib.logger.bk';
 
 before(() => {
 	Logger.console.setConfig({ level: 'warning' });

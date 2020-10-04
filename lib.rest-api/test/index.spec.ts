@@ -6,10 +6,10 @@ import express, { Application } from 'express';
 import { json } from 'body-parser';
 import { HttpStatusCode } from '@marin/lib.utils/dist/declarations';
 
-import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
 import Exception from '@marin/lib.error';
 import { promisify } from 'util';
 import { readdir } from 'fs';
+import LoggerInstance, { FormattingManager } from '../../lib.logger.bk';
 import { RestApiRouterFactory, ServiceName, ServiceRequestHandlers, ServiceRESTApiSchema, ErrorCodes } from '../lib';
 import { AccountRole, addJwtToBlacklist, defaultJwtInstance, issueJWT, rolesTtlMap } from './fixtures/jwt';
 import {

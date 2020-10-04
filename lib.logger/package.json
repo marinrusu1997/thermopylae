@@ -1,38 +1,63 @@
 {
-    "name": "@marin/lib.logger",
-    "version": "1.0.0",
-    "description": "Simple facade over Winston logging lib",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "main": "lib/index.js",
+    "name": "@thermopylae/lib.logger",
+    "description": "Logger for backend services.",
+    "keywords": [
+        "thermopylae",
+        "library",
+        "logger"
+    ],
+    "version": "0.0.1601806066",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "main": "dist/index.js",
+    "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
     "scripts": {
-        "lint": "eslint --fix lib/**/*.js test/**/*.js",
-        "test": "mocha -r esm",
-        "coverage": "nyc mocha",
-        "build": "eslint lib/ test/ && npm run test",
-        "coverage:show": "http-server coverage/",
-        "clean": "rm -rf .nyc_output coverage",
-        "clean:all": "rm -rf .nyc_output coverage node_modules package-lock.json"
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "doc": "gulp doc",
+        "test": "gulp test",
+        "report": "gulp report",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "precommit": "npm run lint",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
+        "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@marin/lib.error": "file:../lib.error",
-        "@marin/lib.utils": "file:../lib.utils",
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.exception": "0",
         "winston": "3",
         "winston-daily-rotate-file": "4",
         "winston-graylog2": "2"
     },
     "devDependencies": {
-        "chai": "4",
-        "chai-arrays": "2",
-        "chai-date-string": "0",
-        "eslint": "6",
-        "eslint-config-airbnb-base": "14",
-        "eslint-config-prettier": "6",
-        "eslint-plugin-import": "2",
-        "eslint-plugin-prettier": "3",
-        "esm": "3",
-        "mocha": "6",
-        "nyc": "14",
-        "prettier": "1"
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/lib.utils": "0",
+        "@thermopylae/module-builder": "0",
+        "moment": "2"
     },
-    "type": "module"
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4",
+        "logform": "2",
+        "winston-transport": "4"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": ">= 14"
+    },
+    "license": "ISC",
+    "type": "commonjs"
 }

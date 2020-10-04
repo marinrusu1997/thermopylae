@@ -1,4 +1,4 @@
-import LoggerInstance, { FormattingManager } from '@marin/lib.logger';
+import LoggerInstance, { FormattingManager } from '../../../lib.logger.bk';
 import { string } from '@marin/lib.utils';
 import { after, afterEach, before } from 'mocha';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
