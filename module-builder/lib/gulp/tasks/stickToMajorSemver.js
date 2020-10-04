@@ -32,6 +32,4 @@ function stickToMajorSemver(done) {
     });
 }
 
-module.exports = {
-    stickToMajorSemver
-};
+module.exports = stickToMajorSemver;

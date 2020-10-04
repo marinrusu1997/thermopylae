@@ -10,7 +10,7 @@ describe('exception spec', () => {
 		const data = {};
 		const e = new Exception(emitter, code, message, data);
 		expect(e.name).to.be.equal('Exception');
-		expect(e.cause).to.be.deep.equal(data);
+		expect(e.origin).to.be.deep.equal(data);
 	});
 
 	it('returns string representation', () => {
@@ -19,6 +19,6 @@ describe('exception spec', () => {
 		const message = 'message';
 		const data = {};
 		const e = new Exception(emitter, code, message, data);
-		expect(e.toString()).to.be.equal(`[${emitter}] ${code}: ${message}`);
+		expect(e.toString()).to.be.equal(`[${emitter}] ${code}: ${message} :${JSON.stringify(data)}`);
 	});
 });

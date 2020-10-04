@@ -5,7 +5,8 @@ const gulp = require('gulp');
 
 module.exports = {
     build: tasks.build.buildWithDeclarationsFileFactory('TS', gulp),
-    doc: tasks.doc.doc,
+    doc: tasks.doc,
+    readme: tasks.readme,
 
     test: tasks.test.test,
     debug: tasks.test.debug,

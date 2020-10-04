@@ -7,7 +7,7 @@
         "indexing",
         "storage"
     ],
-    "version": "0.0.1601759113",
+    "version": "0.0.1601789522",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
@@ -29,7 +29,7 @@
         "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
         "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
         "precommit": "npm run lint",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {

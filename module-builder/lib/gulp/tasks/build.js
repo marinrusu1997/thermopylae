@@ -2,11 +2,7 @@
 
 const fs = require("fs");
 const spawn = require("child_process").spawn;
-const gulp = require('gulp');
-const replace = require('gulp-replace');
-const { notNull } = require('../../utils');
 const {
-    PLACEHOLDER_VALUES,
     SPAWN_OPTIONS,
     ModuleLang
 } = require('../../constants');
@@ -90,25 +86,9 @@ function unStageTsConfig(done) {
   });
 }
 
-function replacePlaceholdersInReadme() {
-    const pathToTemplate = './templates/README.md';
-    if (!fs.existsSync(pathToTemplate)) {
-        console.warn(`README template not found at path ${pathToTemplate}.`);
-        return Promise.resolve();
-    }
-
-    let pipeline = gulp.src([pathToTemplate]);
-
-    for (const [placeholder, value] of PLACEHOLDER_VALUES) {
-        pipeline = pipeline.pipe(replace(placeholder, notNull(value)));
-    }
-
-    return pipeline.pipe(gulp.dest('./'));
-}
-
 function buildFactory(module, gulp) {
   if (module === ModuleLang.TS) {
-    return gulp.series(stageTsConfig, stagePackageJson, tscVersion, transpile, unStageTsConfig, replacePlaceholdersInReadme);
+    return gulp.series(stageTsConfig, stagePackageJson, tscVersion, transpile, unStageTsConfig);
   }
 }
 

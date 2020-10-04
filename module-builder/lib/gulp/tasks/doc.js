@@ -7,7 +7,5 @@ function doc() {
     return npmRun.spawn("typedoc", [], constants.SPAWN_OPTIONS);
 }
 
-module.exports = {
-    doc
-};
+module.exports = doc;
 
