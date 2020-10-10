@@ -1,13 +1,13 @@
 import { EventEmitter } from 'events';
 import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
-import { NOT_FOUND_VALUE } from '../../constants';
-import { CacheFrontend } from '../../contracts/sync/cache-frontend';
-import { TtlRegistry } from '../../helpers/ttl-registry';
-import { EsMapBackend } from '../../backend/sync/es-map-backend';
-import { CacheMiddleEnd } from '../../contracts/sync/cache-middleend';
-import { OpaqueMiddleend } from '../../middleend/opaque-middleend';
-import { EventListener, EventType, CacheStats } from '../../contracts/commons';
+import { NOT_FOUND_VALUE } from '../constants';
+import { CacheFrontend } from '../contracts/cache-frontend';
+import { TtlRegistry } from '../helpers/ttl-registry';
+import { EsMapBackend } from '../backend/es-map-backend';
+import { CacheMiddleEnd } from '../contracts/cache-middleend';
+import { OpaqueMiddleend } from '../middleend/opaque-middleend';
+import { EventListener, EventType, CacheStats } from '../contracts/commons';
 
 interface MemCacheOptions<Key, Value> {
 	useClones: boolean;

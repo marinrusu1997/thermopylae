@@ -1,10 +1,10 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { Heap } from '@thermopylae/lib.collections';
+import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
+import { EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheKey } from '../../contracts/commons';
 
 interface CleanUpInterval {
@@ -141,7 +141,7 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 
 		if (this.cleanUpInterval.willCleanUpOn !== rootKey[EXPIRES_AT_SYM]) {
 			clearTimeout(this.cleanUpInterval.timeoutId);
-			this.start(rootKey[EXPIRES_AT_SYM] - chrono.dateToUNIX(), rootKey[EXPIRES_AT_SYM]);
+			this.start(rootKey[EXPIRES_AT_SYM] - chrono.unixTime(), rootKey[EXPIRES_AT_SYM]);
 		}
 	}
 
@@ -154,7 +154,7 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 		// @ts-ignore
 		this.cleanUpInterval = {};
 
-		const runDelay = willCleanUpOn - chrono.dateToUNIX();
+		const runDelay = willCleanUpOn - chrono.unixTime();
 		this.start(runDelay, willCleanUpOn);
 	}
 

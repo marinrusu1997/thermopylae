@@ -3,13 +3,14 @@
     "description": "Resources pool.",
     "keywords": [
         "thermopylae",
-        "module",
+        "library",
         "resources",
         "pool"
     ],
-    "version": "0.0.1593357137",
+    "version": "0.0.1602346274",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
+    "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -31,14 +32,14 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
+        "@types/yallist": "3",
         "yallist": "4"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/yallist": "3"
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
         "mocha": "8",
@@ -50,7 +51,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">=14"
     },
     "license": "ISC"
 }

@@ -2,9 +2,9 @@ import { concurrency } from '@thermopylae/lib.async';
 import { Index, Label, Seconds, StatusFlag, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import debounce from 'lodash.debounce';
 import { AsyncCacheFrontend } from '../../contracts/async/async-cache-frontend';
-import { NOT_FOUND_VALUE } from '../../constants';
-import { createException, ErrorCodes } from '../../error';
-import { EventListener, EventType, CacheStats } from '../../contracts/commons';
+import { NOT_FOUND_VALUE } from '../../../lib.cache/lib/constants';
+import { createException, ErrorCodes } from '../../../lib.cache/lib/error';
+import { EventListener, EventType, CacheStats } from '../../../lib.cache/lib/contracts/commons';
 
 const { LockedOperation, LabeledConditionalVariable } = concurrency;
 

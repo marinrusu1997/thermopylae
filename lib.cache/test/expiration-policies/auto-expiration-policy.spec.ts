@@ -1,46 +1,45 @@
+/*
 import { chrono, number } from '@thermopylae/lib.utils';
+import { expect } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { chai } from '../env';
 import { AutoExpirationPolicy } from '../../lib';
 import { generateExpirationPolicyDeleter } from '../utils';
 import { ExpirableCacheKeyEntry } from '../../lib/policies/expiration/auto-expiration-policy';
+import { EXPIRES_AT_SYM } from '../../lib/policies/expiration/abstract-expiration-policy';
 
-const nowInSeconds = chrono.dateToUNIX;
-const { expect } = chai;
-
-function generateEntry<K = string>(key: K, expiration:): ExpirableCacheKeyEntry<K, any> {
+function generateEntry<K = string>(key: K): ExpirableCacheKeyEntry<K, any> {
 	return {
 		key,
-		value: number.generateRandomInt(0, generateEntry.VALUES.length - 1),
-		expiresAt: 0
+		value: number.randomInt(0, generateEntry.VALUES.length - 1),
+		[EXPIRES_AT_SYM]: 0
 	};
 }
-generateEntry.VALUES = [0, undefined, null, '', false];
+generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
-describe('Auto Expiration CachePolicy spec', () => {
+describe(`${AutoExpirationPolicy.name} spec`, () => {
 	const defaultTTL = 1; // second
 
-	it('removes expired item', done => {
+	it('removes expired item', (done) => {
 		const trackedKey = 'key';
-		const whenTrackingBegan = nowInSeconds();
+		const whenTrackingBegan = chrono.unixTime();
 		const expirationPolicy = new AutoExpirationPolicy();
-		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
-			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, (key) => {
+			expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(key).to.be.equals(trackedKey);
 			done();
 		});
 
 		expirationPolicy.setDeleter(deleter);
 
-		expirationPolicy.onSet(trackedKey, generateEntry(trackedKey), defaultTTL);
+		expirationPolicy.onSet(trackedKey, generateEntry(trackedKey), { expiresAfter: defaultTTL });
 	});
 
-	it('removes multiple expired keys with same ttl (tracking started at same time)', done => {
+	it('removes multiple expired keys with same ttl (tracking started at same time)', (done) => {
 		const trackedKeys = ['key1', 'key2', 'key3'];
-		const whenTrackingBegan = nowInSeconds();
+		const whenTrackingBegan = chrono.unixTime();
 		const expirationPolicy = new AutoExpirationPolicy();
-		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
-			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(defaultTTL);
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, (key) => {
+			expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
 			if (trackedKeys.length === 0) {
@@ -49,20 +48,20 @@ describe('Auto Expiration CachePolicy spec', () => {
 		});
 
 		expirationPolicy.setDeleter(deleter);
-		trackedKeys.forEach(key => expirationPolicy.onSet(key, generateEntry(key), defaultTTL));
+		trackedKeys.forEach((key) => expirationPolicy.onSet(key, generateEntry(key), defaultTTL));
 	});
 
-	it('removes multiple expired keys with different ttl (tracking started at same time)', done => {
+	it('removes multiple expired keys with different ttl (tracking started at same time)', (done) => {
 		const trackedKeysMap = new Map<string, number>();
 		trackedKeysMap.set('key1', defaultTTL);
 		trackedKeysMap.set('key2', defaultTTL);
 		trackedKeysMap.set('key3', defaultTTL + 1);
 		trackedKeysMap.set('key4', defaultTTL + 1);
 
-		const whenTrackingBegan = nowInSeconds();
+		const whenTrackingBegan = chrono.unixTime();
 		const expirationPolicy = new AutoExpirationPolicy();
-		const deleter = generateExpirationPolicyDeleter(expirationPolicy, key => {
-			expect(nowInSeconds() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
+		const deleter = generateExpirationPolicyDeleter(expirationPolicy, (key) => {
+			expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
 			trackedKeysMap.delete(key); // ensure not called with same key
 			if (trackedKeysMap.size === 0) {
@@ -74,15 +73,15 @@ describe('Auto Expiration CachePolicy spec', () => {
 		trackedKeysMap.forEach((ttl, key) => expirationPolicy.onSet(key, generateEntry(key), ttl));
 	}).timeout(2100);
 
-	it('removes multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', done => {
+	it('removes multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', (done) => {
 		const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
 		const KEYS_TO_BE_TRACKED = 4;
 		let currentNumberOfRemovedKeys = 0;
 		const trackedKeysSnapshot = ['key1', 'key2', 'key3', 'key4'];
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
+		expirationPolicy.setDeleter((key) => {
 			const value = trackedKeysMap.get(key);
-			expect(nowInSeconds() - value!.trackingSince).to.be.equals(value!.ttl);
+			expect(chrono.unixTime() - value!.trackingSince).to.be.equals(value!.ttl);
 			expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
 			trackedKeysMap.delete(key); // ensure not called with same key
 			expect(trackedKeysSnapshot[currentNumberOfRemovedKeys]).to.be.equal(key);
@@ -92,41 +91,41 @@ describe('Auto Expiration CachePolicy spec', () => {
 			}
 		});
 
-		trackedKeysMap.set('key1', { trackingSince: nowInSeconds(), ttl: defaultTTL });
+		trackedKeysMap.set('key1', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
 		expirationPolicy.onSet('key1', defaultTTL);
 
 		setTimeout(() => {
-			trackedKeysMap.set('key2', { trackingSince: nowInSeconds(), ttl: defaultTTL });
+			trackedKeysMap.set('key2', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
 			expirationPolicy.onSet('key2', defaultTTL);
 		}, 1000);
 
 		setTimeout(() => {
-			trackedKeysMap.set('key3', { trackingSince: nowInSeconds(), ttl: defaultTTL });
+			trackedKeysMap.set('key3', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
 			expirationPolicy.onSet('key3', defaultTTL);
 		}, 2000);
 
 		setTimeout(() => {
-			trackedKeysMap.set('key4', { trackingSince: nowInSeconds(), ttl: defaultTTL });
+			trackedKeysMap.set('key4', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
 			expirationPolicy.onSet('key4', defaultTTL);
 		}, 3000);
 	}).timeout(4100);
 
-	it('removes duplicate keys with same ttl', done => {
+	it('removes duplicate keys with same ttl', (done) => {
 		const trackedKeys = ['key', 'key', 'key'];
-		const whenTrackingBegan = nowInSeconds();
+		const whenTrackingBegan = chrono.unixTime();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
-			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
+		expirationPolicy.setDeleter((key) => {
+			expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
 			if (trackedKeys.length === 0) {
 				done();
 			}
 		});
-		trackedKeys.forEach(key => expirationPolicy.onSet(key, defaultTTL));
+		trackedKeys.forEach((key) => expirationPolicy.onSet(key, defaultTTL));
 	});
 
-	it('restarts expirationPolicy after all tracked keys were removed (new key tracked from scheduleDeletion handler)', done => {
+	it('restarts expirationPolicy after all tracked keys were removed (new key tracked from scheduleDeletion handler)', (done) => {
 		const trackedKeys = ['key1', 'key2'];
 		const MAX_TRACKED_KEY_RECURSION_DEPTH = 2;
 		let currentNumberOfTrackedKeys = 0;
@@ -135,13 +134,13 @@ describe('Auto Expiration CachePolicy spec', () => {
 
 		const trackKey = (key: string): void => {
 			expirationPolicy.onSet(key, defaultTTL);
-			whenTrackingBegan = nowInSeconds();
+			whenTrackingBegan = chrono.unixTime();
 			currentNumberOfTrackedKeys += 1;
 		};
 
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
-			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
+		expirationPolicy.setDeleter((key) => {
+			expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
 			if (currentNumberOfTrackedKeys === MAX_TRACKED_KEY_RECURSION_DEPTH) {
@@ -154,18 +153,18 @@ describe('Auto Expiration CachePolicy spec', () => {
 		trackKey('key1');
 	}).timeout(2100);
 
-	it('restarts expirationPolicy after all tracked keys were removed (new key tracked using setTimeout)', done => {
+	it('restarts expirationPolicy after all tracked keys were removed (new key tracked using setTimeout)', (done) => {
 		const trackedKeys = ['key1', 'key2'];
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
 			expirationPolicy.onSet(key, defaultTTL);
-			whenTrackingBegan = nowInSeconds();
+			whenTrackingBegan = chrono.unixTime();
 		};
 
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
-			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
+		expirationPolicy.setDeleter((key) => {
+			expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeys).to.be.containing(key);
 			trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
 			if (trackedKeys.length === 0) {
@@ -178,19 +177,19 @@ describe('Auto Expiration CachePolicy spec', () => {
 		setTimeout(() => trackKey('key2'), (defaultTTL + 1.5) * 1000);
 	}).timeout(3600);
 
-	it('restarts the expirationPolicy after it was stopped, discarding and its internal list of tracked keys', done => {
+	it('restarts the expirationPolicy after it was stopped, discarding and its internal list of tracked keys', (done) => {
 		const trackedKeyBeforeStopping = 'key1';
 		const trackedKeyAfterStopping = 'key2';
 		let whenTrackingBegan: number | undefined;
 
 		const trackKey = (key: string): void => {
 			expirationPolicy.onSet(key, defaultTTL);
-			whenTrackingBegan = nowInSeconds();
+			whenTrackingBegan = chrono.unixTime();
 		};
 
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(key => {
-			expect(nowInSeconds() - whenTrackingBegan!).to.be.equals(defaultTTL);
+		expirationPolicy.setDeleter((key) => {
+			expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 			expect(trackedKeyAfterStopping).to.be.equal(key);
 			done();
 		});
@@ -203,7 +202,7 @@ describe('Auto Expiration CachePolicy spec', () => {
 	it('expirationPolicy is synchronized with nearest element to remove while adding keys', async () => {
 		const items = new Set();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(item => items.delete(item));
+		expirationPolicy.setDeleter((item) => items.delete(item));
 		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		// adding element with same ttl
@@ -256,10 +255,10 @@ describe('Auto Expiration CachePolicy spec', () => {
 		expect(expirationPolicy.isIdle()).to.be.eq(true);
 	}).timeout(6000);
 
-	it('expirationPolicy is synchronized with nearest element to remove while adding/updating keys', done => {
+	it('expirationPolicy is synchronized with nearest element to remove while adding/updating keys', (done) => {
 		const items = new Set();
 		const expirationPolicy = new AutoExpirationPolicy();
-		expirationPolicy.setDeleter(item => items.delete(item));
+		expirationPolicy.setDeleter((item) => items.delete(item));
 		expect(expirationPolicy.isIdle()).to.be.eq(true);
 
 		const MIN_TTL = 1;
@@ -315,7 +314,7 @@ describe('Auto Expiration CachePolicy spec', () => {
 		for (let i = SCHEDULE_DELETION_MIN_DELAY; i <= SCHEDULE_DELETION_MAX_DELAY; i++) {
 			gcIntervalReTrackSchedulers.set(i, []);
 			setTimeout(() => {
-				gcIntervalReTrackSchedulers.get(i)!.forEach(scheduleDeletion => scheduleDeletion());
+				gcIntervalReTrackSchedulers.get(i)!.forEach((scheduleDeletion) => scheduleDeletion());
 				gcIntervalReTrackSchedulers.delete(i);
 			}, i * 1000);
 		}
@@ -335,3 +334,4 @@ describe('Auto Expiration CachePolicy spec', () => {
 		}
 	}).timeout(10_500);
 });
+*/

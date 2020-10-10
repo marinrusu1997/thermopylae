@@ -1,14 +1,10 @@
 import { afterEach } from 'mocha';
-import chai from 'chai';
-import chaiArrays from 'chai-arrays';
 import { config as dotEnvConfig } from 'dotenv';
 
 const dotEnv = dotEnvConfig();
 if (dotEnv.error) {
 	throw dotEnv.error;
 }
-
-chai.use(chaiArrays);
 
 function cacheFactory<T>(constructor: any, opts?: any): T {
 	if (process.env.USE_GLOBAL_CACHE_FOR_TESTS === 'true' && !opts) {
@@ -29,4 +25,4 @@ afterEach(() => {
 	cacheFactory.globalCaches.forEach((cache) => cache.clear());
 });
 
-export { chai, cacheFactory };
+export { cacheFactory };

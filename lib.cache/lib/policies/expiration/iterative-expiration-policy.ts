@@ -1,6 +1,6 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
-import { SetOperationContext } from '../../contracts/sync/cache-policy';
+import { SetOperationContext } from '../../contracts/cache-policy';
 import { CacheKey } from '../../contracts/commons';
 
 type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;
@@ -40,7 +40,9 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.getNextCacheKey = this.config.nextCacheKey;
 		this.getCollectionSize = this.config.collectionSize;
 
+		// @ts-ignore
 		delete this.config.nextCacheKey;
+		// @ts-ignore
 		delete this.config.collectionSize;
 	}
 

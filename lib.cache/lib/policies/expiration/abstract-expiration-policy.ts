@@ -2,7 +2,7 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
+import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
@@ -50,7 +50,7 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 	}
 
 	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): EntryValidity {
-		const expired = expiration != null ? expiration >= chrono.dateToUNIX() : false;
+		const expired = expiration != null ? expiration >= chrono.unixTime() : false;
 		if (expired) {
 			this.delete(key);
 			return EntryValidity.NOT_VALID;
@@ -59,7 +59,7 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 	}
 
 	protected setEntryExpiration(entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		const now = chrono.dateToUNIX();
+		const now = chrono.unixTime();
 		const expiresAt = (expiresFrom || now) + expiresAfter;
 
 		AbstractExpirationPolicy.assertValidExpiresAt(entry[EXPIRES_AT_SYM], expiresAt, now);

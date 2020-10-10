@@ -1,4 +1,4 @@
-import { CachePolicy, EntryValidity } from '../../contracts/sync/cache-policy';
+import { CachePolicy, EntryValidity } from '../../contracts/cache-policy';
 
 class NoExpirationPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	public onGet(): EntryValidity {

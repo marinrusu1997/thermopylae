@@ -1,8 +1,7 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM } from '../../helpers/dll-list';
-import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/sync/cache-policy';
-import CacheEntry from '../../contracts/commons';
-import CacheKey from '../../contracts/commons';
+import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/cache-policy';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
 
@@ -27,7 +26,7 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
-		if (context.elements === this.capacity) {
+		if (context.totalEntriesNo === this.capacity) {
 			this.delete(this.doublyLinkedList.tail!.key); // fixme addapt to onDelete hook
 			this.doublyLinkedList.removeNode(this.doublyLinkedList.tail!);
 		}

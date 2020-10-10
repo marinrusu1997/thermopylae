@@ -1,8 +1,8 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { INFINITE_KEYS } from '../../constants';
 import { createException, ErrorCodes } from '../../error';
-import { CachePolicy, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
-import CacheEntry from '../../contracts/commons';
+import { CachePolicy, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheEntry } from '../../contracts/commons';
 
 class NoEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly capacity: Threshold;
@@ -16,7 +16,7 @@ class NoEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 
 	public onSet(_key: Key, _entry: CacheEntry<Value>, context: SetOperationContext): void {
-		if (this.capacity !== INFINITE_KEYS && context.elements >= this.capacity) {
+		if (this.capacity !== INFINITE_KEYS && context.totalEntriesNo >= this.capacity) {
 			throw createException(ErrorCodes.CACHE_FULL, `Limit of ${this.capacity} has been reached and ${this.constructor.name} has been set. `);
 		}
 	}

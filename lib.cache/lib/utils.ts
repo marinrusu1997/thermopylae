@@ -1,7 +1,7 @@
-import { CacheBackend } from './contracts/sync/cache-backend';
+import { CacheBackend } from './contracts/cache-backend';
+import { CacheEntry } from './contracts/commons';
 import { NextCacheKey } from './policies/expiration';
 import { ExpirableCacheKey } from './policies/expiration/iterative-expiration-policy';
-import CacheEntry from './contracts/commons';
 
 function generateCacheIterator<K, V>(backend: CacheBackend<K, V>): NextCacheKey<K> {
 	let iterator: IterableIterator<[K, CacheEntry<V>]> = backend[Symbol.iterator]();

@@ -1,10 +1,9 @@
 import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { CacheBackend } from '../contracts/sync/cache-backend';
+import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CachePolicy, EntryValidity, SetOperationContext } from '../contracts/sync/cache-policy';
-import { CacheMiddleEnd } from '../contracts/sync/cache-middleend';
-import CacheStats from '../contracts/commons';
-import CacheEntry from '../contracts/commons';
+import { CachePolicy, EntryValidity, SetOperationContext } from '../contracts/cache-policy';
+import { CacheMiddleEnd } from '../contracts/cache-middleend';
+import { CacheStats, CacheEntry } from '../contracts/commons';
 
 class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	private readonly backend: CacheBackend<K, V>;
@@ -139,7 +138,7 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	}
 
 	private static buildSetContext(elements: number, expiresAfter?: Seconds, expiresFrom?: UnixTimestamp): SetOperationContext {
-		return { elements, expiresAfter, expiresFrom };
+		return { totalEntriesNo: elements, expiresAfter, expiresFrom };
 	}
 }
 

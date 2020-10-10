@@ -1,7 +1,7 @@
 import { AsyncCacheFrontend } from '../../contracts/async/async-cache-frontend';
-import { Cache } from '../sync/cache';
-import { CacheFrontend } from '../../contracts/sync/cache-frontend';
-import { CacheEntry } from '../../contracts/commons';
+import { Cache } from '../../../lib.cache/lib/frontend/cache';
+import { CacheFrontend } from '../../../lib.cache/lib/contracts/cache-frontend';
+import { CacheEntry } from '../../../lib.cache/lib/contracts/commons';
 
 type Retriever<K, V> = (key: K) => Promise<V>;
 

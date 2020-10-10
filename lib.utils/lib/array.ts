@@ -112,12 +112,19 @@ function randomElement<T>(array: Array<T>): T {
  *
  * @returns Filtered elements.
  */
-function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>, concurrency = ConcurrencyType.PARALLEL): Promise<Array<T>> {
+async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>, concurrency = ConcurrencyType.PARALLEL): Promise<Array<T>> {
 	switch (concurrency) {
 		case ConcurrencyType.PARALLEL:
 			return Promise.all(array.map(predicate)).then((results) => array.filter((_, index) => results[index]));
-		case ConcurrencyType.SEQUENTIAL:
-			return array.reduce(async (memo: Promise<T[]>, e: T) => [...(await memo), ...((await predicate(e)) ? [e] : [])], Promise.resolve([]));
+		case ConcurrencyType.SEQUENTIAL: {
+			const results = new Array<T>();
+			for (const item of array) {
+				if (await predicate(item)) {
+					results.push(item);
+				}
+			}
+			return results;
+		}
 		default:
 			return Promise.reject(createException(ErrorCodes.NOT_SUPPORTED, `Can't handle given concurrency ${concurrency}.`));
 	}

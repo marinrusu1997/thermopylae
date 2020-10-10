@@ -1,13 +1,14 @@
 {
-    "name": "@thermopylae/lib.cache",
-    "description": "Modular cache.",
+    "name": "@thermopylae/lib.async-cache",
+    "description": "Asynchronous caches",
     "keywords": [
         "thermopylae",
         "library",
+        "async",
         "cache"
     ],
-    "version": "0.0.1587317824",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "version": "0.0.1",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
@@ -31,18 +32,8 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
-    "dependencies": {
-        "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.heap": "0",
-        "@thermopylae/lib.pool": "0",
-        "@thermopylae/lib.utils": "0"
-    },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/dotenv": "8",
-        "dotenv": "8"
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
         "mocha": "8",
@@ -54,8 +45,7 @@
         ]
     },
     "engines": {
-        "node": ">=14"
+        "node": ">= 14"
     },
-    "license": "ISC",
-    "type": "commonjs"
+    "license": "ISC"
 }

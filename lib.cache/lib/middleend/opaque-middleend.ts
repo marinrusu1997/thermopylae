@@ -1,8 +1,8 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheMiddleEnd } from '../contracts/sync/cache-middleend';
-import { CacheBackend } from '../contracts/sync/cache-backend';
+import { CacheMiddleEnd } from '../contracts/cache-middleend';
+import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import CacheStats from '../contracts/commons';
+import { CacheStats } from '../contracts/commons';
 
 class OpaqueMiddleend<Key, Value> implements CacheMiddleEnd<Key, Value> {
 	private readonly cacheStats: CacheStats;

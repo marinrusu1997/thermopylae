@@ -1,17 +1,17 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { object as obj } from '@thermopylae/lib.pool';
-import { CacheBackend } from '../../contracts/sync/cache-backend';
-import { NOT_FOUND_VALUE } from '../../constants';
-import CacheEntry from '../../contracts/commons';
+import { CacheBackend } from '../contracts/cache-backend';
+import { NOT_FOUND_VALUE } from '../constants';
+import { CacheEntry } from '../contracts/commons';
 
 class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
-	private readonly store: Map<Key, CacheEntry<Value>>;
+	private readonly store: Map<Key, obj.Handle<Value>>;
 
 	private readonly entryPool: obj.ObjectPool<Value>;
 
 	constructor(capacity?: number) {
-		this.store = new Map<Key, CacheEntry<Value>>();
+		this.store = new Map<Key, obj.Handle<Value>>();
 		this.entryPool = new obj.ObjectPool<Value>({
 			capacity: capacity || Infinity,
 			initialFreeShapes: capacity ? array.filledWith(capacity, undefined) : undefined,

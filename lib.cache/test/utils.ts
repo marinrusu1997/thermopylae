@@ -1,8 +1,6 @@
-import { Deleter } from '../lib/contracts/sync/cache-policy';
-import { ExpirationPolicy } from '../lib/contracts/sync/expiration-policy';
-import CacheEntry from '../lib/contracts/commons';
+import { Deleter, CachePolicy } from '../lib/contracts/cache-policy';
 
-function generateExpirationPolicyDeleter<K, V>(policy: ExpirationPolicy<K, V, CacheEntry<V>>, deleter: Deleter<K>): Deleter<K> {
+function generateExpirationPolicyDeleter<K, V>(policy: CachePolicy<K, V>, deleter: Deleter<K>): Deleter<K> {
 	if (policy.requiresEntryOnDeletion) {
 		throw new Error("Can't generate deleter for policy which needs entry for delete hook");
 	}

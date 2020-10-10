@@ -1,8 +1,7 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
-import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/sync/cache-policy';
-import CacheEntry from '../../contracts/commons';
-import CacheKey from '../../contracts/commons';
+import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 
 const FREQ_PARENT_ITEM_SYM = Symbol.for('FREQ_PARENT_ITEM_SYM');
 
@@ -64,7 +63,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// Check for backend overflow
-		if (context.elements === this.config.capacity) {
+		if (context.totalEntriesNo === this.config.capacity) {
 			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}
 
