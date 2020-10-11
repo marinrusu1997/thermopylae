@@ -4,7 +4,7 @@ import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheStats } from '../contracts/commons';
 
-class OpaqueMiddleend<Key, Value> implements CacheMiddleEnd<Key, Value> {
+class OpaqueMiddleEnd<Key, Value> implements CacheMiddleEnd<Key, Value> {
 	private readonly cacheStats: CacheStats;
 
 	private readonly backend: CacheBackend<Key, Value>;
@@ -63,4 +63,4 @@ class OpaqueMiddleend<Key, Value> implements CacheMiddleEnd<Key, Value> {
 	}
 }
 
-export { OpaqueMiddleend };
+export { OpaqueMiddleEnd };

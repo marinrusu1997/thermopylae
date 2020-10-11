@@ -6,7 +6,7 @@ import { CacheFrontend } from '../contracts/cache-frontend';
 import { TtlRegistry } from '../helpers/ttl-registry';
 import { EsMapBackend } from '../backend/es-map-backend';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
-import { OpaqueMiddleend } from '../middleend/opaque-middleend';
+import { OpaqueMiddleEnd } from '../middleend/opaque-middleend';
 import { EventListener, EventType, CacheStats } from '../contracts/commons';
 
 interface MemCacheOptions<Key, Value> {
@@ -131,7 +131,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	private static fillWithDefaults<K, V>(options?: Partial<MemCacheOptions<K, V>>): MemCacheOptions<K, V> {
 		options = options || {};
 		options.useClones = options.useClones || false;
-		options.middleend = options.middleend || new OpaqueMiddleend<K, V>(new EsMapBackend());
+		options.middleend = options.middleend || new OpaqueMiddleEnd<K, V>(new EsMapBackend());
 		options.ttlRegistry = options.ttlRegistry || TtlRegistry.empty<K>();
 		return options as MemCacheOptions<K, V>;
 	}

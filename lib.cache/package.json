@@ -18,7 +18,7 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
-        "test": "gulp test",
+        "test": "mocha --expose-gc",
         "report": "gulp report",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",
@@ -41,8 +41,11 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@types/array-move": "2",
         "@types/dotenv": "8",
-        "dotenv": "8"
+        "array-move": "3",
+        "dotenv": "8",
+        "js-gc": "^1.0.1"
     },
     "peerDependencies": {
         "mocha": "8",

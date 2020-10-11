@@ -5,13 +5,13 @@ import { CacheEntry, CacheKey } from '../../contracts/commons';
 
 const FREQ_PARENT_ITEM_SYM = Symbol.for('FREQ_PARENT_ITEM_SYM');
 
+interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+	[FREQ_PARENT_ITEM_SYM]: FreqListNode<Key, Value>;
+}
+
 interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
 	frequency: number;
 	list: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
-}
-
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
-	[FREQ_PARENT_ITEM_SYM]: FreqListNode<Key, Value>;
 }
 
 interface LFUEvictionPolicyOptions {
@@ -80,8 +80,8 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 
 	public onClear(): void {
-		for (let it = this.freqList.iterator(), res = it.next(); !res.done; res = it.next()) {
-			res.value.list.clear();
+		for (const freqListNode of this.freqList) {
+			(freqListNode as FreqListNode<Key, Value>).list.clear();
 		}
 
 		this.freqList.clear();

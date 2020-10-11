@@ -1,28 +1,24 @@
 /* eslint max-classes-per-file: 0 */ // --> OFF
-
-// FIXME TEST FOR MEMORY LEAKS
-// FIXME UNIT TESTS
+import { Nullable } from '@thermopylae/core.declarations';
 
 const PREV_SYM = Symbol.for('PREV_SYM');
 const NEXT_SYM = Symbol.for('NEXT_SYM');
 
 // eslint-disable-next-line max-classes-per-file
 interface DoublyLinkedListNode<Node> {
-	[PREV_SYM]: Node | null;
-	[NEXT_SYM]: Node | null;
+	[PREV_SYM]: Nullable<Node>;
+	[NEXT_SYM]: Nullable<Node>;
 }
 
 class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implements Iterator<Node, Node> {
-	private node: Node | null;
+	private node: Nullable<Node>;
 
-	constructor(node: Node | null) {
+	constructor(node: Nullable<Node>) {
 		this.node = node;
 	}
 
 	public next(): IteratorResult<Node, Node> {
-		// fixme test all nodes are iterated
-
-		if (this.node === null) {
+		if (this.node == null) {
 			return { value: null!, done: true };
 		}
 
@@ -33,12 +29,12 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 	}
 }
 
-class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
-	public head: Node | null;
+class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Iterable<DoublyLinkedListNode<Node>> {
+	public head: Nullable<Node>;
 
-	public tail: Node | null;
+	public tail: Nullable<Node>;
 
-	constructor(startNode: Node | null = null) {
+	constructor(startNode: Nullable<Node> = null) {
 		this.head = startNode;
 		this.tail = startNode;
 	}
@@ -94,20 +90,23 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> {
 	}
 
 	public moveToFront(node: Node): void {
+		if (this.head === node) {
+			return; // nothing to move, it's already in front
+		}
+
 		this.removeNode(node);
 		this.addToFront(node);
 	}
 
-	public iterator(): DoublyLinkedListIterator<Node> {
+	[Symbol.iterator](): Iterator<DoublyLinkedListNode<Node>> {
 		return new DoublyLinkedListIterator<Node>(this.head);
 	}
 
 	public empty(): boolean {
-		return this.head !== null && this.tail !== null;
+		return this.head == null && this.tail == null;
 	}
 
 	public clear(): void {
-		// fixme there might be a memory leak, we need to unlink all nodes
 		this.head = null;
 		this.tail = null;
 	}
