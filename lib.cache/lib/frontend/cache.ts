@@ -12,7 +12,7 @@ import { EventListener, EventType, CacheStats } from '../contracts/commons';
 interface MemCacheOptions<Key, Value> {
 	useClones: boolean;
 	ttlRegistry: TtlRegistry<Key>;
-	middleend: CacheMiddleEnd<Key, Value>;
+	middleEnd: CacheMiddleEnd<Key, Value>;
 }
 
 class Cache<Key = string, Value = any> extends EventEmitter implements CacheFrontend<Key, Value> {
@@ -37,7 +37,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	public upset(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		value = this.config.useClones ? object.cloneDeep(value) : value;
 
-		if (this.config.middleend.replace(key, value, ttl, expiresFrom)) {
+		if (this.config.middleEnd.replace(key, value, ttl, expiresFrom)) {
 			this.emit('update', key, value);
 			return this;
 		}
@@ -46,21 +46,21 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	}
 
 	public get(key: Key): Undefinable<Value> {
-		return this.config.middleend.get(key);
+		return this.config.middleEnd.get(key);
 	}
 
 	public mget(keys: Array<Key>): Map<Key, Undefinable<Value>> {
 		const items = new Map<Key, Undefinable<Value>>();
 
 		for (const key of keys) {
-			items.set(key, this.config.middleend.get(key));
+			items.set(key, this.config.middleEnd.get(key));
 		}
 
 		return items;
 	}
 
 	public take(key: Key): Undefinable<Value> {
-		const value = this.config.middleend.get(key);
+		const value = this.config.middleEnd.get(key);
 		if (value === NOT_FOUND_VALUE) {
 			return value;
 		}
@@ -71,15 +71,15 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	}
 
 	public ttl(key: Key, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean {
-		return this.config.middleend.ttl(key, ttl, expiresFrom);
+		return this.config.middleEnd.ttl(key, ttl, expiresFrom);
 	}
 
 	public has(key: Key): boolean {
-		return this.config.middleend.get(key) !== NOT_FOUND_VALUE;
+		return this.config.middleEnd.get(key) !== NOT_FOUND_VALUE;
 	}
 
 	public del(key: Key): boolean {
-		const deleted = this.config.middleend.del(key);
+		const deleted = this.config.middleEnd.del(key);
 		if (deleted) {
 			this.emit('del', key);
 		}
@@ -94,15 +94,15 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	}
 
 	public keys(): Array<Key> {
-		return this.config.middleend.keys();
+		return this.config.middleEnd.keys();
 	}
 
 	public get stats(): CacheStats {
-		return object.cloneDeep(this.config.middleend.stats);
+		return object.cloneDeep(this.config.middleEnd.stats);
 	}
 
 	public get size(): number {
-		return this.config.middleend.size;
+		return this.config.middleEnd.size;
 	}
 
 	public get empty(): boolean {
@@ -110,7 +110,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	}
 
 	public clear(): void {
-		this.config.middleend.clear();
+		this.config.middleEnd.clear();
 		this.emit('flush');
 	}
 
@@ -122,7 +122,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 		value = withCloning && this.config.useClones ? object.cloneDeep(value) : value;
 		ttl = ttl ?? this.config.ttlRegistry.resolve(key);
 
-		this.config.middleend.set(key, value, ttl, expiresFrom);
+		this.config.middleEnd.set(key, value, ttl, expiresFrom);
 		this.emit('set', key, value);
 
 		return this;
@@ -131,7 +131,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	private static fillWithDefaults<K, V>(options?: Partial<MemCacheOptions<K, V>>): MemCacheOptions<K, V> {
 		options = options || {};
 		options.useClones = options.useClones || false;
-		options.middleend = options.middleend || new OpaqueMiddleEnd<K, V>(new EsMapBackend());
+		options.middleEnd = options.middleEnd || new OpaqueMiddleEnd<K, V>(new EsMapBackend());
 		options.ttlRegistry = options.ttlRegistry || TtlRegistry.empty<K>();
 		return options as MemCacheOptions<K, V>;
 	}

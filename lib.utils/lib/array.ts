@@ -62,6 +62,13 @@ function shuffle<T>(arr: T[]): void {
 	arr.sort(() => Math.random() - 0.5);
 }
 
+interface FilledWithOptions {
+	/**
+	 * Prevent filling with duplicates when values are generated dynamically.
+	 */
+	noDuplicates: boolean;
+}
+
 /**
  * Creates a new array which contains the given `value`.
  *
@@ -69,16 +76,26 @@ function shuffle<T>(arr: T[]): void {
  *
  * @param length	Number of elements.
  * @param value		Value to fill with. For dynamical filling, provide a function.
+ * @param opts		Fill options.
  *
  * @returns		Filled array.
  */
-function filledWith<T>(length: number, value: T | SyncFunction<void, T>): Array<T> {
+function filledWith<T>(length: number, value: T | SyncFunction<void, T>, opts?: FilledWithOptions): Array<T> {
 	const array = new Array<T>(length);
 
 	if (length !== 0) {
 		if (typeof value === 'function') {
-			for (let i = 0; i < length; i++) {
-				array[i] = (value as SyncFunction<void, T>)();
+			if (opts && opts.noDuplicates) {
+				const generatedValues = new Set<T>();
+				for (let i = 0; i < length; i++) {
+					while (generatedValues.has((array[i] = (value as SyncFunction<void, T>)())));
+					generatedValues.add(array[i]);
+				}
+			} else {
+				// duplicated for performance
+				for (let i = 0; i < length; i++) {
+					array[i] = (value as SyncFunction<void, T>)();
+				}
 			}
 		} else {
 			array.fill(value);
@@ -130,4 +147,4 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 	}
 }
 
-export { remove, unique, shuffle, filledWith, randomElement, filterAsync };
+export { remove, unique, shuffle, filledWith, randomElement, filterAsync, FilledWithOptions };

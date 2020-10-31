@@ -68,9 +68,6 @@ describe('array spec', () => {
 			const length = 10;
 
 			const generated: Array<number> = [];
-			/**
-			 *
-			 */
 			function generator(): number {
 				const num = Math.random();
 				generated.push(num);
@@ -80,6 +77,31 @@ describe('array spec', () => {
 			const arr = filledWith(length, generator);
 
 			expect(arr.length).to.be.eq(length);
+			for (let i = 0; i < length; i++) {
+				expect(arr[i]).to.be.eq(generated[i]);
+			}
+		});
+
+		it('fills array without duplicates', () => {
+			const length = 50;
+
+			const generated: Array<number> = [];
+			function generator(): number {
+				const num = Math.random();
+
+				if (Math.random() < 0.5 && generated.length) {
+					return generated[0];
+				}
+
+				generated.push(num);
+				return num;
+			}
+
+			const arr = filledWith(length, generator, { noDuplicates: true });
+
+			expect(arr).to.be.ofSize(length); // generated array with desired length
+			expect(arr).to.be.ofSize(new Set(arr).size); // without duplicates
+
 			for (let i = 0; i < length; i++) {
 				expect(arr[i]).to.be.eq(generated[i]);
 			}

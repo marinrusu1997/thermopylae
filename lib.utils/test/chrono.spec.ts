@@ -30,7 +30,7 @@ describe('chrono spec', () => {
 
 			const measured = await executionTimeAsync(add, { start: 0 }, 1, 1);
 			expect(measured.result).to.be.eq(2);
-			expect(measured.time.seconds).to.be.greaterThan(1);
+			expect(measured.time.seconds).to.be.greaterThan(0.99); // depending on floating point computations
 		});
 	});
 

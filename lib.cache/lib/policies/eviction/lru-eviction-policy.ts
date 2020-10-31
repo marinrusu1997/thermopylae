@@ -35,7 +35,7 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		this.doublyLinkedList.addToFront(entry);
 	}
 
-	public onUpdate() {
+	public onUpdate(): void {
 		return undefined;
 	}
 
@@ -62,4 +62,4 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 }
 
-export { LRUEvictionPolicy };
+export { LRUEvictionPolicy, EvictableKeyNode };

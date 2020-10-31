@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 import { Exception } from '@thermopylae/lib.exception';
 import { Undefinable } from '@thermopylae/core.declarations';
-import { randomInt, random, convertFrom, ErrorCodes, toLetter } from '../lib/number';
+import { randomInt, random, convertFrom, ErrorCodes, toLetter, percentage } from '../lib/number';
 
 describe('number spec', () => {
 	describe(`${random.name} spec`, () => {
@@ -44,6 +44,19 @@ describe('number spec', () => {
 			expect(() => randomInt(1, 1)).to.not.throw(`${1} is greater than ${1}`);
 			expect(() => randomInt(1.1, 1.0)).to.throw(`${1.1} is greater than ${1.0}`);
 			expect(() => randomInt(2, 1)).to.throw(`${2} is greater than ${1}`);
+		});
+	});
+
+	describe(`${percentage.name} spec`, () => {
+		it('calculates percentage', () => {
+			for (let i = 0; i <= 1; i += 0.1) {
+				expect(percentage(100, i)).to.be.eq(i * 100);
+			}
+		});
+
+		it('throws on invalid percentage', () => {
+			expect(() => percentage(100, -0.1)).to.throw(Exception);
+			expect(() => percentage(100, 1.1)).to.throw(Exception);
 		});
 	});
 

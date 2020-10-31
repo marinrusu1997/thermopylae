@@ -2,7 +2,8 @@ import { createException } from './exception';
 
 const enum ErrorCodes {
 	NUMBER_TYPE_CASTING_FAILED = 'NUMBER_TYPE_CASTING_FAILED',
-	GREATER_THAN = 'GREATER_THAN'
+	GREATER_THAN = 'GREATER_THAN',
+	INVALID_RANGE = 'INVALID_RANGE'
 }
 
 /**
@@ -41,6 +42,21 @@ function randomInt(min: number, max: number): number {
 	max = Math.floor(max);
 
 	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Calculates `percentage` from a `number`.
+ *
+ * @param number	Number.
+ * @param percent	Percent from that number.
+ *
+ * @returns		Number which represents `percent` from `number`.
+ */
+function percentage(number: number, percent: number): number {
+	if (percent < 0 || percent > 1) {
+		throw createException(ErrorCodes.INVALID_RANGE, 'Percentage needs to be between 0 and 1.');
+	}
+	return percent * number;
 }
 
 /**
@@ -93,4 +109,4 @@ function toLetter(nr: number): string {
 		.join('');
 }
 
-export { random, randomInt, convertFrom, toLetter, ErrorCodes };
+export { random, randomInt, percentage, convertFrom, toLetter, ErrorCodes };

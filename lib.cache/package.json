@@ -1,6 +1,6 @@
 {
     "name": "@thermopylae/lib.cache",
-    "description": "Modular cache.",
+    "description": "Modular synchronous cache.",
     "keywords": [
         "thermopylae",
         "library",
@@ -45,7 +45,7 @@
         "@types/dotenv": "8",
         "array-move": "3",
         "dotenv": "8",
-        "js-gc": "^1.0.1"
+        "js-gc": "1"
     },
     "peerDependencies": {
         "mocha": "8",
