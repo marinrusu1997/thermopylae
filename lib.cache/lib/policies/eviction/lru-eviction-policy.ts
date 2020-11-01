@@ -26,7 +26,8 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
-		if (context.totalEntriesNo === this.capacity) {
+		// code bellow might throw, so on next call total entries might be higher, therefore using >=
+		if (context.totalEntriesNo >= this.capacity) {
 			this.delete(this.doublyLinkedList.tail!.key); // fixme addapt to onDelete hook
 			this.doublyLinkedList.removeNode(this.doublyLinkedList.tail!);
 		}

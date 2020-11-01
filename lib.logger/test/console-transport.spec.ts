@@ -16,4 +16,10 @@ describe(`${ConsoleLogsManager.name} spec`, () => {
 		expect(transports).to.have.property('name', 'console');
 		expect(transports).to.have.property('level', 'error');
 	});
+
+	it('creates transport only once', () => {
+		const instance = new ConsoleLogsManager();
+		instance.createTransport({ level: 'error' });
+		expect(() => instance.createTransport({ level: 'info' })).to.throw('Transport has been created already.');
+	});
 });

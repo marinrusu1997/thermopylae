@@ -29,7 +29,7 @@ function assertListContainsAllNodes<T extends DoublyLinkedListNode<T>>(dll: Doub
 	expect(iter).to.be.eq(nodes.length);
 }
 
-describe('', () => {
+describe(`${DoublyLinkedList.name} spec`, () => {
 	it('should create an empty list and iterate over it', () => {
 		const dll = new DoublyLinkedList();
 		for (const _ of dll) {

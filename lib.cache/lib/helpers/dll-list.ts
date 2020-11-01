@@ -73,20 +73,20 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 	}
 
 	public removeNode(node: Node): void {
-		const prevNode = node[PREV_SYM];
-		const nextNode = node[NEXT_SYM];
-
-		if (prevNode !== null) {
-			prevNode[NEXT_SYM] = nextNode;
+		if (node[PREV_SYM] !== null) {
+			node[PREV_SYM]![NEXT_SYM] = node[NEXT_SYM];
 		} else {
-			this.head = nextNode;
+			this.head = node[NEXT_SYM];
 		}
 
-		if (nextNode !== null) {
-			nextNode[PREV_SYM] = prevNode;
+		if (node[NEXT_SYM] !== null) {
+			node[NEXT_SYM]![PREV_SYM] = node[PREV_SYM];
 		} else {
-			this.tail = prevNode;
+			this.tail = node[PREV_SYM];
 		}
+
+		node[PREV_SYM] = null;
+		node[NEXT_SYM] = null;
 	}
 
 	public moveToFront(node: Node): void {

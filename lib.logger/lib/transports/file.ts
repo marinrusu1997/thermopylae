@@ -1,8 +1,9 @@
-import { Nullable } from '@thermopylae/core.declarations';
+import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
 import * as TransportStream from 'winston-transport';
 import DailyRotateFile, { DailyRotateFileTransportOptions } from 'winston-daily-rotate-file';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import { AbstractTransportManager } from '../typings';
+import { createException } from '../error';
 
 /**
  * Class responsible for holding file transport options and file transport object.
@@ -20,6 +21,10 @@ class FileLogsManager implements AbstractTransportManager {
 	 * @param   options   File transport options.
 	 */
 	public createTransport(options: DailyRotateFileTransportOptions): void {
+		if (this.transport != null) {
+			throw createException(ErrorCodes.EXISTS, 'Transport has been created already.');
+		}
+
 		options = { ...options };
 		options.filename = `${options.filename}.${process.pid}`;
 		this.transport = new DailyRotateFile(options);

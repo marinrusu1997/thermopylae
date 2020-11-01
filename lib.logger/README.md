@@ -1,6 +1,6 @@
 <h1 align="center">@thermopylae/lib.logger</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1601806066-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1604216964-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/node-%3E%3D%2014-blue.svg" />
 <a href="http:/localhost:8080/doc" target="_blank">
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />

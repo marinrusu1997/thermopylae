@@ -1,11 +1,15 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
+import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { array, number } from '@thermopylae/lib.utils';
+import range from 'lodash.range';
 import { EvictableKeyNode, LRUEvictionPolicy } from '../../../lib/policies/eviction/lru-eviction-policy';
 
 describe(`${LRUEvictionPolicy.name} spec`, () => {
 	it('updates least recently used items on each get operation', () => {
-		const capacity = 5;
+		const capacity = number.randomInt(1, 10);
+		UnitTestLogger.info(`Working with capacity: ${capacity}`);
+
 		const policy = new LRUEvictionPolicy<string, number>(capacity);
 
 		// intercept keys that policy wants to delete
@@ -61,5 +65,41 @@ describe(`${LRUEvictionPolicy.name} spec`, () => {
 		expect(keysEvictedByPolicy).to.be.ofSize(retrievedEntriesIndexes.length);
 		const evictedKeysThatWereRetrievedIndexes = keysEvictedByPolicy.map((key) => initialEntries.findIndex((entry) => entry.key === key));
 		expect(retrievedEntriesIndexes).to.be.equalTo(evictedKeysThatWereRetrievedIndexes); // they were removed in the same order they were retrieved
+	});
+
+	it("removes key from internal tracking structure when it's deleted from cache", () => {
+		const capacity = number.randomInt(1, 10);
+		UnitTestLogger.info(`Working with capacity: ${capacity}`);
+
+		const policy = new LRUEvictionPolicy<string, number>(capacity);
+
+		// intercept keys that policy wants to delete
+		const keysEvictedByPolicy = new Array<string>();
+		policy.setDeleter((key) => keysEvictedByPolicy.push(key));
+
+		// setup keys up to `capacity`
+		for (let i = 0; i < capacity; i++) {
+			// @ts-ignore
+			const entry: EvictableKeyNode<string, number> = { value: i };
+			policy.onSet(String(i), entry, { totalEntriesNo: i });
+		}
+
+		// remove keys up to `capacity` in random order
+		const keysToRemove = range(0, capacity);
+		while (keysToRemove.length) {
+			policy.onDelete(String(keysToRemove.pop()));
+		}
+		expect(keysEvictedByPolicy).to.be.ofSize(0); // it just removed from internal structure, and not from cache
+
+		// setup back some keys, a double amount to check that it removed the new one, instead of the ones we manually removed
+		for (let i = 0; i < capacity * 2; i++) {
+			// @ts-ignore
+			const entry: EvictableKeyNode<string, number> = { value: i + capacity }; // differ from initial inserted keys
+			policy.onSet(String(entry.value), entry, { totalEntriesNo: i });
+		}
+
+		// assert it evicted keys inserted above, and not the initial ones
+		expect(keysEvictedByPolicy).to.be.ofSize(capacity);
+		expect(keysEvictedByPolicy).to.be.containingAllOf(range(capacity, capacity * 2).map(String));
 	});
 });

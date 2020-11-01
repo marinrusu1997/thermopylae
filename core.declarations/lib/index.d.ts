@@ -49,6 +49,7 @@ export const enum Library {
 	GEO_IP = 'LIB_GEO_IP',
 	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
+	UNIT_TEST = 'LIB_UNIT_TEST',
 	UTILS = 'LIB_UTILS'
 }
 

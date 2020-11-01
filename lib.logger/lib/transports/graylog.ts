@@ -38,6 +38,11 @@ class GrayLogsManager implements AbstractTransportManager {
 		if (this.inputs == null) {
 			this.inputs = new Map();
 		}
+
+		if (this.inputs.has(input)) {
+			throw createException(ErrorCodes.EXISTS, `${input} has been registered already with ${JSON.stringify(this.inputs.get(input))}.`);
+		}
+
 		this.inputs.set(input, endpoint);
 	}
 
@@ -53,6 +58,11 @@ class GrayLogsManager implements AbstractTransportManager {
 		if (this.channels == null) {
 			this.channels = new Map();
 		}
+
+		if (this.channels.has(module)) {
+			throw createException(ErrorCodes.EXISTS, `${module} has been registered already with ${JSON.stringify(this.channels.get(module))}.`);
+		}
+
 		this.channels.set(module, channel);
 	}
 

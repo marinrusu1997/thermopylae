@@ -74,4 +74,10 @@ describe(`${FileLogsManager.name} spec`, () => {
 	it('returns no file transport when not file config set', () => {
 		expect(new FileLogsManager().get()).to.be.equal(null);
 	});
+
+	it('creates transport only once', () => {
+		const filelogs = new FileLogsManager();
+		filelogs.createTransport(config);
+		expect(() => filelogs.createTransport(config)).to.throw('Transport has been created already.');
+	});
 });

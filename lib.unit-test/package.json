@@ -6,12 +6,13 @@
         "library",
         "unit testing"
     ],
-    "version": "0.0.1601805160",
+    "version": "0.0.1604217724",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": {
         ".": "./dist/index.js",
-        "./dist/fixtures/person": "./dist/fixtures/person/index.js"
+        "./dist/fixtures/person": "./dist/fixtures/person/index.js",
+        "./dist/logger": "./dist/logger.js"
     },
     "types": "dist/index.d.ts",
     "files": [
@@ -33,6 +34,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.utils": "0",
         "@types/chai-arrays": "1",
         "@types/chai-as-promised": "7",
@@ -45,6 +47,7 @@
         "mocker-data-generator": "2"
     },
     "devDependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/deep-freeze": "0"
     },

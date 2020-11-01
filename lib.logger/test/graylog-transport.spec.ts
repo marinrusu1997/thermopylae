@@ -37,6 +37,28 @@ describe(`${GrayLogsManager.name} spec`, () => {
 		});
 	});
 
+	it('registers input only once', () => {
+		const graylog = new GrayLogsManager();
+		graylog.register('Test1', inputsEndpoints[0]);
+		const throwable = () => graylog.register('Test1', inputsEndpoints[1]);
+		expect(throwable).to.throw(`Test1 has been registered already with ${JSON.stringify(inputsEndpoints[0])}.`);
+	});
+
+	it('registers channel only once', () => {
+		const graylog = new GrayLogsManager();
+		graylog.setChannel('@all', {
+			input: 'Test2',
+			level: 'info'
+		});
+		function throwable() {
+			graylog.setChannel('@all', {
+				input: 'Test2',
+				level: 'debug'
+			});
+		}
+		expect(throwable).to.throw(`@all has been registered already with ${JSON.stringify({ input: 'Test2', level: 'info' })}.`);
+	});
+
 	it('returns null when no inputs configured, graylog2 being not used', () => {
 		expect(new GrayLogsManager().get('fakesys')).to.be.equal(null);
 	});
