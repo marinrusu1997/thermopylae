@@ -23,12 +23,11 @@ function convertFrom(value: null | undefined | string | number | boolean, strict
 	}
 
 	if (valueType === 'string') {
-		// @ts-ignore
-		if (value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes') {
+		value = (value as string).toLowerCase();
+		if (value === 'true' || value === '1' || value === 'yes') {
 			return true;
 		}
-		// @ts-ignore
-		if (value.toLowerCase() === 'false' || value === '0' || value.toLowerCase() === 'no') {
+		if (value === 'false' || value === '0' || value === 'no') {
 			return false;
 		}
 	}

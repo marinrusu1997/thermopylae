@@ -1,7 +1,7 @@
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
 import { ObjMap } from '@thermopylae/core.declarations';
-import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse } from '../lib/object';
+import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse, TraverseProcessor } from '../lib/object';
 
 const { expect } = chai;
 
@@ -155,26 +155,28 @@ describe('object spec', () => {
 				null,
 				undefined
 			];
-			traverse(arr, (key, val) => {
+
+			const processor: TraverseProcessor = (key, val) => {
 				expect(key).to.be.oneOf(['[0]', '[1]', '[2]', '[5].str', '[5].obj.num', '[6]', '[7]']);
 				return typeof val !== 'string' ? 'processedValue' : val;
-			});
+			};
 
-			expect(arr[0]).to.be.eq('processedValue');
-			expect(arr[1]).to.be.eq('processedValue');
-			expect(arr[2]).to.be.eq('str');
-			expect(typeof arr[3]).to.be.eq('symbol');
-			expect(typeof arr[4]).to.be.eq('function');
-			// @ts-ignore
-			expect(arr[5].str).to.be.eq('value');
-			// @ts-ignore
-			expect(typeof arr[5].obj.fun).to.be.eq('function');
-			// @ts-ignore
-			expect(typeof arr[5].obj.sym).to.be.eq('symbol');
-			// @ts-ignore
-			expect(arr[5].obj.num).to.be.eq('processedValue');
-			expect(arr[6]).to.be.eq('processedValue');
-			expect(arr[7]).to.be.eq('processedValue');
+			const arrClone = traverse(arr, processor, true) as Array<any>; // just to ease checks bellow without ts errors
+			expect(arrClone).to.not.be.eq(arr); // cloned array
+			expect(arrClone[5]).to.not.be.eq(arr[5]); // deep cloned
+			expect(arrClone[5].str).to.be.eq((arr[5] as ObjMap).str); // deep cloned with internal str key
+
+			expect(arrClone[0]).to.be.eq('processedValue');
+			expect(arrClone[1]).to.be.eq('processedValue');
+			expect(arrClone[2]).to.be.eq('str');
+			expect(typeof arrClone[3]).to.be.eq('symbol');
+			expect(typeof arrClone[4]).to.be.eq('function');
+			expect(arrClone[5].str).to.be.eq('value');
+			expect(typeof arrClone[5].obj.fun).to.be.eq('function');
+			expect(typeof arrClone[5].obj.sym).to.be.eq('symbol');
+			expect(arrClone[5].obj.num).to.be.eq('processedValue');
+			expect(arrClone[6]).to.be.eq('processedValue');
+			expect(arrClone[7]).to.be.eq('processedValue');
 		});
 	});
 

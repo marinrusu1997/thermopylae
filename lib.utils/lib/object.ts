@@ -48,6 +48,11 @@ function isEmpty<T extends ObjMap>(obj: T): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
+/**
+ * Traversable value in the object that can be processed.
+ */
+type TraversableValue = undefined | null | boolean | number | string;
+
 interface TraverseProcessor {
 	/**
 	 * Processor for object leaves.
@@ -58,12 +63,24 @@ interface TraverseProcessor {
 	 *
 	 * @returns	Processed value.
 	 */
-	(currentPath: string, value: undefined | null | boolean | number | string): undefined | null | boolean | number | string;
+	(currentPath: string, value: TraversableValue): TraversableValue;
+}
+
+/**
+ * Object traversal context.
+ *
+ * @private
+ */
+interface TraverseContext {
+	processor: TraverseProcessor;
+	currentPath: string;
 }
 
 /**
  * Iterates over a provided object and processes it's leaves using provided processor.
  * After processing it must return new value or the old one.
+ *
+ * @template T		Type of the object or array.
  *
  * @param objectOrArray			Object which needs to be iterated.
  * @param processor				Leaf processor
@@ -71,54 +88,56 @@ interface TraverseProcessor {
  *
  * @returns	Traversed object which might be altered by `processor`.
  */
-function traverse(objectOrArray: ObjMap | Array<unknown>, processor: TraverseProcessor, alterDeepClone?: boolean): ObjMap {
-	const isArray = Array.isArray(objectOrArray);
-
-	if (alterDeepClone && !isArray) {
-		objectOrArray = cloneDeep(objectOrArray);
+function traverse<T extends ObjMap | Array<any>>(objectOrArray: T, processor: TraverseProcessor, alterDeepClone?: boolean): T {
+	if (alterDeepClone) {
+		objectOrArray = cloneDeep(objectOrArray); // @fixme we need to clone deep array too
 	}
 
-	let currentPath = '';
+	const context: TraverseContext = {
+		processor,
+		currentPath: ''
+	};
 
-	function traverseArray(arr: Array<unknown>, pathSeparator: string): void {
-		const appendIndex = currentPath.length;
-		for (let i = 0; i < arr.length; i++) {
-			currentPath += `${pathSeparator}[${i}]`;
-			continueTraversal(arr, i, arr[i]);
-			currentPath = currentPath.substring(0, appendIndex);
-		}
-	}
-
-	function traverseObject(obj: ObjMap, pathSeparator: string): void {
-		const keys = Object.getOwnPropertyNames(obj);
-		const appendIndex = currentPath.length;
-		for (let i = 0; i < keys.length; i++) {
-			const key = keys[i];
-			currentPath += `${pathSeparator}${key}`;
-			// @ts-ignore
-			continueTraversal(obj, key, obj[key]);
-			currentPath = currentPath.substring(0, appendIndex);
-		}
-	}
-
-	function continueTraversal(currentObject: ObjMap | Array<unknown>, key: string | number, value: unknown): void {
-		if (Array.isArray(value)) {
-			traverseArray(value, '.');
-		} else if (typeof value === 'object' && value !== null) {
-			traverseObject(value, '.');
-		} else if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' || typeof value === 'undefined' || value === null) {
-			// @ts-ignore
-			currentObject[key] = processor(currentPath, value);
-		}
-	}
-
-	if (isArray) {
-		traverseArray(objectOrArray as Array<unknown>, '');
+	if (Array.isArray(objectOrArray)) {
+		traverseArray(context, objectOrArray, ''); // when we start, we don't have initial token, so pathSeparator is empty
 	} else {
-		traverseObject(objectOrArray as ObjMap, '');
+		traverseObject(context, objectOrArray, ''); // when we start, we don't have initial token, so pathSeparator is empty
 	}
 
-	return objectOrArray as ObjMap;
+	return objectOrArray;
+}
+
+function continueTraversal(context: TraverseContext, currentObject: ObjMap | Array<any>, key: string | number, value: any): void {
+	if (Array.isArray(value)) {
+		traverseArray(context, value);
+	} else if (typeof value === 'object' && value !== null) {
+		traverseObject(context, value);
+	} else if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' || typeof value === 'undefined' || value === null) {
+		(currentObject as ObjMap)[key] = context.processor(context.currentPath, value); // trick TS, we can index object with string, and array with number
+	}
+}
+
+function traverseObject(context: TraverseContext, obj: ObjMap, pathSeparator = '.'): void {
+	const keys = Object.getOwnPropertyNames(obj);
+	const appendIndex = context.currentPath.length;
+
+	let key: string;
+	for (let i = 0; i < keys.length; i++) {
+		key = keys[i];
+
+		context.currentPath += `${pathSeparator}${key}`;
+		continueTraversal(context, obj, key, obj[key]);
+		context.currentPath = context.currentPath.substring(0, appendIndex);
+	}
+}
+
+function traverseArray(context: TraverseContext, arr: Array<any>, pathSeparator = '.'): void {
+	const appendIndex = context.currentPath.length;
+	for (let i = 0; i < arr.length; i++) {
+		context.currentPath += `${pathSeparator}[${i}]`;
+		continueTraversal(context, arr, i, arr[i]);
+		context.currentPath = context.currentPath.substring(0, appendIndex);
+	}
 }
 
 /**
@@ -180,7 +199,7 @@ function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
  *
  * @param obj	Object to be flattened.
  *
- * @returns	Flattened object.
+ * @returns		Flattened object.
  */
 function flatten(obj: ObjMap): Nullable<ObjMap> {
 	// see https://gist.github.com/penguinboy/762197
@@ -189,9 +208,8 @@ function flatten(obj: ObjMap): Nullable<ObjMap> {
 		return null;
 	}
 
-	const toReturn = {};
+	const toReturn: ObjMap = {};
 
-	// eslint-disable-next-line no-restricted-syntax
 	for (const objKey in obj) {
 		if (!Object.prototype.hasOwnProperty.call(obj, objKey)) {
 			continue;
@@ -199,26 +217,20 @@ function flatten(obj: ObjMap): Nullable<ObjMap> {
 
 		const adjustedObjKey = `${Array.isArray(obj) ? `[${objKey}]` : `${objKey}`}`;
 
-		// @ts-ignore
 		if (typeof obj[objKey] === 'object') {
-			// @ts-ignore
 			const flatObject = flatten(obj[objKey]);
 			if (flatObject === null) {
-				// @ts-ignore
 				toReturn[adjustedObjKey] = flatObject;
 			} else {
-				// eslint-disable-next-line no-restricted-syntax, guard-for-in
-				for (const flatObjectKey in flatObject) {
-					// @ts-ignore
+				for (const flatObjectKey of Object.keys(flatObject)) {
 					toReturn[`${adjustedObjKey}.${flatObjectKey}`] = flatObject[flatObjectKey];
 				}
 			}
 		} else {
-			// @ts-ignore
 			toReturn[adjustedObjKey] = obj[objKey];
 		}
 	}
 	return toReturn;
 }
 
-export { clone, cloneDeep, isObject, isEmpty, traverse, TraverseProcessor, sort, flatten };
+export { clone, cloneDeep, isObject, isEmpty, traverse, TraverseProcessor, TraversableValue, sort, flatten };

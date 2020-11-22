@@ -1,4 +1,9 @@
-node_modules/*
-public/*
+.nyc_output/*
 build/*
+coverage/*
+dist/*
+doc/*
+node_modules/*
+report/*
+public/*
 config/*

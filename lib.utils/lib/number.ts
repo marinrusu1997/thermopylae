@@ -83,7 +83,7 @@ function convertFrom(value: boolean | number | string | null | undefined, strict
  * This does not start with the numbers to generate valid variable-names.
  */
 const base58Chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789';
-const base58Length: number = base58Chars.length;
+const base58Length = base58Chars.length;
 
 /**
  * Transform a number to a string by using only base58 chars.

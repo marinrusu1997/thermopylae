@@ -1,3 +1,5 @@
+import { randomElement } from './array';
+
 /**
  * Replaces the string at a given position with another one.
  *
@@ -11,8 +13,16 @@ function replaceAt(replacement: string, index: number, string: string): string {
 	return string.substr(0, index) + replacement + string.substr(index + replacement.length);
 }
 
+const ANY_CHAR_REGEXP = /./;
+const CHARSETS = [
+	'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // Alpha Capitalized
+	'abcdefghijklmnopqrstuvwxyz', // Alpha Non-capitalized
+	'0123456789', // Numbers
+	' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~' // Special Chars
+];
+
 /**
- * Generates random string.
+ * Generates non-cryptographically strong random string.
  * Generation can be controlled via regular expressions.
  *
  * @param length				Length of the generated string.
@@ -20,47 +30,46 @@ function replaceAt(replacement: string, index: number, string: string): string {
  *
  * @returns Generated string.
  */
-function ofLength(length: number, allowedCharRegex?: RegExp): string {
-	let result = '';
-	const alphaNumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	const specialChars = ' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~';
+function random(length = 10, allowedCharRegex = ANY_CHAR_REGEXP): string {
 	let i = 0;
-	while (i < length) {
-		const charSet = Math.random() < 0.5 ? alphaNumeric : specialChars;
-		const selectedChar = charSet.charAt(Math.floor(Math.random() * charSet.length));
+	let charSet;
+	let selectedChar;
 
-		if (allowedCharRegex) {
-			if (allowedCharRegex.test(selectedChar)) {
-				result += selectedChar;
-				i += 1;
-			}
-		} else {
-			result += selectedChar;
+	const result = new Array(length);
+
+	while (i < length) {
+		charSet = randomElement(CHARSETS);
+		selectedChar = charSet.charAt(Math.floor(Math.random() * charSet.length));
+
+		if (allowedCharRegex.test(selectedChar)) {
+			result[i] = selectedChar;
 			i += 1;
 		}
 	}
-	return result;
+
+	return result.join('');
 }
 
 /**
- * Removes trailing and ending dots from the string.
+ * Removes specified `char` from beginning and ending of the string.
  *
  * @param str	Input string.
+ * @param char	Trimmed char.
  *
- * @returns Trimmed string.
+ * @returns 	Trimmed string.
  */
-function trimDots(str: string): string {
+function trimChar(str: string, char: string): string {
 	// start
-	while (str.charAt(0) === '.') {
+	while (str.charAt(0) === char) {
 		str = str.substr(1);
 	}
 
 	// end
-	while (str.slice(-1) === '.') {
+	while (str.slice(-1) === char) {
 		str = str.slice(0, -1);
 	}
 
 	return str;
 }
 
-export { replaceAt, ofLength, trimDots };
+export { replaceAt, random, trimChar };

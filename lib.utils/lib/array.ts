@@ -3,7 +3,9 @@ import { randomInt } from './number';
 import { createException } from './exception';
 
 const enum ErrorCodes {
-	NOT_SUPPORTED = 'NOT_SUPPORTED'
+	NOT_SUPPORTED = 'NOT_SUPPORTED',
+	NOT_FOUND = 'NOT_FOUND',
+	UNKNOWN = 'UNKNOWN'
 }
 
 /**
@@ -25,27 +27,28 @@ function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true
 	if (!inPlace) {
 		array = array.slice();
 	}
-	let i = array.length;
-	// eslint-disable-next-line no-plusplus
-	while (i--) {
+
+	for (let i = 0; i < array.length; i++) {
 		if (predicate(array[i])) {
 			array.splice(i, 1);
 			if (firstOccurrence) {
 				break;
 			}
+			i -= 1; // length decreases, i has to do so too
 		}
 	}
+
 	return array;
 }
 
 /**
  * Creates a new array which contains unique items.
  *
- * @template T	Elements type.
+ * @template T		Elements type.
  *
  * @param array		Input array.
  *
- * @returns	Array with unique items.
+ * @returns			Array with unique items.
  */
 function unique<T>(array: Array<T>): Array<T> {
 	return Array.from(new Set(array));
@@ -106,6 +109,45 @@ function filledWith<T>(length: number, value: T | SyncFunction<void, T>, opts?: 
 }
 
 /**
+ * Position in the array from where to peek element.
+ */
+const enum PeekPosition {
+	/**
+	 * Beginning of the array.
+	 */
+	BEGIN,
+	/**
+	 * End of the array.
+	 */
+	END
+}
+
+/**
+ * Peek last item from array.
+ *
+ * @param array		Array with elements.
+ * @param position	Peek position.
+ *
+ * @throws When array is empty.
+ *
+ * @returns Array element.
+ */
+function peek<T>(array: Array<T>, position = PeekPosition.END): T {
+	if (!array.length) {
+		throw createException(ErrorCodes.NOT_FOUND, 'Array is empty.');
+	}
+
+	switch (position) {
+		case PeekPosition.BEGIN:
+			return array[0];
+		case PeekPosition.END:
+			return array[array.length - 1];
+		default:
+			throw createException(ErrorCodes.UNKNOWN, `Unknown peek position. Given: ${position}.`);
+	}
+}
+
+/**
  * Extract a random element from the given `array`.
  *
  * @template T	Elements type.
@@ -147,4 +189,4 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 	}
 }
 
-export { remove, unique, shuffle, filledWith, randomElement, filterAsync, FilledWithOptions };
+export { remove, unique, shuffle, filledWith, peek, PeekPosition, randomElement, filterAsync, FilledWithOptions };

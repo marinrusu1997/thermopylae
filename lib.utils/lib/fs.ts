@@ -9,9 +9,13 @@ import { ObjMap } from '@thermopylae/core.declarations';
  */
 function writeJsonToFile(path: string, json: ObjMap): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
-		writeFile(path, JSON.stringify(json), { encoding: 'utf8' }, (err) => {
-			return err ? reject(err) : resolve();
-		});
+		try {
+			writeFile(path, JSON.stringify(json), { encoding: 'utf8' }, (err) => {
+				return err ? reject(err) : resolve();
+			});
+		} catch (e) {
+			reject(e); // stringify or writeFile might throw
+		}
 	});
 }
 
@@ -24,11 +28,15 @@ function writeJsonToFile(path: string, json: ObjMap): Promise<void> {
  */
 function readJsonFromFile(path: string): Promise<ObjMap> {
 	return new Promise<ObjMap>((resolve, reject) => {
-		readFile(path, 'utf8', (err, data) => {
+		readFile(path, 'utf8', (err, content) => {
 			if (err) {
 				return reject(err);
 			}
-			return resolve(JSON.parse(data));
+			try {
+				return resolve(JSON.parse(content));
+			} catch (e) {
+				return reject(e); // parse might throw
+			}
 		});
 	});
 }
