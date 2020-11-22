@@ -99,7 +99,7 @@ function traverse<T extends ObjMap | Array<any>>(objectOrArray: T, processor: Tr
 	};
 
 	if (Array.isArray(objectOrArray)) {
-		traverseArray(context, objectOrArray, ''); // when we start, we don't have initial token, so pathSeparator is empty
+		traverseArray(context, objectOrArray as Array<any>, ''); // when we start, we don't have initial token, so pathSeparator is empty
 	} else {
 		traverseObject(context, objectOrArray, ''); // when we start, we don't have initial token, so pathSeparator is empty
 	}

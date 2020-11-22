@@ -1,18 +1,19 @@
-<h1 align="center">Thermopylae Utils</h1>
+<h1 align="center">@thermopylae/lib.utils</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/node-%3E%3D%2014-blue.svg" />
-  <a href="http:/localhost:8080/doc" target="_blank">
-    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
-  </a>
-  <a href="http:/localhost:8080/license" target="_blank">
-    <img alt="License: ISC" src="https://img.shields.io/badge/License-ISC-yellow.svg" />
-  </a>
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1606049897-blue.svg?cacheSeconds=2592000" />
+  <img src="https://img.shields.io/badge/node-%3E%3D14-blue.svg" />
+<a href="http:/localhost:8080/doc" target="_blank">
+  <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
+</a>
+<a href="http:/localhost:8080/license" target="_blank">
+  <img alt="License: ISC" src="https://img.shields.io/badge/License-ISC-yellow.svg" />
+</a>
 </p>
 
 > Utility functions.
 
 ### 🏠 [Homepage](http://localhost:8080)
+
 
 ## Install
 
@@ -30,11 +31,10 @@ npm run test
 
 👤 **Rusu Marin**
 
-* Github: [@marinrusu1997](https://github.com/marinrusu1997)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/rusu-marin-1638b0156)
-* Email: dimarusu2000@gmail.com
+* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
 
 ## 📝 License
 
-Copyright © 2020 [Rusu Marin](https://bitbucket.org/marinrusu1997/). <br/>
+Copyright © 2020 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [ISC](http:/localhost:8080/license) licensed.

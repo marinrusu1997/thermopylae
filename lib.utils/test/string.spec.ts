@@ -5,7 +5,7 @@ import { random, replaceAt, trimChar } from '../lib/string';
 const { expect } = chai;
 
 describe('string spec', () => {
-	describe(`${replaceAt} spec`, () => {
+	describe(`${replaceAt.name} spec`, () => {
 		it('replaces elements from empty strings', () => {
 			let str = '';
 			str = replaceAt('replacement', 0, str);
@@ -31,7 +31,7 @@ describe('string spec', () => {
 		});
 	});
 
-	describe(`${random} spec`, () => {
+	describe(`${random.name} spec`, () => {
 		it('generates random string of specified length', () => {
 			const length = 5;
 			const generatedString = random(length);
@@ -71,7 +71,7 @@ describe('string spec', () => {
 		});
 	});
 
-	describe(`${trimChar} spec`, () => {
+	describe(`${trimChar.name} spec`, () => {
 		it('trim dots from begin of string', () => {
 			expect(trimChar('....aa', '.')).to.be.eq('aa');
 		});
