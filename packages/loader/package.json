@@ -29,33 +29,22 @@
         ]
     },
     "engines": {
-        "node": "12.8.0"
+        "node": ">=14"
     },
     "dependencies": {
-        "@marin/data-repositories": "file:../data-repositories",asdasd
-        "@marin/lib.email": "file:../lib.email",
-        "@marin/lib.firewall": "file:../lib.firewall",
-        "@marin/lib.geoip": "file:../lib.geoip",
-        "@marin/lib.jwt": "file:../lib.jwt",
-        "@marin/lib.logger": "file:../lib.logger",
-        "@marin/lib.rest-api": "file:../lib.rest-api",
-        "@marin/lib.sms": "file:../lib.sms",
-        "cron": "^1.8.2"
+        "cron": "1"
     },
     "devDependencies": {
-        "@marin/configuration": "file:../configuration",
-        "@marin/declarations": "file:../declarations",
-        "@marin/lib.module-builder": "file:../lib.module-builder",
-        "@types/bluebird": "^3.5.29",
-        "@types/chai": "^4.2.8",
-        "@types/cron": "^1.7.1",
-        "@types/mocha": "^7.0.1",
-        "@types/node": "^13.7.0",
-        "@types/redis": "^2.8.14",
-        "@typescript-eslint/eslint-plugin": "^2.19.0",
-        "@typescript-eslint/parser": "^2.19.0",
-        "chai": "^4.2.0",
-        "eslint": "^6.8.0",
+        "@types/bluebird": "3",
+        "@types/chai": "4",
+        "@types/cron": "1",
+        "@types/mocha": "7",
+        "@types/node": "13",
+        "@types/redis": "2",
+        "@typescript-eslint/eslint-plugin": "2",
+        "@typescript-eslint/parser": "2",
+        "chai": "4",
+        "eslint": "6",
         "eslint-config-airbnb-base": "^14.0.0",
         "eslint-config-prettier": "^6.10.0",
         "eslint-plugin-import": "^2.20.1",

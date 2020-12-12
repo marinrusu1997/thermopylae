@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/core.declarations",
+    "packages/core.jwt",
+    "packages/lib.async",
+    "packages/lib.async-cache",
+    "packages/lib.cache",
+    "packages/lib.collection",
+    "packages/lib.decorators",
+    "packages/lib.exception",
+    "packages/lib.heap",
+    "packages/lib.indexed-store",
+    "packages/lib.logger",
+    "packages/lib.pool",
+    "packages/lib.unit-test",
+    "packages/lib.utils",
+    "packages/module-builder"
+  ]
+}

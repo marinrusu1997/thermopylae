@@ -30,7 +30,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0.0.1596382291",
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "enum-for": "0"

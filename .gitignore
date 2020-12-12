@@ -1,1 +1,7 @@
-.idea
+# IDE
+.idea/
+.code/
+
+# Dependencies
+node_modules/
+yarn.lock

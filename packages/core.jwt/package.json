@@ -33,16 +33,16 @@
         ]
     },
     "engines": {
-        "node": "12.8.0"
+        "node": ">= 14"
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.memcache": "0",
+        "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.utils": "0",
         "jsonwebtoken": "8"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0.0.1587246870",
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/jsonwebtoken": "8"
     }
