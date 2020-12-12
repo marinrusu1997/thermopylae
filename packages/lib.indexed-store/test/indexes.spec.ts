@@ -158,7 +158,7 @@ describe('index spec', () => {
 	describe(`${IndexedStore.prototype.dropIndex.name} spec`, () => {
 		it('fails to drop index which does not exist', () => {
 			const store = new IndexedStore<Person>();
-			expect(store.dropIndex(string.ofLength(5))).to.be.eq(false);
+			expect(store.dropIndex(string.random())).to.be.eq(false);
 		});
 
 		it('fails to drop primary index', () => {
@@ -309,7 +309,7 @@ describe('index spec', () => {
 
 		it('fails to read invalid index', () => {
 			const storage = new IndexedStore<Person>();
-			expect(() => storage.readIndex(string.ofLength(5)))
+			expect(() => storage.readIndex(string.random()))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 		});

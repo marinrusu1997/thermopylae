@@ -47,7 +47,7 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 
 	it('reads records from empty storage', () => {
 		const storage = new IndexedStore<Person>();
-		expect(storage.read(PK_INDEX_NAME, string.ofLength(5))).to.be.equalTo([]);
+		expect(storage.read(PK_INDEX_NAME, string.random())).to.be.equalTo([]);
 	});
 
 	it('reads records from empty index', () => {
@@ -65,7 +65,7 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 
 	it('fails to read from invalid index', () => {
 		const storage = new IndexedStore<Person>();
-		expect(() => storage.read(string.ofLength(5), string.ofLength(5)))
+		expect(() => storage.read(string.random(), string.random()))
 			.to.throw(Exception)
 			.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
 	});

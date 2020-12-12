@@ -159,7 +159,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		const indexes = Object.values(PersonIndexes);
 		const store = new IndexedStore<Person>({ indexes });
 
-		const throwable = () => store.remove(PersonIndexes.I_BIRTH_YEAR, string.ofLength(5));
+		const throwable = () => store.remove(PersonIndexes.I_BIRTH_YEAR, string.random({ length: 5 }));
 		expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
 	});
 
@@ -169,13 +169,13 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		store.insert(PersonsRepo);
 
 		const candidate = object.cloneDeep(randomPerson());
-		dotprop.set(candidate, PK_INDEX_NAME, string.ofLength(10));
+		dotprop.set(candidate, PK_INDEX_NAME, string.random());
 		for (const index of indexes) {
 			dotprop.set(candidate, index, null);
 		}
 
 		const indexWithVal = PersonIndexes.II_COUNTRY_CODE;
-		dotprop.set(candidate, indexWithVal, string.ofLength(2));
+		dotprop.set(candidate, indexWithVal, string.random({ length: 2 }));
 		store.insert([candidate]);
 
 		const removed = store.remove(PK_INDEX_NAME, candidate[PK_INDEX_NAME]);

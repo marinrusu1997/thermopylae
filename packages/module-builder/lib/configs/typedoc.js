@@ -1,3 +1,19 @@
+const path = require('path');
+const fs = require('fs');
+
+const THEME_PATH_CANDIDATES = [
+    path.join(process.cwd(), "node_modules", "typedoc-neo-theme", "bin", "default"),
+    path.join(process.cwd(), "..", "..", "node_modules", "typedoc-neo-theme", "bin", "default")
+];
+function getThemePath() {
+    for (const candidate of THEME_PATH_CANDIDATES) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    throw new Error(`Can't get theme path from candidates: ${THEME_PATH_CANDIDATES.join(', ')}`);
+}
+
 module.exports = {
     // Input Options
     "mode": "modules",
@@ -20,7 +36,7 @@ module.exports = {
     "includeVersion": false,
     "hideGenerator": true,
     "disableSources": true,
-    "theme": "./node_modules/typedoc-neo-theme/bin/default",
+    "theme": getThemePath(),
 
     // General Options
     "listInvalidSymbolLinks": true,

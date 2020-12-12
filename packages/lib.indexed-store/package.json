@@ -35,7 +35,7 @@
     "dependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "dot-prop": "5"
+        "dot-prop": "6"
     },
     "devDependencies": {
         "@thermopylae/lib.unit-test": "0",
@@ -44,8 +44,8 @@
         "range-generator": "1"
     },
     "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
+        "chai": "4",
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [

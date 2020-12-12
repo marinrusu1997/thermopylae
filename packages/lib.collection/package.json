@@ -39,8 +39,8 @@
         "@thermopylae/lib.indexed-store": "0",
         "ajv": "6",
         "ajv-i18n": "3",
-        "common-query": "2",
-        "dot-prop": "5",
+        "common-query": "3",
+        "dot-prop": "6",
         "isobject": "4",
         "json-schema-typed": "7",
         "lodash.orderby": "4",
@@ -59,8 +59,8 @@
         "ts-enum-util": "4"
     },
     "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
+        "chai": "4",
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [

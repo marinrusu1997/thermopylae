@@ -1,9 +1,8 @@
-import { authenticator } from 'otplib';
-import crypto from 'crypto';
+import { Authenticator } from '@otplib/core';
+import { keyDecoder, keyEncoder } from '@otplib/plugin-thirty-two';
+import { createDigest, createRandomBytes } from '@otplib/plugin-crypto';
 import { Seconds } from '@thermopylae/core.declarations';
 import { createException } from './exception';
-
-const { Authenticator } = authenticator;
 
 /**
  * {@link Totp} construction options.
@@ -31,12 +30,14 @@ class Totp {
 
 	private readonly secret: string;
 
-	constructor(opts: Options) {
-		this.impl = new Authenticator();
-		this.impl.options = {
+	public constructor(opts: Options) {
+		this.impl = new Authenticator({
 			step: opts.ttl,
-			crypto
-		};
+			createDigest,
+			createRandomBytes,
+			keyDecoder,
+			keyEncoder
+		});
 		this.secret = opts.secret;
 	}
 
@@ -45,7 +46,7 @@ class Totp {
 	 *
 	 * @returns Generated TOTP.
 	 */
-	generate(): string {
+	public generate(): string {
 		return this.impl.generate(this.secret);
 	}
 
@@ -58,7 +59,7 @@ class Totp {
 	 * @param logger.error
 	 * @returns Whether TOTP is valid.
 	 */
-	check(received: string, stored?: string, logger?: { error: (err: Error) => void }): boolean {
+	public check(received: string, stored?: string, logger?: { error: (err: Error) => void }): boolean {
 		try {
 			return stored ? stored === received && this.impl.check(received, this.secret) : this.impl.check(received, this.secret);
 		} catch (error) {

@@ -1,7 +1,8 @@
 import { number, string, array } from '@thermopylae/lib.utils';
 import { chai } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
-import { Library, Undefinable } from '@thermopylae/core.declarations';
+import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 import { ObjectPool, ObjectConstructor, ObjectDestructor, ObjectInitializer, ObjectPoolStats, Handle } from '../lib/pools/object-pool';
 import { ErrorCodes } from '../lib/exception';
 
@@ -25,7 +26,7 @@ const initializer: ObjectInitializer<ObjectShape> = (shape, a: number, b: string
 };
 
 function shapeArgs(): [number, string] {
-	return [number.generateRandomNumber(0, 100), string.generateStringOfLength(5)];
+	return [number.random(0, 100), string.random()];
 }
 
 function initialFreeShapes(quantity: number): Array<ObjectShape> {
@@ -204,7 +205,7 @@ describe(`${ObjectPool.name} spec`, () => {
 		expect(ObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...args));
 
 		const toRelease = {};
-		let err;
+		let err: Nullable<Exception> = null;
 		try {
 			// @ts-ignore
 			objectPool.releaseObject(toRelease);
@@ -212,12 +213,16 @@ describe(`${ObjectPool.name} spec`, () => {
 			err = e;
 		}
 
+		if (err == null) {
+			throw new Error("releaseObject didn't threw an error.");
+		}
+
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 2));
 
 		expect(err.emitter).to.be.eq(Library.POOL);
 		expect(err.code).to.be.eq(ErrorCodes.INVALID_PARAM);
 		expect(err.message).to.be.eq('Provided object is not managed by pool.');
-		expect(equals(err.cause, toRelease, Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true);
+		expect(equals(err.origin, toRelease, Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true);
 	});
 
 	it('releases nothing if there are no objects', () => {
@@ -384,7 +389,7 @@ describe(`${ObjectPool.name} spec`, () => {
 		for (let k = 0; k < ITERATIONS; k++) {
 			const acquired = new Array<Handle<string>>(capacity);
 			for (let i = 0; i < capacity; i++) {
-				const value = string.generateStringOfLength(5);
+				const value = string.random();
 				acquired[i] = objectPool.acquire(value);
 
 				expect(objectPool.stats).to.be.deep.eq(stats(capacity - i - 1, i + 1));

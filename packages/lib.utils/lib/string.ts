@@ -13,7 +13,10 @@ function replaceAt(replacement: string, index: number, string: string): string {
 	return string.substr(0, index) + replacement + string.substr(index + replacement.length);
 }
 
-const ANY_CHAR_REGEXP = /./;
+/**
+ * @link random
+ * @private
+ */
 const CHARSETS = [
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // Alpha Capitalized
 	'abcdefghijklmnopqrstuvwxyz', // Alpha Non-capitalized
@@ -21,27 +24,60 @@ const CHARSETS = [
 	' !"#$%&\'()*+,-./:;<=>?@[]^_`{|}~' // Special Chars
 ];
 
+interface RandomStringOptions {
+	/**
+	 * Length of the generated string. <br/>
+	 * Default is 10.
+	 */
+	length: number;
+	/**
+	 * Allowed chars that will be included in generated string. <br/>
+	 * Default is all characters.
+	 */
+	allowedCharRegex: RegExp;
+}
+
+/**
+ * @link random
+ * @private
+ */
+const DEFAULT_STR_GEN_OPTS = {
+	length: 10,
+	allowedCharRegex: /./
+};
+
 /**
  * Generates non-cryptographically strong random string.
  * Generation can be controlled via regular expressions.
  *
- * @param length				Length of the generated string.
- * @param allowedCharRegex		Allowed chars that will be included in generated string.
+ * @param [options]		String generation options.
  *
  * @returns Generated string.
  */
-function random(length = 10, allowedCharRegex = ANY_CHAR_REGEXP): string {
+function random(options?: Partial<RandomStringOptions>): string {
+	if (options == null) {
+		options = DEFAULT_STR_GEN_OPTS;
+	} else {
+		if (!options.length) {
+			// implicit validation for values <= 0
+			options.length = DEFAULT_STR_GEN_OPTS.length;
+		}
+		if (options.allowedCharRegex == null) {
+			options.allowedCharRegex = DEFAULT_STR_GEN_OPTS.allowedCharRegex;
+		}
+	}
+
 	let i = 0;
 	let charSet;
 	let selectedChar;
 
-	const result = new Array(length);
+	const result = new Array(options.length);
 
-	while (i < length) {
+	while (i < options.length!) {
 		charSet = randomElement(CHARSETS);
 		selectedChar = charSet.charAt(Math.floor(Math.random() * charSet.length));
 
-		if (allowedCharRegex.test(selectedChar)) {
+		if (options.allowedCharRegex!.test(selectedChar)) {
 			result[i] = selectedChar;
 			i += 1;
 		}

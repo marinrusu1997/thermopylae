@@ -387,7 +387,7 @@ describe(`${LabeledConditionalVariable.name} spec`, () => {
 
 			const toForceRelease = new Set();
 			for (let i = 0; i < labels.length / 2; i++) {
-				toForceRelease.add(labels[number.generateRandomInt(0, labels.length - 1)]);
+				toForceRelease.add(labels[number.randomInt(0, labels.length - 1)]);
 			}
 
 			mutex.forcedNotify((label: string) => toForceRelease.has(label));

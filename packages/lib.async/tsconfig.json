@@ -4,7 +4,7 @@
         "target": "esnext",
         "module": "commonjs",
         "allowJs": true,
-        "checkJs": true,
+        "checkJs": false,
         "declaration": true,
         "rootDir": ".",
         "outDir": "dist",

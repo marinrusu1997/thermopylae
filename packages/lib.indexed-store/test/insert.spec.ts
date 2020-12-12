@@ -53,7 +53,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		/** ARRAY INDEX */
 		storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 		invalidPerson = {
-			id: string.ofLength(5),
+			id: string.random(),
 			// @ts-ignore
 			birthYear: []
 		};
@@ -66,7 +66,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		/** OBJECT INDEX */
 		storage.createIndexes([PersonIndexes.II_COUNTRY_CODE]);
 		invalidPerson = {
-			id: string.ofLength(5),
+			id: string.random(),
 			birthYear: number.randomInt(1990, 2000),
 			address: {
 				// @ts-ignore
@@ -82,11 +82,11 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		/** BOOLEAN INDEX */
 		storage.createIndexes([PersonIndexes.III_BANK_NAME]);
 		invalidPerson = {
-			id: string.ofLength(5),
+			id: string.random(),
 			birthYear: number.randomInt(1990, 2000),
 			// @ts-ignore
 			address: {
-				countryCode: string.ofLength(5)
+				countryCode: string.random()
 			},
 			finance: {
 				bank: {
@@ -128,7 +128,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		function generatePerson(nulledIndexName: string): Person {
 			const person: Person = { ...PersonsRepo[0] };
 			for (const indexName of indexNames) {
-				const value = indexName === nulledIndexName ? undefined : string.ofLength(10);
+				const value = indexName === nulledIndexName ? undefined : string.random();
 				dotprop.set(person, indexName, value);
 			}
 			return person;
@@ -174,7 +174,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		function generatePerson(nulledIndexName: string): Person {
 			const person: Person = { ...PersonsRepo[0] };
 			for (const indexName of indexNames) {
-				const value = indexName === nulledIndexName ? null : string.ofLength(10);
+				const value = indexName === nulledIndexName ? null : string.random();
 				dotprop.set(person, indexName, value);
 			}
 			return person;

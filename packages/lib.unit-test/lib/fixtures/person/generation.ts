@@ -8,7 +8,7 @@ const TransactionGenerationSchema = {
 		faker: 'finance.transactionType'
 	},
 	amount: {
-		function: () => string.ofLength(3, /[0-9]/)
+		function: () => string.random({ length: 3, allowedCharRegex: /[0-9]/ })
 	},
 	currencySymbol: {
 		faker: 'finance.currencySymbol'

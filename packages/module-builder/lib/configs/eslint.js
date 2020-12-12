@@ -50,7 +50,10 @@ module.exports = {
 		"import/no-unresolved": [
 			"error",
 			{
-				"ignore": ['^@thermopylae/core\.declarations$']
+				"commonjs": true,
+				"ignore": [
+					'^@thermopylae/core\.declarations$'
+				]
 			}
 		],
 		"import/named": "error",
@@ -61,9 +64,9 @@ module.exports = {
 		"import/prefer-default-export": "off",
 		"import/extensions": [
 			"error",
-			"ignorePackages",
 			{
-				"js": "never",
+				"js": "always",
+				"json": "always",
 				"ts": "never",
 				".d.ts": "never"
 			}

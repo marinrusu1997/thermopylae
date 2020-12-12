@@ -11,8 +11,8 @@ type IndexValueGenerator = () => string | number;
 
 const IndexValueGenerators = new Map<PersonIndexes, IndexValueGenerator>([
 	[PersonIndexes.I_BIRTH_YEAR, () => number.randomInt(2000, 2020)],
-	[PersonIndexes.II_COUNTRY_CODE, () => string.ofLength(5)],
-	[PersonIndexes.III_BANK_NAME, () => string.ofLength(5)]
+	[PersonIndexes.II_COUNTRY_CODE, () => string.random({ length: 5 })],
+	[PersonIndexes.III_BANK_NAME, () => string.random({ length: 5 })]
 ]);
 deepFreeze(IndexValueGenerators);
 

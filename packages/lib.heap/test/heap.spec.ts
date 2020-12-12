@@ -50,7 +50,7 @@ describe('Heap spec', () => {
 			const heap = new Heap<string>(comparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push(string.ofLength(i));
+				heap.push(string.random({ length: i }));
 			}
 
 			assertHeapSortedOrder(heap.clone(), comparator);

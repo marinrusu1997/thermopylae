@@ -88,28 +88,28 @@ let PersonsRepo: Array<PersonDocument>;
 
 function generateTransaction(): Transaction {
 	return {
-		amount: string.ofLength(3, /[0-9]/),
-		currencySymbol: string.ofLength(1, /\$/),
-		transactionType: string.ofLength(5, /[A-Za-z]/)
+		amount: string.random({ length: 3, allowedCharRegex: /[0-9]/ }),
+		currencySymbol: string.random({ length: 1, allowedCharRegex: /\$/ }),
+		transactionType: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 	};
 }
 
 function generatePersonDocument(): PersonDocument {
 	return new PersonDocument({
-		[PK_INDEX_NAME]: string.ofLength(20),
-		firstName: string.ofLength(5),
+		[PK_INDEX_NAME]: string.random({ length: 20 }),
+		firstName: string.random({ length: 5 }),
 		birthYear: number.randomInt(1990, 2000),
 		address: {
-			countryCode: string.ofLength(2, /[A-Z]/),
-			city: string.ofLength(5, /[A-Za-z]/)
+			countryCode: string.random({ length: 2, allowedCharRegex: /[A-Z]/ }),
+			city: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 		},
 		finance: {
 			bank: {
-				name: string.ofLength(5, /[A-Za-z]/)
+				name: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 			},
 			transactions: array.filledWith(number.randomInt(0, 5), generateTransaction)
 		},
-		visitedCountries: array.filledWith(number.randomInt(0, 5), () => string.ofLength(2, /[A-Z]/))
+		visitedCountries: array.filledWith(number.randomInt(0, 5), () => string.random({ length: 2, allowedCharRegex: /[A-Z]/ }))
 	});
 }
 
@@ -454,16 +454,16 @@ describe(`${Collection.name} spec`, () => {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.ofLength(10),
+				[PK_INDEX_NAME]: string.random(),
 				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.ofLength(5),
+				firstName: string.random({ length: 5 }),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.ofLength(5)
+					city: string.random({ length: 5 })
 				},
 				finance: {
 					bank: {
-						name: string.ofLength(5)
+						name: string.random({ length: 5 })
 					},
 					transactions: [
 						{
@@ -515,16 +515,16 @@ describe(`${Collection.name} spec`, () => {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.ofLength(10),
+				[PK_INDEX_NAME]: string.random({ length: 10 }),
 				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.ofLength(5),
+				firstName: string.random({ length: 5 }),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.ofLength(5)
+					city: string.random({ length: 5 })
 				},
 				finance: {
 					bank: {
-						name: string.ofLength(5)
+						name: string.random({ length: 5 })
 					},
 					transactions: [
 						{
@@ -563,16 +563,16 @@ describe(`${Collection.name} spec`, () => {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.ofLength(10),
+				[PK_INDEX_NAME]: string.random(),
 				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.ofLength(5),
+				firstName: string.random({ length: 5 }),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.ofLength(5)
+					city: string.random({ length: 5 })
 				},
 				finance: {
 					bank: {
-						name: string.ofLength(5)
+						name: string.random({ length: 5 })
 					},
 					transactions: [
 						{
@@ -723,16 +723,16 @@ describe(`${Collection.name} spec`, () => {
 
 			const toBeRetrievedLater = [
 				new PersonDocument({
-					[PK_INDEX_NAME]: string.ofLength(10),
+					[PK_INDEX_NAME]: string.random(),
 					birthYear: 1995,
 					firstName: 'John',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.ofLength(5)
+						city: string.random({ length: 5 })
 					},
 					finance: {
 						bank: {
-							name: string.ofLength(5)
+							name: string.random({ length: 5 })
 						},
 						transactions: [
 							{
@@ -745,16 +745,16 @@ describe(`${Collection.name} spec`, () => {
 					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PK_INDEX_NAME]: string.ofLength(10),
+					[PK_INDEX_NAME]: string.random(),
 					birthYear: 1999,
 					firstName: 'John',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.ofLength(5)
+						city: string.random({ length: 5 })
 					},
 					finance: {
 						bank: {
-							name: string.ofLength(5)
+							name: string.random({ length: 5 })
 						},
 						transactions: [
 							{
@@ -767,16 +767,16 @@ describe(`${Collection.name} spec`, () => {
 					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PK_INDEX_NAME]: string.ofLength(10),
+					[PK_INDEX_NAME]: string.random(),
 					birthYear: 1992,
 					firstName: 'Clint',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.ofLength(5)
+						city: string.random({ length: 5 })
 					},
 					finance: {
 						bank: {
-							name: string.ofLength(5)
+							name: string.random({ length: 5 })
 						},
 						transactions: [
 							{
@@ -789,16 +789,16 @@ describe(`${Collection.name} spec`, () => {
 					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
 				}),
 				new PersonDocument({
-					[PK_INDEX_NAME]: string.ofLength(10),
+					[PK_INDEX_NAME]: string.random(),
 					birthYear: 2000,
 					firstName: 'Easter',
 					address: {
 						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.ofLength(5)
+						city: string.random({ length: 5 })
 					},
 					finance: {
 						bank: {
-							name: string.ofLength(5)
+							name: string.random({ length: 5 })
 						},
 						transactions: [
 							{
@@ -985,16 +985,16 @@ describe(`${Collection.name} spec`, () => {
 			const transactionCurrency = '$';
 
 			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.ofLength(10),
+				[PK_INDEX_NAME]: string.random(),
 				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.ofLength(5),
+				firstName: string.random({ length: 5 }),
 				address: {
 					countryCode: array.randomElement(countryCodes),
-					city: string.ofLength(5)
+					city: string.random({ length: 5 })
 				},
 				finance: {
 					bank: {
-						name: string.ofLength(5)
+						name: string.random({ length: 5 })
 					},
 					transactions: [
 						{
@@ -1038,7 +1038,7 @@ describe(`${Collection.name} spec`, () => {
 
 			const query: Query<PersonDocument> = {
 				// @ts-ignore
-				[PersonIndexes.II_COUNTRY_CODE]: string.ofLength(5, /[0-9]/)
+				[PersonIndexes.II_COUNTRY_CODE]: string.random({ length: 5, allowedCharRegex: /[0-9]/ })
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {
 				multiple: true,
@@ -1059,7 +1059,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.ofLength(5, /[0-9]/)
+				[PK_INDEX_NAME]: string.random({ length: 5, allowedCharRegex: /[0-9]/ })
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {
 				multiple: false,
@@ -1266,7 +1266,7 @@ describe(`${Collection.name} spec`, () => {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.ofLength(2)
+				[PK_INDEX_NAME]: string.random({ length: 2 })
 			};
 			const options: Partial<ReplaceOptions<PersonDocument>> = {
 				upsert: true
@@ -1291,7 +1291,7 @@ describe(`${Collection.name} spec`, () => {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.ofLength(2)
+				[PK_INDEX_NAME]: string.random({ length: 2 })
 			};
 			const oldDocs = collection.replace(queryForOldDoc, replacement);
 			expect(oldDocs).to.be.ofSize(0);
@@ -1312,7 +1312,7 @@ describe(`${Collection.name} spec`, () => {
 				};
 				const update = {
 					$fff: {
-						$bb: string.ofLength(5, /[A-Za-z]/)
+						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 					}
 				};
 
@@ -1331,7 +1331,7 @@ describe(`${Collection.name} spec`, () => {
 				};
 				const update = {
 					$fff: {
-						$bb: string.ofLength(5, /[A-Za-z]/)
+						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 					}
 				};
 
@@ -1350,7 +1350,7 @@ describe(`${Collection.name} spec`, () => {
 				};
 				const update = {
 					$fff: {
-						$bb: string.ofLength(5, /[A-Za-z]/)
+						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 					}
 				};
 
@@ -1371,7 +1371,7 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const update = {
 				$set: {
-					firstName: string.ofLength(5, /[A-Za-z]/)
+					firstName: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 				}
 			};
 
@@ -1534,7 +1534,7 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const update = {
 				$set: {
-					[PK_INDEX_NAME]: string.ofLength(5)
+					[PK_INDEX_NAME]: string.random({ length: 5 })
 				}
 			};
 
@@ -1566,8 +1566,8 @@ describe(`${Collection.name} spec`, () => {
 			const update = {
 				$set: {
 					[PersonIndexes.I_BIRTH_YEAR]: number.randomInt(2010, 2020),
-					[PersonIndexes.II_COUNTRY_CODE]: string.ofLength(3, /[A-Z]/),
-					[PersonIndexes.III_BANK_NAME]: string.ofLength(5, /[a-zA-Z]/)
+					[PersonIndexes.II_COUNTRY_CODE]: string.random({ length: 3, allowedCharRegex: /[A-Z]/ }),
+					[PersonIndexes.III_BANK_NAME]: string.random({ length: 5, allowedCharRegex: /[a-zA-Z]/ })
 				}
 			};
 
@@ -1691,7 +1691,7 @@ describe(`${Collection.name} spec`, () => {
 				assertFoundByIndexes(collection, toUpdate);
 
 				const renamedIndex = array.randomElement(indexNames);
-				const newName = string.ofLength(5, /[a-zA-z]/);
+				const newName = string.random({ length: 5, allowedCharRegex: /[a-zA-z]/ });
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
@@ -1810,7 +1810,7 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const update = {
 				$set: {
-					firstName: string.ofLength(5, /[A-Za-z]/)
+					firstName: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
 				}
 			};
 			const options: Partial<UpdateOptions<PersonDocument>> = {

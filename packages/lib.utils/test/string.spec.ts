@@ -34,12 +34,12 @@ describe('string spec', () => {
 	describe(`${random.name} spec`, () => {
 		it('generates random string of specified length', () => {
 			const length = 5;
-			const generatedString = random(length);
+			const generatedString = random({ length });
 			expect(generatedString.length).to.be.eq(length);
 		});
 
 		it('generates random string with digits', () => {
-			const generatedString = random(5, /^[0-9]$/);
+			const generatedString = random({ length: 5, allowedCharRegex: /^[0-9]$/ });
 			for (let i = 0; i < generatedString.length; i++) {
 				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(false);
 			}
@@ -47,7 +47,7 @@ describe('string spec', () => {
 
 		it('generates random string with capitalized alpha and some special characters', () => {
 			const allowedCharRegex = /^[A-Z$()]$/;
-			const generatedString = random(20, allowedCharRegex);
+			const generatedString = random({ length: 20, allowedCharRegex });
 
 			for (let i = 0; i < generatedString.length; i++) {
 				expect(generatedString[i]).to.match(allowedCharRegex);
@@ -57,9 +57,9 @@ describe('string spec', () => {
 		it('can generate custom random string using invocations with different regexes', () => {
 			// eslint-disable-next-line prettier/prettier
 			const generatedString = [
-				random(1, /^[0-9]$/),
-				random(3, /^[a-zA-Z]$/),
-				random(1, /^[0-9]$/)
+				random({ length: 1, allowedCharRegex: /^[0-9]$/ }),
+				random({ length: 3, allowedCharRegex: /^[a-zA-Z]$/ }),
+				random({ length: 1, allowedCharRegex: /^[0-9]$/ })
 			].join('');
 			expect(Number.isNaN(Number(generatedString[0]))).to.be.eq(false);
 

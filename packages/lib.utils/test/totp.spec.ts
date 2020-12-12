@@ -4,36 +4,42 @@ import { Totp } from '../lib/totp';
 
 const { expect, assert } = chai;
 
-describe('totp spec', () => {
-	it('generates secret', () => {
-		expect(new Totp({ secret: 'secret', ttl: 1 }).generate()).to.not.be.equal(undefined);
+describe(`${Totp.name} spec`, () => {
+	describe(`${Totp.prototype.generate.name} spec`, () => {
+		it('generates secret', () => {
+			expect(new Totp({ secret: 'secret', ttl: 1 }).generate()).to.not.be.equal(undefined);
+		});
 	});
 
-	it('checks correctly invalid tokens (no stored token provided)', () => {
-		assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid'));
-	});
+	describe(`${Totp.prototype.check.name} spec`, () => {
+		it('returns false on invalid tokens (no stored token provided)', () => {
+			assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid'));
+		});
 
-	it('checks correctly invalid token (stored token provided)', () => {
-		assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid', 'stored'));
-	});
+		it('returns false on invalid token (stored token provided)', () => {
+			assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid', 'stored'));
+		});
 
-	it('checks correctly expired token', (done) => {
-		const instance = new Totp({ secret: 'secret', ttl: 1 });
-		const token = instance.generate();
-		setTimeout(() => {
-			assert(!instance.check(token));
-			done();
-		}, 1000);
-	});
+		it('returns false on expired token', (done) => {
+			const instance = new Totp({ secret: 'secret', ttl: 1 });
+			const token = instance.generate();
+			assert(instance.check(token)); // it is valid right after generation]
 
-	it('checks correctly valid token (no stored token provided)', () => {
-		const instance = new Totp({ secret: 'secret', ttl: 1 });
-		assert(instance.check(instance.generate()));
-	});
+			setTimeout(() => {
+				assert(!instance.check(token)); // but invalid after ttl expires
+				done();
+			}, 1000);
+		});
 
-	it('checks correctly valid token (stored token provided)', () => {
-		const instance = new Totp({ secret: 'secret', ttl: 1 });
-		const token = instance.generate();
-		assert(instance.check(token, token));
+		it('returns true on valid token (no stored token provided)', () => {
+			const instance = new Totp({ secret: 'secret', ttl: 1 });
+			assert(instance.check(instance.generate()));
+		});
+
+		it('returns true on valid token (stored token provided)', () => {
+			const instance = new Totp({ secret: 'secret', ttl: 1 });
+			const token = instance.generate();
+			assert(instance.check(token, token));
+		});
 	});
 });

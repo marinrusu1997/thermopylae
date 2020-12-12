@@ -105,7 +105,7 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const nonIndexed = object.cloneDeep(randomPerson());
-			dotprop.set(nonIndexed, PK_INDEX_NAME, string.ofLength(10));
+			dotprop.set(nonIndexed, PK_INDEX_NAME, string.random());
 			for (const indexName of indexes) {
 				dotprop.set(nonIndexed, indexName, null);
 			}
@@ -174,7 +174,7 @@ describe('stream operations spec', () => {
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const desiredId = string.ofLength(15);
+			const desiredId = string.random({ length: 15 });
 			function predicate(person: Person): boolean {
 				return person[PK_INDEX_NAME] === desiredId;
 			}
@@ -206,9 +206,9 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const record = object.cloneDeep(randomPerson());
-			dotprop.set(record, PK_INDEX_NAME, string.ofLength(10));
+			dotprop.set(record, PK_INDEX_NAME, string.random());
 
-			const countryCode = string.ofLength(6);
+			const countryCode = string.random({ length: 6 });
 			dotprop.set(record, PersonIndexes.I_BIRTH_YEAR, 1990);
 			dotprop.set(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
 			storage.insert([record]);

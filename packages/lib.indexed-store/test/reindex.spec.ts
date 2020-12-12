@@ -11,8 +11,8 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 	it('should not update primary index', () => {
 		const store = new IndexedStore<Person>();
 
-		const oldVal = string.ofLength(5);
-		const newVal = string.ofLength(5);
+		const oldVal = string.random();
+		const newVal = string.random();
 		const reindex = () => store.reindex(PK_INDEX_NAME, oldVal, newVal, () => true);
 
 		expect(reindex).to.throw(`Can't reindex primary index '${PK_INDEX_NAME}' value.`);
@@ -113,7 +113,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		const matcher = string.ofLength(10);
+		const matcher = string.random();
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 		expect(reindex).to.throw(`No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
