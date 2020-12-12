@@ -3,11 +3,17 @@ import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM } from '../../helpers/
 import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/cache-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 
+/**
+ * @private		Should not appear in public documentation.
+ */
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
 
 // FIXME original implementation: https://www.callicoder.com/design-lru-cache-data-structure/
 // FIXME other implementation (not used here): https://www.programcreek.com/2013/03/leetcode-lru-cache-java/
 
+/**
+ * [Least Recently Used](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU) "Least recently used (LRU)") eviction policy.
+ */
 class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
@@ -15,6 +21,9 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 
 	private doublyLinkedList: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
 
+	/**
+	 * @param capacity	{@link Cache} maximum capacity.
+	 */
 	public constructor(capacity: Threshold) {
 		this.capacity = capacity;
 		this.doublyLinkedList = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();

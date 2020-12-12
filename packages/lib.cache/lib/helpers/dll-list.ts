@@ -39,6 +39,14 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 		this.tail = startNode;
 	}
 
+	public get size(): number {
+		let items = 0;
+		for (const _ of this) {
+			items += 1;
+		}
+		return items;
+	}
+
 	public addToFront(node: Node): void {
 		node[NEXT_SYM] = this.head;
 		node[PREV_SYM] = null;
