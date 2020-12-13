@@ -2,10 +2,11 @@
     "name": "@thermopylae/lib.utils",
     "description": "Utility functions.",
     "keywords": [
+        "thermopylae",
         "library",
-        "utils"
+        "typescript"
     ],
-    "version": "0.0.1606049897",
+    "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://bitbucket.org/marinrusu1997/framework/src/master/lib.utils/",
     "license": "ISC",

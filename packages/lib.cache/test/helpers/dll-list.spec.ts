@@ -3,6 +3,7 @@ import { assert, expect } from '@thermopylae/lib.unit-test';
 import { Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import arrayMove from 'array-move';
+import colors from 'colors';
 // @ts-ignore
 import gc from 'js-gc';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/helpers/dll-list';
@@ -29,7 +30,7 @@ function assertListContainsAllNodes<T extends DoublyLinkedListNode<T>>(dll: Doub
 	expect(iter).to.be.eq(nodes.length);
 }
 
-describe(`${DoublyLinkedList.name} spec`, () => {
+describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	it('should create an empty list and iterate over it', () => {
 		const dll = new DoublyLinkedList();
 		for (const _ of dll) {

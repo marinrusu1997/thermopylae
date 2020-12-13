@@ -46,7 +46,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	 * @param capacity				{@link Cache} maximum capacity.
 	 *
 	 * @param bucketEvictCount		How many items to evict when {@link Cache} capacity is met. <br/>
-	 *								Default value is between 1 element and 10% of the `capacity` elements.
+	 *								Default value is 1.
 	 *
 	 * @param deleter				Function which is deletes entry from {@link Cache} by key. <br/>
 	 * 								Default will be deleter set by {@link Cache} instance.
@@ -58,7 +58,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 
 		this.config = {
 			capacity,
-			bucketEvictCount: bucketEvictCount || Math.max(1, capacity * 0.1)
+			bucketEvictCount: bucketEvictCount || 1
 		};
 		this.delete = deleter!;
 		this.freqList = new DoublyLinkedList();
@@ -75,6 +75,9 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		return items;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		// get next freq item
 		let nextFreqListNode = entry[FREQ_PARENT_ITEM_SYM][NEXT_SYM];
@@ -101,9 +104,12 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		return EntryValidity.VALID;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// Check for backend overflow
-		if (context.totalEntriesNo === this.config.capacity) {
+		if (context.totalEntriesNo >= this.config.capacity) {
 			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}
 
@@ -111,26 +117,52 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		entry[FREQ_PARENT_ITEM_SYM] = this.addToFreqList(entry);
 	}
 
-	public onUpdate(): void {
+	/**
+	 * @inheritDoc
+	 */
+	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
 		return undefined;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		this.removeEvictableKeyNodeFromParentFreqNode(entry[FREQ_PARENT_ITEM_SYM], entry);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
+		/*		let listWithSameFreq: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
+
 		for (const freqListNode of this.freqList) {
-			(freqListNode as FreqListNode<Key, Value>).list.clear();
+			listWithSameFreq = (freqListNode as FreqListNode<Key, Value>).list;
+
+			for (const listNode of listWithSameFreq) {
+				(listNode as EvictableKeyNode<Key, Value>)[FREQ_PARENT_ITEM_SYM] = null!; // break circular references, just in case!
+			}
+
+			(freqListNode as FreqListNode<Key, Value>).list.clear(); // then clear the list
+			(freqListNode as FreqListNode<Key, Value>).list = null!; // then detach it from the main list
 		}
+
+		this.freqList.clear(); */
 
 		this.freqList.clear();
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public get requiresEntryOnDeletion(): boolean {
 		return true;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.delete = deleter;
 	}
@@ -138,9 +170,10 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private evict(count: number): void {
 		const itemsList = this.freqList.head!.list;
 
-		while (count-- && itemsList.head) {
-			this.delete(itemsList.head.key);
-			itemsList.removeNode(itemsList.head);
+		while (count-- && itemsList.tail) {
+			// remove from tail of list with same frequency
+			this.delete(itemsList.tail.key);
+			itemsList.removeNode(itemsList.tail);
 		}
 
 		if (!itemsList.head) {
@@ -158,7 +191,7 @@ class LFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 			};
 			this.freqList.addToFront(freqListNode);
 		} else {
-			this.freqList.head.list.addToFront(evictableKeyNode);
+			this.freqList.head.list.addToFront(evictableKeyNode); // add to front in list with same frequency
 		}
 
 		return this.freqList.head!;

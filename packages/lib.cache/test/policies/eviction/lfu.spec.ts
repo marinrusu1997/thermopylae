@@ -1,64 +1,283 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { number } from '@thermopylae/lib.utils';
-import colors from 'colors';
+import { array, number } from '@thermopylae/lib.utils';
 import { Nullable } from '@thermopylae/core.declarations';
-import { EvictableKeyNode, LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu-eviction-policy';
+import colors from 'colors';
+import range from 'lodash.range';
+// @ts-ignore
+import gc from 'js-gc';
+import { EvictableKeyNode, LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
 import { SetOperationContext } from '../../../lib/contracts/cache-policy';
+import { ReverseMap } from '../../utils';
 
-describe.only(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
-	it('should not evict entries until capacity cap is met', () => {
-		const capacity = number.randomInt(1, 10);
-		try {
-			const lfu = new LFUEvictionPolicy<string, number>(capacity);
-			const candidates = new Map<string, number>();
-			for (let i = 0; i < capacity; i++) {
-				candidates.set(String(i), i);
+describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
+	describe(`${LFUEvictionPolicy.prototype.onGet.name.magenta} & ${LFUEvictionPolicy.prototype.onSet.name.magenta} spec`, () => {
+		it('should not evict entries until capacity cap is met', () => {
+			const CAPACITY = number.randomInt(1, 11);
+			try {
+				const lfu = new LFUEvictionPolicy<string, number>(CAPACITY);
+				const candidates = new Map<string, number>();
+				for (let i = 0; i < CAPACITY; i++) {
+					candidates.set(String(i), i);
+				}
+
+				const context: SetOperationContext = { totalEntriesNo: 0 };
+
+				for (const [key, value] of candidates) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context);
+					context.totalEntriesNo += 1;
+
+					expect(lfu.size).to.be.eq(context.totalEntriesNo); // stacks up entries
+				}
+
+				// @ts-ignore
+				const entry: EvictableKeyNode<string, number> = { key: String(CAPACITY + 1), value: CAPACITY + 1 };
+				let deleted: Nullable<string> = null;
+				lfu.setDeleter((key) => {
+					deleted = key;
+				});
+
+				lfu.onSet(entry.key, entry, context);
+
+				expect(deleted).to.not.be.eq(null); // our deleter has been called...
+				expect(deleted).to.not.be.eq(entry.key); // ...on some random entry (all of them have 0 frequency)...
+				expect(lfu.size).to.be.eq(context.totalEntriesNo); // ...and number of req nodes remained the same
+			} catch (e) {
+				const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
+				UnitTestLogger.info(message.join('\n'));
+				throw e;
 			}
+		});
+
+		it('should evict least frequently used item', () => {
+			const CAPACITY = number.randomInt(1, 101);
+			const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
+
+			const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
+			const ADDITIONAL_ENTRIES = new Map<string, number>(range(CAPACITY, CAPACITY + ADDITIONAL_ENTRIES_NO).map((n) => [String(n), n]));
+
+			const ENTRY_FREQUENCIES = new Map<string, number>(Array.from(ENTRIES.keys()).map((key) => [key, number.randomInt(0, CAPACITY)]));
+			const ADDITIONAL_ENTRIES_FREQUENCIES = new Map<string, number>(Array.from(ADDITIONAL_ENTRIES.keys()).map((key) => [key, CAPACITY + 1]));
+
+			const GET_ORDER = array.shuffle([...ENTRY_FREQUENCIES.keys()].map((k) => array.filledWith(ENTRY_FREQUENCIES.get(k)!, k)).flat());
+			const ENTRIES_SORTED_BY_FREQ = new ReverseMap(ENTRY_FREQUENCIES);
+
+			const EVICTED_KEYS = new Array<string>();
+
+			try {
+				const lfu = new LFUEvictionPolicy<string, number>(CAPACITY);
+				const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
+				lfu.setDeleter((key) => EVICTED_KEYS.push(key));
+
+				const context: SetOperationContext = { totalEntriesNo: 0 };
+				for (const [key, value] of ENTRIES) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context);
+					lfuEntries.set(key, entry);
+					context.totalEntriesNo += 1;
+				}
+				expect(lfu.size).to.be.eq(CAPACITY);
+				expect(context.totalEntriesNo).to.be.eq(CAPACITY);
+
+				for (const key of GET_ORDER) {
+					const entry = lfuEntries.get(key);
+					if (entry == null) {
+						throw new Error(`Could not find entry for ${key.magenta}.`);
+					}
+
+					lfu.onGet(key, entry);
+				}
+
+				for (const [key, value] of ADDITIONAL_ENTRIES) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context); // we don't increment context, as we know entries are evicted and it's value remains the same
+
+					const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
+					for (let i = 0; i < spinUpFrequency; i++) {
+						lfu.onGet(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
+					}
+				}
+
+				expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
+				for (let i = 0; i < EVICTED_KEYS.length; i++) {
+					expect(ENTRIES_SORTED_BY_FREQ.bucket).to.be.containing(EVICTED_KEYS[i]);
+				}
+			} catch (e) {
+				const message = [
+					'Test Context:',
+					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
+					`${'ADDITIONAL_ENTRIES_NO'.magenta}\t: ${ADDITIONAL_ENTRIES_NO}`,
+					'\n',
+					`${'ENTRIES'.magenta}\t\t\t: ${JSON.stringify([...ENTRIES])}`,
+					`${'ENTRY_FREQUENCIES'.magenta}\t: ${JSON.stringify([...ENTRY_FREQUENCIES])}`,
+					'\n',
+					`${'ADDITIONAL_ENTRIES'.magenta}\t: ${JSON.stringify([...ADDITIONAL_ENTRIES])}`,
+					`${'ADDITIONAL_ENTRIES_FREQ'.magenta}\t: ${JSON.stringify([...ADDITIONAL_ENTRIES_FREQUENCIES])}`,
+					'\n',
+					`${'GET_ORDER'.magenta}\t\t: ${JSON.stringify(GET_ORDER)}`,
+					`${'ENTRIES_SORTED_BY_FREQ'.magenta}\t: ${JSON.stringify([...ENTRIES_SORTED_BY_FREQ])}`,
+					`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
+				];
+				UnitTestLogger.info(message.join('\n'));
+				throw e;
+			}
+		});
+
+		it('should evict least recently used item when all items have same frequency', () => {
+			const CAPACITY = number.randomInt(1, 1001);
+			const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
+
+			const ENTRIES = new Map(range(0, CAPACITY).map((num) => [String(num), num]));
+			const ADDITIONAL_ENTRIES = new Map(range(CAPACITY, CAPACITY + ADDITIONAL_ENTRIES_NO).map((num) => [String(num), num]));
+			const EVICTED_KEYS = new Array<string>();
+
+			try {
+				const lfu = new LFUEvictionPolicy<string, number>(CAPACITY);
+				lfu.setDeleter((key) => EVICTED_KEYS.push(key));
+
+				const context: SetOperationContext = { totalEntriesNo: 0 };
+				for (const [key, value] of ENTRIES) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context);
+					context.totalEntriesNo += 1;
+				}
+				expect(lfu.size).to.be.eq(CAPACITY);
+				expect(context.totalEntriesNo).to.be.eq(CAPACITY);
+
+				for (const [key, value] of ADDITIONAL_ENTRIES) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context);
+				}
+
+				const entriesIter = ENTRIES.keys();
+
+				expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES_NO);
+				for (const key of EVICTED_KEYS) {
+					expect(key).to.be.eq(entriesIter.next().value);
+				}
+			} catch (e) {
+				const message = [
+					'Test Context:',
+					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
+					`${'ADDITIONAL_ENTRIES_NO'.magenta}\t: ${ADDITIONAL_ENTRIES_NO}`,
+					`${'ENTRIES'.magenta}\t\t\t: ${JSON.stringify([...ENTRIES])}`,
+					`${'ADDITIONAL_ENTRIES'.magenta}\t: ${JSON.stringify([...ADDITIONAL_ENTRIES])}`,
+					`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
+				];
+				UnitTestLogger.info(message.join('\n'));
+				throw e;
+			}
+		});
+	});
+
+	describe(`${LFUEvictionPolicy.prototype.onDelete.name.magenta} & ${LFUEvictionPolicy.prototype.onClear.name.magenta} spec`, () => {
+		it("removes entry from internal frequency list when it get's deleted from cache", () => {
+			const CAPACITY = number.randomInt(1, 1001);
+			const KEYS_TO_DELETE_NO = number.randomInt(1, CAPACITY);
+
+			const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
+			const ENTRY_FREQUENCIES = new Map<string, number>(Array.from(ENTRIES.keys()).map((key) => [key, number.randomInt(0, CAPACITY)]));
+
+			const GET_ORDER = array.shuffle([...ENTRY_FREQUENCIES.keys()].map((k) => array.filledWith(ENTRY_FREQUENCIES.get(k)!, k)).flat());
+			const KEYS_TO_DELETE = array.filledWith(KEYS_TO_DELETE_NO, () => String(number.randomInt(0, CAPACITY - 1)), { noDuplicates: true });
+
+			const EVICTED_KEYS = new Array<string>();
+
+			try {
+				// setup policy
+				const lfu = new LFUEvictionPolicy<string, number>(CAPACITY);
+				const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
+				lfu.setDeleter((key) => EVICTED_KEYS.push(key));
+
+				// add entries
+				const context: SetOperationContext = { totalEntriesNo: 0 };
+				for (const [key, value] of ENTRIES) {
+					// @ts-ignore
+					const entry: EvictableKeyNode<string, number> = { key, value };
+					lfu.onSet(key, entry, context);
+					lfuEntries.set(key, entry);
+					context.totalEntriesNo += 1;
+				}
+				expect(lfu.size).to.be.eq(CAPACITY);
+				expect(context.totalEntriesNo).to.be.eq(CAPACITY);
+
+				// simulate gets, to increase entries frequency
+				for (const key of GET_ORDER) {
+					const entry = lfuEntries.get(key);
+					if (entry == null) {
+						throw new Error(`Could not find entry for ${key.magenta}.`);
+					}
+
+					lfu.onGet(key, entry);
+				}
+
+				// remove some random keys
+				for (const key of KEYS_TO_DELETE) {
+					const entry = lfuEntries.get(key);
+					if (entry == null) {
+						throw new Error(`No entry found for ${key.magenta}.`);
+					}
+
+					lfu.onDelete(key, entry);
+				}
+
+				// assertions
+				expect(lfu.size).to.be.eq(CAPACITY - KEYS_TO_DELETE_NO);
+				expect(EVICTED_KEYS).to.be.ofSize(0);
+			} catch (e) {
+				const message = [
+					'Test Context:',
+					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
+					`${'KEYS_TO_DELETE_NO'.magenta}\t: ${KEYS_TO_DELETE_NO}`,
+					'\n',
+					`${'ENTRIES'.magenta}\t\t\t: ${JSON.stringify([...ENTRIES])}`,
+					`${'ENTRY_FREQUENCIES'.magenta}\t: ${JSON.stringify([...ENTRY_FREQUENCIES])}`,
+					'\n',
+					`${'GET_ORDER'.magenta}\t\t: ${JSON.stringify(GET_ORDER)}`,
+					`${'KEYS_TO_DELETE'.magenta}\t\t: ${JSON.stringify(KEYS_TO_DELETE)}`,
+					`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
+				];
+				UnitTestLogger.info(message.join('\n'));
+				throw e;
+			}
+		});
+
+		it('clears the freq list', () => {
+			const CAPACITY = 1_00_000;
+			const HEAP_USED_DELTA = 10_000;
+
+			const lfu = new LFUEvictionPolicy(CAPACITY);
+			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>(); // simulates cache
+
+			gc();
+			const memUsageBeforeInsert = { ...process.memoryUsage() };
 
 			const context: SetOperationContext = { totalEntriesNo: 0 };
-
-			for (const [key, value] of candidates) {
+			for (let i = 0; i < CAPACITY; i++) {
 				// @ts-ignore
-				const entry: EvictableKeyNode<string, number> = { key, value };
-				lfu.onSet(key, entry, context);
+				const entry: EvictableKeyNode<string, number> = { key: String(i), value: i };
+				lfu.onSet(entry.key, entry, context);
+				lfuEntries.set(entry.key, entry);
 				context.totalEntriesNo += 1;
-
-				expect(lfu.size).to.be.eq(context.totalEntriesNo); // stacks up entries
 			}
+			expect(lfu.size).to.be.eq(CAPACITY);
 
-			// @ts-ignore
-			const entry: EvictableKeyNode<string, number> = { key: String(capacity + 1), value: capacity + 1 };
-			let deleted: Nullable<string> = null;
-			lfu.setDeleter((key) => {
-				deleted = key;
-			});
+			lfu.onClear();
+			lfuEntries.clear();
 
-			lfu.onSet(entry.key, entry, context);
+			gc();
+			const memUsageAfterClear = { ...process.memoryUsage() };
 
-			expect(deleted).to.not.be.eq(null); // our deleter has been called...
-			expect(deleted).to.not.be.eq(entry.key); // ...on some random entry (all of them have 0 frequency)...
-			expect(lfu.size).to.be.eq(context.totalEntriesNo); // ...and number of req nodes remained the same
-		} catch (e) {
-			UnitTestLogger.info(`Cache capacity: ${String(capacity).magenta}.`); // so we can replicate it
-			throw e;
-		}
-	});
-
-	it('should evict least frequently used item', () => {
-		throw new Error('NOT IMPLEMENTED');
-	});
-
-	it(`should evict when ${'cache capacity is 1'.magenta}`, () => {
-		throw new Error('NOT IMPLEMENTED');
-	});
-
-	it(`should evict least recently used item when ${'all items have same frequency'.magenta}`, () => {
-		throw new Error('NOT IMPLEMENTED');
-	});
-
-	it(`should evict least recently used item when ${'least frequency is shared by multiple entries'.magenta}`, () => {
-		throw new Error('NOT IMPLEMENTED');
+			expect(memUsageAfterClear.heapUsed).to.be.within(memUsageBeforeInsert.heapUsed - HEAP_USED_DELTA, memUsageBeforeInsert.heapUsed + HEAP_USED_DELTA);
+			expect(memUsageAfterClear.external).to.be.at.most(memUsageBeforeInsert.external);
+			expect(memUsageAfterClear.arrayBuffers).to.be.at.most(memUsageBeforeInsert.arrayBuffers);
+		});
 	});
 });

@@ -60,9 +60,12 @@ function unique<T>(array: Array<T>): Array<T> {
  * @template T	Elements type.
  *
  * @param arr	Initial array.
+ *
+ * @returns 	Same array, but shuffled.
  */
-function shuffle<T>(arr: T[]): void {
+function shuffle<T>(arr: T[]): T[] {
 	arr.sort(() => Math.random() - 0.5);
+	return arr;
 }
 
 interface FilledWithOptions {

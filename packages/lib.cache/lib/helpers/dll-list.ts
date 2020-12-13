@@ -34,7 +34,12 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 
 	public tail: Nullable<Node>;
 
-	constructor(startNode: Nullable<Node> = null) {
+	public constructor(startNode: Nullable<Node> = null) {
+		if (startNode != null) {
+			startNode[NEXT_SYM] = null;
+			startNode[PREV_SYM] = null;
+		}
+
 		this.head = startNode;
 		this.tail = startNode;
 	}

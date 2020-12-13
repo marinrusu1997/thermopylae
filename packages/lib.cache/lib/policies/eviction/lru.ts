@@ -29,11 +29,17 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		this.doublyLinkedList = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.doublyLinkedList.moveToFront(entry);
 		return EntryValidity.VALID;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// code bellow might throw, so on next call total entries might be higher, therefore using >=
 		if (context.totalEntriesNo >= this.capacity) {
@@ -45,11 +51,17 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 		this.doublyLinkedList.addToFront(entry);
 	}
 
-	public onUpdate(): void {
+	/**
+	 * @inheritDoc
+	 */
+	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
 		return undefined;
 	}
 
-	public onDelete(key: Key): void {
+	/**
+	 * @inheritDoc
+	 */
+	public onDelete(key: Key, _entry?: CacheEntry<Value>): void {
 		let temp = this.doublyLinkedList.head;
 		while (temp !== null) {
 			if (temp.key === key) {
@@ -57,16 +69,26 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 			}
 			temp = temp[NEXT_SYM];
 		}
+		return undefined;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
 		this.doublyLinkedList.clear();
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public get requiresEntryOnDeletion(): boolean {
 		return false;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.delete = deleter;
 	}

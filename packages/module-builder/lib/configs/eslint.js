@@ -83,6 +83,9 @@ module.exports = {
 		"node/no-extraneous-import": "error",
 
 		"mocha/no-setup-in-describe": "off",
+		"mocha/no-exclusive-tests": "error",
+		"mocha/no-pending-tests": "error",
+		"mocha/no-skipped-tests": "error",
 
 		"security/detect-object-injection": "off"
 	},

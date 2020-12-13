@@ -4,7 +4,7 @@ import { createException, ErrorCodes } from '../../error';
 import { CachePolicy, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheEntry } from '../../contracts/commons';
 
-class NoEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
+class NoneEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	constructor(capacity: Threshold) {
@@ -42,4 +42,4 @@ class NoEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	}
 }
 
-export { NoEvictionPolicy };
+export { NoneEvictionPolicy };
