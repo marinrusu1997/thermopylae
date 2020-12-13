@@ -52,6 +52,40 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		}
 	});
 
+	it('should add nodes to back', () => {
+		const dll = new DoublyLinkedList<Node>();
+		const nodes = new Array<Node>();
+
+		// add to back
+		for (let i = 0; i < 10; i++) {
+			const node = new Node(i);
+
+			dll.addToBack(node);
+			nodes.push(node);
+
+			assertListContainsAllNodes(dll, nodes);
+		}
+
+		// remove to ensure it works ok
+		while (!dll.empty() && nodes.length) {
+			const removed = array.randomElement(nodes);
+			dll.removeNode(removed);
+			array.remove(nodes, (node) => node === removed);
+
+			assertListContainsAllNodes(dll, nodes);
+		}
+
+		// add to back again
+		for (let i = 0; i < 10; i++) {
+			const node = new Node(i);
+
+			dll.addToBack(node);
+			nodes.push(node);
+
+			assertListContainsAllNodes(dll, nodes);
+		}
+	});
+
 	it('should append after specified node', () => {
 		const dll = new DoublyLinkedList<Node>();
 		dll.appendAfter(null!, new Node<number>(0)); // will insert at the beginning

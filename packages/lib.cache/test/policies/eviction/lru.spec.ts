@@ -8,7 +8,7 @@ import { EvictableKeyNode, LRUEvictionPolicy } from '../../../lib/policies/evict
 
 describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 	it('updates least recently used items on each get operation', () => {
-		const CAPACITY = number.randomInt(1, 51);
+		const CAPACITY = number.randomInt(1, 21);
 
 		try {
 			const policy = new LRUEvictionPolicy<string, number>(CAPACITY);
@@ -74,7 +74,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 	});
 
 	it("removes key from internal tracking structure when it's deleted from cache", () => {
-		const CAPACITY = number.randomInt(1, 101);
+		const CAPACITY = number.randomInt(1, 17);
 
 		try {
 			const policy = new LRUEvictionPolicy<string, number>(CAPACITY);

@@ -58,16 +58,28 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 
 		if (this.head !== null) {
 			this.head[PREV_SYM] = node;
-		}
-		this.head = node;
-
-		if (this.tail === null) {
+		} else {
 			this.tail = node;
 		}
+
+		this.head = node;
+	}
+
+	public addToBack(node: Node): void {
+		node[NEXT_SYM] = null;
+		node[PREV_SYM] = this.tail;
+
+		if (this.tail !== null) {
+			this.tail[NEXT_SYM] = node;
+		} else {
+			this.head = node;
+		}
+
+		this.tail = node;
 	}
 
 	public appendAfter(prevNode: Node, newNode: Node): void {
-		if (this.empty()) {
+		if (this.head === null) {
 			this.head = newNode;
 			this.tail = newNode;
 
@@ -116,7 +128,7 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 	}
 
 	public empty(): boolean {
-		return this.head == null && this.tail == null;
+		return this.head == null;
 	}
 
 	public clear(): void {

@@ -7,9 +7,12 @@ import colors from 'colors';
 import range from 'lodash.range';
 // @ts-ignore
 import gc from 'js-gc';
-import { EvictableKeyNode, LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
+import { LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
 import { SetOperationContext } from '../../../lib/contracts/cache-policy';
 import { ReverseMap } from '../../utils';
+import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
+
+// @fixme this spec can be ran for all descendents of LFU
 
 describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
 	describe(`${LFUEvictionPolicy.prototype.onGet.name.magenta} & ${LFUEvictionPolicy.prototype.onSet.name.magenta} spec`, () => {
@@ -53,7 +56,7 @@ describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
 		});
 
 		it('should evict least frequently used item', () => {
-			const CAPACITY = number.randomInt(1, 101);
+			const CAPACITY = number.randomInt(1, 21);
 			const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
 
 			const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
@@ -129,7 +132,7 @@ describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
 		});
 
 		it('should evict least recently used item when all items have same frequency', () => {
-			const CAPACITY = number.randomInt(1, 1001);
+			const CAPACITY = number.randomInt(1, 17);
 			const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
 
 			const ENTRIES = new Map(range(0, CAPACITY).map((num) => [String(num), num]));
@@ -179,7 +182,7 @@ describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
 
 	describe(`${LFUEvictionPolicy.prototype.onDelete.name.magenta} & ${LFUEvictionPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it("removes entry from internal frequency list when it get's deleted from cache", () => {
-			const CAPACITY = number.randomInt(1, 1001);
+			const CAPACITY = number.randomInt(1, 15);
 			const KEYS_TO_DELETE_NO = number.randomInt(1, CAPACITY);
 
 			const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
@@ -251,7 +254,7 @@ describe(`${colors.magenta(LFUEvictionPolicy.name)} spec`, () => {
 
 		it('clears the freq list', () => {
 			const CAPACITY = 1_00_000;
-			const HEAP_USED_DELTA = 10_000;
+			const HEAP_USED_DELTA = 100_000;
 
 			const lfu = new LFUEvictionPolicy(CAPACITY);
 			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>(); // simulates cache

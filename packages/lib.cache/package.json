@@ -34,7 +34,8 @@
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.heap": "0",
         "@thermopylae/lib.pool": "0",
-        "@thermopylae/lib.utils": "0"
+        "@thermopylae/lib.utils": "0",
+        "object-sizeof": "1"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
