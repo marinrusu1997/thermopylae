@@ -144,7 +144,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 
 	it('should clear all nodes from list', () => {
 		const dll = new DoublyLinkedList<Node>();
-		const DELTA = 50_000;
+		const DELTA = 100_000;
 
 		gc();
 		const memUsageBeforeInsert = { ...process.memoryUsage() };

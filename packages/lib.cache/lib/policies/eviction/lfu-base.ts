@@ -80,9 +80,9 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 * @inheritDoc
 	 */
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
-		const newFrequency = this.computeEntryFrequency(entry, entry[FREQ_PARENT_ITEM_SYM].frequency);
+		const newFrequency = this.computeEntryFrequency(entry, BaseLFUEvictionPolicy.frequency(entry));
 
-		if (newFrequency === entry[FREQ_PARENT_ITEM_SYM].frequency) {
+		if (newFrequency === BaseLFUEvictionPolicy.frequency(entry)) {
 			// this will prevent scenario when `list` contains a single entry, so we remove it,
 			// then try to find a freq parent node, but we get the same we removed earlier,
 			// and frequency list remains corrupted while entry node is leaked
@@ -106,8 +106,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}
 
-		const frequency = this.computeEntryFrequency(entry, -1); // this is a hack, as concrete policies will increment it by 1
-		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, frequency);
+		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, 0);
 
 		entry.key = key;
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
@@ -146,6 +145,15 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 */
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.delete = deleter;
+	}
+
+	/**
+	 * Get frequency of the entry.
+	 *
+	 * @param entry		Cache entry.
+	 */
+	public static frequency<K, V>(entry: EvictableKeyNode<K, V>): number {
+		return entry[FREQ_PARENT_ITEM_SYM].frequency;
 	}
 
 	/**

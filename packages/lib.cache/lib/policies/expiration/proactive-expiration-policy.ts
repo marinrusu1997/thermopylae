@@ -16,7 +16,7 @@ interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCac
 	[EXPIRES_AT_SYM]: UnixTimestamp;
 }
 
-class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpirationPolicy<Key, Value> {
+class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpirationPolicy<Key, Value> {
 	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
 
 	private cleanUpInterval: CleanUpInterval | null;
@@ -185,4 +185,4 @@ class AutoExpirationPolicy<Key = string, Value = any> extends AbstractExpiration
 	};
 }
 
-export { AutoExpirationPolicy, ExpirableCacheKeyEntry };
+export { ProactiveExpirationPolicy, ExpirableCacheKeyEntry };

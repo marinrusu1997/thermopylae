@@ -1,4 +1,4 @@
 export { NoExpirationPolicy } from './no-expiration-policy';
-export { OnDemandExpirationPolicy } from './on-demand-expiration-policy';
-export { AutoExpirationPolicy } from './auto-expiration-policy';
+export { ReactiveExpirationPolicy } from './reactive-expiration-policy';
+export { ProactiveExpirationPolicy } from './proactive-expiration-policy';
 export { IterativeExpirationPolicy, QueryCollectionSize, NextCacheKey, IterativeExpirationPolicyConfig } from './iterative-expiration-policy';
