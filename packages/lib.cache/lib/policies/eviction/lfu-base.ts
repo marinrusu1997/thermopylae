@@ -1,4 +1,5 @@
 import { ErrorCodes, Nullable, Threshold } from '@thermopylae/core.declarations';
+import { array } from '@thermopylae/lib.utils';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
@@ -36,7 +37,7 @@ interface LFUEvictionPolicyOptions {
  * Base class for LFU policies.
  */
 abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
-	protected readonly freqList: DoublyLinkedList<FreqListNode<Key, Value>>;
+	private readonly freqList: DoublyLinkedList<FreqListNode<Key, Value>>;
 
 	private readonly config: LFUEvictionPolicyOptions;
 
@@ -80,8 +81,16 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 */
 	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		const newFrequency = this.computeEntryFrequency(entry, entry[FREQ_PARENT_ITEM_SYM].frequency);
-		const frequencyBucket = this.findFrequencyBucket(entry[FREQ_PARENT_ITEM_SYM], newFrequency);
 
+		if (newFrequency === entry[FREQ_PARENT_ITEM_SYM].frequency) {
+			// this will prevent scenario when `list` contains a single entry, so we remove it,
+			// then try to find a freq parent node, but we get the same we removed earlier,
+			// and frequency list remains corrupted while entry node is leaked
+			return EntryValidity.VALID;
+		}
+
+		/* WARNING! Do not reorder these 3 lines ! */
+		const frequencyBucket = this.findFrequencyBucket(entry[FREQ_PARENT_ITEM_SYM], newFrequency);
 		this.removeEntryFromFrequencyBucket(entry[FREQ_PARENT_ITEM_SYM], entry);
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
 
@@ -97,8 +106,8 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
 		}
 
-		const newFrequency = this.computeEntryFrequency(entry, -1); // this is a hack, as concrete policies will increment it by 1
-		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, newFrequency);
+		const frequency = this.computeEntryFrequency(entry, -1); // this is a hack, as concrete policies will increment it by 1
+		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, frequency);
 
 		entry.key = key;
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
@@ -140,6 +149,28 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	}
 
 	/**
+	 * Returns string representation of the frequency list.
+	 *
+	 * @param colors	Colors used for bucket formatting.
+	 */
+	public toString(colors: Array<(str: string) => string>): string {
+		const str = new Array<string>();
+
+		for (const freqListNode of this.freqList) {
+			const freqListNodeTyped = freqListNode as FreqListNode<Key, Value>;
+			const keys = new Array<Key>();
+
+			for (const node of freqListNodeTyped.list) {
+				keys.push((node as EvictableKeyNode<Key, Value>).key);
+			}
+
+			str.push(array.randomElement(colors)(`${String(freqListNodeTyped.frequency)} -> [ ${keys.join()} ]`));
+		}
+
+		return `[ ${str.join(', ')} ]`;
+	}
+
+	/**
 	 * Delegate called before entry needs to be inserted in a frequency bucket. <br/>
 	 * Entry will be inserted in the bucket that has frequency equal to result returned by this function.
 	 *
@@ -149,6 +180,13 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 * @returns     New frequency of the entry.
 	 */
 	protected abstract computeEntryFrequency(entry: EvictableKeyNode<Key, Value>, entryScore: number): number;
+
+	/**
+	 * Delegate called after item has been evicted from cache.
+	 *
+	 * @param from		Frequency list node from where item has been removed.
+	 */
+	protected abstract onEvict(from: FreqListNode<Key, Value>): void;
 
 	private findFrequencyBucket(startingFrom: Nullable<FreqListNode<Key, Value>>, needleFrequency: number): FreqListNode<Key, Value> {
 		if (startingFrom != null) {
@@ -223,6 +261,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 			// remove from tail of list with same frequency
 			this.delete(itemsList.tail.key);
 			itemsList.removeNode(itemsList.tail);
+			this.onEvict(this.freqList.head!);
 		}
 
 		if (!itemsList.tail) {
@@ -244,4 +283,4 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	}
 }
 
-export { BaseLFUEvictionPolicy, EvictableKeyNode };
+export { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode };

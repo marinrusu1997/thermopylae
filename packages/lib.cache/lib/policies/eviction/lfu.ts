@@ -10,6 +10,13 @@ class LFUEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 	protected computeEntryFrequency(_entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
 		return entryScore + 1;
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected onEvict(): void {
+		return undefined; // eslint
+	}
 }
 
 export { LFUEvictionPolicy };

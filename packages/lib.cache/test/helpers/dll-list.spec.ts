@@ -144,6 +144,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 
 	it('should clear all nodes from list', () => {
 		const dll = new DoublyLinkedList<Node>();
+		const DELTA = 50_000;
 
 		gc();
 		const memUsageBeforeInsert = { ...process.memoryUsage() };
@@ -157,8 +158,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		const memUsageAfterClear = { ...process.memoryUsage() };
 
 		expect(memUsageAfterClear.heapTotal).to.be.at.most(memUsageBeforeInsert.heapTotal);
-		expect(memUsageAfterClear.heapUsed).to.be.at.most(memUsageBeforeInsert.heapUsed);
-		expect(memUsageAfterClear.external).to.be.at.most(memUsageBeforeInsert.external);
+		expect(memUsageAfterClear.heapUsed).to.be.within(memUsageBeforeInsert.heapUsed - DELTA, memUsageBeforeInsert.heapUsed + DELTA);
+		expect(memUsageAfterClear.external).to.be.within(memUsageBeforeInsert.external - DELTA, memUsageBeforeInsert.external + DELTA);
 		expect(memUsageAfterClear.arrayBuffers).to.be.at.most(memUsageBeforeInsert.arrayBuffers);
 	});
 });

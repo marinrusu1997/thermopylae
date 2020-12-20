@@ -1,4 +1,4 @@
-import { GDSFEvictionPolicy } from './gdsf';
+import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
 import { Deleter } from '../../contracts/cache-policy';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
@@ -6,12 +6,29 @@ import { Deleter } from '../../contracts/cache-policy';
 /**
  * [Least Frequently Used with Dynamic Aging](https://en.wikipedia.org/wiki/Cache_replacement_policies#LFU_with_dynamic_aging_(LFUDA) "LFU with dynamic aging (LFUDA)") eviction policy.
  */
-class LFUDAEvictionPolicy<Key, Value> extends GDSFEvictionPolicy<Key, Value> {
+class LFUDAEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
+	private cacheAge: number;
+
 	/**
 	 * @inheritDoc
 	 */
-	public constructor(capacity: number, bucketEvictCount?: number, deleter?: Deleter<Key>) {
-		super(capacity, bucketEvictCount, deleter, () => 1);
+	public constructor(capacity: number, bucketEvictCount: number, deleter: Deleter<Key>) {
+		super(capacity, bucketEvictCount, deleter);
+		this.cacheAge = 0;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected computeEntryFrequency(_entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
+		return entryScore + this.cacheAge + 1;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected onEvict(from: FreqListNode<Key, Value>): void {
+		this.cacheAge = from.frequency;
 	}
 }
 

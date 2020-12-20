@@ -4,7 +4,6 @@ import { Nullable } from '@thermopylae/core.declarations';
 const PREV_SYM = Symbol.for('PREV_SYM');
 const NEXT_SYM = Symbol.for('NEXT_SYM');
 
-// eslint-disable-next-line max-classes-per-file
 interface DoublyLinkedListNode<Node> {
 	[PREV_SYM]: Nullable<Node>;
 	[NEXT_SYM]: Nullable<Node>;
