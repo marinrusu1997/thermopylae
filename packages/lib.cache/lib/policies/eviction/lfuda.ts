@@ -12,9 +12,16 @@ class LFUDAEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> 
 	/**
 	 * @inheritDoc
 	 */
-	public constructor(capacity: number, bucketEvictCount?: number, deleter?: Deleter<Key>) {
-		super(capacity, bucketEvictCount, deleter);
+	public constructor(capacity: number, deleter?: Deleter<Key>) {
+		super(capacity, deleter);
 		this.cacheAge = 0;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected get initialFrequency(): number {
+		return this.cacheAge;
 	}
 
 	/**

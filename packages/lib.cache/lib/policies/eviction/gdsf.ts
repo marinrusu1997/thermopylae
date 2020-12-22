@@ -25,10 +25,20 @@ class GDSFEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 	/**
 	 * @inheritDoc
 	 */
-	public constructor(capacity: number, bucketEvictCount?: number, deleter?: Deleter<Key>, sizeOfInBytes?: SizeOf<Value>) {
-		super(capacity, bucketEvictCount, deleter);
+	public constructor(capacity: number, deleter?: Deleter<Key>, sizeOfInBytes?: SizeOf<Value>) {
+		super(capacity, deleter);
 		this.sizeOf = sizeOfInBytes || sizeof;
 		this.cacheAge = 0;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	protected get initialFrequency(): number {
+		// this is to preserver assumption that cacheAge is always less that or equal to lowest list frequency,
+		// as if we take into account item size, then it's initial freq might go bellow cacheAge,
+		// @fixme to be correct, we can take into account entry size, but we need to update cacheAge if it goes bellow it
+		return this.cacheAge;
 	}
 
 	/**

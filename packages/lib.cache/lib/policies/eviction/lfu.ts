@@ -7,6 +7,13 @@ class LFUEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 	/**
 	 * @inheritDoc
 	 */
+	protected get initialFrequency(): number {
+		return 0;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	protected computeEntryFrequency(_entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
 		return entryScore + 1;
 	}

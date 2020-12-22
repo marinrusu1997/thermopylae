@@ -1,4 +1,4 @@
-import { ErrorCodes, Nullable, Threshold } from '@thermopylae/core.declarations';
+import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
 import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
@@ -26,41 +26,26 @@ interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key
 }
 
 /**
- * @private		Should not appear in public documentation.
- */
-interface LFUEvictionPolicyOptions {
-	capacity: Threshold;
-	bucketEvictCount: number;
-}
-
-/**
  * Base class for LFU policies.
  */
 abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	private readonly freqList: DoublyLinkedList<FreqListNode<Key, Value>>;
 
-	private readonly config: LFUEvictionPolicyOptions;
+	private readonly capacity: number;
 
 	private delete: Deleter<Key>;
 
 	/**
 	 * @param capacity				{@link Cache} maximum capacity.
-	 *
-	 * @param bucketEvictCount		How many items to evict when {@link Cache} capacity is met. <br/>
-	 *								Default value is 1.
-	 *
 	 * @param deleter				Function which is deletes entry from {@link Cache} by key. <br/>
 	 * 								Default will be deleter set by {@link Cache} instance.
 	 */
-	public constructor(capacity: number, bucketEvictCount?: number, deleter?: Deleter<Key>) {
+	public constructor(capacity: number, deleter?: Deleter<Key>) {
 		if (capacity <= 0) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
 		}
 
-		this.config = {
-			capacity,
-			bucketEvictCount: bucketEvictCount || 1
-		};
+		this.capacity = capacity;
 		this.delete = deleter!;
 		this.freqList = new DoublyLinkedList();
 	}
@@ -102,11 +87,11 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// Check for backend overflow
-		if (context.totalEntriesNo >= this.config.capacity) {
-			this.evict(this.config.bucketEvictCount); // FIXME adapt to on delete hook
+		if (context.totalEntriesNo >= this.capacity) {
+			this.evict(); // @fixme adapt to on delete hook
 		}
 
-		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, 0);
+		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, this.initialFrequency);
 
 		entry.key = key;
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
@@ -177,6 +162,11 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 
 		return `[ ${str.join(', ')} ]`;
 	}
+
+	/**
+	 * @returns 	Entry initial starting frequency.
+	 */
+	protected abstract get initialFrequency(): number;
 
 	/**
 	 * Delegate called before entry needs to be inserted in a frequency bucket. <br/>
@@ -262,15 +252,13 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 		return nodeWithNeedleFrequency;
 	}
 
-	private evict(count: number): void {
+	private evict(): void {
 		const itemsList = this.freqList.head!.list; // evict is called when we have at least 1 entry
 
-		while (count-- && itemsList.tail) {
-			// remove from tail of list with same frequency
-			this.delete(itemsList.tail.key);
-			itemsList.removeNode(itemsList.tail);
-			this.onEvict(this.freqList.head!);
-		}
+		// remove from tail of list with same frequency
+		this.delete(itemsList.tail!.key);
+		itemsList.removeNode(itemsList.tail!);
+		this.onEvict(this.freqList.head!);
 
 		if (!itemsList.tail) {
 			this.freqList.removeNode(this.freqList.head!);
