@@ -36,7 +36,7 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 		this.cleanUpInterval = null;
 	}
 
-	public onGet(): EntryValidity {
+	public onHit(): EntryValidity {
 		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return EntryValidity.VALID;
 	}

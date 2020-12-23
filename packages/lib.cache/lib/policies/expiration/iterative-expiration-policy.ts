@@ -99,10 +99,10 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return [currentIteration, cacheKey];
 	}
 
-	private static fillWithDefaults<Key>(config: IterativeExpirationPolicyConfig<Key>): Config<Key> {
+	private static fillWithDefaults<K>(config: IterativeExpirationPolicyConfig<K>): Config<K> {
 		config.checkInterval = (config.checkInterval || 30) * 1000;
 		config.iterateThreshold = config.iterateThreshold || 1000;
-		return config as Config<Key>;
+		return config as Config<K>;
 	}
 }
 

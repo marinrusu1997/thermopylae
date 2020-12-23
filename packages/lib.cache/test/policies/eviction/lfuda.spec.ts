@@ -63,7 +63,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				lfu.onGet(key, entry);
+				lfu.onHit(key, entry);
 			}
 
 			/* Add additional entries */
@@ -86,7 +86,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 				let freq = 4;
 				while (freq--) {
-					lfu.onGet(key, entry);
+					lfu.onHit(key, entry);
 				}
 				expect(BaseLFUEvictionPolicy.frequency(entry)).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}

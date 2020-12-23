@@ -2,7 +2,7 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
@@ -11,13 +11,26 @@ interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
-abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, Value> {
+abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	protected delete!: Deleter<Key>;
 
-	public onGet(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
+	/**
+	 * @inheritDoc
+	 */
+	public onHit(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
 		return this.doRemovalIfExpired(key, entry[EXPIRES_AT_SYM]);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(_key: Key): void {
+		return undefined; // eslint
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
 			return;
@@ -25,6 +38,9 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
 			delete entry[EXPIRES_AT_SYM];
@@ -33,14 +49,23 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CachePolicy<Key, 
 		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onDelete(_key: Key, _entry?: ExpirableCacheEntry<Value>): void {
 		return undefined; // just do nothing
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
 		return undefined; // just do nothing
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.delete = deleter;
 	}

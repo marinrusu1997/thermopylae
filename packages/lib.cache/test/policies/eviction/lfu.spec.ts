@@ -28,7 +28,7 @@ function lfuFactory<Key, Value>(
 describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 	for (const LFU_IMPL of LFU_IMPLS) {
 		describe(`${LFU_IMPL.name.magenta} spec`, () => {
-			describe(`${LFU_IMPL.prototype.onGet.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
+			describe(`${LFU_IMPL.prototype.onHit.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
 				it('should not evict entries until capacity cap is met', () => {
 					const CAPACITY = number.randomInt(1, 11);
 					try {
@@ -94,7 +94,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							const entry: EvictableKeyNode<string, number> = { key, value };
 							lfu.onSet(key, entry, context);
 
-							// console.log(lfu.toString(BUCKET_FORMATTERS));
+							// console.log(lfu.toFormattedString(BUCKET_FORMATTERS));
 
 							lfuEntries.set(key, entry);
 							context.totalEntriesNo += 1;
@@ -110,9 +110,9 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							lfu.onGet(key, entry);
+							lfu.onHit(key, entry);
 
-							// console.log(lfu.toString(BUCKET_FORMATTERS));
+							// console.log(lfu.toFormattedString(BUCKET_FORMATTERS));
 						}
 
 						// console.log('\n');
@@ -122,12 +122,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							const entry: EvictableKeyNode<string, number> = { key, value };
 							lfu.onSet(key, entry, context); // we don't increment context, as we know entries are evicted and it's value remains the same
 
-							// console.log(lfu.toString(BUCKET_FORMATTERS));
+							// console.log(lfu.toFormattedString(BUCKET_FORMATTERS));
 							// console.log(lfu.size);
 
 							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
 							for (let i = 0; i < spinUpFrequency; i++) {
-								lfu.onGet(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
+								lfu.onHit(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
 							}
 						}
 
@@ -250,7 +250,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							lfu.onGet(key, entry);
+							lfu.onHit(key, entry);
 						}
 
 						// remove some random keys

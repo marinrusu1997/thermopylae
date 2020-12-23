@@ -42,7 +42,7 @@ declare const enum EntryValidity {
  * @template Key 	Type of the key.
  * @template Value	Type of the value.
  */
-declare interface CachePolicy<Key, Value> {
+declare interface CacheReplacementPolicy<Key, Value> {
 	/**
 	 * Hook executed after `entry` for `key` was retrieved.
 	 *
@@ -51,7 +51,14 @@ declare interface CachePolicy<Key, Value> {
 	 *
 	 * @returns		Whether entry is still valid.
 	 */
-	onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
+	onHit(key: Key, entry: CacheEntry<Value>): EntryValidity;
+
+	/**
+	 * Hook executed after `key` was not found in {@link Cache};
+	 *
+	 * @param key		Name of the key.
+	 */
+	onMiss(key: Key): void;
 
 	/**
 	 * Hook executed after `entry` for `key` has been set.
@@ -91,9 +98,9 @@ declare interface CachePolicy<Key, Value> {
 
 	/**
 	 * Flag which indicates whether policy needs {@link CacheEntry} with metadata
-	 * when {@link CachePolicy.onDelete} is invoked.
+	 * when {@link CacheReplacementPolicy.onDelete} is invoked.
 	 */
 	readonly requiresEntryOnDeletion: boolean;
 }
 
-export { CachePolicy, Deleter, SetOperationContext, EntryValidity };
+export { CacheReplacementPolicy, Deleter, SetOperationContext, EntryValidity };

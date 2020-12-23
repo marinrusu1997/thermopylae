@@ -1,7 +1,7 @@
 import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
-import { CachePolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { createException } from '../../error';
 
@@ -26,9 +26,20 @@ interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key
 }
 
 /**
+ * Formats a string into displayable output.
+ *
+ * @param str	Input string.
+ *
+ * @returns		Formatted string.
+ */
+type StringFormatter = (str: string) => string;
+
+/**
  * Base class for LFU policies.
  */
-abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
+abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
+	private static readonly FORMAT_COLORS: Array<StringFormatter> = [(str) => str];
+
 	private readonly freqList: DoublyLinkedList<FreqListNode<Key, Value>>;
 
 	private readonly capacity: number;
@@ -64,7 +75,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		const newFrequency = this.computeEntryFrequency(entry, BaseLFUEvictionPolicy.frequency(entry));
 
 		if (newFrequency === BaseLFUEvictionPolicy.frequency(entry)) {
@@ -80,6 +91,13 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
 
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(_key: Key): void {
+		return undefined; // eslint
 	}
 
 	/**
@@ -146,7 +164,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	 *
 	 * @param colors	Colors used for bucket formatting.
 	 */
-	public toString(colors: Array<(str: string) => string>): string {
+	public toFormattedString(colors: Array<StringFormatter>): string {
 		const str = new Array<string>();
 
 		for (const freqListNode of this.freqList) {
@@ -161,6 +179,13 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 		}
 
 		return `[ ${str.join(', ')} ]`;
+	}
+
+	/**
+	 * Returns stringify-ed JSON representation.
+	 */
+	public toJSON(): string {
+		return this.toFormattedString(BaseLFUEvictionPolicy.FORMAT_COLORS);
 	}
 
 	/**
@@ -279,4 +304,4 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CachePolicy<Key, Val
 	}
 }
 
-export { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode };
+export { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode, StringFormatter };

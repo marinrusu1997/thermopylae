@@ -1,4 +1,4 @@
-import { CachePolicy, Deleter } from '../lib/contracts/cache-policy';
+import { CacheReplacementPolicy, Deleter } from '../lib/contracts/cache-policy';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	private readonly map: Map<V, K[]>;
@@ -52,7 +52,7 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	}
 }
 
-function generateExpirationPolicyDeleter<K, V>(policy: CachePolicy<K, V>, deleter: Deleter<K>): Deleter<K> {
+function generateExpirationPolicyDeleter<K, V>(policy: CacheReplacementPolicy<K, V>, deleter: Deleter<K>): Deleter<K> {
 	if (policy.requiresEntryOnDeletion) {
 		throw new Error("Can't generate deleter for policy which needs entry for delete hook");
 	}

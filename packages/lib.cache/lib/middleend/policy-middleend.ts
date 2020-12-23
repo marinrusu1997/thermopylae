@@ -1,18 +1,18 @@
 import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CachePolicy, EntryValidity, SetOperationContext } from '../contracts/cache-policy';
+import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../contracts/cache-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheStats, CacheEntry } from '../contracts/commons';
 
 class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	private readonly backend: CacheBackend<K, V>;
 
-	private readonly policies: Array<CachePolicy<K, V>>;
+	private readonly policies: Array<CacheReplacementPolicy<K, V>>;
 
 	protected readonly cacheStats: CacheStats;
 
-	constructor(backend: CacheBackend<K, V>, policies: Array<CachePolicy<K, V>>) {
+	constructor(backend: CacheBackend<K, V>, policies: Array<CacheReplacementPolicy<K, V>>) {
 		this.backend = backend;
 		this.policies = policies;
 		this.cacheStats = {
@@ -127,7 +127,7 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 
 		for (const policy of this.policies) {
 			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
-			if (policy.onGet(key, entry) === EntryValidity.NOT_VALID) {
+			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
 				return NOT_FOUND_VALUE;
 			}
 		}

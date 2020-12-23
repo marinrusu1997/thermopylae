@@ -58,7 +58,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				lfu.onGet(key, entry);
+				lfu.onHit(key, entry);
 			}
 
 			/* Add additional entries */
@@ -69,7 +69,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				lfuEntries.set(key, entry);
 
 				for (let i = 0; i < FREQ; i++) {
-					lfu.onGet(key, entry);
+					lfu.onHit(key, entry);
 				}
 			}
 			expect(lfu.size).to.be.eq(CAPACITY);

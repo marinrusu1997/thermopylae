@@ -1,6 +1,6 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM } from '../../helpers/dll-list';
-import { CachePolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/cache-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 
 /**
@@ -14,7 +14,7 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
 /**
  * [Least Recently Used](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU) "Least recently used (LRU)") eviction policy.
  */
-class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
+class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	private delete!: Deleter<Key>;
@@ -32,9 +32,16 @@ class LRUEvictionPolicy<Key, Value> implements CachePolicy<Key, Value> {
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.doublyLinkedList.moveToFront(entry);
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(_key: Key): void {
+		return undefined; // eslint
 	}
 
 	/**
