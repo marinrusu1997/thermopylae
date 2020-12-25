@@ -1,6 +1,6 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
-import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
-import { SetOperationContext } from '../../contracts/cache-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
+import { SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheKey } from '../../contracts/commons';
 
 type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;

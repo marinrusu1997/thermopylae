@@ -1,9 +1,10 @@
 import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/dll-list';
-import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/doubly-linked-list';
+import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { createException } from '../../error';
+import { LinkedList } from '../../contracts/linked-list';
 
 /**
  * @private		Should not appear in public documentation.
@@ -22,7 +23,7 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
  */
 interface FreqListNode<Key, Value> extends DoublyLinkedListNode<FreqListNode<Key, Value>> {
 	frequency: number;
-	list: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
+	cacheEntries: LinkedList<EvictableKeyNode<Key, Value>>;
 }
 
 /**
@@ -40,11 +41,11 @@ type StringFormatter = (str: string) => string;
 abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	private static readonly FORMAT_COLORS: Array<StringFormatter> = [(str) => str];
 
-	private readonly freqList: DoublyLinkedList<FreqListNode<Key, Value>>;
+	private readonly frequencies: LinkedList<FreqListNode<Key, Value>>;
 
-	private readonly capacity: number;
+	private readonly cacheCapacity: number;
 
-	private delete: Deleter<Key>;
+	private deleteFromCache: Deleter<Key>;
 
 	/**
 	 * @param capacity				{@link Cache} maximum capacity.
@@ -56,9 +57,9 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
 		}
 
-		this.capacity = capacity;
-		this.delete = deleter!;
-		this.freqList = new DoublyLinkedList();
+		this.cacheCapacity = capacity;
+		this.deleteFromCache = deleter!;
+		this.frequencies = new DoublyLinkedList<FreqListNode<Key, Value>>();
 	}
 
 	/**
@@ -66,8 +67,8 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	 */
 	public get size(): number {
 		let items = 0;
-		for (const freqListNode of this.freqList) {
-			items += (freqListNode as FreqListNode<Key, Value>).list.size;
+		for (const freqListNode of this.frequencies) {
+			items += (freqListNode as FreqListNode<Key, Value>).cacheEntries.size;
 		}
 		return items;
 	}
@@ -105,11 +106,11 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// Check for backend overflow
-		if (context.totalEntriesNo >= this.capacity) {
+		if (context.totalEntriesNo >= this.cacheCapacity) {
 			this.evict(); // @fixme adapt to on delete hook
 		}
 
-		const frequencyBucket = this.findFrequencyBucket(this.freqList.head, this.initialFrequency);
+		const frequencyBucket = this.findFrequencyBucket(this.frequencies.head, this.initialFrequency);
 
 		entry.key = key;
 		BaseLFUEvictionPolicy.addEntryToFrequencyBucket(frequencyBucket, entry);
@@ -133,7 +134,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	 * @inheritDoc
 	 */
 	public onClear(): void {
-		this.freqList.clear();
+		this.frequencies.clear();
 	}
 
 	/**
@@ -147,7 +148,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	 * @inheritDoc
 	 */
 	public setDeleter(deleter: Deleter<Key>): void {
-		this.delete = deleter;
+		this.deleteFromCache = deleter;
 	}
 
 	/**
@@ -167,11 +168,11 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	public toFormattedString(colors: Array<StringFormatter>): string {
 		const str = new Array<string>();
 
-		for (const freqListNode of this.freqList) {
+		for (const freqListNode of this.frequencies) {
 			const freqListNodeTyped = freqListNode as FreqListNode<Key, Value>;
 			const keys = new Array<Key>();
 
-			for (const node of freqListNodeTyped.list) {
+			for (const node of freqListNodeTyped.cacheEntries) {
 				keys.push((node as EvictableKeyNode<Key, Value>).key);
 			}
 
@@ -231,7 +232,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 					current = current[NEXT_SYM];
 				}
 
-				addTo = 'addToBack'; // we reached end...
+				addTo = 'push'; // we reached end...
 				appendSym = PREV_SYM; // ...or we go step back to add a new node
 			} else {
 				// we search backward until reaching the begin or needed freq
@@ -243,23 +244,23 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 					current = current[PREV_SYM];
 				}
 
-				addTo = 'addToFront'; // we reached begin...
+				addTo = 'unshift'; // we reached begin...
 				appendSym = NEXT_SYM; // ...or we go step forward to add a new node
 			}
 
 			const nodeWithNeedleFrequency: FreqListNode<Key, Value> = {
 				frequency: needleFrequency,
-				list: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
+				cacheEntries: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
 				[PREV_SYM]: null,
 				[NEXT_SYM]: null
 			};
 
 			if (current == null) {
 				// we reached either begin or end
-				this.freqList[addTo](nodeWithNeedleFrequency);
+				this.frequencies[addTo](nodeWithNeedleFrequency);
 			} else {
 				// we are somewhere in the middle
-				this.freqList.appendAfter(current[appendSym]!, nodeWithNeedleFrequency);
+				this.frequencies.splice(current[appendSym]!, nodeWithNeedleFrequency);
 			}
 
 			return nodeWithNeedleFrequency;
@@ -268,39 +269,39 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 		// the frequency list is empty, code duplicated for performance, damn those 0.00000001 ms
 		const nodeWithNeedleFrequency: FreqListNode<Key, Value> = {
 			frequency: needleFrequency,
-			list: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
+			cacheEntries: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
 			[PREV_SYM]: null,
 			[NEXT_SYM]: null
 		};
-		this.freqList.addToFront(nodeWithNeedleFrequency);
+		this.frequencies.unshift(nodeWithNeedleFrequency);
 
 		return nodeWithNeedleFrequency;
 	}
 
 	private evict(): void {
-		const itemsList = this.freqList.head!.list; // evict is called when we have at least 1 entry
+		const currentFreqListHead = this.frequencies.head!;
 
-		// remove from tail of list with same frequency
-		this.delete(itemsList.tail!.key);
-		itemsList.removeNode(itemsList.tail!);
-		this.onEvict(this.freqList.head!);
+		this.deleteFromCache(currentFreqListHead.cacheEntries.tail!.key);
+		this.removeEntryFromFrequencyBucket(currentFreqListHead, currentFreqListHead.cacheEntries.tail!);
 
-		if (!itemsList.tail) {
-			this.freqList.removeNode(this.freqList.head!);
-		}
+		// previous function might update `this.freqList` head, that's we pass a copy of the head to this function
+		// as it needs the node from where item was evicted
+		this.onEvict(currentFreqListHead);
 	}
 
 	private static addEntryToFrequencyBucket<K, V>(freqListNode: FreqListNode<K, V>, evictableKeyNode: EvictableKeyNode<K, V>): void {
-		freqListNode.list.addToFront(evictableKeyNode); // the most fresh entry in this bucket
+		freqListNode.cacheEntries.unshift(evictableKeyNode); // the most fresh entry in this bucket
 		evictableKeyNode[FREQ_PARENT_ITEM_SYM] = freqListNode; // set the new parent
 	}
 
 	private removeEntryFromFrequencyBucket(freqListNode: FreqListNode<Key, Value>, evictableKeyNode: EvictableKeyNode<Key, Value>): void {
-		freqListNode.list.removeNode(evictableKeyNode);
+		freqListNode.cacheEntries.remove(evictableKeyNode);
 
-		if (freqListNode.list.empty()) {
-			this.freqList.removeNode(freqListNode);
+		if (freqListNode.cacheEntries.empty()) {
+			this.frequencies.remove(freqListNode);
 		}
+
+		evictableKeyNode[FREQ_PARENT_ITEM_SYM] = (null as unknown) as FreqListNode<Key, Value>;
 	}
 }
 

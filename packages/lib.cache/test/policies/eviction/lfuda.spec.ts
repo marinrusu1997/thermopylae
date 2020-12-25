@@ -4,8 +4,8 @@ import colors from 'colors';
 import { array, number } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
-import { BaseLFUEvictionPolicy, EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
-import { SetOperationContext } from '../../../lib/contracts/cache-policy';
+import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
+import { SetOperationContext } from '../../../lib/contracts/replacement-policy';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -65,6 +65,10 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				}
 				lfu.onHit(key, entry);
 			}
+			for (const [key, freq] of ENTRY_FREQ) {
+				const entry = lfuEntries.get(key)!;
+				expect(LFUDAEvictionPolicy.frequency(entry)).to.be.eq(freq);
+			}
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
@@ -88,7 +92,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				while (freq--) {
 					lfu.onHit(key, entry);
 				}
-				expect(BaseLFUEvictionPolicy.frequency(entry)).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
+				expect(LFUDAEvictionPolicy.frequency(entry)).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}
 			expect(lfu.size).to.be.eq(CAPACITY);
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);

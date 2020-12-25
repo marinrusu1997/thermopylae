@@ -1,8 +1,9 @@
 /* eslint max-classes-per-file: 0 */ // --> OFF
 import { Nullable } from '@thermopylae/core.declarations';
+import { LinkedList } from '../contracts/linked-list';
 
-const PREV_SYM = Symbol.for('PREV_SYM');
-const NEXT_SYM = Symbol.for('NEXT_SYM');
+const PREV_SYM = Symbol.for('PREV_SYM_DLL');
+const NEXT_SYM = Symbol.for('NEXT_SYM_DLL');
 
 interface DoublyLinkedListNode<Node> {
 	[PREV_SYM]: Nullable<Node>;
@@ -28,30 +29,27 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 	}
 }
 
-class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Iterable<DoublyLinkedListNode<Node>> {
+class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements LinkedList<DoublyLinkedListNode<Node>> {
 	public head: Nullable<Node>;
 
 	public tail: Nullable<Node>;
+
+	public size: number;
 
 	public constructor(startNode: Nullable<Node> = null) {
 		if (startNode != null) {
 			startNode[NEXT_SYM] = null;
 			startNode[PREV_SYM] = null;
+			this.size = 1;
+		} else {
+			this.size = 0;
 		}
 
 		this.head = startNode;
 		this.tail = startNode;
 	}
 
-	public get size(): number {
-		let items = 0;
-		for (const _ of this) {
-			items += 1;
-		}
-		return items;
-	}
-
-	public addToFront(node: Node): void {
+	public unshift(node: Node): void {
 		node[NEXT_SYM] = this.head;
 		node[PREV_SYM] = null;
 
@@ -62,9 +60,10 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 		}
 
 		this.head = node;
+		this.size += 1;
 	}
 
-	public addToBack(node: Node): void {
+	public push(node: Node): void {
 		node[NEXT_SYM] = null;
 		node[PREV_SYM] = this.tail;
 
@@ -75,16 +74,10 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 		}
 
 		this.tail = node;
+		this.size += 1;
 	}
 
-	public appendAfter(prevNode: Node, newNode: Node): void {
-		if (this.head === null) {
-			this.head = newNode;
-			this.tail = newNode;
-
-			return;
-		}
-
+	public splice(prevNode: Node, newNode: Node): void {
 		newNode[NEXT_SYM] = prevNode[NEXT_SYM];
 		prevNode[NEXT_SYM] = newNode;
 
@@ -94,9 +87,11 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 		} else {
 			this.tail = newNode;
 		}
+
+		this.size += 1;
 	}
 
-	public removeNode(node: Node): void {
+	public remove(node: Node): void {
 		if (node[PREV_SYM] !== null) {
 			node[PREV_SYM]![NEXT_SYM] = node[NEXT_SYM];
 		} else {
@@ -111,28 +106,30 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Itera
 
 		node[PREV_SYM] = null;
 		node[NEXT_SYM] = null;
+		this.size -= 1;
 	}
 
-	public moveToFront(node: Node): void {
+	public toFront(node: Node): void {
 		if (this.head === node) {
 			return; // nothing to move, it's already in front
 		}
 
-		this.removeNode(node);
-		this.addToFront(node);
+		this.remove(node);
+		this.unshift(node);
 	}
 
-	[Symbol.iterator](): Iterator<DoublyLinkedListNode<Node>> {
+	[Symbol.iterator](): Iterator<Node> {
 		return new DoublyLinkedListIterator<Node>(this.head);
 	}
 
 	public empty(): boolean {
-		return this.head == null;
+		return this.size === 0;
 	}
 
 	public clear(): void {
 		this.head = null;
 		this.tail = null;
+		this.size = 0;
 	}
 }
 

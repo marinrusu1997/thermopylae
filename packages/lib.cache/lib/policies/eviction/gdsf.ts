@@ -1,6 +1,7 @@
 import sizeof from 'object-sizeof';
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
-import { Deleter } from '../../contracts/cache-policy';
+import { Deleter, SetOperationContext } from '../../contracts/replacement-policy';
+import { CacheEntry } from '../../contracts/commons';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
@@ -29,6 +30,10 @@ class GDSFEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 		super(capacity, deleter);
 		this.sizeOf = sizeOfInBytes || sizeof;
 		this.cacheAge = 0;
+	}
+
+	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+		throw new Error('NOT IMPLEMENTED! FREQUENCY NEEDS TO BE RECOMPUTED!');
 	}
 
 	/**

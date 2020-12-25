@@ -1,5 +1,5 @@
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
-import { Deleter } from '../../contracts/cache-policy';
+import { Deleter } from '../../contracts/replacement-policy';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 

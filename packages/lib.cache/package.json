@@ -1,6 +1,6 @@
 {
     "name": "@thermopylae/lib.cache",
-    "description": "Modular synchronous cache.",
+    "description": "Modular cache.",
     "keywords": [
         "library",
         "typescript"

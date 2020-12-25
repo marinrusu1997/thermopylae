@@ -1,10 +1,10 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract-expiration-policy';
+import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheKey } from '../../contracts/commons';
 
 interface CleanUpInterval {

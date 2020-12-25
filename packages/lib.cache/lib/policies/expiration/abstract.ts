@@ -2,7 +2,7 @@ import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');

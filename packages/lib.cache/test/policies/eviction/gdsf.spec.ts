@@ -4,7 +4,7 @@ import colors from 'colors';
 import { array, number, string } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
-import { SetOperationContext } from '../../../lib/contracts/cache-policy';
+import { SetOperationContext } from '../../../lib/contracts/replacement-policy';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];

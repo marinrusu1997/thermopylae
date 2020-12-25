@@ -8,7 +8,7 @@ import range from 'lodash.range';
 // @ts-ignore
 import gc from 'js-gc';
 import { LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
-import { SetOperationContext } from '../../../lib/contracts/cache-policy';
+import { SetOperationContext } from '../../../lib/contracts/replacement-policy';
 import { ReverseMap } from '../../utils';
 import { BaseLFUEvictionPolicy, EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
@@ -316,6 +316,13 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					);
 					expect(memUsageAfterClear.external).to.be.at.most(memUsageBeforeInsert.external);
 					expect(memUsageAfterClear.arrayBuffers).to.be.at.most(memUsageBeforeInsert.arrayBuffers);
+				});
+			});
+
+			describe(`${'requiresEntryOnDeletion'.magenta} spec`, () => {
+				it('requires entry for deletion', () => {
+					const lfu = lfuFactory<string, number>(LFU_IMPL, 1);
+					expect(lfu.requiresEntryOnDeletion).to.be.eq(true);
 				});
 			});
 		});

@@ -1,7 +1,7 @@
 import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../contracts/cache-policy';
+import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheStats, CacheEntry } from '../contracts/commons';
 
@@ -122,6 +122,10 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 
 		if (entry === NOT_FOUND_VALUE) {
 			this.cacheStats.misses += 1;
+			for (const policy of this.policies) {
+				policy.onMiss(key);
+			}
+
 			return NOT_FOUND_VALUE;
 		}
 

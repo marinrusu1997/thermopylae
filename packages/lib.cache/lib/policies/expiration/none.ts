@@ -1,4 +1,4 @@
-import { CacheReplacementPolicy, EntryValidity } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, EntryValidity } from '../../contracts/replacement-policy';
 
 class NoExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	/**

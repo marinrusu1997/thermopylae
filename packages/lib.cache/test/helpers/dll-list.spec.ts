@@ -6,7 +6,7 @@ import arrayMove from 'array-move';
 import colors from 'colors';
 // @ts-ignore
 import gc from 'js-gc';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/helpers/dll-list';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/helpers/doubly-linked-list';
 
 class Node<T = number> implements DoublyLinkedListNode<Node<T>> {
 	public [NEXT_SYM]: Nullable<Node<T>>;
@@ -45,7 +45,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		for (let i = 0; i < 10; i++) {
 			const node = new Node(i);
 
-			dll.addToFront(node);
+			dll.unshift(node);
 			nodes.unshift(node);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -60,7 +60,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		for (let i = 0; i < 10; i++) {
 			const node = new Node(i);
 
-			dll.addToBack(node);
+			dll.push(node);
 			nodes.push(node);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -69,7 +69,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		// remove to ensure it works ok
 		while (!dll.empty() && nodes.length) {
 			const removed = array.randomElement(nodes);
-			dll.removeNode(removed);
+			dll.remove(removed);
 			array.remove(nodes, (node) => node === removed);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -79,7 +79,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		for (let i = 0; i < 10; i++) {
 			const node = new Node(i);
 
-			dll.addToBack(node);
+			dll.push(node);
 			nodes.push(node);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -87,8 +87,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	});
 
 	it('should append after specified node', () => {
-		const dll = new DoublyLinkedList<Node>();
-		dll.appendAfter(null!, new Node<number>(0)); // will insert at the beginning
+		const dll = new DoublyLinkedList<Node>(new Node(0));
 
 		const nodes = new Array<Node>(dll.head!);
 
@@ -96,7 +95,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			const appendNode = array.randomElement(nodes);
 			const newNode = new Node(i);
 
-			dll.appendAfter(appendNode, newNode);
+			dll.splice(appendNode, newNode);
 			// mimic behaviour of append after in the list
 			nodes.splice(nodes.indexOf(appendNode) + 1, 0, newNode);
 
@@ -110,13 +109,13 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 
 		for (let i = 0; i < 10; i++) {
 			const node = new Node(i);
-			dll.addToFront(node);
+			dll.unshift(node);
 			nodes[9 - i] = node;
 		}
 
 		while (!dll.empty() && nodes.length) {
 			const removed = array.randomElement(nodes);
-			dll.removeNode(removed);
+			dll.remove(removed);
 			array.remove(nodes, (node) => node === removed);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -129,13 +128,13 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 
 		for (let i = 0; i < 10; i++) {
 			const node = new Node(i);
-			dll.addToFront(node);
+			dll.unshift(node);
 			nodes[9 - i] = node;
 		}
 
 		for (let i = 0; i < 20; i++) {
 			const node = array.randomElement(nodes);
-			dll.moveToFront(node);
+			dll.toFront(node);
 			arrayMove.mutate(nodes, nodes.indexOf(node), 0);
 
 			assertListContainsAllNodes(dll, nodes);
@@ -150,7 +149,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		const memUsageBeforeInsert = { ...process.memoryUsage() };
 
 		for (let i = 0; i < 1e5; i++) {
-			dll.addToFront(new Node<number>(i));
+			dll.unshift(new Node<number>(i));
 		}
 
 		dll.clear();
@@ -161,5 +160,58 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		expect(memUsageAfterClear.heapUsed).to.be.within(memUsageBeforeInsert.heapUsed - DELTA, memUsageBeforeInsert.heapUsed + DELTA);
 		expect(memUsageAfterClear.external).to.be.within(memUsageBeforeInsert.external - DELTA, memUsageBeforeInsert.external + DELTA);
 		expect(memUsageAfterClear.arrayBuffers).to.be.at.most(memUsageBeforeInsert.arrayBuffers);
+	});
+
+	describe(`${'size'.magenta} spec`, () => {
+		it('should be initialized correctly in constructor', () => {
+			const emptyDll = new DoublyLinkedList<Node>();
+			expect(emptyDll.size).to.be.eq(0);
+
+			const dll = new DoublyLinkedList<Node>(new Node(1));
+			expect(dll.size).to.be.eq(1);
+		});
+
+		it('should increase when new items are added', () => {
+			const dll = new DoublyLinkedList<Node>(new Node(1));
+
+			dll.unshift(new Node(2));
+			expect(dll.size).to.be.eq(2);
+
+			dll.push(new Node(3));
+			expect(dll.size).to.be.eq(3);
+
+			dll.splice(dll.head!, new Node(4));
+			expect(dll.size).to.be.eq(4);
+		});
+
+		it('should decrease when item is removed', () => {
+			const dll = new DoublyLinkedList<Node>(new Node(1));
+			expect(dll.size).to.be.eq(1);
+
+			dll.remove(dll.head!);
+			expect(dll.size).to.be.eq(0);
+		});
+
+		it('should remain the same when items are moved to front', () => {
+			const dll = new DoublyLinkedList<Node>(new Node(1));
+			expect(dll.size).to.be.eq(1);
+
+			dll.toFront(dll.head!);
+			expect(dll.size).to.be.eq(1);
+
+			dll.unshift(new Node(2));
+			expect(dll.size).to.be.eq(2);
+
+			dll.toFront(dll.tail!);
+			expect(dll.size).to.be.eq(2);
+		});
+
+		it('should be reset on clear', () => {
+			const dll = new DoublyLinkedList<Node>(new Node(1));
+			expect(dll.size).to.be.eq(1);
+
+			dll.clear();
+			expect(dll.size).to.be.eq(0);
+		});
 	});
 });

@@ -1,13 +1,17 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { INFINITE_KEYS } from '../../constants';
 import { createException, ErrorCodes } from '../../error';
-import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../../contracts/cache-policy';
+import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 class NoneEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	private readonly capacity: Threshold;
 
 	constructor(capacity: Threshold) {
+		if (capacity <= 0) {
+			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
+		}
+
 		this.capacity = capacity;
 	}
 

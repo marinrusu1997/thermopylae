@@ -1,4 +1,4 @@
-export { NoExpirationPolicy } from './no-expiration-policy';
-export { ReactiveExpirationPolicy } from './reactive-expiration-policy';
-export { ProactiveExpirationPolicy } from './proactive-expiration-policy';
-export { IterativeExpirationPolicy, QueryCollectionSize, NextCacheKey, IterativeExpirationPolicyConfig } from './iterative-expiration-policy';
+export { NoExpirationPolicy } from './none';
+export { ReactiveExpirationPolicy } from './reactive';
+export { ProactiveExpirationPolicy } from './proactive';
+export { IterativeExpirationPolicy, QueryCollectionSize, NextCacheKey, IterativeExpirationPolicyConfig } from './mixed';

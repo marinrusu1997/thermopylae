@@ -1,4 +1,4 @@
-import { CacheReplacementPolicy, Deleter } from '../lib/contracts/cache-policy';
+import { CacheReplacementPolicy, Deleter } from '../lib/contracts/replacement-policy';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	private readonly map: Map<V, K[]>;

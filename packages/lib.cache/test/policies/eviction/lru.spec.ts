@@ -78,6 +78,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 		try {
 			const policy = new LRUEvictionPolicy<string, number>(CAPACITY);
+			const entries = new Map<string, EvictableKeyNode<string, number>>();
 
 			// intercept keys that policy wants to delete
 			const keysEvictedByPolicy = new Array<string>();
@@ -85,15 +86,18 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 			// setup keys up to `CAPACITY`
 			for (let i = 0; i < CAPACITY; i++) {
+				const key = String(i);
 				// @ts-ignore
-				const entry: EvictableKeyNode<string, number> = { value: i };
-				policy.onSet(String(i), entry, { totalEntriesNo: i });
+				const entry: EvictableKeyNode<string, number> = { key, value: i };
+				policy.onSet(key, entry, { totalEntriesNo: i });
+				entries.set(key, entry);
 			}
 
 			// remove keys up to `CAPACITY` in random order
 			const keysToRemove = range(0, CAPACITY);
 			while (keysToRemove.length) {
-				policy.onDelete(String(keysToRemove.pop()));
+				const key = String(keysToRemove.pop());
+				policy.onDelete(key, entries.get(key)!);
 			}
 			expect(keysEvictedByPolicy).to.be.ofSize(0); // it just removed from internal structure, and not from cache
 
@@ -112,5 +116,10 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			UnitTestLogger.info(message.join('\n'));
 			throw e;
 		}
+	});
+
+	it('requires entry on deletion', () => {
+		const policy = new LRUEvictionPolicy<string, number>(1);
+		expect(policy.requiresEntryOnDeletion).to.be.eq(true);
 	});
 });
