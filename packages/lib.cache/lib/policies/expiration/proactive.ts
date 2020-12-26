@@ -83,7 +83,7 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 		const keyIndex = this.findKeyIndex(key); // when key is root, find is O(1)
 
 		if (keyIndex === -1) {
-			throw createException(ErrorCodes.KEY_NOT_FOUND, `Attempt to delete key ${key} which isn't tracked. `);
+			throw createException(ErrorCodes.NOT_FOUND, `Attempt to delete key ${key} which isn't tracked. `);
 		}
 
 		this.doDelete(keyIndex);
@@ -168,7 +168,7 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 
 		if (toDelete === undefined) {
 			throw createException(
-				ErrorCodes.ABNORMAL_CONDITION,
+				ErrorCodes.BAD_INVARIANT,
 				`Clean up handler has been invoked, but expirable keys heap is empty. Scheduling had been made for ${this.cleanUpInterval!.willCleanUpOn}`
 			);
 		}

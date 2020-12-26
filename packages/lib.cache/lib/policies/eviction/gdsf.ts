@@ -1,6 +1,6 @@
 import sizeof from 'object-sizeof';
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
-import { Deleter, SetOperationContext } from '../../contracts/replacement-policy';
+import { SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
@@ -26,8 +26,8 @@ class GDSFEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 	/**
 	 * @inheritDoc
 	 */
-	public constructor(capacity: number, deleter?: Deleter<Key>, sizeOfInBytes?: SizeOf<Value>) {
-		super(capacity, deleter);
+	public constructor(capacity: number, sizeOfInBytes?: SizeOf<Value>) {
+		super(capacity);
 		this.sizeOf = sizeOfInBytes || sizeof;
 		this.cacheAge = 0;
 	}

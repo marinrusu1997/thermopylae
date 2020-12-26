@@ -45,20 +45,17 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 
 	private readonly cacheCapacity: number;
 
-	private deleteFromCache: Deleter<Key>;
+	private deleteFromCache!: Deleter<Key>;
 
 	/**
 	 * @param capacity				{@link Cache} maximum capacity.
-	 * @param deleter				Function which is deletes entry from {@link Cache} by key. <br/>
-	 * 								Default will be deleter set by {@link Cache} instance.
 	 */
-	public constructor(capacity: number, deleter?: Deleter<Key>) {
+	public constructor(capacity: number) {
 		if (capacity <= 0) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
 		}
 
 		this.cacheCapacity = capacity;
-		this.deleteFromCache = deleter!;
 		this.frequencies = new DoublyLinkedList<FreqListNode<Key, Value>>();
 	}
 

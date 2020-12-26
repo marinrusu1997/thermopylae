@@ -26,7 +26,7 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 	public del(key: Key, withEntry: boolean): boolean | Undefinable<CacheEntry<Value>> {
 		if (withEntry) {
 			const entry = this.store.get(key);
-			this.store.delete(key);
+			this.store.delete(key); // @fixme test with undefined
 			return entry;
 		}
 		return this.store.delete(key);

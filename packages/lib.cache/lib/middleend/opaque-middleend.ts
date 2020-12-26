@@ -12,6 +12,7 @@ class OpaqueMiddleEnd<Key, Value> implements CacheMiddleEnd<Key, Value> {
 	constructor(backend: CacheBackend<Key, Value>) {
 		this.backend = backend;
 		this.cacheStats = {
+			// @fixme to be moved into frontend
 			hits: 0,
 			misses: 0
 		};

@@ -1,4 +1,4 @@
-import { ErrorCodes, Threshold } from '@thermopylae/core.declarations';
+import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
 import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
@@ -33,8 +33,6 @@ type Segments<Key, Value> = {
 	};
 };
 
-// @fixme we need truly tests with random access patterns
-
 /**
  * [Segmented LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Segmented_LRU_(SLRU) "Segmented LRU (SLRU)") eviction policy.
  */
@@ -49,7 +47,7 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 	 * @param capacity                      {@link Cache} capacity.
 	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `capacity`.
 	 */
-	public constructor(capacity: Threshold, protectedOverProbationRatio: number) {
+	public constructor(capacity: Threshold, protectedOverProbationRatio: Percentage) {
 		if (capacity < 2) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be at least 2. Given: ${capacity}.`);
 		}
@@ -86,6 +84,31 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 		this.requiresEntryOnDeletion = true;
 	}
 
+	/**
+	 * Get the number of the elements stored in internal structures of this policy.
+	 */
+	public get size(): number {
+		let size = 0;
+		for (const segment of (Object.keys(this.segments) as unknown) as Array<SegmentType>) {
+			size += this.segments[segment].items.size;
+		}
+		return size;
+	}
+
+	/**
+	 * Get most recently used key.
+	 */
+	public get mostRecent(): Nullable<EvictableKeyNode<Key, Value>> {
+		return this.getEntryFrom('head');
+	}
+
+	/**
+	 * Get least recently used key.
+	 */
+	public get leastRecent(): Nullable<EvictableKeyNode<Key, Value>> {
+		return this.getEntryFrom('tail');
+	}
+
 	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
@@ -95,12 +118,12 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 		return undefined;
 	}
 
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, _context: SetOperationContext): void {
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		entry.key = key;
 		this.demote(entry);
 	}
 
-	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	public onUpdate(_key: Key, _entry: EvictableKeyNode<Key, Value>, _context: SetOperationContext): void {
 		return undefined;
 	}
 
@@ -160,6 +183,16 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 				throw createException(ErrorCodes.UNKNOWN, `Unknown segment type: ${entry[SEGMENT_SYM]} found in entry: ${JSON.stringify(entry)}.`);
 		}
 	}
+
+	private getEntryFrom(pos: 'tail' | 'head'): Nullable<EvictableKeyNode<Key, Value>> {
+		if (this.segments[SegmentType.PROTECTED].items[pos] == null) {
+			if (this.segments[SegmentType.PROBATION].items[pos] == null) {
+				return null;
+			}
+			return this.segments[SegmentType.PROBATION].items[pos];
+		}
+		return this.segments[SegmentType.PROTECTED].items[pos];
+	}
 }
 
-export { SegmentedLRUPolicy };
+export { SegmentedLRUPolicy, EvictableKeyNode, SegmentType, SEGMENT_SYM };

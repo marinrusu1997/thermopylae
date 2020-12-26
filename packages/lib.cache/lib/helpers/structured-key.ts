@@ -48,13 +48,13 @@ class StructuredKey {
 			case 3:
 				return new StructuredKey(keyParts[2], keyParts[1], keyParts[0]);
 			default:
-				throw createException(ErrorCodes.INVALID_KEY_PART, `Number of key parts must not overcome 3. Extracted: ${keyParts.length} parts.`);
+				throw createException(ErrorCodes.INVALID_VALUE, `Number of key parts must not overcome 3. Extracted: ${keyParts.length} parts.`);
 		}
 	}
 
 	private static assertNotContainsDelimiter(keyPart: string): void {
 		if (keyPart.includes(StructuredKey.DELIMITER)) {
-			throw createException(ErrorCodes.INVALID_KEY_PART, `Key part is not allowed to contain ${StructuredKey.DELIMITER}`);
+			throw createException(ErrorCodes.INVALID_VALUE, `Key part is not allowed to contain ${StructuredKey.DELIMITER}`);
 		}
 	}
 }

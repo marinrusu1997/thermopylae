@@ -16,6 +16,7 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		this.backend = backend;
 		this.policies = policies;
 		this.cacheStats = {
+			// @fixme to be moved into frontend
 			hits: 0,
 			misses: 0
 		};
@@ -34,6 +35,19 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		const entry: CacheEntry<V> = this.backend.set(key, value);
 
 		try {
+			/**
+			 * @fixme huge bug problem
+			 * Context needs to be global for this middleend and injected via setter in each policy.
+			 * On each CRUD operation, context needs to be updated.
+			 * This haves the following benefits:
+			 * 		- we don't create new object on each set
+			 * 		- no need to bloat policy API (it can use context as it wants in each of it's ops)
+			 * 		- prevent multiple eviction by each policy when cache is full
+			 * 			(because context is build once and not updated with latest cache capacity, each policy will think that he must evict an item)
+			 * 			(also take care about sharing of other context properties by each policy)
+			 * Context type should be a templated parameter extending default type, so that if other devs create their own policy
+			 * and need some custom params, they can templatize midleend and also that policy (this adds third template to policies)
+			 */
 			const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
 			for (const policy of this.policies) {
 				policy.onSet(key, entry, context);

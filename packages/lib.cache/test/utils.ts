@@ -1,3 +1,5 @@
+// eslint-disable-next-line max-classes-per-file
+import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheReplacementPolicy, Deleter } from '../lib/contracts/replacement-policy';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
@@ -52,6 +54,28 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	}
 }
 
+class MapUtils {
+	public static firstEntry<K, V>(map: Map<K, V>): Undefinable<[K, V]> {
+		return map.entries().next().value;
+	}
+
+	public static firstKey<K, V>(map: Map<K, V>): Undefinable<K> {
+		return map.keys().next().value;
+	}
+
+	public static lastEntry<K, V>(map: Map<K, V>): Undefinable<[K, V]> {
+		return Array.from(map.entries()).pop();
+	}
+
+	public static lastKey<K, V>(map: Map<K, V>): Undefinable<K> {
+		return Array.from(map.keys()).pop();
+	}
+
+	public static lastValue<K, V>(map: Map<K, V>): Undefinable<V> {
+		return Array.from(map.values()).pop();
+	}
+}
+
 function generateExpirationPolicyDeleter<K, V>(policy: CacheReplacementPolicy<K, V>, deleter: Deleter<K>): Deleter<K> {
 	if (policy.requiresEntryOnDeletion) {
 		throw new Error("Can't generate deleter for policy which needs entry for delete hook");
@@ -63,4 +87,4 @@ function generateExpirationPolicyDeleter<K, V>(policy: CacheReplacementPolicy<K,
 	};
 }
 
-export { ReverseMap, generateExpirationPolicyDeleter };
+export { ReverseMap, MapUtils, generateExpirationPolicyDeleter };

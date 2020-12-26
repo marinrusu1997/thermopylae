@@ -1,3 +1,4 @@
+import { Percentage } from '@thermopylae/core.declarations';
 import { createException } from './exception';
 
 const enum ErrorCodes {
@@ -52,7 +53,7 @@ function randomInt(min: number, max: number): number {
  *
  * @returns		Number which represents `percent` from `number`.
  */
-function percentage(number: number, percent: number): number {
+function percentage(number: number, percent: Percentage): number {
 	if (percent < 0 || percent > 1) {
 		throw createException(ErrorCodes.INVALID_RANGE, 'Percentage needs to be between 0 and 1.');
 	}

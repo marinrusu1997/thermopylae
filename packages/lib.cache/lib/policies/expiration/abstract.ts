@@ -94,11 +94,11 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 
 	private static assertValidExpiresAt(oldExpiration: UnixTimestamp | undefined, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
 		if (newExpiration <= now) {
-			throw createException(ErrorCodes.INVALID_EXPIRATION, `New expiration ${newExpiration} (UNIX) is lower or equal than current time ${now} (UNIX). `);
+			throw createException(ErrorCodes.INVALID_VALUE, `New expiration ${newExpiration} (UNIX) is lower or equal than current time ${now} (UNIX). `);
 		}
 
 		if (oldExpiration != null && oldExpiration === newExpiration) {
-			throw createException(ErrorCodes.INVALID_EXPIRATION, `New expiration ${newExpiration} (UNIX) is the same as the old one ${oldExpiration} (UNIX). `);
+			throw createException(ErrorCodes.INVALID_VALUE, `New expiration ${newExpiration} (UNIX) is the same as the old one ${oldExpiration} (UNIX). `);
 		}
 	}
 }

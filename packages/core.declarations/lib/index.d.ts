@@ -31,11 +31,14 @@ export interface Identity {
 }
 
 export const enum ErrorCodes {
-	NOT_ALLOWED = 'NOT_ALLOWED',
-	NOT_FOUND = 'NOT_FOUND',
+	BAD_INVARIANT = 'BAD_INVARIANT',
+	DUPLICATE = 'DUPLICATE',
+	FULL = 'FULL',
 	INVALID_TYPE = 'INVALID_TYPE',
 	INVALID_VALUE = 'INVALID_VALUE',
-	EXISTS = 'EXISTS',
+	MISCONFIGURATION = 'MISCONFIGURATION',
+	NOT_ALLOWED = 'NOT_ALLOWED',
+	NOT_FOUND = 'NOT_FOUND',
 	REQUIRED = 'REQUIRED',
 	UNKNOWN = 'UNKNOWN'
 }
@@ -189,6 +192,7 @@ export type Seconds = number;
 export type Minutes = number;
 
 export type Threshold = number;
+export type Percentage = number;
 
 export type Label = string;
 export type Index = number;

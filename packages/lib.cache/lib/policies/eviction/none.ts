@@ -34,7 +34,7 @@ class NoneEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 	 */
 	public onSet(_key: Key, _entry: CacheEntry<Value>, context: SetOperationContext): void {
 		if (this.capacity !== INFINITE_KEYS && context.totalEntriesNo >= this.capacity) {
-			throw createException(ErrorCodes.CACHE_FULL, `Limit of ${this.capacity} has been reached and ${this.constructor.name} has been set. `);
+			throw createException(ErrorCodes.FULL, `Limit of ${this.capacity} has been reached and ${this.constructor.name} has been set. `);
 		}
 	}
 

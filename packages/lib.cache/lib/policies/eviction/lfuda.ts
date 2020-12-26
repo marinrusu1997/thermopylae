@@ -1,5 +1,4 @@
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
-import { Deleter } from '../../contracts/replacement-policy';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
@@ -12,8 +11,8 @@ class LFUDAEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> 
 	/**
 	 * @inheritDoc
 	 */
-	public constructor(capacity: number, deleter?: Deleter<Key>) {
-		super(capacity, deleter);
+	public constructor(capacity: number) {
+		super(capacity);
 		this.cacheAge = 0;
 	}
 
