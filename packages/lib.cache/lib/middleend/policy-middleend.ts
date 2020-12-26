@@ -22,6 +22,9 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		};
 
 		for (const policy of policies) {
+			/**
+			 * @fixme here we need to create deleter for each one, so that we knew which one evicted key, and not to call onDelete for him
+			 */
 			policy.setDeleter(this.del);
 		}
 	}

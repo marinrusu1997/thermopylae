@@ -1,6 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
 import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheReplacementPolicy, Deleter } from '../lib/contracts/replacement-policy';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	private readonly map: Map<V, K[]>;
@@ -76,15 +75,4 @@ class MapUtils {
 	}
 }
 
-function generateExpirationPolicyDeleter<K, V>(policy: CacheReplacementPolicy<K, V>, deleter: Deleter<K>): Deleter<K> {
-	if (policy.requiresEntryOnDeletion) {
-		throw new Error("Can't generate deleter for policy which needs entry for delete hook");
-	}
-
-	return function remove(key: K): void {
-		deleter(key);
-		policy.onDelete(key);
-	};
-}
-
-export { ReverseMap, MapUtils, generateExpirationPolicyDeleter };
+export { ReverseMap, MapUtils };

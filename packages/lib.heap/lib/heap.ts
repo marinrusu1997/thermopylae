@@ -5,6 +5,8 @@ import { defaultCompare, CompareFunction, ArrayEqualsPredicate } from './utils';
 
 /**
  * Binary heap.
+ *
+ * @fixme this needs to be optimized and tested more carefully
  */
 class Heap<T = number> {
 	private readonly compare: CompareFunction<T>;
@@ -16,45 +18,43 @@ class Heap<T = number> {
 		this.nodes = [];
 	}
 
-	public peek(): T | undefined {
-		return this.nodes[0];
-	}
-
 	public push(item: T): void {
 		this.nodes.push(item);
 		this.siftDown(0, this.nodes.length - 1);
 	}
 
-	public pop(): T {
+	public peek(): T | undefined {
+		return this.nodes[0];
+	}
+
+	public pop(): T | undefined {
 		const lastEl = this.nodes.pop();
-		let returnItem: T;
+		let returnItem: T | undefined;
 
 		if (this.nodes.length) {
 			[returnItem] = this.nodes;
 			this.nodes[0] = lastEl!;
 			this.siftUp(0);
 		} else {
-			returnItem = lastEl!;
+			returnItem = lastEl;
 		}
 
 		return returnItem;
 	}
 
-	public pushPop(item: T): T {
-		let ref;
+	public pushPop(item: T): T | undefined {
+		let returnItem: T | undefined;
 
 		if (this.nodes.length && this.compare(this.nodes[0], item) < 0) {
-			ref = [this.nodes[0], item];
-			[item] = ref;
-			// eslint-disable-next-line prefer-destructuring
-			this.nodes[0] = ref[1];
+			returnItem = this.nodes[0]!;
+			this.nodes[0] = item;
 			this.siftUp(0);
 		}
 
-		return item;
+		return returnItem;
 	}
 
-	public replace(item: T): T {
+	public replace(item: T): T | undefined {
 		const returnItem = this.nodes[0];
 		this.nodes[0] = item;
 		this.siftUp(0);

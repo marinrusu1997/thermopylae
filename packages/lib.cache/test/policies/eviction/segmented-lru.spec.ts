@@ -51,8 +51,9 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 						clearInterval(onSetInterval);
 						clearInterval(onHitInterval);
 
-						expect(ENTRIES_IN_CACHE.size).to.be.eq(CAPACITY);
 						expect(policy.size).to.be.eq(CAPACITY);
+						// this might happen when onHit has been called, it evicted entry, but next onSet hadn't chance to be called to insert a new one
+						expect(ENTRIES_IN_CACHE.size).to.be.within(CAPACITY - 1, CAPACITY);
 
 						done();
 					} catch (e) {

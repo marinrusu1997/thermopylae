@@ -1,22 +1,24 @@
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/lib.unit-test';
 import { number, string } from '@thermopylae/lib.utils';
-import { Comparator } from '@thermopylae/core.declarations';
+import { Comparator, Undefinable } from '@thermopylae/core.declarations';
 import { Heap } from '../lib';
 
 const { expect } = chai;
 
-describe('Heap spec', () => {
+type ArrayComparator<T> = (a: Undefinable<T>, b: Undefinable<T>) => number;
+
+describe(`${Heap.name} spec`, () => {
 	function assertHeapSortedOrder<T>(heap: Heap<T>, comparator?: Comparator<T>): void {
 		const sorted = [];
 		while (!heap.empty()) {
 			sorted.push(heap.pop());
 		}
 
-		expect(sorted.slice().sort(comparator)).to.be.equalTo(sorted);
+		expect(sorted.slice().sort(comparator as ArrayComparator<T>)).to.be.equalTo(sorted);
 	}
 
-	describe('push, pop spec', () => {
+	describe(`${Heap.prototype.push.name} & ${Heap.prototype.pop.name} spec`, () => {
 		it('should sort an array using push and pop', () => {
 			const heap = new Heap<number>();
 
@@ -97,7 +99,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('replace spec', () => {
+	describe(`${Heap.prototype.replace.name} spec`, () => {
 		it('should behave like pop() followed by push()', () => {
 			const heap = new Heap<number>();
 
@@ -111,14 +113,15 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('pushPop spec', () => {
+	describe(`${Heap.prototype.pushPop.name} spec`, () => {
 		it('should behave like push() followed by pop()', () => {
 			const heap = new Heap();
 			for (let i = 1; i <= 5; i++) {
 				heap.push(i);
 			}
 
-			expect(heap.pushPop(6)).to.be.eq(1);
+			expect(heap.pushPop(2)).to.be.eq(1);
+			expect(heap.pushPop(6)).to.be.eq(2);
 
 			const expectArr = [];
 			for (let i = 2; i <= 6; i++) {
@@ -129,7 +132,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('contains spec', () => {
+	describe(`${Heap.prototype.contains.name} spec`, () => {
 		it('should return whether it contains the value', () => {
 			const heap = new Heap();
 			for (let i = 1; i < 5; i++) {
@@ -149,7 +152,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('peek spec', () => {
+	describe(`${Heap.prototype.peek.name} spec`, () => {
 		it('should return the top value', () => {
 			const heap = new Heap();
 			heap.push(1);
@@ -161,7 +164,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('clone', () => {
+	describe(`${Heap.prototype.clone.name} spec`, () => {
 		it('should return a cloned heap', () => {
 			const a = { x: 1 };
 			const b = { x: 2 };
@@ -182,7 +185,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('update spec', () => {
+	describe(`${Heap.prototype.update.name} spec`, () => {
 		it('should update item and preserve order', () => {
 			const a = { x: 1 };
 			const b = { x: 2 };
@@ -196,7 +199,7 @@ describe('Heap spec', () => {
 			const index = heap.findIndex((val) => val.x === 3);
 			heap.update(index, { x: 0 });
 
-			expect(heap.pop().x).to.be.eq(0);
+			expect(heap.pop()!.x).to.be.eq(0);
 		});
 
 		it('should not update item if it was not found', () => {
@@ -222,7 +225,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('remove spec', () => {
+	describe(`${Heap.prototype.remove.name} spec`, () => {
 		it('should remove top of the heap', () => {
 			const a = { x: 1 };
 			const b = { x: 2 };
@@ -319,7 +322,7 @@ describe('Heap spec', () => {
 		});
 	});
 
-	describe('clear spec', () => {
+	describe(`${Heap.prototype.clear.name} spec`, () => {
 		it('should clear heap', () => {
 			const heap = new Heap();
 

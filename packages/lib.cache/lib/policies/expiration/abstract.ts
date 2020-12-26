@@ -1,4 +1,4 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
@@ -92,7 +92,7 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 		entry[EXPIRES_AT_SYM] = expiresAt;
 	}
 
-	private static assertValidExpiresAt(oldExpiration: UnixTimestamp | undefined, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
+	private static assertValidExpiresAt(oldExpiration: Undefinable<UnixTimestamp>, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
 		if (newExpiration <= now) {
 			throw createException(ErrorCodes.INVALID_VALUE, `New expiration ${newExpiration} (UNIX) is lower or equal than current time ${now} (UNIX). `);
 		}

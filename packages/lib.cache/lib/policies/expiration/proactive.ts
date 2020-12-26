@@ -1,4 +1,4 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
@@ -16,15 +16,15 @@ interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCac
 	[EXPIRES_AT_SYM]: UnixTimestamp;
 }
 
-class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpirationPolicy<Key, Value> {
-	private readonly expirableKeys: Heap<ExpirableCacheKeyEntry<Key, Value>>;
+class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
+	private readonly entries: Heap<ExpirableCacheKeyEntry<Key, Value>>;
 
-	private cleanUpInterval: CleanUpInterval | null;
+	private cleanUpInterval: Nullable<CleanUpInterval>;
 
-	constructor() {
+	public constructor() {
 		super();
 
-		this.expirableKeys = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
+		this.entries = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
 			if (first[EXPIRES_AT_SYM] < second[EXPIRES_AT_SYM]) {
 				return -1;
 			}
@@ -34,6 +34,14 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 			return 0;
 		});
 		this.cleanUpInterval = null;
+	}
+
+	public get size(): number {
+		return this.entries.size();
+	}
+
+	public get requiresEntryOnDeletion(): boolean {
+		return false;
 	}
 
 	public onHit(): EntryValidity {
@@ -47,9 +55,9 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 		}
 
 		super.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
-		this.decorateEntry(entry, key);
+		entry.key = key;
 
-		this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
+		this.doScheduleDelete(entry);
 	}
 
 	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
@@ -59,6 +67,7 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 
 		const keyIndex = this.findKeyIndex(key);
 
+		// @fixme write some tests for these if's
 		if (keyIndex !== -1) {
 			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
@@ -67,16 +76,16 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 
 			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
 				// item was set with a great ttl, time passes, then it's ttl decreased, but summed up, we have same expiration
-				return;
+				return undefined;
 			}
 
-			this.expirableKeys.update(keyIndex, (entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
+			this.entries.update(keyIndex, entry);
 			return this.synchronize();
 		}
 
 		// this is an update of item which had infinite timeout, now we need to track it
-		this.decorateEntry(entry, key);
-		return this.doScheduleDelete((entry as unknown) as ExpirableCacheKeyEntry<Key, Value>);
+		entry.key = key;
+		return this.doScheduleDelete(entry);
 	}
 
 	public onDelete(key: Key): void {
@@ -90,7 +99,7 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 	}
 
 	public onClear(): void {
-		this.expirableKeys.clear();
+		this.entries.clear();
 		this.synchronize();
 	}
 
@@ -100,24 +109,19 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 
 	private findKeyIndex(key: Key): number {
 		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
-		return this.expirableKeys.findIndex(equals);
+		return this.entries.findIndex(equals);
 	}
 
-	private decorateEntry(entry: ExpirableCacheKeyEntry<Key, Value>, key: Key): void {
-		// @ts-ignore
-		entry.key = key;
-	}
-
-	private doDelete(keyIndex: number): void {
+	private doDelete(entryIndex: number): void {
 		// root might be removed, or heap structure might change, we need to sync with new root
 		// on multiple keys with same `expiresAt` won't start timer
 		// it will be started only when root value changes `for real`
-		this.expirableKeys.remove(keyIndex);
+		this.entries.remove(entryIndex);
 		this.synchronize();
 	}
 
-	private doScheduleDelete(expirableKey: ExpirableCacheKeyEntry<Key, Value>): void {
-		this.expirableKeys.push(expirableKey);
+	private doScheduleDelete(entry: ExpirableCacheKeyEntry<Key, Value>): void {
+		this.entries.push(entry);
 		this.synchronize();
 	}
 
@@ -126,63 +130,68 @@ class ProactiveExpirationPolicy<Key = string, Value = any> extends AbstractExpir
 	 * It needs to be called every time expirable keys heap is altered.
 	 */
 	private synchronize(): void {
-		const rootKey = this.expirableKeys.peek();
+		const rootEntry = this.entries.peek();
 
-		if (rootKey === undefined) {
-			if (!this.isIdle()) {
-				this.shutdown();
+		if (rootEntry === undefined) {
+			if (this.cleanUpInterval != null) {
+				clearTimeout(this.cleanUpInterval.timeoutId);
+				this.cleanUpInterval = null;
 			}
 			return;
 		}
 
 		if (this.cleanUpInterval == null) {
-			return this.doStart(rootKey[EXPIRES_AT_SYM]);
+			this.cleanUpInterval = {
+				willCleanUpOn: 0,
+				timeoutId: (null as unknown) as NodeJS.Timeout
+			};
+			this.scheduleNextGc(rootEntry);
+
+			return;
 		}
 
-		if (this.cleanUpInterval.willCleanUpOn !== rootKey[EXPIRES_AT_SYM]) {
+		if (this.cleanUpInterval.willCleanUpOn !== rootEntry[EXPIRES_AT_SYM]) {
 			clearTimeout(this.cleanUpInterval.timeoutId);
-			this.start(rootKey[EXPIRES_AT_SYM] - chrono.unixTime(), rootKey[EXPIRES_AT_SYM]);
+			this.scheduleNextGc(rootEntry);
 		}
-	}
-
-	private shutdown(): void {
-		clearTimeout(this.cleanUpInterval!.timeoutId);
-		this.cleanUpInterval = null;
-	}
-
-	private doStart(willCleanUpOn: UnixTimestamp): void {
-		// @ts-ignore
-		this.cleanUpInterval = {};
-
-		const runDelay = willCleanUpOn - chrono.unixTime();
-		this.start(runDelay, willCleanUpOn);
-	}
-
-	private start(runDelay: Seconds, willCleanUpOn: UnixTimestamp): void {
-		this.cleanUpInterval!.willCleanUpOn = willCleanUpOn;
-		this.cleanUpInterval!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
 	}
 
 	private doCleanUp = (): void => {
-		let toDelete = this.expirableKeys.peek();
+		let rootEntry = this.entries.peek();
 
-		if (toDelete === undefined) {
+		if (rootEntry === undefined) {
+			// @fixme to be removed
 			throw createException(
 				ErrorCodes.BAD_INVARIANT,
 				`Clean up handler has been invoked, but expirable keys heap is empty. Scheduling had been made for ${this.cleanUpInterval!.willCleanUpOn}`
 			);
 		}
 
-		const rootKeyExpiresAt = toDelete[EXPIRES_AT_SYM];
-
 		do {
-			this.delete(toDelete.key); /// removal from heap will be made by `onDelete` hook
-			toDelete = this.expirableKeys.peek();
-			if (toDelete && toDelete[EXPIRES_AT_SYM] !== rootKeyExpiresAt) {
-				toDelete = undefined;
+			this.delete(rootEntry.key); // remove from cache (if this throws we have meta-data and can retry operation)
+			this.entries.pop(); // remove from internal structure
+
+			rootEntry = this.entries.peek();
+
+			if (rootEntry === undefined) {
+				this.cleanUpInterval = null;
+				return; // done
 			}
-		} while (toDelete !== undefined);
+
+			if (rootEntry[EXPIRES_AT_SYM] !== this.cleanUpInterval!.willCleanUpOn) {
+				this.scheduleNextGc(rootEntry);
+				return;
+			}
+
+			// eslint-disable-next-line no-constant-condition
+		} while (true);
 	};
+
+	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyEntry<K, V>): void {
+		const runDelay = rootEntry[EXPIRES_AT_SYM] - chrono.unixTime();
+		this.cleanUpInterval!.willCleanUpOn = rootEntry[EXPIRES_AT_SYM];
+		this.cleanUpInterval!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
+	}
 }
 
 export { ProactiveExpirationPolicy, ExpirableCacheKeyEntry };

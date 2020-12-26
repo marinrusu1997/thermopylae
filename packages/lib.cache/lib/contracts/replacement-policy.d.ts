@@ -7,7 +7,7 @@ import { CacheEntry } from './commons';
  *
  * @param key	Name of the key.
  */
-declare type Deleter<Key = string> = (key: Key) => void;
+declare type Deleter<Key> = (key: Key) => void;
 
 /**
  * Context associated with cache set operation.

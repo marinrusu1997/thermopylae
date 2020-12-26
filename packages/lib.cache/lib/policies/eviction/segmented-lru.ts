@@ -45,9 +45,10 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 
 	/**
 	 * @param capacity                      {@link Cache} capacity.
-	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `capacity`.
+	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `capacity`. <br/>
+	 * 										Defaults to 73%.
 	 */
-	public constructor(capacity: Threshold, protectedOverProbationRatio: Percentage) {
+	public constructor(capacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
 		if (capacity < 2) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be at least 2. Given: ${capacity}.`);
 		}
