@@ -141,7 +141,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		}
 	});
 
-	it('should clear all nodes from list', () => {
+	it.skip('should clear all nodes from list', () => {
 		const dll = new DoublyLinkedList<Node>();
 		const DELTA = 250_000;
 

@@ -284,7 +284,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					}
 				});
 
-				it('clears the freq list', () => {
+				it.skip('clears the freq list', () => {
 					const CAPACITY = 1_00_000;
 					const HEAP_USED_DELTA = 150_000;
 

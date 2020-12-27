@@ -27,6 +27,10 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 		this.iter = { bucketsIter: keys, bucket: keys.next(), bucketElementsCount: 0 };
 	}
 
+	public get value(): Map<V, K[]> {
+		return this.map;
+	}
+
 	public get bucket(): K[] {
 		if (this.iter.bucket.done) {
 			throw new Error(`All buckets have been iterated.`);

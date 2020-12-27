@@ -1,4 +1,4 @@
-import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
@@ -32,21 +32,21 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	 * @inheritDoc
 	 */
 	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
-		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
+		if (AbstractExpirationPolicy.isNonExpirable(context)) {
 			return;
 		}
-		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
+		AbstractExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
-		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
+		if (AbstractExpirationPolicy.isNonExpirable(context)) {
 			delete entry[EXPIRES_AT_SYM];
 			return;
 		}
-		this.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
+		AbstractExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom);
 	}
 
 	/**
@@ -75,6 +75,8 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	}
 
 	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): EntryValidity {
+		// @fixme take into account that expiration might be updated to lower, same or highest value
+		// @fixme maybe we should check for <=
 		const expired = expiration != null ? expiration >= chrono.unixTime() : false;
 		if (expired) {
 			this.delete(key);
@@ -83,23 +85,37 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 		return EntryValidity.VALID;
 	}
 
-	protected setEntryExpiration(entry: ExpirableCacheEntry<Value>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		const now = chrono.unixTime();
-		const expiresAt = (expiresFrom || now) + expiresAfter;
+	protected static setEntryExpiration<V>(entry: ExpirableCacheEntry<V>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+		// we check them only for integer, as values are checked implicitly for expiresAt, because we summ them
 
-		AbstractExpirationPolicy.assertValidExpiresAt(entry[EXPIRES_AT_SYM], expiresAt, now);
+		if (!Number.isInteger(expiresAfter)) {
+			throw createException(ErrorCodes.INVALID_VALUE, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
+		}
+
+		const now = chrono.unixTime();
+		let expiresAt: UnixTimestamp;
+
+		if (expiresFrom != null) {
+			if (!Number.isInteger(expiresFrom)) {
+				throw createException(ErrorCodes.INVALID_VALUE, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
+			}
+
+			expiresAt = expiresFrom + expiresAfter;
+		} else {
+			expiresAt = now + expiresAfter;
+		}
+
+		// in case they are equal, item should be immediately evicted
+		// (might happen because unixTime() is rounded, so it can be rounded to next second, i.e. in 1 second ttl scenario)
+		if (expiresAt < now) {
+			throw createException(ErrorCodes.INVALID_VALUE, `'expiresAt' ${expiresAt} is lower than current time ${now}.`);
+		}
 
 		entry[EXPIRES_AT_SYM] = expiresAt;
 	}
 
-	private static assertValidExpiresAt(oldExpiration: Undefinable<UnixTimestamp>, newExpiration: UnixTimestamp, now: UnixTimestamp): void {
-		if (newExpiration <= now) {
-			throw createException(ErrorCodes.INVALID_VALUE, `New expiration ${newExpiration} (UNIX) is lower or equal than current time ${now} (UNIX). `);
-		}
-
-		if (oldExpiration != null && oldExpiration === newExpiration) {
-			throw createException(ErrorCodes.INVALID_VALUE, `New expiration ${newExpiration} (UNIX) is the same as the old one ${oldExpiration} (UNIX). `);
-		}
+	protected static isNonExpirable(context: SetOperationContext): boolean {
+		return context.expiresAfter == null || context.expiresAfter === INFINITE_TTL;
 	}
 }
 

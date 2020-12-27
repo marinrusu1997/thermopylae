@@ -26,7 +26,7 @@ interface ExpirableCacheKey<Key> extends CacheKey<Key> {
 class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
 	private readonly config: Config<Key>;
 
-	private iterateTimeoutId: NodeJS.Timeout | null;
+	private iterateTimeoutId: NodeJS.Timeout | null; // @fixme should not work if there are no items etc.
 
 	private readonly getNextCacheKey: NextCacheKey<Key>;
 

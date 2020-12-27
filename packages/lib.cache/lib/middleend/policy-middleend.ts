@@ -35,6 +35,13 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 	}
 
 	public set(key: K, value: V, ttl: Seconds, expiresFrom?: UnixTimestamp): CacheEntry<V> {
+		/**
+		 * @fixme another bug
+		 * Take care because most policies don't keep metadata in distinct data structures (e.g. Set or Map)
+		 * This way if same item is added multiple times, they will contain duplicates in their internal data structures.
+		 * This will lead to UNDEFINED BEHAVIOUR.
+		 */
+
 		const entry: CacheEntry<V> = this.backend.set(key, value);
 
 		try {
@@ -72,6 +79,9 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		entry.value = value;
 		const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
 		for (const policy of this.policies) {
+			/**
+			 * @fixme take into account that onUpdate might be a hard to do operation, so optimize this scenario (see ProactiveExpirationPolicy)
+			 */
 			policy.onUpdate(key, entry, context);
 		}
 

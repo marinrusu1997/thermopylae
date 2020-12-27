@@ -3,7 +3,6 @@ import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
 import { createException, ErrorCodes } from '../../error';
-import { INFINITE_TTL } from '../../constants';
 import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheKey } from '../../contracts/commons';
 
@@ -25,13 +24,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		super();
 
 		this.entries = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
-			if (first[EXPIRES_AT_SYM] < second[EXPIRES_AT_SYM]) {
-				return -1;
-			}
-			if (first[EXPIRES_AT_SYM] > second[EXPIRES_AT_SYM]) {
-				return 1;
-			}
-			return 0;
+			return first[EXPIRES_AT_SYM] - second[EXPIRES_AT_SYM];
 		});
 		this.cleanUpInterval = null;
 	}
@@ -40,21 +33,17 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return this.entries.size();
 	}
 
-	public get requiresEntryOnDeletion(): boolean {
-		return false;
-	}
-
 	public onHit(): EntryValidity {
 		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return EntryValidity.VALID;
 	}
 
 	public onSet(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
-		if (context.expiresAfter == null || context.expiresAfter === INFINITE_TTL) {
+		if (ProactiveExpirationPolicy.isNonExpirable(context)) {
 			return;
 		}
 
-		super.setEntryExpiration(entry, context.expiresAfter, context.expiresFrom);
+		ProactiveExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom);
 		entry.key = key;
 
 		this.doScheduleDelete(entry);
@@ -62,12 +51,11 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 
 	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
+		super.onUpdate(key, entry, context); // this will update entry ttl with some validations
 
-		super.onUpdate(key, entry, context);
+		// @fixme this needs to be optimized, hugeee
+		const keyIndex = this.entries.findIndex((item) => item.key === key);
 
-		const keyIndex = this.findKeyIndex(key);
-
-		// @fixme write some tests for these if's
 		if (keyIndex !== -1) {
 			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
@@ -83,15 +71,25 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 			return this.synchronize();
 		}
 
-		// this is an update of item which had infinite timeout, now we need to track it
-		entry.key = key;
-		return this.doScheduleDelete(entry);
+		if (!ProactiveExpirationPolicy.isNonExpirable(context)) {
+			// this is an update of item which had infinite timeout, now we need to track it
+			entry.key = key;
+			return this.doScheduleDelete(entry);
+		}
+
+		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
 	public onDelete(key: Key): void {
-		const keyIndex = this.findKeyIndex(key); // when key is root, find is O(1)
+		// @ fixme this has no tests
+		// @fixme can we optimize this? of course if we have entry we can directly know whether we track it or not
+
+		// @fixme but what if we remember the index after entry is added into Heap?? heap operations should return index of the entry,
+		//  but take care to keep this index in sync, otherwise naspa
+		const keyIndex = this.entries.findIndex((item) => item.key === key); // when key is root, find is O(1)
 
 		if (keyIndex === -1) {
+			// @fixme maybe we need to ignore it ??
 			throw createException(ErrorCodes.NOT_FOUND, `Attempt to delete key ${key} which isn't tracked. `);
 		}
 
@@ -99,17 +97,14 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	}
 
 	public onClear(): void {
+		// @ fixme this has no tests
+
 		this.entries.clear();
 		this.synchronize();
 	}
 
 	public isIdle(): boolean {
 		return this.cleanUpInterval == null;
-	}
-
-	private findKeyIndex(key: Key): number {
-		const equals = (item: ExpirableCacheKeyEntry<Key, Value>): boolean => item.key === key;
-		return this.entries.findIndex(equals);
 	}
 
 	private doDelete(entryIndex: number): void {
@@ -133,6 +128,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		const rootEntry = this.entries.peek();
 
 		if (rootEntry === undefined) {
+			// cleanUpInterval might remain, if for example we got onClear, and there were scheduled removal of items
 			if (this.cleanUpInterval != null) {
 				clearTimeout(this.cleanUpInterval.timeoutId);
 				this.cleanUpInterval = null;
@@ -159,16 +155,8 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	private doCleanUp = (): void => {
 		let rootEntry = this.entries.peek();
 
-		if (rootEntry === undefined) {
-			// @fixme to be removed
-			throw createException(
-				ErrorCodes.BAD_INVARIANT,
-				`Clean up handler has been invoked, but expirable keys heap is empty. Scheduling had been made for ${this.cleanUpInterval!.willCleanUpOn}`
-			);
-		}
-
 		do {
-			this.delete(rootEntry.key); // remove from cache (if this throws we have meta-data and can retry operation)
+			this.delete(rootEntry!.key); // remove from cache (if this throws we have meta-data and can retry operation)
 			this.entries.pop(); // remove from internal structure
 
 			rootEntry = this.entries.peek();
@@ -188,6 +176,8 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	};
 
 	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyEntry<K, V>): void {
+		// in case runDelay <= 0, it's safe, as we will remove item immediately
+		// (this might be caused because unixTime is actually a rounded value, so it can be rounded to current, or next second)
 		const runDelay = rootEntry[EXPIRES_AT_SYM] - chrono.unixTime();
 		this.cleanUpInterval!.willCleanUpOn = rootEntry[EXPIRES_AT_SYM];
 		this.cleanUpInterval!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);

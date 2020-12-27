@@ -308,4 +308,9 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		policy.onClear();
 		expect(policy.size).to.be.eq(0);
 	});
+
+	it('requires entry on deletion', () => {
+		const policy = new SegmentedLRUPolicy<string, number>(2, 0.5);
+		expect(policy.requiresEntryOnDeletion).to.be.eq(true);
+	});
 });

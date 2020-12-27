@@ -57,7 +57,7 @@ declare interface CacheFrontend<Key, Value> {
 	 *
 	 * @param keys	Name of the keys.
 	 */
-	mget(keys: Array<Key>): Map<Key, Undefinable<Value>>;
+	mget(keys: Array<Key>): Map<Key, Undefinable<Value>>; // @fixme useless shit
 
 	/**
 	 * Take `key` from cache.
@@ -81,7 +81,7 @@ declare interface CacheFrontend<Key, Value> {
 	 *
 	 * @param keys	Name of the keys.
 	 */
-	mdel(keys: Array<Key>): void;
+	mdel(keys: Array<Key>): void; // @fixme useless shit
 
 	/**
 	 * Set `ttl` for `key`.
