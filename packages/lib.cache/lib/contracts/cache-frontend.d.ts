@@ -18,6 +18,8 @@ declare interface CacheFrontend<Key, Value> {
 	 * Set `value` for `key. <br/>
 	 * **This method needs to be used when you are sure that key is not present.**
 	 *
+	 * // @fixme this needs to be removed
+	 *
 	 * @param key			Name of the key.
 	 * @param value			Associated value.
 	 * @param ttl			Time to live.

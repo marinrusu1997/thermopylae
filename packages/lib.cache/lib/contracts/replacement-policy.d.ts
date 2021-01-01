@@ -84,7 +84,8 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * @param key		Name of the key.
 	 * @param entry		Associated entry.
 	 */
-	onDelete(key: Key, entry?: CacheEntry<Value>): void;
+	onDelete(key: Key, entry?: CacheEntry<Value>): void; // @fixme make entry non optional
+	// @fixme each policy should detach metadata from entry after eviction/delete, as entry might be reused by backend
 
 	/**
 	 * Hook executed after cache has been cleared.
@@ -100,7 +101,7 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * Flag which indicates whether policy needs {@link CacheEntry} with metadata
 	 * when {@link CacheReplacementPolicy.onDelete} is invoked.
 	 */
-	readonly requiresEntryOnDeletion: boolean;
+	readonly requiresEntryOnDeletion: boolean; // @fixme to be removed, almost all of them require this, because they attach metadata
 }
 
 export { CacheReplacementPolicy, Deleter, SetOperationContext, EntryValidity };

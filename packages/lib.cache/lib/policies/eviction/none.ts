@@ -4,6 +4,7 @@ import { createException, ErrorCodes } from '../../error';
 import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
+// @fixme maybe this also needs to be removed, just no insert any policy into middle-end at all
 class NoneEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	private readonly capacity: Threshold;
 

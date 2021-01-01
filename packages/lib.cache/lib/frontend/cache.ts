@@ -31,6 +31,8 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	 * @deprecated use this function when you know that key does not exist in cache 100%
 	 */
 	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
+		// @fixme this needs to be removed
+
 		return this.internalSet(key, value, ttl, expiresFrom, true);
 	}
 

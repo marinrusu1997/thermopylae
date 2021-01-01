@@ -23,6 +23,8 @@ declare interface CacheMiddleEnd<Key, Value> {
 	/**
 	 * Set `value` associated with `key`.
 	 *
+	 * // @fixme this needs to be removed
+	 *
 	 * @param key			Name of the key.
 	 * @param value			It's associated value.
 	 * @param ttl			Time to live for `key`. <br/>
@@ -33,6 +35,7 @@ declare interface CacheMiddleEnd<Key, Value> {
 
 	/**
 	 * Replace old value of the `key` with new `value`.
+	 *
 	 *
 	 * @param key			Name of the key.
 	 * @param value			New value.

@@ -2,7 +2,6 @@ import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
-import { createException, ErrorCodes } from '../../error';
 import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 import { CacheKey } from '../../contracts/commons';
 
@@ -84,16 +83,13 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		// @ fixme this has no tests
 		// @fixme can we optimize this? of course if we have entry we can directly know whether we track it or not
 
-		// @fixme but what if we remember the index after entry is added into Heap?? heap operations should return index of the entry,
+		// @fixme but what if we remember the index after entry is added into Heap?? we will build our own heap that will do this
 		//  but take care to keep this index in sync, otherwise naspa
 		const keyIndex = this.entries.findIndex((item) => item.key === key); // when key is root, find is O(1)
 
-		if (keyIndex === -1) {
-			// @fixme maybe we need to ignore it ??
-			throw createException(ErrorCodes.NOT_FOUND, `Attempt to delete key ${key} which isn't tracked. `);
+		if (keyIndex !== -1) {
+			this.doDelete(keyIndex);
 		}
-
-		this.doDelete(keyIndex);
 	}
 
 	public onClear(): void {
@@ -101,6 +97,10 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 
 		this.entries.clear();
 		this.synchronize();
+	}
+
+	public get requiresEntryOnDeletion(): boolean {
+		return false;
 	}
 
 	public isIdle(): boolean {
@@ -128,7 +128,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		const rootEntry = this.entries.peek();
 
 		if (rootEntry === undefined) {
-			// cleanUpInterval might remain, if for example we got onClear, and there were scheduled removal of items
+			// cleanUpInterval might remain, if for example we got onClear/onDelete, and there were scheduled removal of items
 			if (this.cleanUpInterval != null) {
 				clearTimeout(this.cleanUpInterval.timeoutId);
 				this.cleanUpInterval = null;

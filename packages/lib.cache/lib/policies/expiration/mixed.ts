@@ -1,38 +1,38 @@
 import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
 import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
 import { SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheKey } from '../../contracts/commons';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 
-type NextCacheKey<Key> = () => ExpirableCacheKey<Key> | null;
+type NextCacheKey<Key, Value> = () => ExpirableCacheKey<Key, Value> | null;
 
 type QueryCollectionSize = () => number;
 
-interface IterativeExpirationPolicyConfig<Key> {
-	nextCacheKey: NextCacheKey<Key>;
+interface IterativeExpirationPolicyConfig<Key, Value> {
+	nextCacheKey: NextCacheKey<Key, Value>;
 	collectionSize: QueryCollectionSize;
 	checkInterval?: Seconds;
 	iterateThreshold?: Threshold;
 }
 
-interface Config<Key> extends IterativeExpirationPolicyConfig<Key> {
+interface Config<Key, Value> extends IterativeExpirationPolicyConfig<Key, Value> {
 	checkInterval: Milliseconds;
 	iterateThreshold: Threshold;
 }
 
-interface ExpirableCacheKey<Key> extends CacheKey<Key> {
-	expiresAt?: UnixTimestamp;
+interface ExpirableCacheKey<Key, Value> extends CacheKey<Key>, CacheEntry<Value> {
+	[EXPIRES_AT_SYM]?: UnixTimestamp; // @fixme replace by sym the fuck
 }
 
 class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
-	private readonly config: Config<Key>;
+	private readonly config: Config<Key, Value>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null; // @fixme should not work if there are no items etc.
 
-	private readonly getNextCacheKey: NextCacheKey<Key>;
+	private readonly getNextCacheKey: NextCacheKey<Key, Value>;
 
 	private readonly getCollectionSize: QueryCollectionSize;
 
-	constructor(config: IterativeExpirationPolicyConfig<Key>) {
+	constructor(config: IterativeExpirationPolicyConfig<Key, Value>) {
 		super();
 
 		this.config = IterativeExpirationPolicy.fillWithDefaults(config);
@@ -91,18 +91,18 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
 	}
 
-	private iterate(currentIteration: number): [number, ExpirableCacheKey<Key> | null] {
-		let cacheKey = this.getNextCacheKey();
+	private iterate(currentIteration: number): [number, ExpirableCacheKey<Key, Value> | null] {
+		let cacheKey = this.getNextCacheKey(); // @fixme get next cache entry
 		for (; currentIteration < this.config.iterateThreshold && cacheKey != null; currentIteration += 1, cacheKey = this.getNextCacheKey()) {
-			super.doRemovalIfExpired(cacheKey.key, cacheKey.expiresAt);
+			super.evictIfExpired(cacheKey.key, cacheKey); // @fixme maybe we need to call super.onHit, and remove this protected fn ?
 		}
 		return [currentIteration, cacheKey];
 	}
 
-	private static fillWithDefaults<K>(config: IterativeExpirationPolicyConfig<K>): Config<K> {
+	private static fillWithDefaults<K, V>(config: IterativeExpirationPolicyConfig<K, V>): Config<K, V> {
 		config.checkInterval = (config.checkInterval || 30) * 1000;
 		config.iterateThreshold = config.iterateThreshold || 1000;
-		return config as Config<K>;
+		return config as Config<K, V>;
 	}
 }
 

@@ -1,4 +1,4 @@
-import { array, chrono, number } from '@thermopylae/lib.utils';
+import { array, chrono, number, string } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { describe, it } from 'mocha';
@@ -78,7 +78,6 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const POLICY = new ProactiveExpirationPolicy<string, any>();
 
 			expect(() => POLICY.onSet('a', generateEntry('a'), generateSetContext(0.1))).to.throw(`'expiresAfter' needs to be an integer. Given: ${0.1}.`);
-
 			expect(() => POLICY.onSet('a', generateEntry('a'), generateSetContext(1, 0.1))).to.throw(`'expiresFrom' needs to be an integer. Given: ${0.1}.`);
 
 			/* const POLICY = new ProactiveExpirationPolicy<string, any>();
@@ -737,5 +736,58 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const policy = new ProactiveExpirationPolicy();
 			expect(policy.requiresEntryOnDeletion).to.be.eq(false);
 		});
+
+		it("does not remove keys that don't have expiration", () => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
+			policy.onSet('a', generateEntry('a'), generateSetContext(null));
+			expect(policy.size).to.be.eq(0);
+
+			policy.onDelete('a'); // expecting not to throw
+			expect(policy.size).to.be.eq(0);
+		});
+
+		it('removes entry from internal tracking after it is deleted', (done) => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
+			const EVICTED_KEYS = new Array<string>();
+			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+
+			const KEYS_BY_TTL = new Map<number, string[]>([
+				[1, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))],
+				[2, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))],
+				[3, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))]
+			]);
+
+			let totalEntries = 0;
+			for (const [ttl, keys] of KEYS_BY_TTL) {
+				if (!keys.length) {
+					continue;
+				}
+				totalEntries += keys.length;
+
+				const context = generateSetContext(ttl);
+				for (const key of keys) {
+					policy.onSet(key, generateEntry(key), context);
+				}
+
+				setTimeout(() => {
+					for (const key of array.shuffle(keys)) {
+						// delete them in random order
+						policy.onDelete(key);
+					}
+				}, chrono.secondsToMilliseconds(ttl - 1));
+			}
+			expect(policy.size).to.be.eq(totalEntries);
+
+			setTimeout(() => {
+				try {
+					expect(EVICTED_KEYS).to.be.ofSize(0); // all of they were deleted explicitly, there was no need to evict them
+					expect(policy.size).to.be.eq(0); // all of them were deleted
+					expect(policy.isIdle()).to.be.eq(true); // gc should stop
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, 3100);
+		}).timeout(3200);
 	});
 });

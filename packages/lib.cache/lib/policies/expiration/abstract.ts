@@ -18,7 +18,7 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	 * @inheritDoc
 	 */
 	public onHit(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
-		return this.doRemovalIfExpired(key, entry[EXPIRES_AT_SYM]);
+		return this.evictIfExpired(key, entry);
 	}
 
 	/**
@@ -43,24 +43,24 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	 */
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
 		if (AbstractExpirationPolicy.isNonExpirable(context)) {
-			delete entry[EXPIRES_AT_SYM];
+			delete entry[EXPIRES_AT_SYM]; // maybe previously it had ttl
 			return;
 		}
-		AbstractExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom);
+		AbstractExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom); // overwrites or adds expiration
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, _entry?: ExpirableCacheEntry<Value>): void {
-		return undefined; // just do nothing
+	public onDelete(_key: Key, entry: ExpirableCacheEntry<Value>): void {
+		delete entry[EXPIRES_AT_SYM]; // detach metadata, as entry might be reused by cache backend
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public onClear(): void {
-		return undefined; // just do nothing
+		// there is no need to clear metadata, backend entries should also be removed
 	}
 
 	/**
@@ -71,22 +71,21 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	}
 
 	public get requiresEntryOnDeletion(): boolean {
-		return false;
+		return true;
 	}
 
-	protected doRemovalIfExpired(key: Key, expiration?: UnixTimestamp | null): EntryValidity {
-		// @fixme take into account that expiration might be updated to lower, same or highest value
-		// @fixme maybe we should check for <=
-		const expired = expiration != null ? expiration >= chrono.unixTime() : false;
+	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
+		const expired = entry[EXPIRES_AT_SYM] != null ? entry[EXPIRES_AT_SYM]! <= chrono.unixTime() : false;
 		if (expired) {
 			this.delete(key);
+			delete entry[EXPIRES_AT_SYM];
 			return EntryValidity.NOT_VALID;
 		}
 		return EntryValidity.VALID;
 	}
 
 	protected static setEntryExpiration<V>(entry: ExpirableCacheEntry<V>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
-		// we check them only for integer, as values are checked implicitly for expiresAt, because we summ them
+		// we check them only for integer, as values are checked implicitly for expiresAt, because we sum them
 
 		if (!Number.isInteger(expiresAfter)) {
 			throw createException(ErrorCodes.INVALID_VALUE, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
