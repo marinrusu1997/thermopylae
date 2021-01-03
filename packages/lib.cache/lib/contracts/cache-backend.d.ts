@@ -2,12 +2,35 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheEntry } from './commons';
 
 /**
+ * Cache backend iterable protocol.
+ *
+ * @template Key	Type of the key.
+ * @template Value	Type of the value.
+ */
+interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Value>]> {
+	/**
+	 * Iterate over stored entries.
+	 */
+	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]>;
+
+	/**
+	 * Returns an iterable of stored keys.
+	 */
+	keys(): IterableIterator<Key>;
+
+	/**
+	 * Returns an iterable of stored values.
+	 */
+	values(): IterableIterator<CacheEntry<Value>>;
+}
+
+/**
  * Represents an abstraction over the cache storage.
  *
  * @template Key	Type of the key.
  * @template Value	Type of the value.
  */
-declare interface CacheBackend<Key, Value> {
+declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Value> {
 	/**
 	 * Get the {@link CacheEntry} associated with `key`.
 	 *
@@ -42,19 +65,9 @@ declare interface CacheBackend<Key, Value> {
 	del(key: Key, entry: boolean): boolean | Undefinable<CacheEntry<Value>>;
 
 	/**
-	 * Returns an iterator over stored keys.
-	 */
-	keys(): IterableIterator<Key>;
-
-	/**
 	 * Remove all entries from storage.
 	 */
 	clear(): void;
-
-	/**
-	 * Iterate over stored entries.
-	 */
-	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]>;
 
 	/**
 	 * Number of stored entries.
@@ -62,4 +75,4 @@ declare interface CacheBackend<Key, Value> {
 	readonly size: number;
 }
 
-export { CacheBackend };
+export { CacheBackend, IterableCacheBackend };

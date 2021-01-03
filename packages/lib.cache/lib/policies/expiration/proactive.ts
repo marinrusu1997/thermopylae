@@ -1,29 +1,24 @@
 import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
+import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
 import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheKey } from '../../contracts/commons';
 
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
 }
 
-interface ExpirableCacheKeyEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {
-	[EXPIRES_AT_SYM]: UnixTimestamp;
-}
-
 class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
-	private readonly entries: Heap<ExpirableCacheKeyEntry<Key, Value>>;
+	private readonly entries: Heap<ExpirableCacheKeyedEntry<Key, Value>>;
 
 	private cleanUpInterval: Nullable<CleanUpInterval>;
 
 	public constructor() {
 		super();
 
-		this.entries = new Heap<ExpirableCacheKeyEntry<Key, Value>>((first, second) => {
-			return first[EXPIRES_AT_SYM] - second[EXPIRES_AT_SYM];
+		this.entries = new Heap<ExpirableCacheKeyedEntry<Key, Value>>((first, second) => {
+			return first[EXPIRES_AT_SYM]! - second[EXPIRES_AT_SYM]!;
 		});
 		this.cleanUpInterval = null;
 	}
@@ -37,7 +32,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return EntryValidity.VALID;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
 		if (ProactiveExpirationPolicy.isNonExpirable(context)) {
 			return;
 		}
@@ -48,7 +43,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.doScheduleDelete(entry);
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyEntry<Key, Value>, context: SetOperationContext): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
 		super.onUpdate(key, entry, context); // this will update entry ttl with some validations
 
@@ -115,7 +110,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.synchronize();
 	}
 
-	private doScheduleDelete(entry: ExpirableCacheKeyEntry<Key, Value>): void {
+	private doScheduleDelete(entry: ExpirableCacheKeyedEntry<Key, Value>): void {
 		this.entries.push(entry);
 		this.synchronize();
 	}
@@ -175,13 +170,13 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		} while (true);
 	};
 
-	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyEntry<K, V>): void {
+	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyedEntry<K, V>): void {
 		// in case runDelay <= 0, it's safe, as we will remove item immediately
 		// (this might be caused because unixTime is actually a rounded value, so it can be rounded to current, or next second)
-		const runDelay = rootEntry[EXPIRES_AT_SYM] - chrono.unixTime();
-		this.cleanUpInterval!.willCleanUpOn = rootEntry[EXPIRES_AT_SYM];
+		const runDelay = rootEntry[EXPIRES_AT_SYM]! - chrono.unixTime(); // we track only items that have expires at
+		this.cleanUpInterval!.willCleanUpOn = rootEntry[EXPIRES_AT_SYM]!;
 		this.cleanUpInterval!.timeoutId = setTimeout(this.doCleanUp, runDelay * 1000);
 	}
 }
 
-export { ProactiveExpirationPolicy, ExpirableCacheKeyEntry };
+export { ProactiveExpirationPolicy };

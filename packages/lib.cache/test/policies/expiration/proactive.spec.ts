@@ -1,27 +1,12 @@
 import { array, chrono, number, string } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { ExpirableCacheKeyEntry, ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
-import { EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
-import { Deleter, EntryValidity, SetOperationContext } from '../../../lib/contracts/replacement-policy';
-import { INFINITE_TTL } from '../../../lib';
-
-function generateEntry<K>(key: K): ExpirableCacheKeyEntry<K, any> {
-	return {
-		key,
-		value: array.randomElement(generateEntry.VALUES),
-		[EXPIRES_AT_SYM]: 0
-	};
-}
-generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
-
-function generateSetContext(expiresAfter?: Seconds | null, expiresFrom?: UnixTimestamp): SetOperationContext {
-	// @ts-expect-error
-	return { totalEntriesNo: 0, expiresAfter, expiresFrom };
-}
+import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
+import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { generateEntry, generateSetContext } from './commons';
+import { INFINITE_TTL } from '../../../lib/constants';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second

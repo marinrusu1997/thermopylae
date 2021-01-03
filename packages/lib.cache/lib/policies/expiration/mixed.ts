@@ -1,62 +1,74 @@
-import { Milliseconds, Seconds, UnixTimestamp, Threshold } from '@thermopylae/core.declarations';
-import { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM } from './abstract';
+import { Milliseconds, Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
+import { chrono } from '@thermopylae/lib.utils';
+import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
 import { SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
 
-type NextCacheKey<Key, Value> = () => ExpirableCacheKey<Key, Value> | null;
+/**
+ * Circular iterator over {@link CacheBackend} entries. <br/>
+ * It should always return an entry by cycling over cache entries,
+ * unless there are no more, in which case it should return `null`.
+ */
+type CacheEntriesCircularIterator<Key, Value> = () => ExpirableCacheKeyedEntry<Key, Value> | null;
 
-type QueryCollectionSize = () => number;
+/**
+ * Query number of elements in the cache.
+ */
+type CacheSizeGetter = () => number;
 
-interface IterativeExpirationPolicyConfig<Key, Value> {
-	nextCacheKey: NextCacheKey<Key, Value>;
-	collectionSize: QueryCollectionSize;
+interface MixedExpirationPolicyConfig<Key, Value> {
+	/**
+	 * Next cache entry getter.
+	 */
+	getNextCacheEntry: CacheEntriesCircularIterator<Key, Value>;
+
+	/**
+	 * Get number of elements in the cache.
+	 */
+	getCacheSize: CacheSizeGetter;
+
+	/**
+	 * Interval for running GC that checks for expired entries. <br/>
+	 * Defaults to 30 seconds.
+	 */
 	checkInterval?: Seconds;
+	/**
+	 * How many entries GC needs to check for expiration. <br/>
+	 * Defaults to 1000.
+	 */
 	iterateThreshold?: Threshold;
 }
 
-interface Config<Key, Value> extends IterativeExpirationPolicyConfig<Key, Value> {
+interface Config<Key, Value> extends MixedExpirationPolicyConfig<Key, Value> {
 	checkInterval: Milliseconds;
 	iterateThreshold: Threshold;
 }
 
-interface ExpirableCacheKey<Key, Value> extends CacheKey<Key>, CacheEntry<Value> {
-	[EXPIRES_AT_SYM]?: UnixTimestamp; // @fixme replace by sym the fuck
-}
-
-class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
+class MixedExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
 	private readonly config: Config<Key, Value>;
 
-	private iterateTimeoutId: NodeJS.Timeout | null; // @fixme should not work if there are no items etc.
+	private iterateTimeoutId: NodeJS.Timeout | null;
 
-	private readonly getNextCacheKey: NextCacheKey<Key, Value>;
-
-	private readonly getCollectionSize: QueryCollectionSize;
-
-	constructor(config: IterativeExpirationPolicyConfig<Key, Value>) {
+	constructor(config: MixedExpirationPolicyConfig<Key, Value>) {
 		super();
 
-		this.config = IterativeExpirationPolicy.fillWithDefaults(config);
+		this.config = MixedExpirationPolicy.fillWithDefaults(config);
 		this.iterateTimeoutId = null;
-		this.getNextCacheKey = this.config.nextCacheKey;
-		this.getCollectionSize = this.config.collectionSize;
-
-		// @ts-ignore
-		delete this.config.nextCacheKey;
-		// @ts-ignore
-		delete this.config.collectionSize;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
 		super.onSet(key, entry, context);
+		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
-			this.start();
+			// will be idle only if there are no more items in the cache
+			this.scheduleNextCleanup();
 		}
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheEntry<Value>, context: SetOperationContext): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
 		super.onUpdate(key, entry, context);
+		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
-			this.start();
+			this.scheduleNextCleanup();
 		}
 	}
 
@@ -67,43 +79,54 @@ class IterativeExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		}
 	}
 
-	private cleanup = (): void => {
-		const [currentIteration, currentCacheKey] = this.iterate(0);
-
-		// check if we reached end and need to start from beginning
-		if (currentIteration < this.config.iterateThreshold && currentCacheKey == null && currentIteration < this.getCollectionSize()) {
-			this.iterate(currentIteration);
-		}
-
-		if (this.getCollectionSize() === 0) {
-			this.iterateTimeoutId = null;
-			return;
-		}
-
-		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
-	};
-
-	private isIdle(): boolean {
+	public isIdle(): boolean {
 		return this.iterateTimeoutId == null;
 	}
 
-	private start(): void {
+	private cleanup = (): void => {
+		const startingEntry = this.config.getNextCacheEntry();
+		if (startingEntry == null) {
+			// we need to check each time, because while we loop we might evict all entries before reaching iterate threshold
+			this.iterateTimeoutId = null; // stop GC
+			return;
+		}
+
+		let currentEntry: Nullable<ExpirableCacheKeyedEntry<Key, Value>> = startingEntry; // from now on there must be at least 1 entry
+		let iteratedEntries = 0;
+
+		do {
+			super.evictIfExpired(currentEntry.key, currentEntry);
+
+			// prefix incr to count entry processed above
+			if (++iteratedEntries < this.config.iterateThreshold) {
+				currentEntry = this.config.getNextCacheEntry()!;
+				continue; // go for evaluation of next entry, but only if it differs from the starting one
+			}
+
+			break; // early exit from loop, because iterate threshold has been met
+
+			// eslint-disable-next-line eqeqeq
+		} while (currentEntry != startingEntry && this.config.getCacheSize()); // while we iterate we might evict all entries, so check for cache emptiness
+
+		if (this.config.getCacheSize()) {
+			// if we are there it means we have some unprocessed entries, so schedule next cleanup
+			this.scheduleNextCleanup();
+			return;
+		}
+
+		this.iterateTimeoutId = null; // stop GC
+	};
+
+	private scheduleNextCleanup(): void {
 		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
 	}
 
-	private iterate(currentIteration: number): [number, ExpirableCacheKey<Key, Value> | null] {
-		let cacheKey = this.getNextCacheKey(); // @fixme get next cache entry
-		for (; currentIteration < this.config.iterateThreshold && cacheKey != null; currentIteration += 1, cacheKey = this.getNextCacheKey()) {
-			super.evictIfExpired(cacheKey.key, cacheKey); // @fixme maybe we need to call super.onHit, and remove this protected fn ?
-		}
-		return [currentIteration, cacheKey];
-	}
-
-	private static fillWithDefaults<K, V>(config: IterativeExpirationPolicyConfig<K, V>): Config<K, V> {
-		config.checkInterval = (config.checkInterval || 30) * 1000;
+	private static fillWithDefaults<K, V>(config: MixedExpirationPolicyConfig<K, V>): Config<K, V> {
+		config = { ...config };
+		config.checkInterval = chrono.secondsToMilliseconds(config.checkInterval || 30);
 		config.iterateThreshold = config.iterateThreshold || 1000;
 		return config as Config<K, V>;
 	}
 }
 
-export { IterativeExpirationPolicy, ExpirableCacheKey, NextCacheKey, QueryCollectionSize, IterativeExpirationPolicyConfig };
+export { MixedExpirationPolicy, CacheEntriesCircularIterator, MixedExpirationPolicyConfig };

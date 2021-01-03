@@ -3,13 +3,15 @@ import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
 import { INFINITE_TTL } from '../../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheEntry } from '../../contracts/commons';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
 
 interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
+
+interface ExpirableCacheKeyedEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {}
 
 abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	protected delete!: Deleter<Key>;
@@ -118,4 +120,4 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	}
 }
 
-export { AbstractExpirationPolicy, ExpirableCacheEntry, EXPIRES_AT_SYM };
+export { AbstractExpirationPolicy, ExpirableCacheEntry, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM };

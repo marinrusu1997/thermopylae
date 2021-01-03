@@ -1,12 +1,12 @@
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { array, chrono } from '@thermopylae/lib.utils';
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { expect } from '@thermopylae/lib.unit-test';
 import { ReactiveExpirationPolicy } from '../../../lib/policies/expiration/reactive';
 import { ExpirableCacheEntry, EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
 import { EntryValidity, SetOperationContext } from '../../../lib/contracts/replacement-policy';
-import { INFINITE_TTL } from '../../../lib';
+import { generateSetContext } from './commons';
+import { INFINITE_TTL } from '../../../lib/constants';
 
 function generateEntry(): ExpirableCacheEntry<any> {
 	return {
@@ -14,11 +14,6 @@ function generateEntry(): ExpirableCacheEntry<any> {
 	};
 }
 generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
-
-function generateSetContext(expiresAfter?: Seconds | null, expiresFrom?: UnixTimestamp): SetOperationContext {
-	// @ts-expect-error
-	return { totalEntriesNo: 0, expiresAfter, expiresFrom };
-}
 
 describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 	describe(`${ReactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {

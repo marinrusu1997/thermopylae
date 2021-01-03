@@ -1,23 +1,25 @@
-import { CacheBackend } from './contracts/cache-backend';
+import { IterableCacheBackend } from './contracts/cache-backend';
+import { ExpirableCacheKeyedEntry } from './policies/expiration/abstract';
+import { CacheEntriesCircularIterator } from './policies/expiration/mixed';
 import { CacheEntry } from './contracts/commons';
-import { NextCacheKey } from './policies/expiration';
-import { ExpirableCacheKey } from './policies/expiration/mixed';
 
-function generateCacheIterator<K, V>(backend: CacheBackend<K, V>): NextCacheKey<K> {
-	let iterator: IterableIterator<[K, CacheEntry<V>]> = backend[Symbol.iterator]();
+function createCacheEntriesCircularIterator<Key, Value>(backend: IterableCacheBackend<Key, Value>): CacheEntriesCircularIterator<Key, Value> {
+	let iterator: IterableIterator<CacheEntry<Value>> = backend.values();
 
-	return function nextCacheKey(): ExpirableCacheKey<K> | null {
-		const entry = iterator.next();
+	return function nextCacheKey(): ExpirableCacheKeyedEntry<Key, Value> | null {
+		let entry = iterator.next();
 
 		if (entry.done) {
-			iterator = backend[Symbol.iterator](); // reposition to beginning
-			return null;
+			iterator = backend.values(); // reset iter to beginning
+			entry = iterator.next();
+
+			if (entry.done) {
+				return null; // there are no more entries
+			}
 		}
 
-		// FIXME test for key availability
-		// @ts-ignore
-		return entry.value[1];
+		return entry.value as ExpirableCacheKeyedEntry<Key, Value>;
 	};
 }
 
-export { generateCacheIterator };
+export { createCacheEntriesCircularIterator };
