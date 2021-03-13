@@ -4,6 +4,9 @@ import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
 import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
 
+/**
+ * @internal
+ */
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
@@ -95,6 +98,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	}
 
 	public get requiresEntryOnDeletion(): boolean {
+		// @fixme this needs to dissappear
 		return false;
 	}
 

@@ -33,6 +33,7 @@ export interface Identity {
 export const enum ErrorCodes {
 	BAD_INVARIANT = 'BAD_INVARIANT',
 	DUPLICATE = 'DUPLICATE',
+	EXISTS = 'EXISTS',
 	FULL = 'FULL',
 	INVALID_TYPE = 'INVALID_TYPE',
 	INVALID_VALUE = 'INVALID_VALUE',

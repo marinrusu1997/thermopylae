@@ -178,6 +178,7 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 	switch (concurrency) {
 		case ConcurrencyType.PARALLEL:
 			return Promise.all(array.map(predicate)).then((results) => array.filter((_, index) => results[index]));
+
 		case ConcurrencyType.SEQUENTIAL: {
 			const results = new Array<T>();
 			for (const item of array) {
@@ -187,8 +188,9 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 			}
 			return results;
 		}
+
 		default:
-			return Promise.reject(createException(ErrorCodes.NOT_SUPPORTED, `Can't handle given concurrency ${concurrency}.`));
+			throw createException(ErrorCodes.NOT_SUPPORTED, `Can't handle given concurrency ${concurrency}.`);
 	}
 }
 

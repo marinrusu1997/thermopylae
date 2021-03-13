@@ -38,8 +38,18 @@ interface MixedExpirationPolicyConfig<Key, Value> {
 	iterateThreshold?: Threshold;
 }
 
+/**
+ * {@link MixedExpirationPolicy} internal configuration.
+ * @internal
+ */
 interface Config<Key, Value> extends MixedExpirationPolicyConfig<Key, Value> {
+	/**
+	 * @inheritDoc
+	 */
 	checkInterval: Milliseconds;
+	/**
+	 * @inheritDoc
+	 */
 	iterateThreshold: Threshold;
 }
 

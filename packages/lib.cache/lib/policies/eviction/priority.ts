@@ -15,21 +15,33 @@ class PriorityEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, 
 		this.requiresEntryOnDeletion = false;
 	}
 
-	public onHit(key: Key, entry: CacheEntry<Value>): EntryValidity {
+	public onHit(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
+		return EntryValidity.NOT_VALID;
+	}
+
+	public onMiss(_key: Key): void {
 		return undefined;
 	}
 
-	public onMiss(key: Key): void {}
+	public onSet(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+		return undefined;
+	}
 
-	public onSet(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void {}
+	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+		return undefined;
+	}
 
-	public onUpdate(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void {}
+	public onDelete(_key: Key, _entry?: CacheEntry<Value>): void {
+		return undefined;
+	}
 
-	public onDelete(key: Key, entry?: CacheEntry<Value>): void {}
+	public onClear(): void {
+		return undefined;
+	}
 
-	public onClear(): void {}
-
-	public setDeleter(deleter: Deleter<Key>): void {}
+	public setDeleter(_deleter: Deleter<Key>): void {
+		return undefined;
+	}
 }
 
 export { PriorityEvictionPolicy, CacheEntryPriority };
