@@ -1,5 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import { Undefinable } from '@thermopylae/core.declarations';
+import { string } from '@thermopylae/lib.utils';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	private readonly map: Map<V, K[]>;
@@ -79,4 +80,21 @@ class MapUtils {
 	}
 }
 
-export { ReverseMap, MapUtils };
+class UniqueKeysGenerator {
+	private readonly generatedKeys: Set<string>;
+
+	private readonly generationOptions: Partial<string.RandomStringOptions>;
+
+	public constructor(keyLength: number, keyRegex?: RegExp) {
+		this.generationOptions = { length: keyLength, allowedCharRegex: keyRegex };
+		this.generatedKeys = new Set<string>();
+	}
+
+	public generate(): string {
+		let key;
+		while (this.generatedKeys.has((key = string.random(this.generationOptions))));
+		return key;
+	}
+}
+
+export { ReverseMap, MapUtils, UniqueKeysGenerator };

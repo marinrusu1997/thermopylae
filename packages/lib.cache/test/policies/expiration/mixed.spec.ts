@@ -171,7 +171,13 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 					const expectedNumOfEvictedKeys = KEYS_BY_TTL.ONE_SECOND.length + Math.min(CONFIG.iterateThreshold!, KEYS_BY_TTL.TWO_SECOND.length);
 
 					expect(EVICTED_KEYS).to.be.ofSize(expectedNumOfEvictedKeys);
-					expect(EVICTED_KEYS).to.be.containingAnyOf(KEYS_BY_TTL.TWO_SECOND);
+
+					if (KEYS_BY_TTL.TWO_SECOND.length) {
+						// we check for entries, because `containingAnyOf` with empty array will fail
+						// also if we get here, it means at least 1 of the TWO_SECOND_TTL keys should be evicted
+						expect(EVICTED_KEYS).to.be.containingAnyOf(KEYS_BY_TTL.TWO_SECOND);
+					}
+
 					expect(policy.isIdle()).to.be.eq(expectedNumOfEvictedKeys === KEYS_BY_TTL.ONE_SECOND.length + KEYS_BY_TTL.TWO_SECOND.length);
 
 					done();

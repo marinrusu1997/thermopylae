@@ -108,4 +108,4 @@ function trimChar(str: string, char: string): string {
 	return str;
 }
 
-export { replaceAt, random, trimChar };
+export { replaceAt, random, trimChar, RandomStringOptions };

@@ -1,8 +1,8 @@
 import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
-import { Heap } from '@thermopylae/lib.heap';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
 import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
+import { Heap, HeapNode } from '../../helpers/heap';
 
 /**
  * @internal
@@ -12,22 +12,27 @@ interface CleanUpInterval {
 	willCleanUpOn: UnixTimestamp;
 }
 
+/**
+ * @internal
+ */
+interface ExpirableCacheKeyedEntryHeapNode<Key, Value> extends ExpirableCacheKeyedEntry<Key, Value>, HeapNode {}
+
 class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
-	private readonly entries: Heap<ExpirableCacheKeyedEntry<Key, Value>>;
+	private readonly entries: Heap<ExpirableCacheKeyedEntryHeapNode<Key, Value>>;
 
 	private cleanUpInterval: Nullable<CleanUpInterval>;
 
 	public constructor() {
 		super();
 
-		this.entries = new Heap<ExpirableCacheKeyedEntry<Key, Value>>((first, second) => {
+		this.entries = new Heap<ExpirableCacheKeyedEntryHeapNode<Key, Value>>((first, second) => {
 			return first[EXPIRES_AT_SYM]! - second[EXPIRES_AT_SYM]!;
 		});
 		this.cleanUpInterval = null;
 	}
 
 	public get size(): number {
-		return this.entries.size();
+		return this.entries.size;
 	}
 
 	public onHit(): EntryValidity {
@@ -35,7 +40,8 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return EntryValidity.VALID;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
+	// @fixme source of bugs, to be removed
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, context: SetOperationContext): void {
 		if (ProactiveExpirationPolicy.isNonExpirable(context)) {
 			return;
 		}
@@ -46,17 +52,14 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.doScheduleDelete(entry);
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, context: SetOperationContext): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
 		super.onUpdate(key, entry, context); // this will update entry ttl with some validations
 
-		// @fixme this needs to be optimized, hugeee
-		const keyIndex = this.entries.findIndex((item) => item.key === key);
-
-		if (keyIndex !== -1) {
+		if (Heap.isPartOfHeap(entry)) {
 			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
-				return this.doDelete(keyIndex);
+				return this.doDelete(entry);
 			}
 
 			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
@@ -64,7 +67,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 				return undefined;
 			}
 
-			this.entries.update(keyIndex, entry);
+			this.entries.heapifyUpdatedNode(entry); // notice that we updated `expiresAt` above
 			return this.synchronize();
 		}
 
@@ -77,44 +80,35 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
-	public onDelete(key: Key): void {
-		// @ fixme this has no tests
-		// @fixme can we optimize this? of course if we have entry we can directly know whether we track it or not
-
-		// @fixme but what if we remember the index after entry is added into Heap?? we will build our own heap that will do this
-		//  but take care to keep this index in sync, otherwise naspa
-		const keyIndex = this.entries.findIndex((item) => item.key === key); // when key is root, find is O(1)
-
-		if (keyIndex !== -1) {
-			this.doDelete(keyIndex);
+	public onDelete(_key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
+		if (Heap.isPartOfHeap(entry)) {
+			this.doDelete(entry);
 		}
 	}
 
 	public onClear(): void {
-		// @ fixme this has no tests
-
 		this.entries.clear();
 		this.synchronize();
 	}
 
 	public get requiresEntryOnDeletion(): boolean {
 		// @fixme this needs to dissappear
-		return false;
+		return true;
 	}
 
 	public isIdle(): boolean {
 		return this.cleanUpInterval == null;
 	}
 
-	private doDelete(entryIndex: number): void {
+	private doDelete(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
 		// root might be removed, or heap structure might change, we need to sync with new root
 		// on multiple keys with same `expiresAt` won't start timer
 		// it will be started only when root value changes `for real`
-		this.entries.remove(entryIndex);
+		this.entries.delete(entry);
 		this.synchronize();
 	}
 
-	private doScheduleDelete(entry: ExpirableCacheKeyedEntry<Key, Value>): void {
+	private doScheduleDelete(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
 		this.entries.push(entry);
 		this.synchronize();
 	}
@@ -174,7 +168,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		} while (true);
 	};
 
-	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyedEntry<K, V>): void {
+	private scheduleNextGc<K, V>(rootEntry: ExpirableCacheKeyedEntryHeapNode<K, V>): void {
 		// in case runDelay <= 0, it's safe, as we will remove item immediately
 		// (this might be caused because unixTime is actually a rounded value, so it can be rounded to current, or next second)
 		const runDelay = rootEntry[EXPIRES_AT_SYM]! - chrono.unixTime(); // we track only items that have expires at
@@ -183,4 +177,4 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 	}
 }
 
-export { ProactiveExpirationPolicy };
+export { ProactiveExpirationPolicy, ExpirableCacheKeyedEntryHeapNode };

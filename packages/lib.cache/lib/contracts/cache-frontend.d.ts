@@ -52,7 +52,7 @@ declare interface CacheFrontend<Key, Value> {
 	 *
 	 * @param key	Name of the key.
 	 */
-	get(key: Key): Undefinable<Value>;
+	get(key: Key): Undefinable<Value>; // @fixme take care so that metadata don't reach clients
 
 	/**
 	 * Get values for multiple keys.

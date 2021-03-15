@@ -30,6 +30,10 @@ export interface Identity {
 	hashCode(): string;
 }
 
+export interface CompareFunction<T> {
+	(first: T, second: T): ComparisonResult;
+}
+
 export const enum ErrorCodes {
 	BAD_INVARIANT = 'BAD_INVARIANT',
 	DUPLICATE = 'DUPLICATE',

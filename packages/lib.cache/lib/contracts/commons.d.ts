@@ -46,6 +46,7 @@ declare interface CacheEntry<Value> {
  * Represents a filter which decides which entries should be returned to client.
  */
 declare interface CacheEntryFilter {
+	// @fixme integrate this into frontend and middle-end, to filter available entries
 	/**
 	 * Entries that are not older than a given timestamp. <br/>
 	 * Age of the entry is measured since it was inserted in the cache.

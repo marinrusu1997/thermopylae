@@ -1,5 +1,6 @@
 import { CacheReplacementPolicy, EntryValidity } from '../../contracts/replacement-policy';
 
+// @fixme maybe this is not needed, just do not use any policies
 class NoExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
 	/**
 	 * @inheritDoc

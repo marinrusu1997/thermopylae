@@ -24,7 +24,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			const KEY = 'a';
 			const ENTRY = generateEntry();
-			const TTL = 1;
+			const TTL = 2; // we use 2 seconds, because of the 'time windows', i.e. when we set item on lasts milliseconds of current second
 			policy.onSet(KEY, ENTRY, generateSetContext(TTL));
 
 			expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
@@ -38,7 +38,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 					clearTimeout(timeoutExpired);
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL / 2) + 20);
+			}, chrono.secondsToMilliseconds(TTL / 2) + 50);
 
 			const timeoutExpired = setTimeout(() => {
 				try {
@@ -50,8 +50,8 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 				} catch (e) {
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL) + 20);
-		});
+			}, chrono.secondsToMilliseconds(TTL) + 50);
+		}).timeout(2500);
 
 		it('should evict items even when have negative ttl, but increased expires from', (done) => {
 			const policy = new ReactiveExpirationPolicy<string, any>();

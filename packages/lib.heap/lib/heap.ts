@@ -1,5 +1,6 @@
+import { CompareFunction } from '@thermopylae/core.declarations';
 import isFunction from 'lodash.isfunction';
-import { defaultCompare, CompareFunction, ArrayEqualsPredicate } from './utils';
+import { defaultCompare, ArrayEqualsPredicate } from './utils';
 
 // Original implementation can be found here: https://github.com/qiao/heap.js/blob/master/lib/heap.js
 

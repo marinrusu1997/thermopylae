@@ -4,6 +4,7 @@ import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheStats } from '../contracts/commons';
 
+// @fixme same here, we might use middleend with no policies, so simple
 class OpaqueMiddleEnd<Key, Value> implements CacheMiddleEnd<Key, Value> {
 	private readonly cacheStats: CacheStats;
 

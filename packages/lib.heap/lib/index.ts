@@ -1,2 +1,2 @@
-export { ArrayEqualsPredicate, CompareFunction } from './utils';
+export { ArrayEqualsPredicate } from './utils';
 export { Heap } from './heap';

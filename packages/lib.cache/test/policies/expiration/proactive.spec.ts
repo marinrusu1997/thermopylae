@@ -1,12 +1,13 @@
-import { array, chrono, number, string } from '@thermopylae/lib.utils';
+import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
+import { ExpirableCacheKeyedEntryHeapNode, ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
 import { generateEntry, generateSetContext } from './commons';
 import { INFINITE_TTL } from '../../../lib/constants';
+import { UniqueKeysGenerator } from '../../utils';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second
@@ -352,7 +353,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			keys.add('key2');
 			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(1));
 
-			await chrono.sleep(1050);
+			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
 			expect(expirationPolicy.size).to.be.eq(0);
 			expect(expirationPolicy.isIdle()).to.be.eq(true);
@@ -366,13 +367,13 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			keys.add('key2');
 			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(2));
 
-			await chrono.sleep(1050);
+			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(1);
 			expect(expirationPolicy.size).to.be.eq(1);
 			expect(keys.has('key1')).to.be.eq(false);
 			expect(expirationPolicy.isIdle()).to.be.eq(false);
 
-			await chrono.sleep(1050);
+			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
 			expect(expirationPolicy.size).to.be.eq(0);
 			expect(expirationPolicy.isIdle()).to.be.eq(true);
@@ -386,17 +387,17 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			keys.add('key2');
 			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(1));
 
-			await chrono.sleep(1050);
+			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(1);
 			expect(expirationPolicy.size).to.be.eq(1);
 			expect(keys.has('key2')).to.be.eq(false);
 			expect(expirationPolicy.isIdle()).to.be.eq(false);
 
-			await chrono.sleep(1050);
+			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
 			expect(expirationPolicy.size).to.be.eq(0);
 			expect(expirationPolicy.isIdle()).to.be.eq(true);
-		}).timeout(6000);
+		}).timeout(7000);
 	});
 
 	describe(`${ProactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
@@ -619,9 +620,6 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const MIN_TTL = 1;
 			const MAX_TTL = 5;
 
-			const ITEM_MIN_RANGE = 1;
-			const ITEM_MAX_RANGE = 100;
-
 			const SCHEDULING_TIMES = 500;
 
 			const SCHEDULE_DELETION_MIN_DELAY = 0;
@@ -652,8 +650,13 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 					KEYS_DELETION_DELAY.forEach((deleteAtIntervalNo, key) => {
 						if (deleteAtIntervalNo === checkIntervalNo) {
 							try {
-								expect(CACHE_ACTIVE_KEYS.has(key)).to.be.eq(false);
-								expect(POLICY.isIdle()).to.be.eq(CACHE_ACTIVE_KEYS.size === 0);
+								expect(CACHE_ACTIVE_KEYS.has(key)).to.be.eq(false, `Expected key '${key}' to be deleted at interval ${deleteAtIntervalNo}`);
+
+								const shouldBeIdle = CACHE_ACTIVE_KEYS.size === 0;
+								const idleCheckMessage = `Policy expected to be ${
+									shouldBeIdle ? `idle, but it has ${POLICY.size} keys` : `busy, because ${CACHE_ACTIVE_KEYS.size} active keys remained`
+								} at interval ${deleteAtIntervalNo}`;
+								expect(POLICY.isIdle()).to.be.eq(shouldBeIdle, idleCheckMessage);
 							} catch (e) {
 								logTestContext(checkIntervalNo);
 								done(e);
@@ -679,7 +682,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 					}
 
 					return undefined;
-				}, checkIntervalNo * 1000 + 40); // just in case system resources are move busy
+				}, checkIntervalNo * 1000 + 100); // just in case system resources are more busy
 			}
 
 			const gcIntervalReTrackSchedulers = new Map<number, Array<() => void>>();
@@ -692,11 +695,13 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				}, i * 1000);
 			}
 
+			const keyGenerator = new UniqueKeysGenerator(5);
+
 			for (let i = 0; i < SCHEDULING_TIMES; i++) {
 				const scheduleDeletionDelay = number.randomInt(SCHEDULE_DELETION_MIN_DELAY, SCHEDULE_DELETION_MAX_DELAY);
 
 				gcIntervalReTrackSchedulers.get(scheduleDeletionDelay)!.push(() => {
-					const key = `key${number.randomInt(ITEM_MIN_RANGE, ITEM_MAX_RANGE)}`;
+					const key = keyGenerator.generate();
 					const ttl = number.randomInt(MIN_TTL, MAX_TTL);
 
 					KEYS_DELETION_DELAY.set(key, ttl + scheduleDeletionDelay);
@@ -717,47 +722,65 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	});
 
 	describe(`${ProactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
-		it('does not require entry on deletion', () => {
+		it('requires entry on deletion', () => {
 			const policy = new ProactiveExpirationPolicy();
-			expect(policy.requiresEntryOnDeletion).to.be.eq(false);
+			expect(policy.requiresEntryOnDeletion).to.be.eq(true);
 		});
 
 		it("does not remove keys that don't have expiration", () => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
-			policy.onSet('a', generateEntry('a'), generateSetContext(null));
+
+			const entry = generateEntry('a');
+			policy.onSet('a', entry, generateSetContext(null));
 			expect(policy.size).to.be.eq(0);
 
-			policy.onDelete('a'); // expecting not to throw
+			policy.onDelete('a', entry); // expecting to do nothing
 			expect(policy.size).to.be.eq(0);
 		});
 
-		it('removes entry from internal tracking after it is deleted', (done) => {
+		it('removes entry from internal tracking after it is deleted, while the rest entries are evicted', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
-			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+			const EVICTED_KEYS = new Set<string>();
+			policy.setDeleter((key) => EVICTED_KEYS.add(key));
 
-			const KEYS_BY_TTL = new Map<number, string[]>([
-				[1, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))],
-				[2, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))],
-				[3, array.filledWith(number.randomInt(0, 10), () => string.random({ length: 3, allowedCharRegex: /[a-zA-Z]/ }))]
+			const keyGenerator = new UniqueKeysGenerator(5);
+
+			const ENTRIES_BY_TTL = new Map<number, ExpirableCacheKeyedEntryHeapNode<string, any>[]>([
+				[1, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))],
+				[2, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))],
+				[3, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))]
 			]);
+			const REMOVAL_KEY_CANDIDATES = new Set<string>(
+				Array.from(ENTRIES_BY_TTL.entries())
+					.map(([, entries]) => {
+						const candidates = [];
+						for (let i = 0; i < entries.length; i++) {
+							if (Math.random() > 0.6) {
+								candidates.push(entries[i].key);
+							}
+						}
+						return candidates;
+					})
+					.flat()
+			);
 
 			let totalEntries = 0;
-			for (const [ttl, keys] of KEYS_BY_TTL) {
-				if (!keys.length) {
+			for (const [ttl, entries] of ENTRIES_BY_TTL) {
+				if (!entries.length) {
 					continue;
 				}
-				totalEntries += keys.length;
+				totalEntries += entries.length;
 
 				const context = generateSetContext(ttl);
-				for (const key of keys) {
-					policy.onSet(key, generateEntry(key), context);
+				for (const entry of entries) {
+					policy.onSet(entry.key, entry, context);
 				}
 
 				setTimeout(() => {
-					for (const key of array.shuffle(keys)) {
-						// delete them in random order
-						policy.onDelete(key);
+					for (const entry of entries) {
+						if (REMOVAL_KEY_CANDIDATES.has(entry.key)) {
+							policy.onDelete(entry.key, entry);
+						}
 					}
 				}, chrono.secondsToMilliseconds(ttl - 1));
 			}
@@ -765,14 +788,100 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			setTimeout(() => {
 				try {
-					expect(EVICTED_KEYS).to.be.ofSize(0); // all of they were deleted explicitly, there was no need to evict them
-					expect(policy.size).to.be.eq(0); // all of them were deleted
-					expect(policy.isIdle()).to.be.eq(true); // gc should stop
+					expect(EVICTED_KEYS.size).to.be.eq(totalEntries - REMOVAL_KEY_CANDIDATES.size); // evicted keys should not contain explicitly deleted ones
+					for (const evictedKey of EVICTED_KEYS) {
+						expect(REMOVAL_KEY_CANDIDATES.has(evictedKey)).to.be.eq(false, `Key ${evictedKey} should be evicted, not explicitly removed.`);
+					}
+
+					expect(policy.size).to.be.eq(0); // in the end, all of them were removed from policy...
+					expect(policy.isIdle()).to.be.eq(true); // ... and gc should stop
 					done();
 				} catch (e) {
 					done(e);
 				}
 			}, 3100);
 		}).timeout(3200);
+	});
+
+	describe(`${ProactiveExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
+		it('should clear empty policy and remain idle', () => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
+			expect(policy.isIdle()).to.be.eq(true);
+			policy.onClear();
+			expect(policy.isIdle()).to.be.eq(true);
+		});
+
+		it('should clear policy, make it idle and avoid further evictions', (done) => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
+			const EVICTED_KEYS = new Array<string>();
+			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+
+			const TTL = 1;
+
+			policy.onUpdate('a', generateEntry('a'), generateSetContext(TTL));
+			expect(policy.size).to.be.eq(1);
+			expect(policy.isIdle()).to.be.eq(false);
+
+			policy.onClear();
+			expect(policy.size).to.be.eq(0);
+			expect(policy.isIdle()).to.be.eq(true);
+			expect(EVICTED_KEYS).to.be.ofSize(0);
+
+			setTimeout(() => {
+				try {
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
+					expect(EVICTED_KEYS).to.be.ofSize(0); // key was not evicted because policy was cleared
+
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, chrono.secondsToMilliseconds(TTL) + 100);
+		});
+
+		it('should clear policy, push new items, and old timer not interfere with their expiration', (done) => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
+			const EVICTED_KEYS = new Array<string>();
+			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+
+			policy.onUpdate('a', generateEntry('a'), generateSetContext(1));
+			expect(policy.size).to.be.eq(1);
+			expect(policy.isIdle()).to.be.eq(false);
+
+			policy.onClear();
+			expect(policy.size).to.be.eq(0);
+			expect(policy.isIdle()).to.be.eq(true);
+			expect(EVICTED_KEYS).to.be.ofSize(0);
+
+			policy.onUpdate('b', generateEntry('b'), generateSetContext(2));
+			expect(policy.size).to.be.eq(1);
+			expect(policy.isIdle()).to.be.eq(false);
+
+			// old timer should not interfere with key 'b' and delete it earlier
+			setTimeout(() => {
+				try {
+					expect(policy.size).to.be.eq(1); // key 'b' is still here
+					expect(policy.isIdle()).to.be.eq(false); // timer is active
+					expect(EVICTED_KEYS).to.be.ofSize(0); // no keys evicted, i.e. the key 'a'
+				} catch (e) {
+					clearTimeout(checkKeyBEvictedTimeout);
+					done(e);
+				}
+			}, 1100);
+
+			// the new timer should delete key 'b' when it expires
+			const checkKeyBEvictedTimeout = setTimeout(() => {
+				try {
+					expect(policy.size).to.be.eq(0); // key 'b' was evicted
+					expect(policy.isIdle()).to.be.eq(true); // timer is inactive
+					expect(EVICTED_KEYS).to.be.equalTo(['b']); // only key 'b' was evicted
+
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, 2100);
+		}).timeout(2500);
 	});
 });

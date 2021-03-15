@@ -1,14 +1,3 @@
-import { ComparisonResult } from '@thermopylae/core.declarations';
-
-/**
- * Function which compares {@link Heap} values.
- *
- * @template T	Element type.
- */
-interface CompareFunction<T> {
-	(first: T, second: T): ComparisonResult;
-}
-
 /**
  * Function signature for checking equality of array elements.
  *
@@ -35,4 +24,4 @@ function defaultCompare<T>(a: T, b: T): number {
 	return 1;
 }
 
-export { CompareFunction, ArrayEqualsPredicate, defaultCompare };
+export { ArrayEqualsPredicate, defaultCompare };

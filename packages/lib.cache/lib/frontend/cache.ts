@@ -36,6 +36,7 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 		return this.internalSet(key, value, ttl, expiresFrom, true);
 	}
 
+	// @fixme this needs to be renamed into 'set', it will overwrite entry if it already exists
 	public upset(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
 		value = this.config.useClones ? object.cloneDeep(value) : value;
 
