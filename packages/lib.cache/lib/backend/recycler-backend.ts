@@ -2,7 +2,6 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { object as obj } from '@thermopylae/lib.pool';
 import { CacheBackend } from '../contracts/cache-backend';
-import { NOT_FOUND_VALUE } from '../constants';
 import { CacheEntry } from '../contracts/commons';
 
 class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
@@ -37,16 +36,14 @@ class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return handle;
 	}
 
-	public del(key: Key, entry: boolean): boolean | Undefinable<CacheEntry<Value>> {
+	public del(key: Key): boolean {
 		const handle = this.store.get(key);
 		if (!handle) {
-			return entry ? NOT_FOUND_VALUE : false;
+			return false;
 		}
 
 		this.entryPool.releaseHandle(handle);
-
-		const deleted = this.store.delete(key);
-		return entry ? handle : deleted;
+		return this.store.delete(key);
 	}
 
 	public clear(): void {

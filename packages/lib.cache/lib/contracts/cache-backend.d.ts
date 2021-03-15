@@ -52,17 +52,11 @@ declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Val
 	/**
 	 * Delete `key`.
 	 *
-	 * @param key		Name of the key.
-	 * @param entry		Whether to return the deleted entry.
+	 * @param key	Name of the key.
 	 *
-	 * @returns		Depending of the `entry` value will return: <br/>
-	 *
-	 * Value	| Returns
-	 * -------- | -----------------------------------------------------
-	 * `true`	| {@link CacheEntry} that was deleted (if found)
-	 * `false`	| Boolean flag that indicates whether entry was deleted
+	 * @returns		Boolean flag that indicates whether entry was deleted.
 	 */
-	del(key: Key, entry: boolean): boolean | Undefinable<CacheEntry<Value>>; // @fixme we maybe just need to return boolean, because we will query entry anyway to detach metadata
+	del(key: Key): boolean;
 
 	/**
 	 * Remove all entries from storage.

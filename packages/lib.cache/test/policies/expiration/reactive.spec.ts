@@ -163,11 +163,6 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 	});
 
 	describe(`${ReactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
-		it('requires entry on deletion', () => {
-			const policy = new ReactiveExpirationPolicy<string, any>();
-			expect(policy.requiresEntryOnDeletion).to.be.eq(true);
-		});
-
 		it('removes metadata when entry is deleted explicitly', () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 

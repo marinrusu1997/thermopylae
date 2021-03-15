@@ -14,7 +14,7 @@ interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
 interface ExpirableCacheKeyedEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {}
 
 abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
-	protected delete!: Deleter<Key>;
+	protected deleteFromCache!: Deleter<Key>;
 
 	/**
 	 * @inheritDoc
@@ -69,17 +69,13 @@ abstract class AbstractExpirationPolicy<Key, Value> implements CacheReplacementP
 	 * @inheritDoc
 	 */
 	public setDeleter(deleter: Deleter<Key>): void {
-		this.delete = deleter;
-	}
-
-	public get requiresEntryOnDeletion(): boolean {
-		return true;
+		this.deleteFromCache = deleter;
 	}
 
 	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
 		const expired = entry[EXPIRES_AT_SYM] != null ? entry[EXPIRES_AT_SYM]! <= chrono.unixTime() : false;
 		if (expired) {
-			this.delete(key);
+			this.deleteFromCache(key);
 			delete entry[EXPIRES_AT_SYM];
 			return EntryValidity.NOT_VALID;
 		}

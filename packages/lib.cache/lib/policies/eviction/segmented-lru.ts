@@ -41,8 +41,6 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 
 	private deleteFromCache!: Deleter<Key>;
 
-	public readonly requiresEntryOnDeletion: boolean;
-
 	/**
 	 * @param capacity                      {@link Cache} capacity.
 	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `capacity`. <br/>
@@ -81,8 +79,6 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 			};
 			throw createException(ErrorCodes.INVALID_VALUE, `Probation segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
 		}
-
-		this.requiresEntryOnDeletion = true;
 	}
 
 	/**

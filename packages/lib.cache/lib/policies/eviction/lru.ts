@@ -85,13 +85,6 @@ class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value
 	/**
 	 * @inheritDoc
 	 */
-	public get requiresEntryOnDeletion(): boolean {
-		return true;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public setDeleter(deleter: Deleter<Key>): void {
 		this.deleteFromCache = deleter;
 	}

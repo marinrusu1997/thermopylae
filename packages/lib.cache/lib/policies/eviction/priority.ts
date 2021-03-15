@@ -9,12 +9,6 @@ const enum CacheEntryPriority {
 }
 
 class PriorityEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
-	public readonly requiresEntryOnDeletion: boolean;
-
-	public constructor() {
-		this.requiresEntryOnDeletion = false;
-	}
-
 	public onHit(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
 		return EntryValidity.NOT_VALID;
 	}

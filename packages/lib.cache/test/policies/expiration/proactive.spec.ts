@@ -722,11 +722,6 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	});
 
 	describe(`${ProactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
-		it('requires entry on deletion', () => {
-			const policy = new ProactiveExpirationPolicy();
-			expect(policy.requiresEntryOnDeletion).to.be.eq(true);
-		});
-
 		it("does not remove keys that don't have expiration", () => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
 

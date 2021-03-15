@@ -117,9 +117,4 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			throw e;
 		}
 	});
-
-	it('requires entry on deletion', () => {
-		const policy = new LRUEvictionPolicy<string, number>(1);
-		expect(policy.requiresEntryOnDeletion).to.be.eq(true);
-	});
 });

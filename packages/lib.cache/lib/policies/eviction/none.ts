@@ -63,13 +63,6 @@ class NoneEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 	/**
 	 * @inheritDoc
 	 */
-	public get requiresEntryOnDeletion(): boolean {
-		return false;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public setDeleter(): void {
 		return undefined;
 	}

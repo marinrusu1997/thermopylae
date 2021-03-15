@@ -318,13 +318,6 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					expect(memUsageAfterClear.arrayBuffers).to.be.at.most(memUsageBeforeInsert.arrayBuffers);
 				});
 			});
-
-			describe(`${'requiresEntryOnDeletion'.magenta} spec`, () => {
-				it('requires entry for deletion', () => {
-					const lfu = lfuFactory<string, number>(LFU_IMPL, 1);
-					expect(lfu.requiresEntryOnDeletion).to.be.eq(true);
-				});
-			});
 		});
 	}
 });

@@ -13,6 +13,8 @@ interface MemCacheOptions<Key, Value> {
 	useClones: boolean;
 	ttlRegistry: TtlRegistry<Key>;
 	middleEnd: CacheMiddleEnd<Key, Value>;
+
+	// @fixme add support for replacer function
 }
 
 class Cache<Key = string, Value = any> extends EventEmitter implements CacheFrontend<Key, Value> {

@@ -7,12 +7,14 @@ import { CacheEntry } from './commons';
  *
  * @param key	Name of the key.
  */
-declare type Deleter<Key> = (key: Key) => void;
+declare type Deleter<Key> = (key: Key) => void; // @fixme maybe deleter should also accept entry as argument
 
 /**
  * Context associated with cache set operation.
  */
 declare interface SetOperationContext {
+	// @fixme needs to be removed
+
 	/**
 	 * Number of the elements in the cache.
 	 */
@@ -43,6 +45,7 @@ declare const enum EntryValidity {
  * @template Value	Type of the value.
  */
 declare interface CacheReplacementPolicy<Key, Value> {
+	// @fixme remove key from this interface, it should be middleend job to set it
 	/**
 	 * Hook executed after `entry` for `key` was retrieved.
 	 *
@@ -58,7 +61,7 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 *
 	 * @param key		Name of the key.
 	 */
-	onMiss(key: Key): void;
+	onMiss(key: Key): void; // @fixme there we should also receive entry
 
 	/**
 	 * Hook executed after `entry` for `key` has been set.
@@ -67,7 +70,7 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * @param entry		Associated entry.
 	 * @param context	Cache operation context.
 	 */
-	onSet(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void;
+	onSet(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void; // @fixme update with template param as ArgumentsBundle
 
 	/**
 	 * Hook executed after value for `entry` related with `key` has been replaced.
@@ -76,7 +79,7 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * @param entry		Associated entry.
 	 * @param context	Cache operation context.
 	 */
-	onUpdate(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void;
+	onUpdate(key: Key, entry: CacheEntry<Value>, context: SetOperationContext): void; // @fixme maybe it needs to remain, middleend will decide which one to call
 
 	/**
 	 * Hook executed after `entry` for `key` has been deleted.
@@ -84,7 +87,7 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * @param key		Name of the key.
 	 * @param entry		Associated entry.
 	 */
-	onDelete(key: Key, entry?: CacheEntry<Value>): void; // @fixme make entry non optional
+	onDelete(key: Key, entry: CacheEntry<Value>): void;
 	// @fixme each policy should detach metadata from entry after eviction/delete, as entry might be reused by backend
 
 	/**
@@ -96,12 +99,6 @@ declare interface CacheReplacementPolicy<Key, Value> {
 	 * Set `deleter` which removes entries from cache.
 	 */
 	setDeleter(deleter: Deleter<Key>): void;
-
-	/**
-	 * Flag which indicates whether policy needs {@link CacheEntry} with metadata
-	 * when {@link CacheReplacementPolicy.onDelete} is invoked.
-	 */
-	readonly requiresEntryOnDeletion: boolean; // @fixme to be removed, almost all of them require this, because they attach metadata
 }
 
 export { CacheReplacementPolicy, Deleter, SetOperationContext, EntryValidity };

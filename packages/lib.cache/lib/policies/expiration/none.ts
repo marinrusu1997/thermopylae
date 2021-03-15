@@ -50,13 +50,6 @@ class NoExpirationPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 	public setDeleter(): void {
 		return undefined;
 	}
-
-	/**
-	 * @inheritDoc
-	 */
-	get requiresEntryOnDeletion(): boolean {
-		return false;
-	}
 }
 
 export { NoExpirationPolicy };

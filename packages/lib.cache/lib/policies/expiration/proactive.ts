@@ -91,11 +91,6 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		this.synchronize();
 	}
 
-	public get requiresEntryOnDeletion(): boolean {
-		// @fixme this needs to dissappear
-		return true;
-	}
-
 	public isIdle(): boolean {
 		return this.cleanUpInterval == null;
 	}
@@ -149,7 +144,7 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		let rootEntry = this.entries.peek();
 
 		do {
-			this.delete(rootEntry!.key); // remove from cache (if this throws we have meta-data and can retry operation)
+			this.deleteFromCache(rootEntry!.key); // remove from cache (if this throws we have meta-data and can retry operation)
 			this.entries.pop(); // remove from internal structure
 
 			rootEntry = this.entries.peek();

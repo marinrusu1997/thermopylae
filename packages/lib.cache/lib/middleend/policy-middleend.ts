@@ -3,38 +3,67 @@ import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
-import { CacheStats, CacheEntry } from '../contracts/commons';
+import { CacheEntry } from '../contracts/commons';
 
-class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
-	private readonly backend: CacheBackend<K, V>;
+interface PolicyMiddleEndArgumentsBundle {
+	/**
+	 * Number of the elements in the cache.
+	 */
+	totalEntriesNo: number;
+}
 
-	private readonly policies: Array<CacheReplacementPolicy<K, V>>;
+class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+	private readonly backend: CacheBackend<Key, Value>;
 
-	protected readonly cacheStats: CacheStats;
+	private readonly policies: Array<CacheReplacementPolicy<Key, Value>>;
 
-	constructor(backend: CacheBackend<K, V>, policies: Array<CacheReplacementPolicy<K, V>>) {
+	constructor(backend: CacheBackend<Key, Value>, policies: Array<CacheReplacementPolicy<Key, Value>>) {
 		this.backend = backend;
 		this.policies = policies;
-		this.cacheStats = {
-			// @fixme to be moved into frontend
-			hits: 0,
-			misses: 0
-		};
 
 		for (const policy of policies) {
-			/**
-			 * @fixme here we need to create deleter for each one, so that we knew which one evicted key, and not to call onDelete for him
-			 */
 			policy.setDeleter(this.del);
 		}
 	}
 
-	public get(key: K): Undefinable<V> {
-		const entry = this.internalGet(key);
+	public get(key: Key): Undefinable<Value> {
+		const entry = this.internalGet(key); // @fixme to be reviewed
 		return entry && entry.value;
 	}
 
-	public set(key: K, value: V, ttl: Seconds, expiresFrom?: UnixTimestamp): CacheEntry<V> {
+	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): CacheEntry<Value> {
+		let entry = this.internalGet(key); // @fixme maybe we should use there raw get
+		if (entry === NOT_FOUND_VALUE) {
+			entry = this.backend.set(key, value);
+			// @fixme add key to entry
+			// @fixme add totalEntriesNo to argsBundle, but only after we set to backend, because after this set it might overflow
+
+			let policyIndex = 0;
+			try {
+				for (; policyIndex < this.policies.length; policyIndex++) {
+					this.policies[policyIndex].onSet(key, entry, argsBundle); // @fixme pass args bundle
+				}
+				return entry;
+			} catch (e) {
+				// rollback
+				for (let i = 0; i < policyIndex; i++) {
+					this.policies[policyIndex].onDelete(key, entry);
+				}
+				this.backend.del(key);
+
+				// re-throw
+				throw e;
+			}
+		}
+
+		// @fixme add totalEntriesNo to argsBundle, before updating item
+		entry.value = value;
+		for (const policy of this.policies) {
+			policy.onUpdate(key, entry, argsBundle); // @fixme pass args bundle
+		}
+
+		return entry;
+
 		/**
 		 * @fixme another bug
 		 * Take care because most policies don't keep metadata in distinct data structures (e.g. Set or Map)
@@ -42,87 +71,37 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		 * This will lead to UNDEFINED BEHAVIOUR.
 		 */
 
-		const entry: CacheEntry<V> = this.backend.set(key, value);
-
-		try {
-			/**
-			 * @fixme huge bug problem
-			 * Context needs to be global for this middleend and injected via setter in each policy.
-			 * On each CRUD operation, context needs to be updated.
-			 * This haves the following benefits:
-			 * 		- we don't create new object on each set
-			 * 		- no need to bloat policy API (it can use context as it wants in each of it's ops)
-			 * 		- prevent multiple eviction by each policy when cache is full
-			 * 			(because context is build once and not updated with latest cache capacity, each policy will think that he must evict an item)
-			 * 			(also take care about sharing of other context properties by each policy)
-			 * Context type should be a templated parameter extending default type, so that if other devs create their own policy
-			 * and need some custom params, they can templatize midleend and also that policy (this adds third template to policies)
-			 */
-			const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
-			for (const policy of this.policies) {
-				policy.onSet(key, entry, context);
-			}
-		} catch (e) {
-			this.backend.del(key, false);
-			throw e;
-		}
-
-		return entry;
+		/**
+		 * @fixme huge bug problem
+		 * Context needs to be global for this middleend and injected via setter in each policy.
+		 * On each CRUD operation, context needs to be updated.
+		 * This haves the following benefits:
+		 * 		- we don't create new object on each set
+		 * 		- no need to bloat policy API (it can use context as it wants in each of it's ops)
+		 * 		- prevent multiple eviction by each policy when cache is full
+		 * 			(because context is build once and not updated with latest cache capacity, each policy will think that he must evict an item)
+		 * 			(also take care about sharing of other context properties by each policy)
+		 * Context type should be a templated parameter extending default type, so that if other devs create their own policy
+		 * and need some custom params, they can templatize midleend and also that policy (this adds third template to policies)
+		 */
 	}
 
-	public replace(key: K, value: V, ttl?: Seconds, expiresFrom?: UnixTimestamp): boolean {
-		const entry = this.internalGet(key);
-		if (entry === NOT_FOUND_VALUE) {
+	// @fixme review what's bellow
+
+	public del = (key: Key): boolean => {
+		const entry = this.backend.get(key);
+		if (!entry) {
 			return false;
 		}
 
-		entry.value = value;
-		const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
 		for (const policy of this.policies) {
-			/**
-			 * @fixme take into account that onUpdate might be a hard to do operation, so optimize this scenario (see ProactiveExpirationPolicy)
-			 */
-			policy.onUpdate(key, entry, context);
+			policy.onDelete(key, entry);
 		}
 
-		return true;
-	}
+		return this.backend.del(key);
+	};
 
-	public ttl(key: K, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean {
-		const entry = this.internalGet(key);
-		if (entry === NOT_FOUND_VALUE) {
-			return false;
-		}
-
-		const context = PolicyMiddleEnd.buildSetContext(this.backend.size, ttl, expiresFrom);
-		for (const policy of this.policies) {
-			policy.onUpdate(key, entry, context);
-		}
-
-		return true;
-	}
-
-	public del(key: K): boolean {
-		let entryRequiredOnDeletion = false;
-		for (const policy of this.policies) {
-			if ((entryRequiredOnDeletion = policy.requiresEntryOnDeletion)) {
-				break;
-			}
-		}
-
-		const entry = this.backend.del(key, entryRequiredOnDeletion);
-
-		if (entry) {
-			for (const policy of this.policies) {
-				policy.onDelete(key, entry as CacheEntry<V>);
-			}
-			return true;
-		}
-
-		return false;
-	}
-
-	public keys(): Array<K> {
+	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
 	}
 
@@ -131,29 +110,21 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 		for (const policy of this.policies) {
 			policy.onClear();
 		}
-
-		this.cacheStats.misses = 0;
-		this.cacheStats.hits = 0;
 	}
 
 	public get size(): number {
 		return this.backend.size;
 	}
 
-	public get stats(): CacheStats {
-		return this.cacheStats;
-	}
-
-	private internalGet(key: K): Undefinable<CacheEntry<V>> {
+	private internalGet(key: Key): Undefinable<CacheEntry<Value>> {
 		const entry = this.backend.get(key);
 
 		if (entry === NOT_FOUND_VALUE) {
-			this.cacheStats.misses += 1;
 			for (const policy of this.policies) {
 				policy.onMiss(key);
 			}
 
-			return NOT_FOUND_VALUE;
+			return entry;
 		}
 
 		for (const policy of this.policies) {
@@ -163,13 +134,7 @@ class PolicyMiddleEnd<K, V> implements CacheMiddleEnd<K, V> {
 			}
 		}
 
-		this.cacheStats.hits += 1;
-
 		return entry;
-	}
-
-	private static buildSetContext(elements: number, expiresAfter?: Seconds, expiresFrom?: UnixTimestamp): SetOperationContext {
-		return { totalEntriesNo: elements, expiresAfter, expiresFrom };
 	}
 }
 
