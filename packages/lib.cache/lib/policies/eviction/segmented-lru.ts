@@ -111,10 +111,6 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 		return EntryValidity.VALID;
 	}
 
-	public onMiss(_key: Key): void {
-		return undefined;
-	}
-
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		entry.key = key;
 		this.demote(entry);

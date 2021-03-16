@@ -1,7 +1,7 @@
 import { Milliseconds, Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
-import { SetOperationContext } from '../../contracts/replacement-policy';
+import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
+import { CacheSizeGetter } from '../../contracts/commons';
 
 /**
  * Circular iterator over {@link CacheBackend} entries. <br/>
@@ -9,11 +9,6 @@ import { SetOperationContext } from '../../contracts/replacement-policy';
  * unless there are no more, in which case it should return `null`.
  */
 type CacheEntriesCircularIterator<Key, Value> = () => ExpirableCacheKeyedEntry<Key, Value> | null;
-
-/**
- * Query number of elements in the cache.
- */
-type CacheSizeGetter = () => number;
 
 interface MixedExpirationPolicyConfig<Key, Value> {
 	/**
@@ -53,7 +48,11 @@ interface Config<Key, Value> extends MixedExpirationPolicyConfig<Key, Value> {
 	iterateThreshold: Threshold;
 }
 
-class MixedExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
+class MixedExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
+	Key,
+	Value,
+	ArgumentsBundle
+> {
 	private readonly config: Config<Key, Value>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null;
@@ -65,8 +64,8 @@ class MixedExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Va
 		this.iterateTimeoutId = null;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
-		super.onSet(key, entry, context);
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
+		super.onSet(key, entry, options);
 		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
 			// will be idle only if there are no more items in the cache
@@ -74,8 +73,8 @@ class MixedExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Va
 		}
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, context: SetOperationContext): void {
-		super.onUpdate(key, entry, context);
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
+		super.onUpdate(key, entry, options);
 		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
 			this.scheduleNextCleanup();
@@ -96,7 +95,8 @@ class MixedExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Va
 	private cleanup = (): void => {
 		const startingEntry = this.config.getNextCacheEntry();
 		if (startingEntry == null) {
-			// we need to check each time, because while we loop we might evict all entries before reaching iterate threshold
+			// we need to check each time, because while we loop we might evict all entries before reaching iterate threshold,
+			// or all entries were evicted/explicitly deleted
 			this.iterateTimeoutId = null; // stop GC
 			return;
 		}

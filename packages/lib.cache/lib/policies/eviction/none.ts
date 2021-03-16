@@ -26,13 +26,6 @@ class NoneEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 	/**
 	 * @inheritDoc
 	 */
-	public onMiss(_key: Key): void {
-		return undefined; // eslint
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public onSet(_key: Key, _entry: CacheEntry<Value>, context: SetOperationContext): void {
 		if (this.capacity !== INFINITE_KEYS && context.totalEntriesNo >= this.capacity) {
 			throw createException(ErrorCodes.FULL, `Limit of ${this.capacity} has been reached and ${this.constructor.name} has been set. `);

@@ -94,17 +94,10 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	/**
 	 * @inheritDoc
 	 */
-	public onMiss(_key: Key): void {
-		return undefined; // eslint
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// Check for backend overflow
 		if (context.totalEntriesNo >= this.cacheCapacity) {
-			this.evict(); // @fixme adapt to on delete hook
+			this.evict(); // @fixme adapt to onDelete hook
 		}
 
 		const frequencyBucket = this.findFrequencyBucket(this.frequencies.head, this.initialFrequency);

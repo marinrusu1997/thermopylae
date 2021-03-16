@@ -43,13 +43,6 @@ class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value
 	/**
 	 * @inheritDoc
 	 */
-	public onMiss(_key: Key): void {
-		return undefined; // eslint
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
 		// code bellow might throw, so on next call total entries might be higher, therefore using >=
 		if (context.totalEntriesNo >= this.cacheCapacity) {

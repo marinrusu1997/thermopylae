@@ -1,23 +1,16 @@
-import { Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, EntryValidity, SetOperationContext } from '../contracts/replacement-policy';
+import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
 
-interface PolicyMiddleEndArgumentsBundle {
-	/**
-	 * Number of the elements in the cache.
-	 */
-	totalEntriesNo: number;
-}
-
-class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
-	private readonly policies: Array<CacheReplacementPolicy<Key, Value>>;
+	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	constructor(backend: CacheBackend<Key, Value>, policies: Array<CacheReplacementPolicy<Key, Value>>) {
+	constructor(backend: CacheBackend<Key, Value>, policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies;
 
@@ -27,27 +20,46 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumen
 	}
 
 	public get(key: Key): Undefinable<Value> {
-		const entry = this.internalGet(key); // @fixme to be reviewed
-		return entry && entry.value;
+		const entry = this.backend.get(key);
+
+		if (entry === NOT_FOUND_VALUE) {
+			return entry;
+		}
+
+		for (const policy of this.policies) {
+			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
+			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
+				// @fixme test this behaviour with reactive expiration policy, and the one described in bellow comment
+				// it's safe to break the cycle here, because in case an item is evicted, onDelete hook for each policy will be triggered automatically
+				return NOT_FOUND_VALUE;
+			}
+		}
+
+		return entry.value;
 	}
 
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): CacheEntry<Value> {
-		let entry = this.internalGet(key); // @fixme maybe we should use there raw get
+		// we use raw get, so that we don't call `onHit` and also even if they will remove it within `onHit`,
+		// we will add it back anyway, so better use `onUpdate` which will update policies meta-data while keeping entry in the cache
+		let entry = this.backend.get(key);
+
 		if (entry === NOT_FOUND_VALUE) {
 			entry = this.backend.set(key, value);
 			// @fixme add key to entry
-			// @fixme add totalEntriesNo to argsBundle, but only after we set to backend, because after this set it might overflow
+			// @fixme make sure eviction policies use strict >, because we need to check for overflow, as example take capacity 1
+			// @fixme also take care that eviction policies have a dedicated setter for backend size
+			// @fixme prevent multiple eviction by each policy when cache is full by the way that policies get cache latest size (TEST THIS)
 
 			let policyIndex = 0;
 			try {
 				for (; policyIndex < this.policies.length; policyIndex++) {
-					this.policies[policyIndex].onSet(key, entry, argsBundle); // @fixme pass args bundle
+					this.policies[policyIndex].onSet(key, entry, argsBundle);
 				}
 				return entry;
 			} catch (e) {
 				// rollback
 				for (let i = 0; i < policyIndex; i++) {
-					this.policies[policyIndex].onDelete(key, entry);
+					this.policies[policyIndex].onDelete(key, entry); // detach metadata + internal structures
 				}
 				this.backend.del(key);
 
@@ -56,37 +68,14 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumen
 			}
 		}
 
-		// @fixme add totalEntriesNo to argsBundle, before updating item
 		entry.value = value;
+
 		for (const policy of this.policies) {
-			policy.onUpdate(key, entry, argsBundle); // @fixme pass args bundle
+			policy.onUpdate(key, entry, argsBundle); // @fixme should not throw
 		}
 
 		return entry;
-
-		/**
-		 * @fixme another bug
-		 * Take care because most policies don't keep metadata in distinct data structures (e.g. Set or Map)
-		 * This way if same item is added multiple times, they will contain duplicates in their internal data structures.
-		 * This will lead to UNDEFINED BEHAVIOUR.
-		 */
-
-		/**
-		 * @fixme huge bug problem
-		 * Context needs to be global for this middleend and injected via setter in each policy.
-		 * On each CRUD operation, context needs to be updated.
-		 * This haves the following benefits:
-		 * 		- we don't create new object on each set
-		 * 		- no need to bloat policy API (it can use context as it wants in each of it's ops)
-		 * 		- prevent multiple eviction by each policy when cache is full
-		 * 			(because context is build once and not updated with latest cache capacity, each policy will think that he must evict an item)
-		 * 			(also take care about sharing of other context properties by each policy)
-		 * Context type should be a templated parameter extending default type, so that if other devs create their own policy
-		 * and need some custom params, they can templatize midleend and also that policy (this adds third template to policies)
-		 */
 	}
-
-	// @fixme review what's bellow
 
 	public del = (key: Key): boolean => {
 		const entry = this.backend.get(key);
@@ -95,7 +84,7 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumen
 		}
 
 		for (const policy of this.policies) {
-			policy.onDelete(key, entry);
+			policy.onDelete(key, entry); // @fixme should not throw
 		}
 
 		return this.backend.del(key);
@@ -106,35 +95,14 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle extends PolicyMiddleEndArgumen
 	}
 
 	public clear(): void {
-		this.backend.clear();
 		for (const policy of this.policies) {
 			policy.onClear();
 		}
+		this.backend.clear();
 	}
 
 	public get size(): number {
 		return this.backend.size;
-	}
-
-	private internalGet(key: Key): Undefinable<CacheEntry<Value>> {
-		const entry = this.backend.get(key);
-
-		if (entry === NOT_FOUND_VALUE) {
-			for (const policy of this.policies) {
-				policy.onMiss(key);
-			}
-
-			return entry;
-		}
-
-		for (const policy of this.policies) {
-			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
-			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
-				return NOT_FOUND_VALUE;
-			}
-		}
-
-		return entry;
 	}
 }
 

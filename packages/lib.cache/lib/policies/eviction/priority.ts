@@ -13,10 +13,6 @@ class PriorityEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, 
 		return EntryValidity.NOT_VALID;
 	}
 
-	public onMiss(_key: Key): void {
-		return undefined;
-	}
-
 	public onSet(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
 		return undefined;
 	}

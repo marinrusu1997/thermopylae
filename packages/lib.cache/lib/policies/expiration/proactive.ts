@@ -1,7 +1,7 @@
 import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
-import { EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
+import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
+import { EntryValidity } from '../../contracts/replacement-policy';
 import { Heap, HeapNode } from '../../helpers/heap';
 
 /**
@@ -17,7 +17,11 @@ interface CleanUpInterval {
  */
 interface ExpirableCacheKeyedEntryHeapNode<Key, Value> extends ExpirableCacheKeyedEntry<Key, Value>, HeapNode {}
 
-class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key, Value> {
+class ProactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
+	Key,
+	Value,
+	ArgumentsBundle
+> {
 	private readonly entries: Heap<ExpirableCacheKeyedEntryHeapNode<Key, Value>>;
 
 	private cleanUpInterval: Nullable<CleanUpInterval>;
@@ -40,26 +44,29 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 		return EntryValidity.VALID;
 	}
 
-	// @fixme source of bugs, to be removed
-	public onSet(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, context: SetOperationContext): void {
-		if (ProactiveExpirationPolicy.isNonExpirable(context)) {
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, options?: ArgumentsBundle): void {
+		if (options == null) {
 			return;
 		}
 
-		ProactiveExpirationPolicy.setEntryExpiration(entry, context.expiresAfter!, context.expiresFrom);
+		if (ProactiveExpirationPolicy.isNonExpirable(options)) {
+			return;
+		}
+
+		ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom);
 		entry.key = key;
 
-		this.doScheduleDelete(entry);
+		this.scheduleEviction(entry);
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, context: SetOperationContext): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>, options?: ArgumentsBundle): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
-		super.onUpdate(key, entry, context); // this will update entry ttl with some validations
+		super.onUpdate(key, entry, options); // this will update entry ttl with some validations
 
 		if (Heap.isPartOfHeap(entry)) {
 			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
-				return this.doDelete(entry);
+				return this.deleteFromEntries(entry);
 			}
 
 			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
@@ -68,51 +75,56 @@ class ProactiveExpirationPolicy<Key, Value> extends AbstractExpirationPolicy<Key
 			}
 
 			this.entries.heapifyUpdatedNode(entry); // notice that we updated `expiresAt` above
-			return this.synchronize();
+			return this.synchronizeEvictionTimer();
 		}
 
-		if (!ProactiveExpirationPolicy.isNonExpirable(context)) {
+		if (options && !ProactiveExpirationPolicy.isNonExpirable(options)) {
 			// this is an update of item which had infinite timeout, now we need to track it
 			entry.key = key;
-			return this.doScheduleDelete(entry);
+			return this.scheduleEviction(entry);
 		}
 
 		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
-	public onDelete(_key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
+	public onDelete(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
+		// @fixme test that detaches metadata
+		super.onDelete(key, entry);
+
 		if (Heap.isPartOfHeap(entry)) {
-			this.doDelete(entry);
+			this.deleteFromEntries(entry);
 		}
 	}
 
 	public onClear(): void {
 		this.entries.clear();
-		this.synchronize();
+		this.synchronizeEvictionTimer();
 	}
 
 	public isIdle(): boolean {
 		return this.cleanUpInterval == null;
 	}
 
-	private doDelete(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
+	private deleteFromEntries(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
 		// root might be removed, or heap structure might change, we need to sync with new root
 		// on multiple keys with same `expiresAt` won't start timer
 		// it will be started only when root value changes `for real`
 		this.entries.delete(entry);
-		this.synchronize();
+		this.synchronizeEvictionTimer();
 	}
 
-	private doScheduleDelete(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
+	private scheduleEviction(entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
 		this.entries.push(entry);
-		this.synchronize();
+		this.synchronizeEvictionTimer();
 	}
+
+	// @fixme review
 
 	/**
-	 * This method synchronizes garbage collection
+	 * This method synchronizes garbage collection. <br/>
 	 * It needs to be called every time expirable keys heap is altered.
 	 */
-	private synchronize(): void {
+	private synchronizeEvictionTimer(): void {
 		const rootEntry = this.entries.peek();
 
 		if (rootEntry === undefined) {

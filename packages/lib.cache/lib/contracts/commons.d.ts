@@ -14,9 +14,15 @@ declare type EventType = 'set' | 'update' | 'del' | 'flush';
 declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
 /**
+ * Query number of elements in the cache.
+ */
+declare type CacheSizeGetter = () => number;
+
+/**
  * Describes collected cache statistics.
  */
 declare interface CacheStats {
+	// @fixme maybe we should remove it, we do unnecessary processing
 	/**
 	 * Number of cache hits.
 	 */
@@ -54,4 +60,4 @@ declare interface CacheEntryFilter {
 	notOlder: UnixTimestamp;
 }
 
-export { EventType, EventListener, CacheStats, CacheKey, CacheEntry };
+export { EventType, EventListener, CacheSizeGetter, CacheStats, CacheKey, CacheEntry };
