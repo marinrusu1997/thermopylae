@@ -95,7 +95,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			const appendNode = array.randomElement(nodes);
 			const newNode = new Node(i);
 
-			dll.splice(appendNode, newNode);
+			dll.insertAfter(appendNode, newNode);
 			// mimic behaviour of append after in the list
 			nodes.splice(nodes.indexOf(appendNode) + 1, 0, newNode);
 
@@ -180,7 +180,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			dll.push(new Node(3));
 			expect(dll.size).to.be.eq(3);
 
-			dll.splice(dll.head!, new Node(4));
+			dll.insertAfter(dll.head!, new Node(4));
 			expect(dll.size).to.be.eq(4);
 		});
 

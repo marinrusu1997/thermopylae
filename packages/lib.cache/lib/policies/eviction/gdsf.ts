@@ -1,7 +1,7 @@
 import sizeof from 'object-sizeof';
+import { Threshold } from '@thermopylae/core.declarations';
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
-import { SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheEntry } from '../../contracts/commons';
+import { CacheSizeGetter } from '../../contracts/commons';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
@@ -18,21 +18,26 @@ interface SizeOf<T> {
  * [Greedy Dual-Size with Frequency](https://www.hpl.hp.com/personal/Lucy_Cherkasova/projects/gdfs.html "Improving Web Servers and Proxies Performance with GDSF Caching Policies") eviction policy.
  * To be used carefully, as in practice, if no items are evicted, items frequency will increase with a very low rate.
  */
-class GDSFEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
+class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private readonly sizeOf: SizeOf<Value>;
 
 	private cacheAge: number;
 
 	/**
-	 * @inheritDoc
+	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
+	 * @param cacheSizeGetter	Getter for cache size.
+	 * @param sizeOfInBytes		Function which computes sizeof cache entry in bytes.
 	 */
-	public constructor(capacity: number, sizeOfInBytes?: SizeOf<Value>) {
-		super(capacity);
+	public constructor(cacheMaxCapacity: Threshold, cacheSizeGetter: CacheSizeGetter, sizeOfInBytes?: SizeOf<Value>) {
+		super(cacheMaxCapacity, cacheSizeGetter);
 		this.sizeOf = sizeOfInBytes || sizeof;
 		this.cacheAge = 0;
 	}
 
-	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	/**
+	 * @inheritDoc
+	 */
+	public onUpdate(): void {
 		throw new Error('NOT IMPLEMENTED! FREQUENCY NEEDS TO BE RECOMPUTED!');
 	}
 
@@ -40,7 +45,7 @@ class GDSFEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
 	 * @inheritDoc
 	 */
 	protected get initialFrequency(): number {
-		// this is to preserver assumption that cacheAge is always less that or equal to lowest list frequency,
+		// this is to preserve assumption that cacheAge is always less that or equal to lowest list frequency,
 		// as if we take into account item size, then it's initial freq might go bellow cacheAge,
 		// @fixme to be correct, we can take into account entry size, but we need to update cacheAge if it goes bellow it
 		return this.cacheAge;

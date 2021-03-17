@@ -1,7 +1,7 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/doubly-linked-list';
-import { CacheReplacementPolicy, EntryValidity, SetOperationContext, Deleter } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheReplacementPolicy, EntryValidity, Deleter } from '../../contracts/replacement-policy';
+import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
 import { LinkedList } from '../../contracts/linked-list';
 import { createException, ErrorCodes } from '../../error';
 
@@ -13,22 +13,26 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
 /**
  * [Least Recently Used](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU) "Least recently used (LRU)") eviction policy.
  */
-class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
-	private readonly cacheCapacity: Threshold;
+class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+	private readonly cacheMaxCapacity: Threshold;
 
-	private deleteFromCache!: Deleter<Key>;
+	private readonly cacheSizeGetter: CacheSizeGetter;
+
+	private deleteFromCache!: Deleter<Key, Value>;
 
 	private usageRecency: LinkedList<EvictableKeyNode<Key, Value>>;
 
 	/**
-	 * @param capacity	{@link Cache} maximum capacity.
+	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
+	 * @param cacheSizeGetter	Getter for cache size.
 	 */
-	public constructor(capacity: Threshold) {
-		if (capacity <= 0) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
+	public constructor(cacheMaxCapacity: number, cacheSizeGetter: CacheSizeGetter) {
+		if (cacheMaxCapacity <= 0) {
+			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
-		this.cacheCapacity = capacity;
+		this.cacheMaxCapacity = cacheMaxCapacity;
+		this.cacheSizeGetter = cacheSizeGetter;
 		this.usageRecency = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
 	}
 
@@ -43,11 +47,10 @@ class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
-		// code bellow might throw, so on next call total entries might be higher, therefore using >=
-		if (context.totalEntriesNo >= this.cacheCapacity) {
-			this.deleteFromCache(this.usageRecency.tail!.key); // fixme addapt to onDelete hook
-			this.usageRecency.remove(this.usageRecency.tail!);
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
+		// @fixme replace >= with >
+		if (this.cacheSizeGetter() >= this.cacheMaxCapacity) {
+			this.deleteFromCache(this.usageRecency.tail!.key, this.usageRecency.tail!); // removal from list will be made by `onDelete` hook
 		}
 
 		entry.key = key;
@@ -57,7 +60,7 @@ class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	public onUpdate(): void {
 		return undefined;
 	}
 
@@ -78,7 +81,7 @@ class LRUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value
 	/**
 	 * @inheritDoc
 	 */
-	public setDeleter(deleter: Deleter<Key>): void {
+	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
 }

@@ -1,18 +1,21 @@
+import { Threshold } from '@thermopylae/core.declarations';
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode } from './lfu-base';
+import { CacheSizeGetter } from '../../contracts/commons';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
 /**
  * [Least Frequently Used with Dynamic Aging](https://en.wikipedia.org/wiki/Cache_replacement_policies#LFU_with_dynamic_aging_(LFUDA) "LFU with dynamic aging (LFUDA)") eviction policy.
  */
-class LFUDAEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
+class LFUDAEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private cacheAge: number;
 
 	/**
-	 * @inheritDoc
+	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
+	 * @param cacheSizeGetter	Getter for cache size.
 	 */
-	public constructor(capacity: number) {
-		super(capacity);
+	public constructor(cacheMaxCapacity: Threshold, cacheSizeGetter: CacheSizeGetter) {
+		super(cacheMaxCapacity, cacheSizeGetter);
 		this.cacheAge = 0;
 	}
 

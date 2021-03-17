@@ -1,26 +1,21 @@
 import { EventEmitter } from 'events';
-import { Label, Seconds, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Label, Undefinable } from '@thermopylae/core.declarations';
 import { object } from '@thermopylae/lib.utils';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheFrontend } from '../contracts/cache-frontend';
-import { TtlRegistry } from '../helpers/ttl-registry';
-import { EsMapBackend } from '../backend/es-map-backend';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
-import { OpaqueMiddleEnd } from '../middleend/opaque-middleend';
 import { EventListener, EventType, CacheStats } from '../contracts/commons';
 
-interface MemCacheOptions<Key, Value> {
+interface CacheOptions<Key, Value, ArgumentBundle> {
 	useClones: boolean;
-	ttlRegistry: TtlRegistry<Key>;
-	middleEnd: CacheMiddleEnd<Key, Value>;
-
-	// @fixme add support for replacer function
+	middleEnd: CacheMiddleEnd<Key, Value, ArgumentBundle>;
 }
 
-class Cache<Key = string, Value = any> extends EventEmitter implements CacheFrontend<Key, Value> {
-	protected readonly config: MemCacheOptions<Key, Value>;
+// @fixme needs to be reviewed
+class Cache<Key, Value, ArgumentsBundle> extends EventEmitter implements CacheFrontend<Key, Value, ArgumentsBundle> {
+	protected readonly config: CacheOptions<Key, Value, ArgumentsBundle>;
 
-	constructor(options?: Partial<MemCacheOptions<Key, Value>>) {
+	constructor(options?: Partial<CacheOptions<Key, Value, ArgumentsBundle>>) {
 		super();
 		this.config = Cache.fillWithDefaults(options);
 	}
@@ -30,38 +25,18 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 	}
 
 	/**
-	 * @deprecated use this function when you know that key does not exist in cache 100%
+	 * @inheritDoc
 	 */
-	public set(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
-		// @fixme this needs to be removed
-
-		return this.internalSet(key, value, ttl, expiresFrom, true);
-	}
-
-	// @fixme this needs to be renamed into 'set', it will overwrite entry if it already exists
-	public upset(key: Key, value: Value, ttl?: Seconds, expiresFrom?: UnixTimestamp): this {
+	public set(key: Key, value: Value, options?: ArgumentsBundle): this {
 		value = this.config.useClones ? object.cloneDeep(value) : value;
+		this.config.middleEnd.set(key, value, options);
 
-		if (this.config.middleEnd.replace(key, value, ttl, expiresFrom)) {
-			this.emit('update', key, value);
-			return this;
-		}
-
-		return this.internalSet(key, value, ttl, expiresFrom, false);
+		this.emit('set', key, value);
+		return this;
 	}
 
 	public get(key: Key): Undefinable<Value> {
 		return this.config.middleEnd.get(key);
-	}
-
-	public mget(keys: Array<Key>): Map<Key, Undefinable<Value>> {
-		const items = new Map<Key, Undefinable<Value>>();
-
-		for (const key of keys) {
-			items.set(key, this.config.middleEnd.get(key));
-		}
-
-		return items;
 	}
 
 	public take(key: Key): Undefinable<Value> {
@@ -73,10 +48,6 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 		this.del(key);
 
 		return value;
-	}
-
-	public ttl(key: Key, ttl: Seconds, expiresFrom?: UnixTimestamp): boolean {
-		return this.config.middleEnd.ttl(key, ttl, expiresFrom);
 	}
 
 	public has(key: Key): boolean {
@@ -91,19 +62,12 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 		return deleted;
 	}
 
-	public mdel(keys: Array<Key>): void {
-		// eslint-disable-next-line no-restricted-syntax
-		for (const key of keys) {
-			this.del(key);
-		}
-	}
-
 	public keys(): Array<Key> {
 		return this.config.middleEnd.keys();
 	}
 
 	public get stats(): CacheStats {
-		return object.cloneDeep(this.config.middleEnd.stats);
+		return object.cloneDeep({ hits: 0, misses: 0 }); // @fixme implement stats
 	}
 
 	public get size(): number {
@@ -123,23 +87,11 @@ class Cache<Key = string, Value = any> extends EventEmitter implements CacheFron
 		return super.on(event, listener);
 	}
 
-	private internalSet(key: Key, value: Value, ttl?: number, expiresFrom?: number, withCloning = true) {
-		value = withCloning && this.config.useClones ? object.cloneDeep(value) : value;
-		ttl = ttl ?? this.config.ttlRegistry.resolve(key);
-
-		this.config.middleEnd.set(key, value, ttl, expiresFrom);
-		this.emit('set', key, value);
-
-		return this;
-	}
-
-	private static fillWithDefaults<K, V>(options?: Partial<MemCacheOptions<K, V>>): MemCacheOptions<K, V> {
+	private static fillWithDefaults<K, V, ArgsBundle>(options?: Partial<CacheOptions<K, V, ArgsBundle>>): CacheOptions<K, V, ArgsBundle> {
 		options = options || {};
 		options.useClones = options.useClones || false;
-		options.middleEnd = options.middleEnd || new OpaqueMiddleEnd<K, V>(new EsMapBackend());
-		options.ttlRegistry = options.ttlRegistry || TtlRegistry.empty<K>();
-		return options as MemCacheOptions<K, V>;
+		return options as CacheOptions<K, V, ArgsBundle>;
 	}
 }
 
-export { Cache, MemCacheOptions };
+export { Cache, CacheOptions };

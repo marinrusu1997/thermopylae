@@ -1,8 +1,8 @@
-import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+import { ErrorCodes, Nullable, Threshold } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/doubly-linked-list';
-import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
 import { createException } from '../../error';
 import { LinkedList } from '../../contracts/linked-list';
 
@@ -38,24 +38,28 @@ type StringFormatter = (str: string) => string;
 /**
  * Base class for LFU policies.
  */
-abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
+abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private static readonly FORMAT_COLORS: Array<StringFormatter> = [(str) => str];
 
 	private readonly frequencies: LinkedList<FreqListNode<Key, Value>>;
 
-	private readonly cacheCapacity: number;
+	private readonly cacheMaxCapacity: number;
 
-	private deleteFromCache!: Deleter<Key>;
+	private readonly cacheSizeGetter: CacheSizeGetter;
+
+	private deleteFromCache!: Deleter<Key, Value>;
 
 	/**
-	 * @param capacity				{@link Cache} maximum capacity.
+	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
+	 * @param cacheSizeGetter	Getter for cache size.
 	 */
-	public constructor(capacity: number) {
-		if (capacity <= 0) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${capacity}.`);
+	public constructor(cacheMaxCapacity: Threshold, cacheSizeGetter: CacheSizeGetter) {
+		if (cacheMaxCapacity <= 0) {
+			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
-		this.cacheCapacity = capacity;
+		this.cacheMaxCapacity = cacheMaxCapacity;
+		this.cacheSizeGetter = cacheSizeGetter;
 		this.frequencies = new DoublyLinkedList<FreqListNode<Key, Value>>();
 	}
 
@@ -74,9 +78,9 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	 * @inheritDoc
 	 */
 	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
-		const newFrequency = this.computeEntryFrequency(entry, BaseLFUEvictionPolicy.frequency(entry));
+		const newFrequency = this.computeEntryFrequency(entry, entry[FREQ_PARENT_ITEM_SYM].frequency);
 
-		if (newFrequency === BaseLFUEvictionPolicy.frequency(entry)) {
+		if (newFrequency === entry[FREQ_PARENT_ITEM_SYM].frequency) {
 			// this will prevent scenario when `list` contains a single entry, so we remove it,
 			// then try to find a freq parent node, but we get the same we removed earlier,
 			// and frequency list remains corrupted while entry node is leaked
@@ -94,10 +98,11 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>, context: SetOperationContext): void {
+	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		// Check for backend overflow
-		if (context.totalEntriesNo >= this.cacheCapacity) {
-			this.evict(); // @fixme adapt to onDelete hook
+		// @fixme use > instead of >=
+		if (this.cacheSizeGetter() >= this.cacheMaxCapacity) {
+			this.evict();
 		}
 
 		const frequencyBucket = this.findFrequencyBucket(this.frequencies.head, this.initialFrequency);
@@ -109,7 +114,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	public onUpdate(): void {
 		return undefined;
 	}
 
@@ -130,17 +135,8 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	/**
 	 * @inheritDoc
 	 */
-	public setDeleter(deleter: Deleter<Key>): void {
+	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
-	}
-
-	/**
-	 * Get frequency of the entry.
-	 *
-	 * @param entry		Cache entry.
-	 */
-	public static frequency<K, V>(entry: EvictableKeyNode<K, V>): number {
-		return entry[FREQ_PARENT_ITEM_SYM].frequency;
 	}
 
 	/**
@@ -243,7 +239,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 				this.frequencies[addTo](nodeWithNeedleFrequency);
 			} else {
 				// we are somewhere in the middle
-				this.frequencies.splice(current[appendSym]!, nodeWithNeedleFrequency);
+				this.frequencies.insertAfter(current[appendSym]!, nodeWithNeedleFrequency);
 			}
 
 			return nodeWithNeedleFrequency;
@@ -264,10 +260,10 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 	private evict(): void {
 		const currentFreqListHead = this.frequencies.head!;
 
-		this.deleteFromCache(currentFreqListHead.cacheEntries.tail!.key);
-		this.removeEntryFromFrequencyBucket(currentFreqListHead, currentFreqListHead.cacheEntries.tail!);
+		this.deleteFromCache(currentFreqListHead.cacheEntries.tail!.key, currentFreqListHead.cacheEntries.tail!);
+		// removal from frequency list will be made by `onDelete` hook invoked by cache deleter
 
-		// previous function might update `this.freqList` head, that's we pass a copy of the head to this function
+		// removal from frequency bucket might update `this.freqList` head, that's why we pass a copy of the head to this function
 		// as it needs the node from where item was evicted
 		this.onEvict(currentFreqListHead);
 	}
@@ -284,7 +280,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value> implements CacheReplacementPoli
 			this.frequencies.remove(freqListNode);
 		}
 
-		evictableKeyNode[FREQ_PARENT_ITEM_SYM] = (null as unknown) as FreqListNode<Key, Value>;
+		evictableKeyNode[FREQ_PARENT_ITEM_SYM] = undefined!; // soft delete
 	}
 }
 

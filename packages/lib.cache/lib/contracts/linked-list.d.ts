@@ -23,7 +23,7 @@ interface LinkedList<Node> extends Iterable<Node> {
 	/**
 	 * Adds `node` after the `position` node.
 	 */
-	splice(position: Node, node: Node): void;
+	insertAfter(position: Node, node: Node): void;
 
 	/**
 	 * Remove `node` from list.

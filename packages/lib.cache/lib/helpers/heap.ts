@@ -181,8 +181,7 @@ class Heap<T extends HeapNode> {
 	}
 
 	private static detachMetadata(node: HeapNode): void {
-		// @ts-ignore
-		delete node[HEAP_NODE_IDX_SYM];
+		node[HEAP_NODE_IDX_SYM] = undefined!; // logical delete
 	}
 }
 

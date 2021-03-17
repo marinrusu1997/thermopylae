@@ -70,7 +70,7 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 		this.size += 1;
 	}
 
-	public splice(prevNode: Node, newNode: Node): void {
+	public insertAfter(prevNode: Node, newNode: Node): void {
 		newNode[NEXT_SYM] = prevNode[NEXT_SYM];
 		prevNode[NEXT_SYM] = newNode;
 

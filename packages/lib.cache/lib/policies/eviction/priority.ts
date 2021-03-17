@@ -1,4 +1,4 @@
-import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
 const enum CacheEntryPriority {
@@ -8,16 +8,16 @@ const enum CacheEntryPriority {
 	HIGH
 }
 
-class PriorityEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
+class PriorityEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	public onHit(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
 		return EntryValidity.NOT_VALID;
 	}
 
-	public onSet(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	public onSet(_key: Key, _entry: CacheEntry<Value>, _options?: ArgumentsBundle): void {
 		return undefined;
 	}
 
-	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _context: SetOperationContext): void {
+	public onUpdate(_key: Key, _entry: CacheEntry<Value>, _options?: ArgumentsBundle): void {
 		return undefined;
 	}
 
@@ -29,7 +29,7 @@ class PriorityEvictionPolicy<Key, Value> implements CacheReplacementPolicy<Key, 
 		return undefined;
 	}
 
-	public setDeleter(_deleter: Deleter<Key>): void {
+	public setDeleter(_deleter: Deleter<Key, Value>): void {
 		return undefined;
 	}
 }

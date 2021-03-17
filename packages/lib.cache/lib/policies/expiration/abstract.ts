@@ -49,7 +49,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	/**
 	 * Cache entry deleter.
 	 */
-	protected deleteFromCache!: Deleter<Key>;
+	protected deleteFromCache!: Deleter<Key, Value>;
 
 	/**
 	 * @inheritDoc
@@ -78,7 +78,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	 */
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, options?: ArgumentsBundle): void {
 		if (options == null || AbstractExpirationPolicy.isNonExpirable(options)) {
-			delete entry[EXPIRES_AT_SYM]; // entry is no longer expirable
+			entry[EXPIRES_AT_SYM] = undefined!; // entry is no longer expirable, logical deletion
 			return;
 		}
 		AbstractExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom); // overwrites or adds expiration
@@ -88,7 +88,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	 * @inheritDoc
 	 */
 	public onDelete(_key: Key, entry: ExpirableCacheEntry<Value>): void {
-		delete entry[EXPIRES_AT_SYM]; // detach metadata, as entry might be reused by cache backend
+		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 
 	/**
@@ -101,14 +101,14 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	/**
 	 * @inheritDoc
 	 */
-	public setDeleter(deleter: Deleter<Key>): void {
+	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
 
 	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
 		const expired = entry[EXPIRES_AT_SYM] != null ? entry[EXPIRES_AT_SYM]! <= chrono.unixTime() : false;
 		if (expired) {
-			this.deleteFromCache(key); // metadata will be cleared by `onDelete` hook which is called by cache deleter
+			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
 			return EntryValidity.NOT_VALID;
 		}
 		return EntryValidity.VALID;

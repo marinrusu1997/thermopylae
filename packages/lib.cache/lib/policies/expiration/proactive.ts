@@ -1,4 +1,4 @@
-import { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Nullable, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
 import { EntryValidity } from '../../contracts/replacement-policy';
@@ -89,7 +89,7 @@ class ProactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpi
 
 	public onDelete(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
 		// @fixme test that detaches metadata
-		super.onDelete(key, entry);
+		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 
 		if (Heap.isPartOfHeap(entry)) {
 			this.deleteFromEntries(entry);
@@ -117,8 +117,6 @@ class ProactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpi
 		this.entries.push(entry);
 		this.synchronizeEvictionTimer();
 	}
-
-	// @fixme review
 
 	/**
 	 * This method synchronizes garbage collection. <br/>
@@ -153,11 +151,12 @@ class ProactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpi
 	}
 
 	private doCleanUp = (): void => {
-		let rootEntry = this.entries.peek();
+		let rootEntry: Undefinable<ExpirableCacheKeyedEntryHeapNode<Key, Value>>;
 
 		do {
-			this.deleteFromCache(rootEntry!.key); // remove from cache (if this throws we have meta-data and can retry operation)
-			this.entries.pop(); // remove from internal structure
+			// @fixme test metadata + heap removal
+			rootEntry = this.entries.pop(); // remove from internal structure (we do this here, so that `onDelete` hook does not try to delete it and restart timer)
+			this.deleteFromCache(rootEntry!.key, rootEntry!); // remove from cache, will trigger `onDelete` which will detach ttl metadata
 
 			rootEntry = this.entries.peek();
 

@@ -1,6 +1,6 @@
 import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
-import { CacheReplacementPolicy, Deleter, EntryValidity, SetOperationContext } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/doubly-linked-list';
 import { LinkedList } from '../../contracts/linked-list';
@@ -36,26 +36,26 @@ type Segments<Key, Value> = {
 /**
  * [Segmented LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Segmented_LRU_(SLRU) "Segmented LRU (SLRU)") eviction policy.
  */
-class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Value> {
+class SegmentedLRUPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly segments: Segments<Key, Value>;
 
-	private deleteFromCache!: Deleter<Key>;
+	private deleteFromCache!: Deleter<Key, Value>;
 
 	/**
-	 * @param capacity                      {@link Cache} capacity.
-	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `capacity`. <br/>
-	 * 										Defaults to 73%.
+	 * @param cacheMaxCapacity              {@link Cache} maximum capacity.
+	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `cacheMaxCapacity`.<br/>
+	 * 										Defaults to 70%.
 	 */
-	public constructor(capacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
-		if (capacity < 2) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be at least 2. Given: ${capacity}.`);
+	public constructor(cacheMaxCapacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
+		if (cacheMaxCapacity < 2) {
+			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be at least 2. Given: ${cacheMaxCapacity}.`);
 		}
 
 		const protectedSegmentSize = Math.round(
-			number.percentage(capacity, protectedOverProbationRatio) // percentage does implicit validation
+			number.percentage(cacheMaxCapacity, protectedOverProbationRatio) // percentage does implicit validation
 		);
 		if (protectedSegmentSize < 1) {
-			const context = { capacity, protectedOverProbationRatio, protectedSegmentSize };
+			const context = { cacheMaxCapacity, protectedOverProbationRatio, protectedSegmentSize };
 			throw createException(ErrorCodes.INVALID_VALUE, `Protected segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
 		}
 
@@ -65,14 +65,14 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 				items: new DoublyLinkedList<EvictableKeyNode<Key, Value>>()
 			},
 			[SegmentType.PROBATION]: {
-				capacity: capacity - protectedSegmentSize,
+				capacity: cacheMaxCapacity - protectedSegmentSize,
 				items: new DoublyLinkedList<EvictableKeyNode<Key, Value>>()
 			}
 		};
 
 		if (this.segments[SegmentType.PROBATION].capacity < 1) {
 			const context = {
-				capacity,
+				cacheMaxCapacity,
 				protectedOverProbationRatio,
 				protectedSegmentSize,
 				probationSegmentSize: this.segments[SegmentType.PROBATION].capacity
@@ -106,42 +106,61 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 		return this.getEntryFrom('tail');
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		entry.key = key;
 		this.demote(entry);
 	}
 
-	public onUpdate(_key: Key, _entry: EvictableKeyNode<Key, Value>, _context: SetOperationContext): void {
+	/**
+	 * @inheritDoc
+	 */
+	public onUpdate(): void {
 		return undefined;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		this.segments[entry[SEGMENT_SYM]].items.remove(entry);
+		entry[SEGMENT_SYM] = undefined!; // logical delete
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
 		for (const segment of (Object.keys(this.segments) as unknown) as Array<SegmentType>) {
 			this.segments[segment].items.clear();
 		}
 	}
 
-	public setDeleter(deleter: Deleter<Key>): void {
+	/**
+	 * @inheritDoc
+	 */
+	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
 
-	private isOverflow(segment: SegmentType): boolean {
+	private isFull(segment: SegmentType): boolean {
 		return this.segments[segment].items.size === this.segments[segment].capacity;
 	}
 
 	private demote(entry: EvictableKeyNode<Key, Value>): void {
-		if (this.isOverflow(SegmentType.PROBATION)) {
-			this.deleteFromCache(this.segments[SegmentType.PROBATION].items.tail!.key);
-			this.segments[SegmentType.PROBATION].items.remove(this.segments[SegmentType.PROBATION].items.tail!);
+		if (this.isFull(SegmentType.PROBATION)) {
+			this.deleteFromCache(this.segments[SegmentType.PROBATION].items.tail!.key, this.segments[SegmentType.PROBATION].items.tail!);
+			// entry will be removed from PROBATION segment list by `onDelete` hook
 		}
 
 		this.segments[SegmentType.PROBATION].items.unshift(entry);
@@ -157,7 +176,7 @@ class SegmentedLRUPolicy<Key, Value> implements CacheReplacementPolicy<Key, Valu
 				// also, if we first add it to PROTECTED, it will overwrite NEXT & PREV links from PROBATION
 				this.segments[SegmentType.PROBATION].items.remove(entry);
 
-				if (this.isOverflow(SegmentType.PROTECTED)) {
+				if (this.isFull(SegmentType.PROTECTED)) {
 					const tail = this.segments[SegmentType.PROTECTED].items.tail!;
 					this.segments[SegmentType.PROTECTED].items.remove(tail);
 					this.demote(tail);

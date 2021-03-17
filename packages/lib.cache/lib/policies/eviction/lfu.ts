@@ -3,7 +3,7 @@ import { BaseLFUEvictionPolicy, EvictableKeyNode } from './lfu-base';
 /**
  * [Least Frequently Used](https://en.wikipedia.org/wiki/Least_frequently_used "Least frequently used") eviction policy.
  */
-class LFUEvictionPolicy<Key, Value> extends BaseLFUEvictionPolicy<Key, Value> {
+class LFUEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * @inheritDoc
 	 */

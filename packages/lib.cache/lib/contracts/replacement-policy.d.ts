@@ -7,7 +7,7 @@ import { CacheEntry } from './commons';
  *
  * @param key	Name of the key.
  */
-declare type Deleter<Key> = (key: Key) => void;
+declare type Deleter<Key, Value> = (key: Key, entry: CacheEntry<Value>) => boolean;
 
 /**
  * Indicates whether {@link CacheEntry} is still valid.
@@ -58,7 +58,9 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
-	 * Hook executed after `entry` for `key` has been deleted.
+	 * Hook executed after `entry` for `key` has been deleted. <br/>
+	 * Policy is supposed to detach metadata from entry
+	 * and cleanup it's internal data structures when this hook is called.
 	 *
 	 * @param key		Name of the key.
 	 * @param entry		Associated entry.
@@ -74,7 +76,7 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * Set `deleter` which removes entries from cache.
 	 */
-	setDeleter(deleter: Deleter<Key>): void;
+	setDeleter(deleter: Deleter<Key, Value>): void;
 }
 
 export { CacheReplacementPolicy, Deleter, EntryValidity };

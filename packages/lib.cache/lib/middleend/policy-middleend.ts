@@ -1,7 +1,7 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
 
@@ -15,7 +15,7 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		this.policies = policies;
 
 		for (const policy of policies) {
-			policy.setDeleter(this.del);
+			policy.setDeleter(this.internalDelete);
 		}
 	}
 
@@ -77,18 +77,14 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		return entry;
 	}
 
-	public del = (key: Key): boolean => {
+	public del(key: Key): boolean {
 		const entry = this.backend.get(key);
 		if (!entry) {
 			return false;
 		}
 
-		for (const policy of this.policies) {
-			policy.onDelete(key, entry); // @fixme should not throw
-		}
-
-		return this.backend.del(key);
-	};
+		return this.internalDelete(key, entry);
+	}
 
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
@@ -104,6 +100,14 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 	public get size(): number {
 		return this.backend.size;
 	}
+
+	private internalDelete: Deleter<Key, Value> = (key, entry) => {
+		for (const policy of this.policies) {
+			policy.onDelete(key, entry); // @fixme should not throw
+		}
+
+		return this.backend.del(key);
+	};
 }
 
 export { PolicyMiddleEnd };
