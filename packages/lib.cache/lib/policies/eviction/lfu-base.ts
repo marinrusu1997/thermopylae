@@ -284,4 +284,4 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	}
 }
 
-export { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode, StringFormatter };
+export { BaseLFUEvictionPolicy, EvictableKeyNode, FreqListNode, StringFormatter, FREQ_PARENT_ITEM_SYM };

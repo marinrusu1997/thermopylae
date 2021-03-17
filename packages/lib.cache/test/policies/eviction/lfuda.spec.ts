@@ -4,8 +4,7 @@ import colors from 'colors';
 import { array, number } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
-import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
-import { SetOperationContext } from '../../../lib/contracts/replacement-policy';
+import { EvictableKeyNode, FREQ_PARENT_ITEM_SYM } from '../../../lib/policies/eviction/lfu-base';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -41,21 +40,26 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const lfu = new LFUDAEvictionPolicy<string, number>(CAPACITY);
+			let totalEntriesNo = 0;
+			const cacheSizeGetter = () => totalEntriesNo;
+
+			const policy = new LFUDAEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
 			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
-			lfu.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as any);
+			});
 
 			/* Add entries */
-			const context: SetOperationContext = { totalEntriesNo: 0 };
 			for (const [key, value] of ENTRIES) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { key, value };
-				lfu.onSet(key, entry, context);
+				policy.onSet(key, entry);
 				lfuEntries.set(key, entry);
-				context.totalEntriesNo += 1;
+				totalEntriesNo += 1;
 			}
-			expect(lfu.size).to.be.eq(CAPACITY);
-			expect(context.totalEntriesNo).to.be.eq(CAPACITY);
+			expect(policy.size).to.be.eq(CAPACITY);
+			expect(totalEntriesNo).to.be.eq(CAPACITY);
 
 			/* Set their frequencies */
 			for (const key of GET_ORDER) {
@@ -63,21 +67,21 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				lfu.onHit(key, entry);
+				policy.onHit(key, entry);
 			}
 			for (const [key, freq] of ENTRY_FREQ) {
 				const entry = lfuEntries.get(key)!;
-				expect(LFUDAEvictionPolicy.frequency(entry)).to.be.eq(freq);
+				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(freq);
 			}
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { key, value };
-				lfu.onSet(key, entry, context);
+				policy.onSet(key, entry);
 				lfuEntries.set(key, entry);
 			}
-			expect(lfu.size).to.be.eq(CAPACITY);
+			expect(policy.size).to.be.eq(CAPACITY);
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
 			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
 
@@ -90,17 +94,17 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 				let freq = 4;
 				while (freq--) {
-					lfu.onHit(key, entry);
+					policy.onHit(key, entry);
 				}
-				expect(LFUDAEvictionPolicy.frequency(entry)).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
+				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}
-			expect(lfu.size).to.be.eq(CAPACITY);
+			expect(policy.size).to.be.eq(CAPACITY);
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
 			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
 
 			// @ts-ignore
 			const entry: EvictableKeyNode<string, number> = { key: 'x', value: number.randomInt(10, 20) };
-			lfu.onSet('x', entry, context);
+			policy.onSet('x', entry);
 
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size + 1);
 			expect(EVICTED_KEYS).to.satisfy((keys: string[]) => keys.includes('c') || keys.includes('d'));

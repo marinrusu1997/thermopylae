@@ -48,11 +48,11 @@ interface Config<Key, Value> extends MixedExpirationPolicyConfig<Key, Value> {
 	iterateThreshold: Threshold;
 }
 
-class MixedExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
+class MixedExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle
-> {
+	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
+> extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
 	private readonly config: Config<Key, Value>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null;

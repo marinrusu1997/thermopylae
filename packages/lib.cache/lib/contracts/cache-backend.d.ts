@@ -50,6 +50,13 @@ declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Val
 	set(key: Key, value: Value): CacheEntry<Value>;
 
 	/**
+	 * Check if `key` is present in the cache.
+	 *
+	 * @param key	Name of the key.
+	 */
+	has(key: Key): boolean;
+
+	/**
 	 * Delete `key`.
 	 *
 	 * @param key	Name of the key.

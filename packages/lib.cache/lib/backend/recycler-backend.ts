@@ -30,6 +30,10 @@ class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return this.store.get(key);
 	}
 
+	public has(key: Key): boolean {
+		return this.store.has(key);
+	}
+
 	public set(key: Key, value: Value): CacheEntry<Value> {
 		const handle = this.entryPool.acquire(value);
 		this.store.set(key, handle);

@@ -1,7 +1,7 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/replacement-policy';
+import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
 
@@ -36,6 +36,17 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		}
 
 		return entry.value;
+	}
+
+	/**
+	 * Check whether **key** is present in the cache, without calling policies *onHit* hook. <br/>
+	 * Notice, that some policies might evict item when *onHit* hook is called (e.g. item expired),
+	 * therefore even if method returns **true**, trying to *get* item will evict him.
+	 *
+	 * @param key	Name of the key.
+	 */
+	public has(key: Key): boolean {
+		return this.backend.has(key);
 	}
 
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): CacheEntry<Value> {
@@ -101,7 +112,7 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		return this.backend.size;
 	}
 
-	private internalDelete: Deleter<Key, Value> = (key, entry) => {
+	private internalDelete = (key: Key, entry: CacheEntry<Value>) => {
 		for (const policy of this.policies) {
 			policy.onDelete(key, entry); // @fixme should not throw
 		}

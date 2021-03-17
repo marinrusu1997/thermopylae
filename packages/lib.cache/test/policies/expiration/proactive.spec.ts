@@ -5,177 +5,104 @@ import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { ExpirableCacheKeyedEntryHeapNode, ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
-import { generateEntry, generateSetContext } from './commons';
+import { generateEntry } from './commons';
 import { INFINITE_TTL } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
+import { EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
+import { HEAP_NODE_IDX_SYM } from '../../../lib/helpers/heap';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second
 
 	describe(`${ProactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
 		it('does not evict item if it has infinite or no ttl', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const MAX_TIMEOUT = 1000;
 			const TIMEOUT_STEP = 100;
 
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+
+				const expirableCacheHeapNode = evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>;
+				policy.onDelete(evictedKey, expirableCacheHeapNode);
+				expect(expirableCacheHeapNode[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(expirableCacheHeapNode[HEAP_NODE_IDX_SYM]).to.be.eq(undefined);
+			});
 
 			for (let timeout = TIMEOUT_STEP; timeout <= MAX_TIMEOUT; timeout += TIMEOUT_STEP) {
 				setTimeout(() => {
 					expect(EVICTED_KEYS).to.be.ofSize(0);
-					expect(POLICY.size).to.be.eq(0); // it didn't tracks nothing
+					expect(policy.size).to.be.eq(0); // it didn't tracks nothing
 					if (timeout === MAX_TIMEOUT) {
 						done();
 					}
 				}, timeout);
 			}
 
-			POLICY.onSet('a', generateEntry('a'), generateSetContext(INFINITE_TTL));
-			POLICY.onSet('b', generateEntry('b'), generateSetContext(undefined));
-			POLICY.onSet('c', generateEntry('c'), generateSetContext(null));
+			policy.onSet('a', generateEntry('a'), { expiresAfter: INFINITE_TTL });
+			policy.onSet('b', generateEntry('b'), { expiresAfter: undefined });
+			policy.onSet('c', generateEntry('c'), { expiresAfter: null! });
 
-			expect(POLICY.size).to.be.eq(0); // it didn't tracks nothing
+			expect(policy.size).to.be.eq(0); // it didn't tracks nothing
 		});
 
 		it('evicts expired item', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const TRACKED_KEY = 'key';
 			const WHEN_TRACKING_BEGAN = chrono.unixTime();
 
-			const deleter: Deleter<string> = (key) => {
+			const deleter: Deleter<string, any> = (evictedKey, evictedEntry) => {
 				expect(chrono.unixTime() - WHEN_TRACKING_BEGAN).to.be.equals(defaultTTL);
-				expect(key).to.be.equals(TRACKED_KEY);
+				expect(evictedKey).to.be.equals(TRACKED_KEY);
 
-				// internal structure will be clean up after deleter is invoked
-				expect(POLICY.size).to.be.eq(1);
-				process.nextTick(() => {
-					expect(POLICY.size).to.be.eq(0);
-					done();
-				});
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+
+				expect(policy.size).to.be.eq(0);
+				done();
 			};
 
-			POLICY.setDeleter(deleter);
-			POLICY.onSet(TRACKED_KEY, generateEntry(TRACKED_KEY), generateSetContext(defaultTTL));
+			policy.setDeleter(deleter);
+			policy.onSet(TRACKED_KEY, generateEntry(TRACKED_KEY), { expiresAfter: defaultTTL });
 		});
 
 		it('should not allow inserting of items which have ttl in milliseconds', () => {
-			const POLICY = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
-			expect(() => POLICY.onSet('a', generateEntry('a'), generateSetContext(0.1))).to.throw(`'expiresAfter' needs to be an integer. Given: ${0.1}.`);
-			expect(() => POLICY.onSet('a', generateEntry('a'), generateSetContext(1, 0.1))).to.throw(`'expiresFrom' needs to be an integer. Given: ${0.1}.`);
-
-			/* const POLICY = new ProactiveExpirationPolicy<string, any>();
-			const KEYS = new Map<string, Seconds>(
-				array
-					.filledWith(number.randomInt(1, 10), () => roundTo(number.random(0.1, 1), 1))
-					.map((ttl) => [string.random({ length: 3, allowedCharRegex: /[a-z]/ }), ttl])
+			expect(() => policy.onSet('a', generateEntry('a'), { expiresAfter: 0.1 })).to.throw(`'expiresAfter' needs to be an integer. Given: ${0.1}.`);
+			expect(() => policy.onSet('a', generateEntry('a'), { expiresAfter: 1, expiresFrom: 0.1 })).to.throw(
+				`'expiresFrom' needs to be an integer. Given: ${0.1}.`
 			);
-			const KEYS_BY_TTL = new ReverseMap(KEYS);
-			// const EPSILON = 10;
-
-			const EVICTED_KEYS = new Map<string, Milliseconds>();
-			POLICY.setDeleter((key) => EVICTED_KEYS.set(key, new Date().getTime()));
-
-			// const INSERT_STARTED_AT = new Date();
-			for (const [key, ttl] of KEYS) {
-				POLICY.onSet(key, generateEntry(key), generateSetContext(ttl));
-			}
-
-			setTimeout(() => {
-				try {
-					expect(EVICTED_KEYS.size).to.be.eq(KEYS.size);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
-
-					done();
-				} catch (e) {
-					const message = [
-						'Test Context:',
-						`${'KEYS'.magenta}\t\t: ${JSON.stringify([...KEYS])}`,
-						`${'KEYS_BY_TTL'.magenta}\t: ${JSON.stringify([...KEYS_BY_TTL])}`,
-						'',
-						`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify([...EVICTED_KEYS])}`
-					];
-					UnitTestLogger.info(message.join('\n'));
-
-					done(e);
-				}
-			}, 1050); */
-			/*			let remainingTtlEvictions = KEYS_BY_TTL.value.size;
-			const TIMEOUTS = new Set<NodeJS.Timeout>();
-
-			for (const ttl of KEYS_BY_TTL.value.keys()) {
-				// eslint-disable-next-line no-loop-func
-				const timeout = setTimeout(() => {
-					try {
-						TIMEOUTS.delete(timeout);
-
-						const keys = KEYS_BY_TTL.value.get(ttl)!;
-						const expectedEvictTimestamp = INSERT_STARTED_AT.getTime() + chrono.secondsToMilliseconds(ttl);
-
-						for (const key of keys) {
-							expect(EVICTED_KEYS.has(key)).to.be.eq(true);
-							expect(EVICTED_KEYS.get(key)!).to.be.below(expectedEvictTimestamp + EPSILON);
-						}
-
-						if (--remainingTtlEvictions === 0) {
-							expect(EVICTED_KEYS.size).to.be.eq(KEYS.size);
-							expect(POLICY.size).to.be.eq(0);
-							expect(POLICY.isIdle()).to.be.eq(true);
-
-							done();
-						}
-					} catch (e) {
-						for (const remainingTimeout of TIMEOUTS) {
-							clearTimeout(remainingTimeout);
-						}
-						TIMEOUTS.clear();
-
-						const message = [
-							'Test Context:',
-							`${'KEYS'.magenta}\t\t: ${JSON.stringify([...KEYS])}`,
-							`${'KEYS_BY_TTL'.magenta}\t: ${JSON.stringify([...KEYS_BY_TTL])}`,
-							'',
-							`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify([...EVICTED_KEYS])}`,
-							`${'CURRENT_TTL'.magenta}: ${ttl}`
-						];
-						UnitTestLogger.info(message.join('\n'));
-
-						done(e);
-					}
-				}, chrono.secondsToMilliseconds(ttl) + 100); // correction
-
-				TIMEOUTS.add(timeout);
-			} */
 		});
 
 		it('evicts multiple expired keys with same ttl (tracking started at same time)', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const trackedKeys = ['key1', 'key2', 'key3'];
 			const whenTrackingBegan = chrono.unixTime();
 
-			const deleter: Deleter<string> = (key) => {
+			const deleter: Deleter<string, any> = (evictedKey, evictedEntry) => {
 				expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(defaultTTL);
-				expect(trackedKeys).to.be.containing(key);
-				trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
+				expect(trackedKeys).to.be.containing(evictedKey);
+				trackedKeys.splice(trackedKeys.indexOf(evictedKey), 1); // ensure not called with same key
+
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
 
 				if (trackedKeys.length === 0) {
 					process.nextTick(() => {
-						expect(expirationPolicy.size).to.be.eq(0);
+						expect(policy.size).to.be.eq(0);
 						done();
 					});
 				}
 			};
 
-			expirationPolicy.setDeleter(deleter);
-			trackedKeys.forEach((key) => expirationPolicy.onSet(key, generateEntry(key), generateSetContext(defaultTTL)));
+			policy.setDeleter(deleter);
+			trackedKeys.forEach((key) => policy.onSet(key, generateEntry(key), { expiresAfter: defaultTTL }));
 		});
 
 		it('evicts multiple expired keys with different ttl (tracking started at same time)', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const trackedKeysMap = new Map<string, number>();
 			trackedKeysMap.set('key1', defaultTTL);
@@ -184,22 +111,24 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			trackedKeysMap.set('key4', defaultTTL + 1);
 
 			const whenTrackingBegan = chrono.unixTime();
-			const deleter: Deleter<string> = (key) => {
-				expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(key));
-				expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
-				trackedKeysMap.delete(key); // ensure not called with same key
+			const deleter: Deleter<string, any> = (evictedKey, evictedEntry) => {
+				expect(chrono.unixTime() - whenTrackingBegan).to.be.equals(trackedKeysMap.get(evictedKey));
+				expect(Array.from(trackedKeysMap.keys())).to.be.containing(evictedKey);
+				trackedKeysMap.delete(evictedKey); // ensure not called with same key
+
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
 
 				if (trackedKeysMap.size === 0) {
 					done();
 				}
 			};
 
-			expirationPolicy.setDeleter(deleter);
-			trackedKeysMap.forEach((ttl, key) => expirationPolicy.onSet(key, generateEntry(key), generateSetContext(ttl)));
+			policy.setDeleter(deleter);
+			trackedKeysMap.forEach((ttl, key) => policy.onSet(key, generateEntry(key), { expiresAfter: ttl }));
 		}).timeout(2100);
 
 		it('evicts multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 			const KEYS_TO_BE_TRACKED = 4;
 
 			const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
@@ -207,15 +136,17 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			let currentNumberOfRemovedKeys = 0;
 
-			expirationPolicy.setDeleter((key) => {
-				const trackingInfo = trackedKeysMap.get(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+
+				const trackingInfo = trackedKeysMap.get(evictedKey);
 
 				expect(chrono.unixTime() - trackingInfo!.trackingSince).to.be.equals(trackingInfo!.ttl);
-				expect(Array.from(trackedKeysMap.keys())).to.be.containing(key);
+				expect(Array.from(trackedKeysMap.keys())).to.be.containing(evictedKey);
 
-				trackedKeysMap.delete(key); // ensure not called with same key
+				trackedKeysMap.delete(evictedKey); // ensure not called with same key
 
-				expect(trackedKeysSnapshot[currentNumberOfRemovedKeys]).to.be.equal(key);
+				expect(trackedKeysSnapshot[currentNumberOfRemovedKeys]).to.be.equal(evictedKey);
 
 				currentNumberOfRemovedKeys += 1;
 				if (currentNumberOfRemovedKeys === KEYS_TO_BE_TRACKED) {
@@ -224,44 +155,46 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			});
 
 			trackedKeysMap.set('key1', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
-			expirationPolicy.onSet('key1', generateEntry('key1'), generateSetContext(defaultTTL));
+			policy.onSet('key1', generateEntry('key1'), { expiresAfter: defaultTTL });
 
 			setTimeout(() => {
 				trackedKeysMap.set('key2', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
-				expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(defaultTTL));
+				policy.onSet('key2', generateEntry('key2'), { expiresAfter: defaultTTL });
 			}, 1000);
 
 			setTimeout(() => {
 				trackedKeysMap.set('key3', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
-				expirationPolicy.onSet('key3', generateEntry('key3'), generateSetContext(defaultTTL));
+				policy.onSet('key3', generateEntry('key3'), { expiresAfter: defaultTTL });
 			}, 2000);
 
 			setTimeout(() => {
 				trackedKeysMap.set('key4', { trackingSince: chrono.unixTime(), ttl: defaultTTL });
-				expirationPolicy.onSet('key4', generateEntry('key4'), generateSetContext(defaultTTL));
+				policy.onSet('key4', generateEntry('key4'), { expiresAfter: defaultTTL });
 			}, 3000);
 		}).timeout(4100);
 
 		it('evicts duplicate keys with same ttl', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const trackedKeys = ['key', 'key', 'key'];
 			const whenTrackingBegan = chrono.unixTime();
 
-			expirationPolicy.setDeleter((key) => {
-				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
-				expect(trackedKeys).to.be.containing(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
 
-				trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
+				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
+				expect(trackedKeys).to.be.containing(evictedKey);
+
+				trackedKeys.splice(trackedKeys.indexOf(evictedKey), 1); // ensure not called with same key
 				if (trackedKeys.length === 0) {
 					done();
 				}
 			});
-			trackedKeys.forEach((key) => expirationPolicy.onSet(key, generateEntry(key), generateSetContext(defaultTTL)));
+			trackedKeys.forEach((key) => policy.onSet(key, generateEntry(key), { expiresAfter: defaultTTL }));
 		});
 
-		it('restarts gc after all tracked keys were evicted (new key tracked from scheduleDeletion handler)', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+		it.only('restarts gc after all tracked keys were evicted (new key tracked from scheduleDeletion handler)', (done) => {
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const trackedKeys = ['key1', 'key2'];
 			const MAX_TRACKED_KEY_RECURSION_DEPTH = 2;
@@ -270,40 +203,48 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			let whenTrackingBegan: number | undefined;
 
 			const trackKey = (key: string): void => {
-				expirationPolicy.onSet(key, generateEntry(key), generateSetContext(defaultTTL));
+				policy.onSet(key, generateEntry(key), { expiresAfter: defaultTTL });
 				whenTrackingBegan = chrono.unixTime();
 				currentNumberOfTrackedKeys += 1;
 			};
 
-			expirationPolicy.setDeleter((key) => {
-				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
-				expect(trackedKeys).to.be.containing(key);
-				trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
-				if (currentNumberOfTrackedKeys === MAX_TRACKED_KEY_RECURSION_DEPTH) {
-					done();
-				} else {
-					trackKey('key2');
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				expect(policy.isIdle()).to.be.eq(false); // will be idle after deleter finishes execution
+
+				expect(trackedKeys).to.be.containing(evictedKey);
+				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL, `Key ${evictedKey} wasn't evicted after ${defaultTTL} seconds.`);
+
+				trackedKeys.splice(trackedKeys.indexOf(evictedKey), 1); // ensure not called again with same key
+
+				if (currentNumberOfTrackedKeys !== MAX_TRACKED_KEY_RECURSION_DEPTH) {
+					return trackKey('key2');
 				}
+
+				done();
 			});
 
 			trackKey('key1');
 		}).timeout(2100);
 
 		it('restarts gc after all tracked keys were evicted (new key tracked using setTimeout)', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const trackedKeys = ['key1', 'key2'];
 			let whenTrackingBegan: number | undefined;
 
 			const trackKey = (key: string): void => {
-				expirationPolicy.onSet(key, generateEntry(key), generateSetContext(defaultTTL));
+				policy.onSet(key, generateEntry(key), { expiresAfter: defaultTTL });
 				whenTrackingBegan = chrono.unixTime();
 			};
 
-			expirationPolicy.setDeleter((key) => {
-				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
-				expect(trackedKeys).to.be.containing(key);
-				trackedKeys.splice(trackedKeys.indexOf(key), 1); // ensure not called with same key
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+
+				expect(chrono.unixTime() - whenTrackingBegan!).to.be.eq(defaultTTL);
+				expect(trackedKeys).to.be.containing(evictedKey);
+				trackedKeys.splice(trackedKeys.indexOf(evictedKey), 1); // ensure not called with same key
+
 				if (trackedKeys.length === 0) {
 					done();
 				}
@@ -315,107 +256,116 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(3600);
 
 		it('restarts the gc after it was stopped, discarding and its internal list of tracked keys', (done) => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 
 			const trackedKeyBeforeStopping = 'key1';
 			const trackedKeyAfterStopping = 'key2';
 			let whenTrackingBegan: number | undefined;
 
 			const trackKey = (key: string): void => {
-				expirationPolicy.onSet(key, generateEntry(key), generateSetContext(defaultTTL));
+				policy.onSet(key, generateEntry(key), { expiresAfter: defaultTTL });
 				whenTrackingBegan = chrono.unixTime();
 			};
 
-			expirationPolicy.setDeleter((key) => {
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+
 				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
-				expect(trackedKeyAfterStopping).to.be.equal(key);
+				expect(trackedKeyAfterStopping).to.be.equal(evictedKey);
+
 				done();
 			});
 
 			trackKey(trackedKeyBeforeStopping);
-			expirationPolicy.onClear();
+			policy.onClear();
 			setTimeout(() => trackKey(trackedKeyAfterStopping), 1500);
 		}).timeout(2600);
 
 		it('is synchronized with nearest element to remove while adding keys', async () => {
-			const expirationPolicy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 			const keys = new Set<string>();
 
-			expirationPolicy.setDeleter((key) => keys.delete(key));
-			expect(expirationPolicy.isIdle()).to.be.eq(true);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				keys.delete(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
+			expect(policy.isIdle()).to.be.eq(true);
 
 			// adding element with same ttl
 			keys.add('key1');
-			expirationPolicy.onSet('key1', generateEntry('key1'), generateSetContext(1));
-			expect(expirationPolicy.isIdle()).to.be.eq(false);
+			policy.onSet('key1', generateEntry('key1'), { expiresAfter: 1 });
+			expect(policy.isIdle()).to.be.eq(false);
 
 			await chrono.sleep(50);
 			keys.add('key2');
-			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(1));
+			policy.onSet('key2', generateEntry('key2'), { expiresAfter: 1 });
 
 			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
-			expect(expirationPolicy.size).to.be.eq(0);
-			expect(expirationPolicy.isIdle()).to.be.eq(true);
+			expect(policy.size).to.be.eq(0);
+			expect(policy.isIdle()).to.be.eq(true);
 
 			// adding element with greater ttl
 			keys.add('key1');
-			expirationPolicy.onSet('key1', generateEntry('key1'), generateSetContext(1));
-			expect(expirationPolicy.isIdle()).to.be.eq(false);
+			policy.onSet('key1', generateEntry('key1'), { expiresAfter: 1 });
+			expect(policy.isIdle()).to.be.eq(false);
 
 			await chrono.sleep(50);
 			keys.add('key2');
-			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(2));
+			policy.onSet('key2', generateEntry('key2'), { expiresAfter: 2 });
 
 			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(1);
-			expect(expirationPolicy.size).to.be.eq(1);
+			expect(policy.size).to.be.eq(1);
 			expect(keys.has('key1')).to.be.eq(false);
-			expect(expirationPolicy.isIdle()).to.be.eq(false);
+			expect(policy.isIdle()).to.be.eq(false);
 
 			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
-			expect(expirationPolicy.size).to.be.eq(0);
-			expect(expirationPolicy.isIdle()).to.be.eq(true);
+			expect(policy.size).to.be.eq(0);
+			expect(policy.isIdle()).to.be.eq(true);
 
 			// adding element smaller
 			keys.add('key1');
-			expirationPolicy.onSet('key1', generateEntry('key1'), generateSetContext(2));
-			expect(expirationPolicy.isIdle()).to.be.eq(false);
+			policy.onSet('key1', generateEntry('key1'), { expiresAfter: 2 });
+			expect(policy.isIdle()).to.be.eq(false);
 
 			await chrono.sleep(50);
 			keys.add('key2');
-			expirationPolicy.onSet('key2', generateEntry('key2'), generateSetContext(1));
+			policy.onSet('key2', generateEntry('key2'), { expiresAfter: 1 });
 
 			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(1);
-			expect(expirationPolicy.size).to.be.eq(1);
+			expect(policy.size).to.be.eq(1);
 			expect(keys.has('key2')).to.be.eq(false);
-			expect(expirationPolicy.isIdle()).to.be.eq(false);
+			expect(policy.isIdle()).to.be.eq(false);
 
 			await chrono.sleep(1100);
 			expect(keys.size).to.be.eq(0);
-			expect(expirationPolicy.size).to.be.eq(0);
-			expect(expirationPolicy.isIdle()).to.be.eq(true);
+			expect(policy.size).to.be.eq(0);
+			expect(policy.isIdle()).to.be.eq(true);
 		}).timeout(7000);
 	});
 
 	describe(`${ProactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
 		it('evicts key sooner if ttl decreased (ttl reported to same expiresFrom)', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const OLD_TTL = 2;
 			const NEW_TTL = 1;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(1);
 					expect(EVICTED_KEYS).to.be.containing(KEY);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
@@ -423,24 +373,27 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			}, chrono.secondsToMilliseconds(NEW_TTL) + 30);
 
 			const expiresFrom = chrono.unixTime();
-			POLICY.onSet(KEY, ENTRY, generateSetContext(OLD_TTL, expiresFrom));
-			POLICY.onUpdate(KEY, ENTRY, generateSetContext(NEW_TTL, expiresFrom));
+			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL, expiresFrom });
 		});
 
 		it('evicts key later if ttl increased (ttl reported to same expiresFrom)', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const OLD_TTL = 1;
 			const NEW_TTL = 2;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0);
-					expect(POLICY.size).to.be.eq(1);
-					expect(POLICY.isIdle()).to.be.eq(false);
+					expect(policy.size).to.be.eq(1);
+					expect(policy.isIdle()).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(newTtlSetTimeout);
 					done(e);
@@ -451,8 +404,8 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(1);
 					expect(EVICTED_KEYS).to.be.containing(KEY);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
@@ -460,24 +413,27 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			}, chrono.secondsToMilliseconds(NEW_TTL) + 30);
 
 			const expiresFrom = chrono.unixTime();
-			POLICY.onSet(KEY, ENTRY, generateSetContext(OLD_TTL, expiresFrom));
-			POLICY.onUpdate(KEY, ENTRY, generateSetContext(NEW_TTL, expiresFrom));
+			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL, expiresFrom });
 		}).timeout(2100);
 
 		it('evicts key later if ttl is the same (ttl reported to expiresFrom equal to current timestamp)', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const OLD_TTL = 1;
 			const NEW_TTL = 1;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0);
-					expect(POLICY.size).to.be.eq(1);
-					expect(POLICY.isIdle()).to.be.eq(false);
+					expect(policy.size).to.be.eq(1);
+					expect(policy.isIdle()).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(newTtlSetTimeout);
 					done(e);
@@ -488,8 +444,8 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(1);
 					expect(EVICTED_KEYS).to.be.containing(KEY);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
@@ -497,51 +453,57 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			}, chrono.secondsToMilliseconds(NEW_TTL + OLD_TTL) + 30); // schedule later
 
 			const expiresFrom = chrono.unixTime();
-			POLICY.onSet(KEY, ENTRY, generateSetContext(OLD_TTL, expiresFrom));
-			POLICY.onUpdate(KEY, ENTRY, generateSetContext(NEW_TTL, expiresFrom + 1)); // schedule later
+			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL, expiresFrom: expiresFrom + 1 }); // schedule later
 		}).timeout(2100);
 
 		it("evicts key at it's previous timestamp if new ttl + expiresFrom will have the same eviction timestamp as the latest one", (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const OLD_TTL = 2;
 			const NEW_TTL = 1;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(1);
 					expect(EVICTED_KEYS).to.be.containing(KEY);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
 				}
 			}, chrono.secondsToMilliseconds(OLD_TTL) + 30); // NEW_TTL will have the same impact
 
-			POLICY.onSet(KEY, ENTRY, generateSetContext(OLD_TTL));
+			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL });
 
 			setTimeout(() => {
-				POLICY.onUpdate(KEY, ENTRY, generateSetContext(NEW_TTL)); // generates same eviction timestamp
+				policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL }); // generates same eviction timestamp
 			}, chrono.secondsToMilliseconds(NEW_TTL));
 		}).timeout(2100);
 
 		it('does not evict key if it had tll, but the new one is infinite', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const OLD_TTL = 1;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0);
-					expect(POLICY.size).to.be.eq(0); // does not track it
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0); // does not track it
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
@@ -549,30 +511,33 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			}, chrono.secondsToMilliseconds(OLD_TTL) + 50);
 
 			const expiresFrom = chrono.unixTime();
-			POLICY.onSet(KEY, ENTRY, generateSetContext(OLD_TTL, expiresFrom));
+			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
 
 			setTimeout(() => {
-				POLICY.onUpdate(KEY, ENTRY, generateSetContext(INFINITE_TTL));
+				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_TTL });
 			}, 500);
 		});
 
 		it("evicts the key if it didn't had tll, and the new ttl is specified", (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
 			const NEW_TTL = 1;
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
-			POLICY.onSet(KEY, ENTRY, generateSetContext(null));
-			POLICY.onUpdate(KEY, ENTRY, generateSetContext(NEW_TTL));
+			policy.onSet(KEY, ENTRY);
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL });
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(1);
 					expect(EVICTED_KEYS).to.be.containing(KEY);
-					expect(POLICY.size).to.be.eq(0);
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
 					done();
 				} catch (e) {
 					done(e);
@@ -581,23 +546,26 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it("does not evict key if it didn't had ttl, and the new ttl is infinite/not specified", (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
-			POLICY.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
-			POLICY.onSet(KEY, ENTRY, generateSetContext(null));
+			policy.onSet(KEY, ENTRY, { expiresAfter: null! });
 			setTimeout(() => {
-				POLICY.onUpdate(KEY, ENTRY, generateSetContext());
+				policy.onUpdate(KEY, ENTRY);
 			}, 500);
 
 			let checkAttempts = 0;
 			const intervalId = setInterval(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0);
-					expect(POLICY.size).to.be.eq(0); // does not track
-					expect(POLICY.isIdle()).to.be.eq(true);
+					expect(policy.size).to.be.eq(0); // does not track
+					expect(policy.isIdle()).to.be.eq(true);
 
 					if (++checkAttempts >= 10) {
 						clearInterval(intervalId);
@@ -611,11 +579,14 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('is synchronized with nearest element to remove while adding/updating keys', (done) => {
-			const POLICY = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>();
 			const CACHE_ACTIVE_KEYS = new Set<string>();
 
-			POLICY.setDeleter((key) => CACHE_ACTIVE_KEYS.delete(key));
-			expect(POLICY.isIdle()).to.be.eq(true);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				CACHE_ACTIVE_KEYS.delete(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
+			expect(policy.isIdle()).to.be.eq(true);
 
 			const MIN_TTL = 1;
 			const MAX_TTL = 5;
@@ -633,7 +604,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			function logTestContext(checkIntervalNo?: number): void {
 				const message = [
 					'Test Context:',
-					`${'POLICY_SIZE'.magenta}\t\t: ${POLICY.size}`,
+					`${'POLICY_SIZE'.magenta}\t\t: ${policy.size}`,
 					`${'CACHE_ACTIVE_KEYS'.magenta}: ${JSON.stringify([...CACHE_ACTIVE_KEYS])}`,
 					`${'KEYS_DELETION_DELAY'.magenta}\t: ${JSON.stringify([...KEYS_DELETION_DELAY])}`
 				];
@@ -654,9 +625,9 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 								const shouldBeIdle = CACHE_ACTIVE_KEYS.size === 0;
 								const idleCheckMessage = `Policy expected to be ${
-									shouldBeIdle ? `idle, but it has ${POLICY.size} keys` : `busy, because ${CACHE_ACTIVE_KEYS.size} active keys remained`
+									shouldBeIdle ? `idle, but it has ${policy.size} keys` : `busy, because ${CACHE_ACTIVE_KEYS.size} active keys remained`
 								} at interval ${deleteAtIntervalNo}`;
-								expect(POLICY.isIdle()).to.be.eq(shouldBeIdle, idleCheckMessage);
+								expect(policy.isIdle()).to.be.eq(shouldBeIdle, idleCheckMessage);
 							} catch (e) {
 								logTestContext(checkIntervalNo);
 								done(e);
@@ -670,8 +641,8 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 								throw new Error(`${CACHE_ACTIVE_KEYS.size} remained at the ${checkIntervalNo} check interval, expected 0`);
 							}
 
-							expect(POLICY.isIdle()).to.be.eq(true);
-							expect(POLICY.size).to.be.eq(0);
+							expect(policy.isIdle()).to.be.eq(true);
+							expect(policy.size).to.be.eq(0);
 							KEYS_DELETION_DELAY.clear();
 
 							return done();
@@ -707,7 +678,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 					KEYS_DELETION_DELAY.set(key, ttl + scheduleDeletionDelay);
 
 					CACHE_ACTIVE_KEYS.add(key);
-					POLICY.onUpdate(key, generateEntry(key), generateSetContext(ttl));
+					policy.onUpdate(key, generateEntry(key), { expiresAfter: ttl });
 				});
 			}
 		}).timeout(10_500);
@@ -726,7 +697,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
 
 			const entry = generateEntry('a');
-			policy.onSet('a', entry, generateSetContext(null));
+			policy.onSet('a', entry, { expiresAfter: null! });
 			expect(policy.size).to.be.eq(0);
 
 			policy.onDelete('a', entry); // expecting to do nothing
@@ -736,7 +707,10 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		it('removes entry from internal tracking after it is deleted, while the rest entries are evicted', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Set<string>();
-			policy.setDeleter((key) => EVICTED_KEYS.add(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.add(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			const keyGenerator = new UniqueKeysGenerator(5);
 
@@ -766,9 +740,8 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				}
 				totalEntries += entries.length;
 
-				const context = generateSetContext(ttl);
 				for (const entry of entries) {
-					policy.onSet(entry.key, entry, context);
+					policy.onSet(entry.key, entry, { expiresAfter: ttl });
 				}
 
 				setTimeout(() => {
@@ -809,11 +782,14 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		it('should clear policy, make it idle and avoid further evictions', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
 			const TTL = 1;
 
-			policy.onUpdate('a', generateEntry('a'), generateSetContext(TTL));
+			policy.onUpdate('a', generateEntry('a'), { expiresAfter: TTL });
 			expect(policy.size).to.be.eq(1);
 			expect(policy.isIdle()).to.be.eq(false);
 
@@ -838,9 +814,12 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		it('should clear policy, push new items, and old timer not interfere with their expiration', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+			});
 
-			policy.onUpdate('a', generateEntry('a'), generateSetContext(1));
+			policy.onUpdate('a', generateEntry('a'), { expiresAfter: 1 });
 			expect(policy.size).to.be.eq(1);
 			expect(policy.isIdle()).to.be.eq(false);
 
@@ -849,7 +828,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			expect(policy.isIdle()).to.be.eq(true);
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
-			policy.onUpdate('b', generateEntry('b'), generateSetContext(2));
+			policy.onUpdate('b', generateEntry('b'), { expiresAfter: 2 });
 			expect(policy.size).to.be.eq(1);
 			expect(policy.isIdle()).to.be.eq(false);
 

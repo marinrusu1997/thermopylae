@@ -35,6 +35,13 @@ declare interface CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void;
 
 	/**
+	 * Check if `key` is present in the cache.
+	 *
+	 * @param key	Name of the key.
+	 */
+	has(key: Key): boolean;
+
+	/**
 	 * Delete `key` and it's associated value.
 	 *
 	 * @param key	Name of the key.

@@ -7,7 +7,7 @@ import { CacheEntry } from './commons';
  *
  * @param key	Name of the key.
  */
-declare type Deleter<Key, Value> = (key: Key, entry: CacheEntry<Value>) => boolean;
+declare type Deleter<Key, Value> = (key: Key, entry: CacheEntry<Value>) => void;
 
 /**
  * Indicates whether {@link CacheEntry} is still valid.

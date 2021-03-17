@@ -6,6 +6,7 @@ import colors from 'colors';
 import range from 'lodash.range';
 import { SegmentedLRUPolicy, EvictableKeyNode, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
 import { MapUtils } from '../../utils';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/helpers/doubly-linked-list';
 
 describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 	it('should work under minimal cache capacity', (done) => {
@@ -16,9 +17,15 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		let HOPS = 50;
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number>(CAPACITY, PROTECTED_SEGMENT_RATIO);
-			policy.setDeleter((key) => {
-				ENTRIES_IN_CACHE.delete(key);
+			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				ENTRIES_IN_CACHE.delete(evictedKey);
+
+				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+				policy.onDelete(evictedKey, evictableKeyNode);
+				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
 			});
 
 			const onSetInterval = setInterval(() => {
@@ -112,8 +119,16 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
-			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+
+				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+				policy.onDelete(evictedKey, evictableKeyNode);
+				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+			});
 
 			for (const [key, entry] of ENTRIES) {
 				policy.onSet(key, entry);
@@ -182,8 +197,16 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
-			policy.setDeleter((key) => EVICTED_KEYS.push(key));
+			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+
+				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+				policy.onDelete(evictedKey, evictableKeyNode);
+				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+			});
 
 			// 1. Insert protected items
 			for (const [key, entry] of PROTECTED_ENTRIES) {
@@ -270,8 +293,16 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 	it('should delete entries', () => {
 		const CAPACITY = 2;
 		const EVICTED_KEYS = new Array<string>();
-		const policy = new SegmentedLRUPolicy<string, number>(CAPACITY, 0.5);
-		policy.setDeleter((key) => EVICTED_KEYS.push(key));
+		const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, 0.5);
+		policy.setDeleter((evictedKey, evictedEntry) => {
+			EVICTED_KEYS.push(evictedKey);
+
+			const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+			policy.onDelete(evictedKey, evictableKeyNode);
+			expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+			expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+			expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+		});
 
 		const firstEntry: EvictableKeyNode<string, number> = {
 			key: 'a',

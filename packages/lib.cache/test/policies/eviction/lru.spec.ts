@@ -5,24 +5,37 @@ import { array, number } from '@thermopylae/lib.utils';
 import range from 'lodash.range';
 import colors from 'colors';
 import { EvictableKeyNode, LRUEvictionPolicy } from '../../../lib/policies/eviction/lru';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/helpers/doubly-linked-list';
 
 describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 	it('updates least recently used items on each get operation', () => {
 		const CAPACITY = number.randomInt(1, 21);
 
 		try {
-			const policy = new LRUEvictionPolicy<string, number>(CAPACITY);
+			let totalEntriesNo = 0;
+			const cacheSizeGetter = () => totalEntriesNo;
+
+			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
 
 			// intercept keys that policy wants to delete
 			const keysEvictedByPolicy = new Array<string>();
-			policy.setDeleter((key) => keysEvictedByPolicy.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				keysEvictedByPolicy.push(evictedKey);
+
+				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+				policy.onDelete(evictedKey, evictableKeyNode);
+				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+			});
 
 			// add some entries up to `CAPACITY`
 			const initialEntries = new Array<EvictableKeyNode<string, number>>(CAPACITY);
 			for (let i = 0; i < CAPACITY; i++) {
+				totalEntriesNo = i;
+
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: i };
-				policy.onSet(String(i), entry, { totalEntriesNo: i }); // `i` reflects the actual total entries, e.g. when we add first time it is 0
+				policy.onSet(String(i), entry); // `i` reflects the actual total entries, e.g. when we add first time it is 0
 				initialEntries[i] = entry;
 			}
 
@@ -40,10 +53,11 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			let additionalEntriesIndex = 0;
 
 			const numberOfSetsThatWillCauseEviction = CAPACITY - retrievedEntriesIndexes.length; // evict entries that were never queried
+			totalEntriesNo = CAPACITY;
 			for (let i = 0; i < numberOfSetsThatWillCauseEviction; i++) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: CAPACITY + additionalEntriesIndex };
-				policy.onSet(String(entry.value), entry, { totalEntriesNo: CAPACITY }); // we are full from now on, since we added initial `CAPACITY` entries
+				policy.onSet(String(entry.value), entry); // we are full from now on, since we added initial `CAPACITY` entries
 				additionalEntriesIndex += 1;
 			}
 
@@ -56,10 +70,11 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 			// now check that it will evict the entries that we retrieved before, and in the order they were retrieved
 			keysEvictedByPolicy.length = 0;
+			totalEntriesNo = CAPACITY;
 			for (let i = 0; i < retrievedEntriesIndexes.length; i++) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: CAPACITY + additionalEntriesIndex };
-				policy.onSet(String(entry.value), entry, { totalEntriesNo: CAPACITY }); // we are still full
+				policy.onSet(String(entry.value), entry); // we are still full
 				additionalEntriesIndex += 1;
 			}
 
@@ -77,19 +92,31 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 		const CAPACITY = number.randomInt(1, 17);
 
 		try {
-			const policy = new LRUEvictionPolicy<string, number>(CAPACITY);
+			let totalEntriesNo = 0;
+			const cacheSizeGetter = () => totalEntriesNo;
+
+			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
 			const entries = new Map<string, EvictableKeyNode<string, number>>();
 
 			// intercept keys that policy wants to delete
 			const keysEvictedByPolicy = new Array<string>();
-			policy.setDeleter((key) => keysEvictedByPolicy.push(key));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				keysEvictedByPolicy.push(evictedKey);
+
+				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
+				policy.onDelete(evictedKey, evictableKeyNode);
+				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
+				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
+			});
 
 			// setup keys up to `CAPACITY`
 			for (let i = 0; i < CAPACITY; i++) {
+				totalEntriesNo = i;
+
 				const key = String(i);
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { key, value: i };
-				policy.onSet(key, entry, { totalEntriesNo: i });
+				policy.onSet(key, entry);
 				entries.set(key, entry);
 			}
 
@@ -103,9 +130,11 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 			// setup back some keys, a double amount to check that it removed the new one, instead of the ones we manually removed
 			for (let i = 0; i < CAPACITY * 2; i++) {
+				totalEntriesNo = i;
+
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: i + CAPACITY }; // differ from initial inserted keys
-				policy.onSet(String(entry.value), entry, { totalEntriesNo: i });
+				policy.onSet(String(entry.value), entry);
 			}
 
 			// assert it evicted keys inserted above, and not the initial ones

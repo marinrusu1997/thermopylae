@@ -17,11 +17,11 @@ interface CleanUpInterval {
  */
 interface ExpirableCacheKeyedEntryHeapNode<Key, Value> extends ExpirableCacheKeyedEntry<Key, Value>, HeapNode {}
 
-class ProactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
+class ProactiveExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle
-> {
+	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
+> extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
 	private readonly entries: Heap<ExpirableCacheKeyedEntryHeapNode<Key, Value>>;
 
 	private cleanUpInterval: Nullable<CleanUpInterval>;

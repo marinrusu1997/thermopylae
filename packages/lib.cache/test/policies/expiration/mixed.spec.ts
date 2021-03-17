@@ -5,9 +5,8 @@ import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { MixedExpirationPolicy, MixedExpirationPolicyConfig } from '../../../lib/policies/expiration/mixed';
-import { ExpirableCacheKeyedEntry } from '../../../lib/policies/expiration/abstract';
+import { ExpirableCacheEntry, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
 import { createCacheEntriesCircularIterator } from '../../../lib/utils';
-import { generateSetContext } from './commons';
 import { INFINITE_TTL } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
 
@@ -39,9 +38,12 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => {
-				ENTRIES.delete(key);
-				EVICTED_KEYS.push(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				ENTRIES.delete(evictedKey);
+				EVICTED_KEYS.push(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry);
+				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -57,7 +59,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			}
 
 			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, generateSetContext(KEYS_BY_TTL.get(key)));
+				policy.onSet(key, entry, { expiresAfter: KEYS_BY_TTL.get(key) });
 			}
 
 			setTimeout(() => {
@@ -133,9 +135,12 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => {
-				ENTRIES.delete(key);
-				EVICTED_KEYS.push(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				ENTRIES.delete(evictedKey);
+				EVICTED_KEYS.push(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry);
+				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -152,7 +157,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			}
 
 			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, generateSetContext(KEY_TO_TTL.get(key)));
+				policy.onSet(key, entry, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 
 			setTimeout(() => {
@@ -218,9 +223,12 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => {
-				ENTRIES.delete(key);
-				EVICTED_KEYS.push(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				ENTRIES.delete(evictedKey);
+				EVICTED_KEYS.push(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry);
+				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -237,10 +245,10 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			}
 
 			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, generateSetContext(KEY_TO_TTL.get(key)));
+				policy.onSet(key, entry, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 			for (const key of KEYS_WITH_INFINITE_TTL) {
-				policy.onUpdate(key, ENTRIES.get(key)!, generateSetContext(INFINITE_TTL));
+				policy.onUpdate(key, ENTRIES.get(key)!, { expiresAfter: INFINITE_TTL });
 			}
 
 			setTimeout(() => {
@@ -278,12 +286,15 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((key) => {
-				ENTRIES.delete(key);
-				EVICTED_KEYS.push(key);
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				ENTRIES.delete(evictedKey);
+				EVICTED_KEYS.push(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry);
+				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', ENTRIES.get('a')!, generateSetContext(1));
+			policy.onSet('a', ENTRIES.get('a')!, { expiresAfter: 1 });
 
 			try {
 				expect(policy.isIdle()).to.be.eq(false);

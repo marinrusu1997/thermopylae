@@ -1,9 +1,9 @@
 import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle } from './abstract';
 
-class ReactiveExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
+class ReactiveExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle
-> {}
+	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
+> extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {}
 
 export { ReactiveExpirationPolicy };
