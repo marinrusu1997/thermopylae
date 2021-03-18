@@ -39,7 +39,7 @@ class ProactiveExpirationPolicy<
 		return this.entries.size;
 	}
 
-	public onHit(): EntryValidity {
+	public onGet(): EntryValidity {
 		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return EntryValidity.VALID;
 	}
@@ -88,7 +88,6 @@ class ProactiveExpirationPolicy<
 	}
 
 	public onDelete(key: Key, entry: ExpirableCacheKeyedEntryHeapNode<Key, Value>): void {
-		// @fixme test that detaches metadata
 		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 
 		if (Heap.isPartOfHeap(entry)) {
@@ -154,7 +153,6 @@ class ProactiveExpirationPolicy<
 		let rootEntry: Undefinable<ExpirableCacheKeyedEntryHeapNode<Key, Value>>;
 
 		do {
-			// @fixme test metadata + heap removal
 			rootEntry = this.entries.pop(); // remove from internal structure (we do this here, so that `onDelete` hook does not try to delete it and restart timer)
 			this.deleteFromCache(rootEntry!.key, rootEntry!); // remove from cache, will trigger `onDelete` which will detach ttl metadata
 

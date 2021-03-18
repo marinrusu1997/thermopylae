@@ -9,7 +9,7 @@ const enum CacheEntryPriority {
 }
 
 class PriorityEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
-	public onHit(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
+	public onGet(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
 		return EntryValidity.NOT_VALID;
 	}
 

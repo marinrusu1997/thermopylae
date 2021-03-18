@@ -109,7 +109,7 @@ class SegmentedLRUPolicy<Key, Value, ArgumentsBundle> implements CacheReplacemen
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
 	}

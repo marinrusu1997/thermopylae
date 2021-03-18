@@ -28,7 +28,7 @@ function lfuFactory<Key, Value, ArgumentsBundle = any>(
 describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 	for (const LFU_IMPL of LFU_IMPLS) {
 		describe(`${LFU_IMPL.name.magenta} spec`, () => {
-			describe(`${LFU_IMPL.prototype.onHit.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
+			describe(`${LFU_IMPL.prototype.onGet.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
 				it('should not evict entries until capacity cap is met', () => {
 					const CAPACITY = number.randomInt(1, 11);
 					try {
@@ -63,11 +63,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							expect(evictableKeyNode[FREQ_PARENT_ITEM_SYM]).to.be.eq(undefined);
 						});
 
+						totalEntriesNo += 1; // simulate overflow
 						policy.onSet(entry.key, entry);
 
 						expect(deleted).to.not.be.eq(null); // our deleter has been called...
 						expect(deleted).to.not.be.eq(entry.key); // ...on some random entry (all of them have 0 frequency)...
-						expect(policy.size).to.be.eq(totalEntriesNo); // ...and number of req nodes remained the same
+						expect(policy.size).to.be.eq(CAPACITY); // ...and number of req nodes remained the same
 					} catch (e) {
 						const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
 						UnitTestLogger.info(message.join('\n'));
@@ -127,12 +128,14 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onHit(key, entry);
+							policy.onGet(key, entry);
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 						}
 
 						// console.log('\n');
+
+						totalEntriesNo += 1; // simulate overflow
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
 							// @ts-ignore
@@ -144,7 +147,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
 							for (let i = 0; i < spinUpFrequency; i++) {
-								policy.onHit(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
+								policy.onGet(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
 							}
 						}
 
@@ -212,6 +215,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						expect(policy.size).to.be.eq(CAPACITY);
 						expect(totalEntriesNo).to.be.eq(CAPACITY);
 
+						totalEntriesNo += 1; // simulate overflow
+
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
 							// @ts-ignore
 							const entry: EvictableKeyNode<string, number> = { key, value };
@@ -240,7 +245,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 			});
 
 			describe(`${LFU_IMPL.prototype.onDelete.name.magenta} & ${LFU_IMPL.prototype.onClear.name.magenta} spec`, () => {
-				it("removes entry from internal frequency list when it get's deleted from cache", () => {
+				it('removes entry from internal frequency list when it gets deleted from cache', () => {
 					const CAPACITY = number.randomInt(1, 15);
 					const KEYS_TO_DELETE_NO = number.randomInt(1, CAPACITY);
 
@@ -287,7 +292,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onHit(key, entry);
+							policy.onGet(key, entry);
 						}
 
 						// remove some random keys

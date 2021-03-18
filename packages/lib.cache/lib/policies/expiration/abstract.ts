@@ -54,7 +54,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
+	public onGet(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
 		return this.evictIfExpired(key, entry);
 	}
 

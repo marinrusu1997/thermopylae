@@ -46,14 +46,14 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 				{ noDuplicates: true }
 			);
 			for (const retrieveIndex of retrievedEntriesIndexes) {
-				policy.onHit('ignored-key-name', initialEntries[retrieveIndex]);
+				policy.onGet('ignored-key-name', initialEntries[retrieveIndex]);
 			}
 
 			// now let's add new entries to make policy evict least recently used entries
 			let additionalEntriesIndex = 0;
 
 			const numberOfSetsThatWillCauseEviction = CAPACITY - retrievedEntriesIndexes.length; // evict entries that were never queried
-			totalEntriesNo = CAPACITY;
+			totalEntriesNo = CAPACITY + 1; // simulate overflow
 			for (let i = 0; i < numberOfSetsThatWillCauseEviction; i++) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: CAPACITY + additionalEntriesIndex };
@@ -70,7 +70,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 			// now check that it will evict the entries that we retrieved before, and in the order they were retrieved
 			keysEvictedByPolicy.length = 0;
-			totalEntriesNo = CAPACITY;
+			totalEntriesNo = CAPACITY + 1; // simulate overflow
 			for (let i = 0; i < retrievedEntriesIndexes.length; i++) {
 				// @ts-ignore
 				const entry: EvictableKeyNode<string, number> = { value: CAPACITY + additionalEntriesIndex };
@@ -129,7 +129,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			expect(keysEvictedByPolicy).to.be.ofSize(0); // it just removed from internal structure, and not from cache
 
 			// setup back some keys, a double amount to check that it removed the new one, instead of the ones we manually removed
-			for (let i = 0; i < CAPACITY * 2; i++) {
+			for (let i = 0; i <= CAPACITY * 2; i++) {
 				totalEntriesNo = i;
 
 				// @ts-ignore

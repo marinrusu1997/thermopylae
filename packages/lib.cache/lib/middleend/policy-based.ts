@@ -5,16 +5,16 @@ import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
 
-class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	constructor(backend: CacheBackend<Key, Value>, policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
+	constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
-		this.policies = policies;
+		this.policies = policies || [];
 
-		for (const policy of policies) {
+		for (const policy of this.policies) {
 			policy.setDeleter(this.internalDelete);
 		}
 	}
@@ -28,7 +28,7 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 
 		for (const policy of this.policies) {
 			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
-			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
+			if (policy.onGet(key, entry) === EntryValidity.NOT_VALID) {
 				// @fixme test this behaviour with reactive expiration policy, and the one described in bellow comment
 				// it's safe to break the cycle here, because in case an item is evicted, onDelete hook for each policy will be triggered automatically
 				return NOT_FOUND_VALUE;
@@ -39,8 +39,8 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 	}
 
 	/**
-	 * Check whether **key** is present in the cache, without calling policies *onHit* hook. <br/>
-	 * Notice, that some policies might evict item when *onHit* hook is called (e.g. item expired),
+	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
+	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
 	 * therefore even if method returns **true**, trying to *get* item will evict him.
 	 *
 	 * @param key	Name of the key.
@@ -49,8 +49,8 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		return this.backend.has(key);
 	}
 
-	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): CacheEntry<Value> {
-		// we use raw get, so that we don't call `onHit` and also even if they will remove it within `onHit`,
+	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
+		// we use raw get, so that we don't call `onGet` and also even if they will remove it within `onGet`,
 		// we will add it back anyway, so better use `onUpdate` which will update policies meta-data while keeping entry in the cache
 		let entry = this.backend.get(key);
 
@@ -66,11 +66,11 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 				for (; policyIndex < this.policies.length; policyIndex++) {
 					this.policies[policyIndex].onSet(key, entry, argsBundle);
 				}
-				return entry;
+				return;
 			} catch (e) {
 				// rollback
 				for (let i = 0; i < policyIndex; i++) {
-					this.policies[policyIndex].onDelete(key, entry); // detach metadata + internal structures
+					this.policies[i].onDelete(key, entry); // detach metadata + internal structures
 				}
 				this.backend.del(key);
 
@@ -84,8 +84,6 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 		for (const policy of this.policies) {
 			policy.onUpdate(key, entry, argsBundle); // @fixme should not throw
 		}
-
-		return entry;
 	}
 
 	public del(key: Key): boolean {
@@ -121,4 +119,4 @@ class PolicyMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key
 	};
 }
 
-export { PolicyMiddleEnd };
+export { PolicyBasedCacheMiddleEnd };

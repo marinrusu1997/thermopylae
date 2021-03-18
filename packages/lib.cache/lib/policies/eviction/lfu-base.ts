@@ -77,7 +77,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		const newFrequency = this.computeEntryFrequency(entry, entry[FREQ_PARENT_ITEM_SYM].frequency);
 
 		if (newFrequency === entry[FREQ_PARENT_ITEM_SYM].frequency) {
@@ -100,8 +100,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		// Check for backend overflow
-		// @fixme use > instead of >=
-		if (this.cacheSizeGetter() >= this.cacheMaxCapacity) {
+		if (this.cacheSizeGetter() > this.cacheMaxCapacity) {
 			this.evict();
 		}
 

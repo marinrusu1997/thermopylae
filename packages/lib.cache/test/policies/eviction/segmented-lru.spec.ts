@@ -49,7 +49,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 					return;
 				}
 				const [key, entry] = array.randomElement(Array.from(ENTRIES_IN_CACHE));
-				policy.onHit(key, entry);
+				policy.onGet(key, entry);
 			}, 2);
 
 			const isDone = (): boolean => {
@@ -59,7 +59,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 						clearInterval(onHitInterval);
 
 						expect(policy.size).to.be.eq(CAPACITY);
-						// this might happen when onHit has been called, it evicted entry, but next onSet hadn't chance to be called to insert a new one
+						// this might happen when onGet has been called, it evicted entry, but next onSet hadn't chance to be called to insert a new one
 						expect(ENTRIES_IN_CACHE.size).to.be.within(CAPACITY - 1, CAPACITY);
 
 						done();
@@ -211,7 +211,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 			// 1. Insert protected items
 			for (const [key, entry] of PROTECTED_ENTRIES) {
 				policy.onSet(key, entry);
-				policy.onHit(key, entry);
+				policy.onGet(key, entry);
 			}
 			const mostRecentEntry = MapUtils.lastEntry(PROTECTED_ENTRIES)![1];
 			const leastRecentEntry = MapUtils.firstEntry(PROTECTED_ENTRIES)![1];
@@ -224,30 +224,30 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 			}
 			expect(policy.size).to.be.eq(CAPACITY); // full
 
-			// 3. onHit for probation tail
+			// 3. onGet for probation tail
 			const probationTail = MapUtils.firstEntry(PROBATION_ENTRIES)![1];
-			policy.onHit(probationTail.key, probationTail);
+			policy.onGet(probationTail.key, probationTail);
 			expect(policy.mostRecent).to.be.eq(probationTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
-			// 4. onHit for probation head
+			// 4. onGet for probation head
 			const probationHead = leastRecentEntry;
-			policy.onHit(probationHead.key, probationHead);
+			policy.onGet(probationHead.key, probationHead);
 			expect(policy.mostRecent).to.be.eq(probationHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
-			// 5. onHit for protected head
+			// 5. onGet for protected head
 			const protectedHead = leastRecentEntry;
-			policy.onHit(protectedHead.key, protectedHead);
+			policy.onGet(protectedHead.key, protectedHead);
 			expect(policy.mostRecent).to.be.eq(protectedHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
-			// 6. onHit for protected tail
+			// 6. onGet for protected tail
 			const protectedTail = policy.leastRecent!;
-			policy.onHit(protectedTail.key, protectedTail);
+			policy.onGet(protectedTail.key, protectedTail);
 			expect(policy.mostRecent).to.be.eq(protectedTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
@@ -267,8 +267,8 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 			expect(policy.mostRecent).to.be.eq(protectedTail); // protected remained untouched
 			expect(policy.leastRecent).to.be.eq(protectedTailBeforeSet); // protected remained untouched
 
-			// 8. onHit for last inserted entry
-			policy.onHit(entry.key, entry);
+			// 8. onGet for last inserted entry
+			policy.onGet(entry.key, entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 			expect(policy.mostRecent).to.be.eq(entry);
@@ -319,7 +319,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 
 		// 1. Set entries
 		policy.onSet(firstEntry.key, firstEntry);
-		policy.onHit(firstEntry.key, firstEntry); // move to protected
+		policy.onGet(firstEntry.key, firstEntry); // move to protected
 		policy.onSet(secondEntry.key, secondEntry);
 		expect(policy.size).to.be.eq(CAPACITY);
 
@@ -331,7 +331,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 
 		// 3. Set them back
 		policy.onSet(firstEntry.key, firstEntry);
-		policy.onHit(firstEntry.key, firstEntry); // move to protected
+		policy.onGet(firstEntry.key, firstEntry); // move to protected
 		policy.onSet(secondEntry.key, secondEntry);
 		expect(policy.size).to.be.eq(CAPACITY);
 

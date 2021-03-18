@@ -39,7 +39,7 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.usageRecency.toFront(entry);
 		return EntryValidity.VALID;
 	}
@@ -48,8 +48,7 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	 * @inheritDoc
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		// @fixme replace >= with >
-		if (this.cacheSizeGetter() >= this.cacheMaxCapacity) {
+		if (this.cacheSizeGetter() > this.cacheMaxCapacity) {
 			this.deleteFromCache(this.usageRecency.tail!.key, this.usageRecency.tail!); // removal from list will be made by `onDelete` hook
 		}
 

@@ -11,7 +11,7 @@ import { INFINITE_TTL } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
 
 describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
-	describe(`${MixedExpirationPolicy.prototype.onHit.name.magenta} spec`, () => {
+	describe(`${MixedExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
 		it('should evict expired entries on hit', (done) => {
 			const CAPACITY = number.randomInt(1, 10);
 			const KEYS = range(0, CAPACITY).map(String);
@@ -66,7 +66,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				try {
 					for (const [key, ttl] of KEYS_BY_TTL) {
 						if (ttl === 1) {
-							expect(policy.onHit(key, ENTRIES.get(key)!)).to.be.eq(EntryValidity.NOT_VALID);
+							expect(policy.onGet(key, ENTRIES.get(key)!)).to.be.eq(EntryValidity.NOT_VALID);
 							expect(EVICTED_KEYS).to.be.containing(key);
 						}
 					}

@@ -67,12 +67,14 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				policy.onHit(key, entry);
+				policy.onGet(key, entry);
 			}
 			for (const [key, freq] of ENTRY_FREQ) {
 				const entry = lfuEntries.get(key)!;
 				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(freq);
 			}
+
+			totalEntriesNo += 1; // simulate overflow
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
@@ -94,7 +96,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 				let freq = 4;
 				while (freq--) {
-					policy.onHit(key, entry);
+					policy.onGet(key, entry);
 				}
 				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}

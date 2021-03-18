@@ -37,7 +37,7 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	 *
 	 * @returns			Whether entry is still valid.
 	 */
-	onHit(key: Key, entry: CacheEntry<Value>): EntryValidity;
+	onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
 
 	/**
 	 * Hook executed after `entry` for `key` has been set.
