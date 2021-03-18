@@ -4,7 +4,7 @@ import colors from 'colors';
 import { CompareFunction } from '@thermopylae/core.declarations';
 import { array, number } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/helpers/heap';
+import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/data-structures/heap';
 
 interface HeapDataNode extends HeapNode {
 	data: number;

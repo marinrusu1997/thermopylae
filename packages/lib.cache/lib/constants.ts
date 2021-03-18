@@ -1,7 +1,13 @@
 const INFINITE_TTL = 0;
 
-const INFINITE_KEYS = -1;
-
+/**
+ * @internal
+ */
 const NOT_FOUND_VALUE = undefined;
 
-export { INFINITE_TTL, INFINITE_KEYS, NOT_FOUND_VALUE };
+/**
+ * @internal
+ */
+const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
+
+export { INFINITE_TTL, NOT_FOUND_VALUE, EXPIRES_AT_SYM };

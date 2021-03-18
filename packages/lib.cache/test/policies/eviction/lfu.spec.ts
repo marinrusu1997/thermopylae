@@ -12,7 +12,7 @@ import { ReverseMap } from '../../utils';
 import { BaseLFUEvictionPolicy, EvictableKeyNode, FREQ_PARENT_ITEM_SYM } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/helpers/doubly-linked-list';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 const LFU_IMPLS = [LFUEvictionPolicy, LFUDAEvictionPolicy, GDSFEvictionPolicy];

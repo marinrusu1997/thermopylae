@@ -9,7 +9,7 @@ import { generateEntry } from './commons';
 import { INFINITE_TTL } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
-import { HEAP_NODE_IDX_SYM } from '../../../lib/helpers/heap';
+import { HEAP_NODE_IDX_SYM } from '../../../lib/data-structures/heap';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second

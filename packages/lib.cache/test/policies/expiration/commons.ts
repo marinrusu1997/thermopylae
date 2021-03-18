@@ -1,7 +1,7 @@
 import { array } from '@thermopylae/lib.utils';
 import { EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
 import { ExpirableCacheKeyedEntryHeapNode } from '../../../lib/policies/expiration/proactive';
-import { HEAP_NODE_IDX_SYM } from '../../../lib/helpers/heap';
+import { HEAP_NODE_IDX_SYM } from '../../../lib/data-structures/heap';
 
 function generateEntry<K>(key: K): ExpirableCacheKeyedEntryHeapNode<K, any> {
 	return {

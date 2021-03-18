@@ -6,7 +6,7 @@ import arrayMove from 'array-move';
 import colors from 'colors';
 // @ts-ignore
 import gc from 'js-gc';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/helpers/doubly-linked-list';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked';
 
 class Node<T = number> implements DoublyLinkedListNode<Node<T>> {
 	public [NEXT_SYM]: Nullable<Node<T>>;

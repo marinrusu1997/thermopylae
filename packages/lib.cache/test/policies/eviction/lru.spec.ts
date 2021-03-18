@@ -5,7 +5,7 @@ import { array, number } from '@thermopylae/lib.utils';
 import range from 'lodash.range';
 import colors from 'colors';
 import { EvictableKeyNode, LRUEvictionPolicy } from '../../../lib/policies/eviction/lru';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/helpers/doubly-linked-list';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
 describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 	it('updates least recently used items on each get operation', () => {

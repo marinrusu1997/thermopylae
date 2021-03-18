@@ -1,14 +1,9 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { createException, ErrorCodes } from '../../error';
-import { INFINITE_TTL } from '../../constants';
+import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
-
-/**
- * @internal
- */
-const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
 
 /**
  * @internal
@@ -152,4 +147,4 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 	}
 }
 
-export { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheEntry, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM };
+export { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheEntry, ExpirableCacheKeyedEntry };

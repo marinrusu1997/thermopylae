@@ -1,6 +1,6 @@
 /* eslint max-classes-per-file: 0 */ // --> OFF
 import { Nullable } from '@thermopylae/core.declarations';
-import { LinkedList } from '../contracts/linked-list';
+import { LinkedList } from './interface';
 
 const PREV_SYM = Symbol.for('PREV_SYM_DLL');
 const NEXT_SYM = Symbol.for('NEXT_SYM_DLL');

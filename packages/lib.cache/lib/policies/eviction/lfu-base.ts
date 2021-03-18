@@ -1,10 +1,10 @@
 import { ErrorCodes, Nullable, Threshold } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../helpers/doubly-linked-list';
+import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../data-structures/list/doubly-linked';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
 import { createException } from '../../error';
-import { LinkedList } from '../../contracts/linked-list';
+import { LinkedList } from '../../data-structures/list/interface';
 
 /**
  * @private		Should not appear in public documentation.

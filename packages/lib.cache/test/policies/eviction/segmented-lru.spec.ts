@@ -6,7 +6,7 @@ import colors from 'colors';
 import range from 'lodash.range';
 import { SegmentedLRUPolicy, EvictableKeyNode, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
 import { MapUtils } from '../../utils';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/helpers/doubly-linked-list';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
 describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 	it('should work under minimal cache capacity', (done) => {

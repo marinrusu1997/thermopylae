@@ -1,1 +1,8 @@
-// @fixme https://docs.microsoft.com/en-us/dotnet/api/system.runtime.caching.cacheitempolicy.slidingexpiration?view=dotnet-plat-ext-5.0#System_Runtime_Caching_CacheItemPolicy_SlidingExpiration
+import { CacheReplacementPolicy } from '../../contracts/replacement-policy';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
+
+interface ExpirableCacheEntry<Key, Value> extends CacheKey<Key>, CacheEntry<Value> {}
+
+class SlidingReactiveExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {}
+
+export { SlidingReactiveExpirationPolicy };

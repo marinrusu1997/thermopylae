@@ -2,8 +2,8 @@ import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.d
 import { number } from '@thermopylae/lib.utils';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
-import { DoublyLinkedList, DoublyLinkedListNode } from '../../helpers/doubly-linked-list';
-import { LinkedList } from '../../contracts/linked-list';
+import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
+import { LinkedList } from '../../data-structures/list/interface';
 import { createException } from '../../error';
 
 const SEGMENT_SYM = Symbol('SEGMENT_SYM');
