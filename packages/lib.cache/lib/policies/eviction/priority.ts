@@ -1,11 +1,37 @@
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 
+/**
+ * Describes {@link CacheEntry} priority against eviction caused by lack of system memory.
+ */
 const enum CacheEntryPriority {
-	// @fixme reorder them based on usage pattern
+	/**
+	 * Cache items with this priority level are the most likely to be deleted from the cache.
+	 */
 	LOW,
-	MEDIUM,
-	HIGH
+	/**
+	 * Cache items with this priority level are more likely to be deleted from the cache than {@link CacheEntryPriority.NORMAL} priority.
+	 */
+	BELOW_NORMAL,
+	/**
+	 * Cache items with this priority level are likely to be deleted from the cache
+	 * after those items with {@link CacheEntryPriority.LOW} or {@link CacheEntryPriority.BELOW_NORMAL} priority. <br/>
+	 * This is the default.
+	 */
+	NORMAL,
+	/**
+	 * Cache items with this priority level are less likely to be deleted from cache
+	 * than those assigned with {@link CacheEntryPriority.NORMAL} priority.
+	 */
+	ABOVE_NORMAL,
+	/**
+	 * Cache items with this priority level are the least likely to be deleted from the cache.
+	 */
+	HIGH,
+	/**
+	 * The cache items with this priority level will not be automatically deleted from the cache.
+	 */
+	NOT_REMOVABLE
 }
 
 class PriorityEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {

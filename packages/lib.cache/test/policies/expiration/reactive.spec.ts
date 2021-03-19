@@ -3,12 +3,13 @@ import colors from 'colors';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { ReactiveExpirationPolicy } from '../../../lib/policies/expiration/reactive';
-import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
 import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
+import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 
-function generateEntry(): ExpirableCacheEntry<any> {
+function generateEntry(): ExpirableCacheEntry<string, any> {
 	return {
+		key: '',
 		value: array.randomElement(generateEntry.VALUES)
 	};
 }
@@ -22,8 +23,8 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			const KEY = 'a';
@@ -63,8 +64,8 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			const KEY = 'a';
@@ -95,11 +96,11 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
-			const ENTRIES = new Map<string, [ExpirableCacheEntry<any>, number | null | undefined]>([
+			const ENTRIES = new Map<string, [ExpirableCacheEntry<string, any>, number | null | undefined]>([
 				['a', [generateEntry(), INFINITE_TTL]],
 				['b', [generateEntry(), null]],
 				['c', [generateEntry(), undefined]]
@@ -136,8 +137,8 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			const ENTRY = generateEntry();
@@ -164,8 +165,8 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			const ENTRY = generateEntry();

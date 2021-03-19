@@ -5,10 +5,10 @@ import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { MixedExpirationPolicy, MixedExpirationPolicyConfig } from '../../../lib/policies/expiration/mixed';
-import { ExpirableCacheEntry, ExpirableCacheKeyedEntry } from '../../../lib/policies/expiration/abstract';
 import { createCacheEntriesCircularIterator } from '../../../lib/utils';
 import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 
 describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 	describe(`${MixedExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
@@ -17,7 +17,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const KEYS = range(0, CAPACITY).map(String);
 			const TTL = [1, 2];
 			const KEYS_BY_TTL = new Map<string, number>(KEYS.map((key) => [key, array.randomElement(TTL)]));
-			const ENTRIES = new Map<string, ExpirableCacheKeyedEntry<string, number>>(
+			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>(
 				KEYS.map((key) => {
 					return [
 						key,
@@ -42,8 +42,8 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				ENTRIES.delete(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -114,7 +114,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				TWO_SECOND: KEY_TO_TTL_ENTRIES.filter((entry) => entry[1] === 2).map((entry) => entry[0])
 			};
 
-			const ENTRIES = new Map<string, ExpirableCacheKeyedEntry<string, number>>(
+			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>(
 				[...KEY_TO_TTL.keys()].map((key) => {
 					return [
 						key,
@@ -139,8 +139,8 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				ENTRIES.delete(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -201,7 +201,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 			const TTL = 1;
 			const KEYS_WITH_INFINITE_TTL = array.filledWith(number.randomInt(1, CAPACITY), () => array.randomElement(KEYS), { noDuplicates: true });
 			const KEY_TO_TTL = new Map<string, number>(KEYS.map((key) => [key, TTL]));
-			const ENTRIES = new Map<string, ExpirableCacheKeyedEntry<string, number>>();
+			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>();
 
 			// insert keys with ttl first, so they might be evicted
 			for (const key of KEYS) {
@@ -227,8 +227,8 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				ENTRIES.delete(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -275,7 +275,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 
 	describe(`${MixedExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('should stop timer when entries are cleared', (done) => {
-			const ENTRIES = new Map<string, ExpirableCacheKeyedEntry<string, number>>([['a', { key: '', value: 1 }]]);
+			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>([['a', { key: '', value: 1 }]]);
 
 			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
 				checkInterval: 1,
@@ -290,8 +290,8 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				ENTRIES.delete(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
-				policy.onDelete(evictedKey, evictedEntry);
-				expect((evictedEntry as ExpirableCacheEntry<number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
 			policy.onSet('a', ENTRIES.get('a')!, { expiresAfter: 1 });

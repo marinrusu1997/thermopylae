@@ -1,97 +1,37 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { createException, ErrorCodes } from '../../error';
-import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { EXPIRES_AT_SYM } from '../../constants';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { createException } from '../../error';
 
 /**
  * @internal
  */
-interface ExpirableCacheEntry<Value> extends CacheEntry<Value> {
+interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Value>, CacheKey<Key> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
-/**
- * @internal
- */
-interface ExpirableCacheKeyedEntry<Key, Value> extends CacheKey<Key>, ExpirableCacheEntry<Value> {}
-
-interface AbstractExpirationPolicyArgumentsBundle {
-	/**
-	 * Time to live for `key` in {@link Seconds}. <br>
-	 * Use {@link INFINITE_TTL} or omit this option to specify that the key should not expire. <br/>
-	 * -----------------------------------------------------
-	 * When ttl is updated, depending on the value of `expiresAfter` param, following behaviours will occur: <br/>
-	 *
-	 * Value						| Behaviour
-	 * ---------------------------- | -------------------------------
-	 * `undefined`  				| New value has no ttl and will never expire.
-	 * {@link INFINITE_TTL}  		| New value has no ttl and will never expire.
-	 * ttl of old value				| New value inherits ttl of the old value. Notice that timer is not reset, meaning that if old value remains to live `x` seconds, the new one will remain same `x` seconds.
-	 * ttl different from old value	| New value has new ttl. Timer of old value is reset, so that new value remains to live `expiresAfter` seconds.
-	 */
-	expiresAfter?: Seconds;
-	/**
-	 * Timestamp from when ttl starts counting in {@link Seconds} as {@link UnixTimestamp}. <br/>
-	 * Defaults to current unix timestamp when `expiresAfter` is given.
-	 */
-	expiresFrom?: UnixTimestamp;
-}
-
-abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle>
-	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * Cache entry deleter.
 	 */
 	protected deleteFromCache!: Deleter<Key, Value>;
 
-	/**
-	 * @inheritDoc
-	 */
-	public onGet(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
-		return this.evictIfExpired(key, entry);
-	}
+	abstract onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
+
+	abstract onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
+
+	abstract onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(_key: Key, entry: ExpirableCacheEntry<Value>, options?: ArgumentsBundle): void {
-		if (options == null) {
-			return;
-		}
-
-		if (AbstractExpirationPolicy.isNonExpirable(options)) {
-			return;
-		}
-
-		AbstractExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom);
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Value>, options?: ArgumentsBundle): void {
-		if (options == null || AbstractExpirationPolicy.isNonExpirable(options)) {
-			entry[EXPIRES_AT_SYM] = undefined!; // entry is no longer expirable, logical deletion
-			return;
-		}
-		AbstractExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom); // overwrites or adds expiration
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public onDelete(_key: Key, entry: ExpirableCacheEntry<Value>): void {
+	public onDelete(_key: Key, entry: ExpirableCacheEntry<Key, Value>): void {
 		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 
-	/**
-	 * @inheritDoc
-	 */
-	public onClear(): void {
-		// there is no need to clear metadata, backend entries should also be removed
-	}
+	abstract onClear(): void;
 
 	/**
 	 * @inheritDoc
@@ -100,16 +40,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 		this.deleteFromCache = deleter;
 	}
 
-	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Value>): EntryValidity {
-		const expired = entry[EXPIRES_AT_SYM] != null ? entry[EXPIRES_AT_SYM]! <= chrono.unixTime() : false;
-		if (expired) {
-			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
-			return EntryValidity.NOT_VALID;
-		}
-		return EntryValidity.VALID;
-	}
-
-	protected static setEntryExpiration<V>(entry: ExpirableCacheEntry<V>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
+	protected static setEntryExpiration<K, V>(entry: ExpirableCacheEntry<K, V>, expiresAfter: Seconds, expiresFrom?: UnixTimestamp): void {
 		// we check them only for integer, as values are checked implicitly for expiresAt, because we sum them
 
 		if (!Number.isInteger(expiresAfter)) {
@@ -141,10 +72,6 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle extends Abst
 
 		entry[EXPIRES_AT_SYM] = expiresAt;
 	}
-
-	protected static isNonExpirable(argumentsBundle: AbstractExpirationPolicyArgumentsBundle): boolean {
-		return argumentsBundle.expiresAfter == null || argumentsBundle.expiresAfter === INFINITE_TTL;
-	}
 }
 
-export { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheEntry, ExpirableCacheKeyedEntry };
+export { AbstractExpirationPolicy, ExpirableCacheEntry };

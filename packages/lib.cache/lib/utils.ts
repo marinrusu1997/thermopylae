@@ -1,12 +1,12 @@
 import { IterableCacheBackend } from './contracts/cache-backend';
-import { ExpirableCacheKeyedEntry } from './policies/expiration/abstract';
 import { CacheEntriesCircularIterator } from './policies/expiration/mixed';
 import { CacheEntry } from './contracts/commons';
+import { ExpirableCacheEntry } from './policies/expiration/abstract';
 
 function createCacheEntriesCircularIterator<Key, Value>(backend: IterableCacheBackend<Key, Value>): CacheEntriesCircularIterator<Key, Value> {
 	let iterator: IterableIterator<CacheEntry<Value>> = backend.values();
 
-	return function nextCacheKey(): ExpirableCacheKeyedEntry<Key, Value> | null {
+	return function nextCacheKey(): ExpirableCacheEntry<Key, Value> | null {
 		let entry = iterator.next();
 
 		if (entry.done) {
@@ -18,7 +18,7 @@ function createCacheEntriesCircularIterator<Key, Value>(backend: IterableCacheBa
 			}
 		}
 
-		return entry.value as ExpirableCacheKeyedEntry<Key, Value>;
+		return entry.value as ExpirableCacheEntry<Key, Value>;
 	};
 }
 

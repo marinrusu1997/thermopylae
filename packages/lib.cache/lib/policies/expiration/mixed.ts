@@ -1,15 +1,16 @@
 import { Milliseconds, Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry } from './abstract';
+import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
 import { CacheSizeGetter } from '../../contracts/commons';
 import { EXPIRES_AT_SYM } from '../../constants';
+import { ExpirableCacheEntry } from './abstract';
 
 /**
  * Circular iterator over {@link CacheBackend} entries. <br/>
  * It should always return an entry by cycling over cache entries,
  * unless there are no more, in which case it should return `null`.
  */
-type CacheEntriesCircularIterator<Key, Value> = () => ExpirableCacheKeyedEntry<Key, Value> | null;
+type CacheEntriesCircularIterator<Key, Value> = () => ExpirableCacheEntry<Key, Value> | null;
 
 interface MixedExpirationPolicyConfig<Key, Value> {
 	/**
@@ -52,8 +53,8 @@ interface Config<Key, Value> extends MixedExpirationPolicyConfig<Key, Value> {
 class MixedExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
-> extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
+	ArgumentsBundle extends AbsoluteExpirationPolicyArgumentsBundle = AbsoluteExpirationPolicyArgumentsBundle
+> extends AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle> {
 	private readonly config: Config<Key, Value>;
 
 	private iterateTimeoutId: NodeJS.Timeout | null;
@@ -65,7 +66,7 @@ class MixedExpirationPolicy<
 		this.iterateTimeoutId = null;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		super.onSet(key, entry, options);
 		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
@@ -74,7 +75,7 @@ class MixedExpirationPolicy<
 		}
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		super.onUpdate(key, entry, options);
 		entry.key = key;
 		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
@@ -102,7 +103,7 @@ class MixedExpirationPolicy<
 			return;
 		}
 
-		let currentEntry: Nullable<ExpirableCacheKeyedEntry<Key, Value>> = startingEntry; // from now on there must be at least 1 entry
+		let currentEntry: Nullable<ExpirableCacheEntry<Key, Value>> = startingEntry; // from now on there must be at least 1 entry
 		let iteratedEntries = 0;
 
 		do {

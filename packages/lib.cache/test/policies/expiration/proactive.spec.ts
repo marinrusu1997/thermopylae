@@ -8,11 +8,11 @@ import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-polic
 import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';
-import { ExpirableCacheKeyedEntry } from '../../../lib/policies/expiration/abstract';
+import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 
-interface ExpirableCacheKeyedEntryHeapNode<Key, Value> extends ExpirableCacheKeyedEntry<Key, Value>, HeapNode {}
+interface ExpirableCacheEntryHeapNode<Key, Value> extends ExpirableCacheEntry<Key, Value>, HeapNode {}
 
-function generateEntry<K>(key: K): ExpirableCacheKeyedEntryHeapNode<K, any> {
+function generateEntry<K>(key: K): ExpirableCacheEntryHeapNode<K, any> {
 	return {
 		key,
 		value: array.randomElement(generateEntry.VALUES),
@@ -23,6 +23,7 @@ function generateEntry<K>(key: K): ExpirableCacheKeyedEntryHeapNode<K, any> {
 }
 generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
+// @fixme test with both GC
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second
 
@@ -36,7 +37,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
-				const expirableCacheHeapNode = evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>;
+				const expirableCacheHeapNode = evictedEntry as ExpirableCacheEntryHeapNode<string, number>;
 				policy.onDelete(evictedKey, expirableCacheHeapNode);
 				expect(expirableCacheHeapNode[EXPIRES_AT_SYM]).to.be.eq(undefined);
 				expect(expirableCacheHeapNode[HEAP_NODE_IDX_SYM]).to.be.eq(undefined);
@@ -69,7 +70,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				expect(chrono.unixTime() - WHEN_TRACKING_BEGAN).to.be.equals(defaultTTL);
 				expect(evictedKey).to.be.equals(TRACKED_KEY);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				expect(policy.size).to.be.eq(0);
 				done();
@@ -99,7 +100,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				expect(trackedKeys).to.be.containing(evictedKey);
 				trackedKeys.splice(trackedKeys.indexOf(evictedKey), 1); // ensure not called with same key
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				if (trackedKeys.length === 0) {
 					process.nextTick(() => {
@@ -128,7 +129,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				expect(Array.from(trackedKeysMap.keys())).to.be.containing(evictedKey);
 				trackedKeysMap.delete(evictedKey); // ensure not called with same key
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				if (trackedKeysMap.size === 0) {
 					done();
@@ -149,7 +150,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			let currentNumberOfRemovedKeys = 0;
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				const trackingInfo = trackedKeysMap.get(evictedKey);
 
@@ -192,7 +193,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const whenTrackingBegan = chrono.unixTime();
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 				expect(trackedKeys).to.be.containing(evictedKey);
@@ -217,7 +218,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			};
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				expect(chrono.unixTime() - whenTrackingBegan!).to.be.eq(defaultTTL);
 				expect(trackedKeys).to.be.containing(evictedKey);
@@ -246,7 +247,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			};
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 
 				expect(chrono.unixTime() - whenTrackingBegan!).to.be.equals(defaultTTL);
 				expect(trackedKeyAfterStopping).to.be.equal(evictedKey);
@@ -265,7 +266,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				keys.delete(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 			expect(policy.isIdle()).to.be.eq(true);
 
@@ -338,7 +339,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const NEW_TTL = 1;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			setTimeout(() => {
@@ -367,7 +368,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const NEW_TTL = 2;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			setTimeout(() => {
@@ -407,7 +408,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const NEW_TTL = 1;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			setTimeout(() => {
@@ -447,7 +448,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const NEW_TTL = 1;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			setTimeout(() => {
@@ -477,7 +478,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const OLD_TTL = 1;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			setTimeout(() => {
@@ -507,7 +508,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const NEW_TTL = 1;
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			policy.onSet(KEY, ENTRY);
@@ -533,7 +534,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const ENTRY = generateEntry(KEY);
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			policy.onSet(KEY, ENTRY, { expiresAfter: null! });
@@ -565,7 +566,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				CACHE_ACTIVE_KEYS.delete(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 			expect(policy.isIdle()).to.be.eq(true);
 
@@ -690,12 +691,12 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			const keyGenerator = new UniqueKeysGenerator(5);
 
-			const ENTRIES_BY_TTL = new Map<number, ExpirableCacheKeyedEntryHeapNode<string, any>[]>([
+			const ENTRIES_BY_TTL = new Map<number, ExpirableCacheEntryHeapNode<string, any>[]>([
 				[1, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))],
 				[2, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))],
 				[3, array.filledWith(number.randomInt(0, 10), () => generateEntry(keyGenerator.generate()))]
@@ -765,7 +766,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			const TTL = 1;
@@ -797,7 +798,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheKeyedEntryHeapNode<string, number>);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
 			policy.onUpdate('a', generateEntry('a'), { expiresAfter: 1 });

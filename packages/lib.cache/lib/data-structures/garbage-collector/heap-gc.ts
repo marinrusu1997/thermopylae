@@ -43,12 +43,8 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 		this.synchronizeEvictionTimer();
 	}
 
-	public isManaged(entry: T): boolean {
-		return Heap.isPartOfHeap(entry);
-	}
-
 	public update(_oldExpiration: UnixTimestamp, entry: T): void {
-		if (!this.isManaged(entry)) {
+		if (!Heap.isPartOfHeap(entry)) {
 			return;
 		}
 
@@ -57,7 +53,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	}
 
 	public leave(entry: T): void {
-		if (!this.isManaged(entry)) {
+		if (!Heap.isPartOfHeap(entry)) {
 			return;
 		}
 

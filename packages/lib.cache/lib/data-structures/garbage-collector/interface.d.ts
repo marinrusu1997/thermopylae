@@ -24,13 +24,6 @@ declare interface GarbageCollector<T extends ExpirableEntry> {
 	manage(entry: T): void;
 
 	/**
-	 * Check if *entry* is managed by GC.
-	 *
-	 * @param entry		Entry to be checked.
-	 */
-	isManaged(entry: T): boolean;
-
-	/**
 	 * Notify GC about expiration change of the managed entry.
 	 *
 	 * @param oldExpiration		Old expiration of the *entry*.

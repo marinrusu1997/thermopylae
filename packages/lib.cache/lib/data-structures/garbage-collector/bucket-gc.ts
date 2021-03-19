@@ -53,10 +53,6 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 		this.evictionTimer.stop();
 	}
 
-	public isManaged(entry: T): boolean {
-		return this.buckets.has(entry[EXPIRES_AT_SYM], entry);
-	}
-
 	public setEntryExpiredCallback(cb: EntryExpiredCallback<T>): void {
 		this.entryExpiredCb = cb;
 	}

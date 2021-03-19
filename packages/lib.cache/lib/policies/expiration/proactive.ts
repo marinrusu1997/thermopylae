@@ -1,14 +1,15 @@
-import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry } from './abstract';
+import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
 import { EntryValidity } from '../../contracts/replacement-policy';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
 import { EXPIRES_AT_SYM } from '../../constants';
 import { HeapGarbageCollector } from '../../data-structures/garbage-collector/heap-gc';
+import { ExpirableCacheEntry } from './abstract';
 
 class ProactiveExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
-> extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
+	ArgumentsBundle extends AbsoluteExpirationPolicyArgumentsBundle = AbsoluteExpirationPolicyArgumentsBundle
+> extends AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle> {
 	private readonly gc: GarbageCollector<any>; // @fixme a bit hackish...
 
 	/**
@@ -34,12 +35,8 @@ class ProactiveExpirationPolicy<
 		return EntryValidity.VALID;
 	}
 
-	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
-		if (options == null) {
-			return;
-		}
-
-		if (ProactiveExpirationPolicy.isNonExpirable(options)) {
+	public onSet(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+		if (options == null || ProactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
 
@@ -49,14 +46,15 @@ class ProactiveExpirationPolicy<
 		this.gc.manage(entry);
 	}
 
-	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
 		super.onUpdate(key, entry, options); // this will update entry ttl with some validations
 
-		if (this.gc.isManaged(entry)) {
+		// @fixme test case when item is set, then update with no ttl, then set again !!!
+		if (oldExpiration != null) {
 			if (entry[EXPIRES_AT_SYM] == null) {
 				// item was added with ttl, but now it's ttl became INFINITE
-				return this.gc.leave(entry);
+				return this.onDelete(key, entry); // we do not track it anymore
 			}
 
 			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
@@ -77,9 +75,9 @@ class ProactiveExpirationPolicy<
 		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
-	public onDelete(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>): void {
-		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
+	public onDelete(key: Key, entry: ExpirableCacheEntry<Key, Value>): void {
 		this.gc.leave(entry); // do not track it anymore for expiration
+		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 	}
 
 	public onClear(): void {
