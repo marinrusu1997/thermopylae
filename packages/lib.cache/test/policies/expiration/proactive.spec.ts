@@ -3,13 +3,25 @@ import { expect } from '@thermopylae/lib.unit-test';
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { ExpirableCacheKeyedEntryHeapNode, ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
+import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
-import { generateEntry } from './commons';
-import { INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
-import { EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
-import { HEAP_NODE_IDX_SYM } from '../../../lib/data-structures/heap';
+import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';
+import { ExpirableCacheKeyedEntry } from '../../../lib/policies/expiration/abstract';
+
+interface ExpirableCacheKeyedEntryHeapNode<Key, Value> extends ExpirableCacheKeyedEntry<Key, Value>, HeapNode {}
+
+function generateEntry<K>(key: K): ExpirableCacheKeyedEntryHeapNode<K, any> {
+	return {
+		key,
+		value: array.randomElement(generateEntry.VALUES),
+		[EXPIRES_AT_SYM]: 0,
+		// @ts-ignore
+		[HEAP_NODE_IDX_SYM]: undefined! // it does need to be here initially when entry is created
+	};
+}
+generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second

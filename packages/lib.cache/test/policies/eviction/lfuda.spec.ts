@@ -4,7 +4,8 @@ import colors from 'colors';
 import { array, number } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
-import { EvictableKeyNode, FREQ_PARENT_ITEM_SYM } from '../../../lib/policies/eviction/lfu-base';
+import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -71,7 +72,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 			}
 			for (const [key, freq] of ENTRY_FREQ) {
 				const entry = lfuEntries.get(key)!;
-				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(freq);
+				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(freq);
 			}
 
 			totalEntriesNo += 1; // simulate overflow
@@ -98,7 +99,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				while (freq--) {
 					policy.onGet(key, entry);
 				}
-				expect(entry[FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
+				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);

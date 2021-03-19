@@ -1,7 +1,8 @@
 import { Milliseconds, Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from './abstract';
+import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, ExpirableCacheKeyedEntry } from './abstract';
 import { CacheSizeGetter } from '../../contracts/commons';
+import { EXPIRES_AT_SYM } from '../../constants';
 
 /**
  * Circular iterator over {@link CacheBackend} entries. <br/>

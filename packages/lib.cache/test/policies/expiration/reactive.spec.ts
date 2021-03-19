@@ -3,9 +3,9 @@ import colors from 'colors';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { ReactiveExpirationPolicy } from '../../../lib/policies/expiration/reactive';
-import { ExpirableCacheEntry, EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
+import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
-import { INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
 
 function generateEntry(): ExpirableCacheEntry<any> {
 	return {

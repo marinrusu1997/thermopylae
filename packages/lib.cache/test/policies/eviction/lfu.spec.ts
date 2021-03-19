@@ -9,10 +9,11 @@ import range from 'lodash.range';
 import gc from 'js-gc';
 import { LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
 import { ReverseMap } from '../../utils';
-import { BaseLFUEvictionPolicy, EvictableKeyNode, FREQ_PARENT_ITEM_SYM } from '../../../lib/policies/eviction/lfu-base';
+import { BaseLFUEvictionPolicy, EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 const LFU_IMPLS = [LFUEvictionPolicy, LFUDAEvictionPolicy, GDSFEvictionPolicy];
@@ -60,7 +61,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictedKey, evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[FREQ_PARENT_ITEM_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
 						});
 
 						totalEntriesNo += 1; // simulate overflow
@@ -104,7 +105,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictedKey, evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[FREQ_PARENT_ITEM_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
 						});
 
 						for (const [key, value] of ENTRIES) {
@@ -203,7 +204,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictedKey, evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[FREQ_PARENT_ITEM_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
 						});
 
 						for (const [key, value] of ENTRIES) {
@@ -271,7 +272,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictedKey, evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[FREQ_PARENT_ITEM_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
 						});
 
 						// add entries

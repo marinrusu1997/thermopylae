@@ -33,9 +33,10 @@ declare interface GarbageCollector<T extends ExpirableEntry> {
 	/**
 	 * Notify GC about expiration change of the managed entry.
 	 *
-	 * @param entry		Managed entry.
+	 * @param oldExpiration		Old expiration of the *entry*.
+	 * @param entry				Managed entry containing new expiration.
 	 */
-	update(entry: T): void;
+	update(oldExpiration: UnixTimestamp, entry: T): void;
 
 	/**
 	 * Leaves entry without expiration, by un-managing it.

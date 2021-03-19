@@ -5,9 +5,9 @@ import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { MixedExpirationPolicy, MixedExpirationPolicyConfig } from '../../../lib/policies/expiration/mixed';
-import { ExpirableCacheEntry, ExpirableCacheKeyedEntry, EXPIRES_AT_SYM } from '../../../lib/policies/expiration/abstract';
+import { ExpirableCacheEntry, ExpirableCacheKeyedEntry } from '../../../lib/policies/expiration/abstract';
 import { createCacheEntriesCircularIterator } from '../../../lib/utils';
-import { INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
 
 describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {

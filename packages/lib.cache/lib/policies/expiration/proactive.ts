@@ -2,22 +2,24 @@ import { AbstractExpirationPolicy, AbstractExpirationPolicyArgumentsBundle, Expi
 import { EntryValidity } from '../../contracts/replacement-policy';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
 import { EXPIRES_AT_SYM } from '../../constants';
-
-type ProactiveExpirableCacheKeyedEntry<Key, Value> = Required<ExpirableCacheKeyedEntry<Key, Value>>;
+import { HeapGarbageCollector } from '../../data-structures/garbage-collector/heap-gc';
 
 class ProactiveExpirationPolicy<
 	Key,
 	Value,
-	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle,
-	GarbageCollectorEntry extends ProactiveExpirableCacheKeyedEntry<Key, Value> = ProactiveExpirableCacheKeyedEntry<Key, Value>
+	ArgumentsBundle extends AbstractExpirationPolicyArgumentsBundle = AbstractExpirationPolicyArgumentsBundle
 > extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
-	private readonly gc: GarbageCollector<GarbageCollectorEntry>;
+	private readonly gc: GarbageCollector<any>; // @fixme a bit hackish...
 
-	public constructor(gc: GarbageCollector<GarbageCollectorEntry>) {
+	/**
+	 * @param gc	{@link GarbageCollector} which notifies about expired entries. <br/>
+	 * 				Defaults to {@link HeapGarbageCollector}.
+	 */
+	public constructor(gc?: GarbageCollector<any>) {
 		super();
-		this.gc = gc;
+		this.gc = gc || new HeapGarbageCollector<any>();
 
-		gc.setEntryExpiredCallback((expiredEntry) => {
+		this.gc.setEntryExpiredCallback((expiredEntry) => {
 			// remove from cache, will trigger `onDelete` which will detach ttl metadata
 			this.deleteFromCache(expiredEntry.key, expiredEntry);
 		});
@@ -32,7 +34,7 @@ class ProactiveExpirationPolicy<
 		return EntryValidity.VALID;
 	}
 
-	public onSet(key: Key, entry: GarbageCollectorEntry, options?: ArgumentsBundle): void {
+	public onSet(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null) {
 			return;
 		}
@@ -47,7 +49,7 @@ class ProactiveExpirationPolicy<
 		this.gc.manage(entry);
 	}
 
-	public onUpdate(key: Key, entry: GarbageCollectorEntry, options?: ArgumentsBundle): void {
+	public onUpdate(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>, options?: ArgumentsBundle): void {
 		const oldExpiration = entry[EXPIRES_AT_SYM];
 		super.onUpdate(key, entry, options); // this will update entry ttl with some validations
 
@@ -62,7 +64,8 @@ class ProactiveExpirationPolicy<
 				return undefined;
 			}
 
-			return this.gc.update(entry); // notice that we updated `expiresAt` above
+			// if it's managed by GC, it needs to have oldExpiration
+			return this.gc.update(oldExpiration!, entry); // notice that we updated `expiresAt` above
 		}
 
 		if (options && !ProactiveExpirationPolicy.isNonExpirable(options)) {
@@ -74,7 +77,7 @@ class ProactiveExpirationPolicy<
 		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
-	public onDelete(key: Key, entry: GarbageCollectorEntry): void {
+	public onDelete(key: Key, entry: ExpirableCacheKeyedEntry<Key, Value>): void {
 		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 		this.gc.leave(entry); // do not track it anymore for expiration
 	}

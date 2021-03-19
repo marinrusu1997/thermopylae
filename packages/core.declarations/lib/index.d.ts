@@ -174,6 +174,9 @@ export type PersistablePrimitive = Nullable<Primitive>;
 export type ObjMap = Record<string, any>;
 export type PersistableObjMap = Record<PersistableRecordKey, PersistablePrimitive | { [Key in PersistableRecordKey]: PersistableObjMap }>;
 
+export type Processor<T> = (entry: T) => void;
+export type Runnable = () => void;
+
 export type SyncFunction<I = any, O = any> = (...args: Array<I>) => O;
 export type AsyncFunction<I = any, O = any> = (...args: Array<I>) => Promise<O>;
 

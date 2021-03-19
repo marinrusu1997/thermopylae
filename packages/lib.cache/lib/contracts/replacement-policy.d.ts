@@ -66,7 +66,6 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	 * @param entry		Associated entry.
 	 */
 	onDelete(key: Key, entry: CacheEntry<Value>): void;
-	// @fixme each policy should detach metadata from entry after eviction/delete, as entry might be reused by backend
 
 	/**
 	 * Hook executed after cache has been cleared.

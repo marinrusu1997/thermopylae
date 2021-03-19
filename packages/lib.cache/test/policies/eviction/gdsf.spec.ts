@@ -3,8 +3,9 @@ import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { array, number, string } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { EvictableKeyNode, FREQ_PARENT_ITEM_SYM } from '../../../lib/policies/eviction/lfu-base';
+import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -38,7 +39,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			let totalEntriesNo = 0;
 			const cacheSizeGetter = () => totalEntriesNo;
 
-			const policy = new GDSFEvictionPolicy<string, string, any>(CAPACITY, cacheSizeGetter);
+			const policy = new GDSFEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
 			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
@@ -83,10 +84,10 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
 			expect(Array.from(ENTRIES.keys())).to.be.containingAllOf(EVICTED_KEYS);
 
-			expect(lfuEntries.get('k')![FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(2.1);
-			expect(lfuEntries.get('i')![FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(2.1);
-			expect(lfuEntries.get('h')![FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(2.1);
-			expect(lfuEntries.get('h')![FREQ_PARENT_ITEM_SYM].frequency).to.be.eq(2.1);
+			expect(lfuEntries.get('k')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(lfuEntries.get('i')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(lfuEntries.get('h')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(lfuEntries.get('h')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
 		} catch (e) {
 			const message = [
 				'Test Context:',

@@ -4,6 +4,7 @@ import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interf
 import { Heap, HeapNode } from '../heap';
 import { EXPIRES_AT_SYM } from '../../constants';
 
+// @fixme use eviction timer
 /**
  * @internal
  */
@@ -46,7 +47,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 		return Heap.isPartOfHeap(entry);
 	}
 
-	public update(entry: T): void {
+	public update(_oldExpiration: UnixTimestamp, entry: T): void {
 		if (!this.isManaged(entry)) {
 			return;
 		}
@@ -84,7 +85,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 		const rootEntry = this.entries.peek();
 
 		if (rootEntry === undefined) {
-			// cleanUpInterval might remain, if for example we got onClear/onDelete, and there were scheduled removal of items
+			// cleanUpInterval might remain, if for example we got clear/leave, and there were scheduled removal of items
 			if (this.cleanUpInterval != null) {
 				clearTimeout(this.cleanUpInterval.timeoutId);
 				this.cleanUpInterval = null;
