@@ -5,6 +5,7 @@ import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
 
+// @fixme create example file when try to use all policies to test type safety
 class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 

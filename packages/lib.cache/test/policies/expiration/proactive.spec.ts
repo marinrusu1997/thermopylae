@@ -16,7 +16,7 @@ function generateEntry<K>(key: K): ExpirableCacheEntryHeapNode<K, any> {
 	return {
 		key,
 		value: array.randomElement(generateEntry.VALUES),
-		[EXPIRES_AT_SYM]: 0,
+		[EXPIRES_AT_SYM]: undefined,
 		// @ts-ignore
 		[HEAP_NODE_IDX_SYM]: undefined! // it does need to be here initially when entry is created
 	};

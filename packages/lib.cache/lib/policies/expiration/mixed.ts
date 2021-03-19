@@ -28,6 +28,7 @@ interface MixedExpirationPolicyConfig<Key, Value> {
 	 * Defaults to 30 seconds.
 	 */
 	checkInterval?: Seconds;
+
 	/**
 	 * How many entries GC needs to check for expiration. <br/>
 	 * Defaults to 1000.
