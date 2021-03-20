@@ -1,4 +1,6 @@
-import { Minutes, Percentage } from '@thermopylae/core.declarations';
+import { Minutes, Nullable, Percentage } from '@thermopylae/core.declarations';
+import { chrono, number } from '@thermopylae/lib.utils';
+import { memoryUsage } from 'process';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
 
@@ -46,7 +48,8 @@ interface PriorityEvictionPolicyArgumentsBundle {
 }
 
 /**
- * Iterator over {@link CacheBackend} entries.
+ * Iterator over {@link CacheBackend} entries. <br/>
+ * On each call, it should return next entry. Where no entries remained, it should return *null*.
  */
 type CacheEntriesIterator<Key, Value> = () => PrioritizedCacheEntry<Key, Value> | null;
 
@@ -62,7 +65,7 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
 	getCacheSize: CacheSizeGetter;
 
 	/**
-	 * Interval for checking whether process is low on memory.<br/>
+	 * Interval for checking whether process is low on memory. <br/>
 	 * Defaults to 60 minutes.
 	 */
 	checkInterval?: Minutes;
@@ -70,6 +73,14 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
 	/**
 	 * Percentage of the available memory which is considered to be critical. <br/>
 	 * When process reaches it or goes bellow, cache entries eviction kicks in on next {@link PriorityEvictionPolicyOptions.checkInterval}. <br/>
+	 * Percentage is calculated by the following formula: **((heapTotal - heapUsed) * 100) / heapTotal**.
+	 * > ⚠️ WARNING ⚠️ <br/>
+	 * > Computation of the available memory doesn't take into account garbage collection and is subject to false positive results.
+	 * GC is performed in a **stop the world** fashion, hence it's delayed by V8 as much as possible and performed when it's
+	 * really needed, i.e. when process is low on memory. <br/>
+	 * > Therefore, there is always a small chance that we will run our eviction handler and detect high memory usage
+	 * before GC will occur.
+	 *
 	 * Defaults to 20%.
 	 */
 	criticalAvailableMemoryPercentage?: Percentage;
@@ -95,27 +106,42 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 
 	private readonly numberOfCacheEntriesByPriority: Map<CacheEntryPriority, number>;
 
+	private checkMemoryConsumptionIntervalId: Nullable<NodeJS.Timeout>;
+
 	private deleteFromCache!: Deleter<Key, Value>;
 
 	public constructor(options: PriorityEvictionPolicyOptions<Key, Value>) {
 		this.options = PriorityEvictionPolicy.fillConstructorOptionsWithDefaults(options);
 		this.numberOfCacheEntriesByPriority = new Map<CacheEntryPriority, number>();
 		PriorityEvictionPolicy.fillNumberOfCacheEntriesByPriorityWithStartingValues(this.numberOfCacheEntriesByPriority);
+		this.checkMemoryConsumptionIntervalId = null;
 	}
 
-	public onGet(_key: Key, _entry: CacheEntry<Value>): EntryValidity {
-		return EntryValidity.NOT_VALID;
+	/**
+	 * @inheritDoc
+	 */
+	public onGet(): EntryValidity {
+		return EntryValidity.VALID;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(key: Key, entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		entry.key = key; // @fixme maybe needs to be set by middle-end???
 		entry[PRIORITY_SYM] = options && options.priority != null ? options.priority : CacheEntryPriority.NORMAL;
 
 		this.increaseNumberOfEntries(entry[PRIORITY_SYM]);
 
-		// @fixme start timer
+		if (this.checkMemoryConsumptionIntervalId == null) {
+			const timeout = chrono.milliseconds(0, this.options.checkInterval, 0);
+			this.checkMemoryConsumptionIntervalId = setInterval(this.performEvictionOnLowMemory, timeout);
+		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onUpdate(_key: Key, entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.priority == null) {
 			return;
@@ -128,21 +154,84 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		this.decreaseNumberOfEntries(entry[PRIORITY_SYM]);
 		entry[PRIORITY_SYM] = options.priority;
 		this.increaseNumberOfEntries(entry[PRIORITY_SYM]);
-
-		// @fixme no need to touch timer
 	}
 
-	public onDelete(_key: Key, _entry?: CacheEntry<Value>): void {
-		return undefined;
+	/**
+	 * @inheritDoc
+	 */
+	public onDelete(_key: Key, entry: PrioritizedCacheEntry<Key, Value>): void {
+		this.decreaseNumberOfEntries(entry[PRIORITY_SYM]);
+		entry[PRIORITY_SYM] = undefined!; // logical deletion
+
+		// depending on the order of calling 'onDelete' hook, cache might have 0 or 1 entry
+		if (this.options.getCacheSize() < 2) {
+			this.stopEvictionTimer();
+		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
 		PriorityEvictionPolicy.fillNumberOfCacheEntriesByPriorityWithStartingValues(this.numberOfCacheEntriesByPriority);
-		// @fixme stop timer
+		if (this.checkMemoryConsumptionIntervalId) {
+			this.stopEvictionTimer();
+		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
+	}
+
+	// @fixme test with high number of entries and randomness
+	private performEvictionOnLowMemory = () => {
+		const { heapTotal, heapUsed } = memoryUsage();
+		const availableMemoryPercentage = ((heapTotal - heapUsed) * 100) / heapTotal;
+
+		if (availableMemoryPercentage <= this.options.criticalAvailableMemoryPercentage) {
+			let totalNumberOfEntriesToBeEvicted = number.percentage(this.options.getCacheSize(), this.options.cacheEvictionPercentage);
+			const numberOfEntriesToEvictByPriority = this.computeNumberOfEntriesToEvictByPriority(totalNumberOfEntriesToBeEvicted);
+
+			let entry;
+			while ((entry = this.options.getNextCacheEntry()) && totalNumberOfEntriesToBeEvicted) {
+				if (numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]]) {
+					this.deleteFromCache(entry.key, entry); // will trigger `onDelete` hook
+					numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]] -= 1;
+					totalNumberOfEntriesToBeEvicted -= 1;
+				}
+			}
+		}
+
+		if (this.options.getCacheSize() === 0) {
+			this.stopEvictionTimer();
+		}
+	};
+
+	private computeNumberOfEntriesToEvictByPriority(totalEntriesToBeEvicted: number): Record<CacheEntryPriority, number> {
+		const toDelete: Record<CacheEntryPriority, number> = {
+			[CacheEntryPriority.LOW]: 0,
+			[CacheEntryPriority.BELOW_NORMAL]: 0,
+			[CacheEntryPriority.NORMAL]: 0,
+			[CacheEntryPriority.ABOVE_NORMAL]: 0,
+			[CacheEntryPriority.HIGH]: 0,
+			[CacheEntryPriority.NOT_REMOVABLE]: 0
+		};
+
+		// skip NOT_REMOVABLE ones by <
+		for (let i = CacheEntryPriority.LOW; i < CacheEntryPriority.NOT_REMOVABLE; i++) {
+			const numberOfEntriesByPriority = this.numberOfCacheEntriesByPriority.get(i)!;
+			if (totalEntriesToBeEvicted <= numberOfEntriesByPriority) {
+				toDelete[i] = totalEntriesToBeEvicted;
+				break;
+			}
+			toDelete[i] = numberOfEntriesByPriority;
+			totalEntriesToBeEvicted -= numberOfEntriesByPriority;
+		}
+
+		return toDelete;
 	}
 
 	private increaseNumberOfEntries(priority: CacheEntryPriority): void {
@@ -155,18 +244,23 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		this.numberOfCacheEntriesByPriority.set(priority, actualNumber - 1);
 	}
 
+	private stopEvictionTimer(): void {
+		clearInterval(this.checkMemoryConsumptionIntervalId!); // we are guaranteed to have timer started
+		this.checkMemoryConsumptionIntervalId = null; // mark as stopped
+	}
+
 	private static fillConstructorOptionsWithDefaults<K, V>(
 		options: PriorityEvictionPolicyOptions<K, V>
 	): Required<Readonly<PriorityEvictionPolicyOptions<K, V>>> {
-		if (options.checkInterval == null) {
-			options.checkInterval = 60;
-		}
-		if (options.criticalAvailableMemoryPercentage == null) {
-			options.criticalAvailableMemoryPercentage = 20;
-		}
-		if (options.cacheEvictionPercentage == null) {
-			options.cacheEvictionPercentage = 20;
-		}
+		options.checkInterval = options.checkInterval || 60;
+		number.assertIsInteger(options.checkInterval);
+
+		options.criticalAvailableMemoryPercentage = options.criticalAvailableMemoryPercentage || 0.2;
+		number.assertIsPercentage(options.criticalAvailableMemoryPercentage);
+
+		options.cacheEvictionPercentage = options.cacheEvictionPercentage || 0.2;
+		number.assertIsPercentage(options.cacheEvictionPercentage);
+
 		return options as Required<Readonly<PriorityEvictionPolicyOptions<K, V>>>;
 	}
 

@@ -1,4 +1,4 @@
-import { AsyncFunction, Milliseconds, Minutes, ObjMap, Seconds, SyncFunction } from '@thermopylae/core.declarations';
+import { AsyncFunction, Hours, Milliseconds, Minutes, ObjMap, Seconds, SyncFunction } from '@thermopylae/core.declarations';
 import convertHrTime, { HRTime } from 'convert-hrtime';
 import process from 'process';
 
@@ -79,10 +79,10 @@ function minutesToSeconds(minutes: Minutes): Seconds {
 /**
  * Converts milliseconds to seconds.
  *
- * @param milliseconds
+ * @param ms
  */
-function millisecondsToSeconds(milliseconds: Milliseconds): Seconds {
-	return Math.floor(milliseconds / 1000);
+function millisecondsToSeconds(ms: Milliseconds): Seconds {
+	return Math.floor(ms / 1000);
 }
 
 /**
@@ -92,6 +92,22 @@ function millisecondsToSeconds(milliseconds: Milliseconds): Seconds {
  */
 function secondsToMilliseconds(seconds: Seconds): Milliseconds {
 	return seconds * 1000;
+}
+
+/**
+ * Convert hours, minutes and seconds to milliseconds.
+ *
+ * @param hours		Number of hours. <br/>
+ * 					Defaults to **0**.
+ * @param minutes	Number of minutes. <br/>
+ * 					Defaults to **0**.
+ * @param seconds	Number of seconds. <br/>
+ * 					Defaults to **0**.
+ *
+ * 	@returns 		Number of milliseconds.
+ */
+function milliseconds(hours: Hours = 0, minutes: Minutes = 0, seconds: Seconds = 0): Milliseconds {
+	return (hours * 3600 + minutes * 60 + seconds) * 1000;
 }
 
 /**
@@ -150,6 +166,7 @@ export {
 	sleep,
 	executionTime,
 	executionTimeAsync,
+	milliseconds,
 	unixTime,
 	fromUnixTime,
 	minutesToSeconds,

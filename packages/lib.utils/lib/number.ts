@@ -4,7 +4,8 @@ import { createException } from './exception';
 const enum ErrorCodes {
 	NUMBER_TYPE_CASTING_FAILED = 'NUMBER_TYPE_CASTING_FAILED',
 	GREATER_THAN = 'GREATER_THAN',
-	INVALID_RANGE = 'INVALID_RANGE'
+	INVALID_RANGE = 'INVALID_RANGE',
+	INVALID_ARGUMENT = 'INVALID_ARGUMENT'
 }
 
 /**
@@ -46,6 +47,32 @@ function randomInt(min: number, max: number): number {
 }
 
 /**
+ * Asserts that *value* is an integer.
+ *
+ * @param value	Value to check.
+ *
+ * @throws {Exception}	When *value* is not an integer.
+ */
+function assertIsInteger(value: any): void | never {
+	if (!Number.isInteger(value)) {
+		throw createException(ErrorCodes.INVALID_ARGUMENT, `${JSON.stringify(value)} is not an integer.`);
+	}
+}
+
+/**
+ * Asserts that *num* represents a percentage and has a value in the [0,1] interval.
+ *
+ * @param num	Number to test.
+ *
+ * @throws {Exception}	When *num* is not a percentage.
+ */
+function assertIsPercentage(num: number): void | never {
+	if (num < 0 || num > 1) {
+		throw createException(ErrorCodes.INVALID_RANGE, 'Percentage needs to be in the [0,1] interval.');
+	}
+}
+
+/**
  * Calculates `percentage` from a `number`.
  *
  * @param number	Number.
@@ -54,9 +81,7 @@ function randomInt(min: number, max: number): number {
  * @returns		Number which represents `percent` from `number`.
  */
 function percentage(number: number, percent: Percentage): number {
-	if (percent < 0 || percent > 1) {
-		throw createException(ErrorCodes.INVALID_RANGE, 'Percentage needs to be between 0 and 1.');
-	}
+	assertIsPercentage(percent);
 	return percent * number;
 }
 
@@ -110,4 +135,4 @@ function toLetter(nr: number): string {
 		.join('');
 }
 
-export { random, randomInt, percentage, convertFrom, toLetter, ErrorCodes };
+export { random, randomInt, assertIsInteger, assertIsPercentage, percentage, convertFrom, toLetter, ErrorCodes };
