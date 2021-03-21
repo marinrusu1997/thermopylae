@@ -19,6 +19,17 @@ declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
 declare type CacheSizeGetter = () => number;
 
 /**
+ * Get entry associated with *key*.
+ */
+declare type CacheEntryGetter<Key, Value> = (key: Key) => CacheEntry<Value>;
+
+/**
+ * Iterator over {@link CacheBackend} entries. <br/>
+ * On each call, it should return next entry. Where no entries remained, it should return *null*.
+ */
+declare type CacheEntriesIterator<Value> = () => CacheEntry<Value> | null;
+
+/**
  * Describes collected cache statistics.
  */
 declare interface CacheStats {
@@ -60,4 +71,4 @@ declare interface CacheEntryFilter {
 	notOlder: UnixTimestamp;
 }
 
-export { EventType, EventListener, CacheSizeGetter, CacheStats, CacheKey, CacheEntry };
+export { EventType, EventListener, CacheSizeGetter, CacheEntryGetter, CacheEntriesIterator, CacheStats, CacheKey, CacheEntry };

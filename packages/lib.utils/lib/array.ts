@@ -42,6 +42,23 @@ function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true
 }
 
 /**
+ * Removes an *item* in place from *array*
+ *
+ * @param array		Array from where to remove.
+ * @param item		Item to remove.
+ *
+ * @returns		Boolean which indicates whether *item* was removed.
+ */
+function removeInPlace<T>(array: Array<T>, item: T): boolean {
+	const index = array.indexOf(item);
+	if (index > -1) {
+		array.splice(index, 1);
+		return true;
+	}
+	return false;
+}
+
+/**
  * Creates a new array which contains unique items.
  *
  * @template T		Elements type.
@@ -194,4 +211,4 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 	}
 }
 
-export { remove, unique, shuffle, filledWith, peek, PeekPosition, randomElement, filterAsync, FilledWithOptions };
+export { remove, removeInPlace, unique, shuffle, filledWith, peek, PeekPosition, randomElement, filterAsync, FilledWithOptions };

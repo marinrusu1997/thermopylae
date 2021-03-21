@@ -2,7 +2,9 @@ import { Minutes, Nullable, Percentage } from '@thermopylae/core.declarations';
 import { chrono, number } from '@thermopylae/lib.utils';
 import { memoryUsage } from 'process';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
+import { CacheEntriesIterator, CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
+
+// @fixme take into account gc: https://www.npmjs.com/package/gc-stats
 
 const PRIORITY_SYM = Symbol('PRIORITY_SYM');
 
@@ -47,17 +49,11 @@ interface PriorityEvictionPolicyArgumentsBundle {
 	priority?: CacheEntryPriority;
 }
 
-/**
- * Iterator over {@link CacheBackend} entries. <br/>
- * On each call, it should return next entry. Where no entries remained, it should return *null*.
- */
-type CacheEntriesIterator<Key, Value> = () => PrioritizedCacheEntry<Key, Value> | null;
-
-interface PriorityEvictionPolicyOptions<Key, Value> {
+interface PriorityEvictionPolicyOptions<Value> {
 	/**
 	 * Next cache entry getter.
 	 */
-	getNextCacheEntry: CacheEntriesIterator<Key, Value>;
+	getNextCacheEntry: CacheEntriesIterator<Value>;
 
 	/**
 	 * Get number of elements in the cache.
@@ -102,7 +98,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 	/**
 	 * @private
 	 */
-	private readonly options: Required<Readonly<PriorityEvictionPolicyOptions<Key, Value>>>;
+	private readonly options: Required<Readonly<PriorityEvictionPolicyOptions<Value>>>;
 
 	private readonly numberOfCacheEntriesByPriority: Map<CacheEntryPriority, number>;
 
@@ -110,7 +106,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
-	public constructor(options: PriorityEvictionPolicyOptions<Key, Value>) {
+	public constructor(options: PriorityEvictionPolicyOptions<Value>) {
 		this.options = PriorityEvictionPolicy.fillConstructorOptionsWithDefaults(options);
 		this.numberOfCacheEntriesByPriority = new Map<CacheEntryPriority, number>();
 		PriorityEvictionPolicy.fillNumberOfCacheEntriesByPriorityWithStartingValues(this.numberOfCacheEntriesByPriority);
@@ -196,7 +192,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 			const numberOfEntriesToEvictByPriority = this.computeNumberOfEntriesToEvictByPriority(totalNumberOfEntriesToBeEvicted);
 
 			let entry;
-			while ((entry = this.options.getNextCacheEntry()) && totalNumberOfEntriesToBeEvicted) {
+			while ((entry = this.options.getNextCacheEntry() as PrioritizedCacheEntry<Key, Value>) && totalNumberOfEntriesToBeEvicted) {
 				if (numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]]) {
 					this.deleteFromCache(entry.key, entry); // will trigger `onDelete` hook
 					numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]] -= 1;
@@ -249,9 +245,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		this.checkMemoryConsumptionIntervalId = null; // mark as stopped
 	}
 
-	private static fillConstructorOptionsWithDefaults<K, V>(
-		options: PriorityEvictionPolicyOptions<K, V>
-	): Required<Readonly<PriorityEvictionPolicyOptions<K, V>>> {
+	private static fillConstructorOptionsWithDefaults<V>(options: PriorityEvictionPolicyOptions<V>): Required<Readonly<PriorityEvictionPolicyOptions<V>>> {
 		options.checkInterval = options.checkInterval || 60;
 		number.assertIsInteger(options.checkInterval);
 
@@ -261,7 +255,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		options.cacheEvictionPercentage = options.cacheEvictionPercentage || 0.2;
 		number.assertIsPercentage(options.cacheEvictionPercentage);
 
-		return options as Required<Readonly<PriorityEvictionPolicyOptions<K, V>>>;
+		return options as Required<Readonly<PriorityEvictionPolicyOptions<V>>>;
 	}
 
 	private static fillNumberOfCacheEntriesByPriorityWithStartingValues(map: Map<CacheEntryPriority, number>): void {
