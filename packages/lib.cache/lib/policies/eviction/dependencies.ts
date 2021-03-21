@@ -1,7 +1,6 @@
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
 import { CacheEntry, CacheEntryGetter, CacheKey } from '../../contracts/commons';
-import { Graph } from '../../data-structures/graph/interface';
-import { DependencyGraph, GraphEntry } from '../../data-structures/graph/dependency-graph';
+import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-graph';
 import { createException, ErrorCodes } from '../../error';
 
 interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
@@ -16,7 +15,7 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 	/**
 	 * @private
 	 */
-	private readonly dependencyGraph: Graph<CacheEntryWithDependencies<Key, Value>>;
+	private readonly dependencyGraph: DependencyGraph<CacheEntryWithDependencies<Key, Value>>;
 
 	private readonly getCacheEntry: CacheEntryGetter<Key, Value>;
 
@@ -66,6 +65,7 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 	// @fixme test on complex example from notebook
 	// @fixme test with nodes that do not form dependencies with another nodes
 	// @fixme test with other policies (lru + sliding for example)
+	// @fixme test metadata detach
 	public onDelete(_key: Key, entry: CacheEntryWithDependencies<Key, Value>): void {
 		if (this.visitedEntriesOnDeletion.has(entry)) {
 			return; // prevent cycles
@@ -99,4 +99,4 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 	}
 }
 
-export { EntryDependenciesEvictionPolicy };
+export { EntryDependenciesEvictionPolicy, EntryDependenciesEvictionPolicyArgumentsBundle };
