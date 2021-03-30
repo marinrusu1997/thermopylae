@@ -7,16 +7,16 @@ import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
 interface AbsoluteExpirationPolicyArgumentsBundle {
 	/**
 	 * Time to live for `key` in {@link Seconds}. <br>
-	 * Use {@link INFINITE_TTL} or omit this option to specify that the key should not expire. <br/>
+	 * When inserting the key, use {@link INFINITE_TTL} or omit this option to specify that the key should not expire. <br/>
 	 * -----------------------------------------------------
 	 * When ttl is updated, depending on the value of `expiresAfter` param, following behaviours will occur: <br/>
 	 *
 	 * Value						| Behaviour
 	 * ---------------------------- | -------------------------------
-	 * `undefined`  				| New value has no ttl and will never expire.
-	 * {@link INFINITE_TTL}  		| New value has no ttl and will never expire.
-	 * ttl of old value				| New value inherits ttl of the old value. Notice that timer is not reset, meaning that if old value remains to live `x` seconds, the new one will remain same `x` seconds.
-	 * ttl different from old value	| New value has new ttl. Timer of old value is reset, so that new value remains to live `expiresAfter` seconds.
+	 * `undefined`  				| Entry ttl won't be updated and will remain the same.
+	 * {@link INFINITE_TTL}  		| Entry ttl is discarded, so that it will never expire.
+	 * ttl of old value				| Entry ttl won't be updated and will remain the same. Notice that timer is not reset, meaning that if old value remains to live `x` seconds, it will be evicted after `x` seconds.
+	 * ttl different from old value	| Entry ttl will be updated to the new ttl. Timer will be reset, so that new value remains to live `expiresAfter` seconds.
 	 */
 	expiresAfter?: Seconds;
 	/**
@@ -53,10 +53,15 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 	 * @inheritDoc
 	 */
 	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
-		if (options == null || AbsoluteExpirationPolicy.isNonExpirable(options)) {
+		if (options == null || options.expiresAfter == null) {
+			return;
+		}
+
+		if (options.expiresAfter === INFINITE_TTL) {
 			entry[EXPIRES_AT_SYM] = undefined!; // entry is no longer expirable, logical deletion
 			return;
 		}
+
 		AbsoluteExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom); // overwrites or adds expiration
 	}
 
@@ -68,8 +73,7 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 	}
 
 	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
-		const expired = entry[EXPIRES_AT_SYM] != null ? entry[EXPIRES_AT_SYM]! <= chrono.unixTime() : false;
-		if (expired) {
+		if (entry[EXPIRES_AT_SYM]! <= chrono.unixTime()) {
 			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
 			return EntryValidity.NOT_VALID;
 		}

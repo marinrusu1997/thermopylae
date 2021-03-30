@@ -527,7 +527,40 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			}, chrono.secondsToMilliseconds(NEW_TTL) + 50);
 		});
 
-		it("does not evict key if it didn't had ttl, and the new ttl is infinite/not specified", (done) => {
+		it('should do nothing when options or ttl is not given', (done) => {
+			const policy = new ProactiveExpirationPolicy<string, number>();
+			const EVICTED_KEYS = new Array<string>();
+			const KEY = 'a';
+			const ENTRY = generateEntry(KEY);
+			const NEW_TTL = 1;
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
+			});
+
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL });
+
+			policy.onUpdate(KEY, ENTRY); // does nothing
+			expect(EVICTED_KEYS).to.be.ofSize(0);
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: undefined }); // does nothing
+			expect(EVICTED_KEYS).to.be.ofSize(0);
+			policy.onUpdate(KEY, ENTRY, { expiresAfter: null! }); // does nothing
+			expect(EVICTED_KEYS).to.be.ofSize(0);
+
+			setTimeout(() => {
+				try {
+					expect(EVICTED_KEYS).to.be.ofSize(1);
+					expect(EVICTED_KEYS).to.be.containing(KEY);
+					expect(policy.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, chrono.secondsToMilliseconds(NEW_TTL) + 50);
+		});
+
+		it("does not evict key if it didn't had ttl, and the new ttl is infinite", (done) => {
 			const policy = new ProactiveExpirationPolicy<string, number>();
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
@@ -537,9 +570,9 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntryHeapNode<string, number>);
 			});
 
-			policy.onSet(KEY, ENTRY, { expiresAfter: null! });
+			policy.onSet(KEY, ENTRY, { expiresAfter: undefined });
 			setTimeout(() => {
-				policy.onUpdate(KEY, ENTRY);
+				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_TTL });
 			}, 500);
 
 			let checkAttempts = 0;

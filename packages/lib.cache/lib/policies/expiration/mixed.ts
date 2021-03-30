@@ -69,26 +69,38 @@ class MixedExpirationPolicy<
 
 	public onSet(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		super.onSet(key, entry, options);
-		entry.key = key;
-		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
-			// will be idle only if there are no more items in the cache
-			this.scheduleNextCleanup();
+
+		if (entry[EXPIRES_AT_SYM]) {
+			entry.key = key;
+
+			if (this.isIdle()) {
+				// will be idle only if there are no more items in the cache
+				this.scheduleNextCleanup();
+			}
 		}
 	}
 
 	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		super.onUpdate(key, entry, options);
-		entry.key = key;
-		if (entry[EXPIRES_AT_SYM] && this.isIdle()) {
-			this.scheduleNextCleanup();
+
+		if (entry[EXPIRES_AT_SYM]) {
+			entry.key = key; // maybe it didn't had ttl and the key wasn't assigned
+
+			if (this.isIdle()) {
+				// will be idle only if there are no more items in the cache
+				this.scheduleNextCleanup();
+			}
+
+			return;
+		}
+
+		if (this.config.getCacheSize() === 1) {
+			this.cancelEvictionTimer(); // there is only 1 updated entry which no longer has ttl, stop timer
 		}
 	}
 
 	public onClear(): void {
-		if (this.iterateTimeoutId !== null) {
-			clearTimeout(this.iterateTimeoutId);
-			this.iterateTimeoutId = null;
-		}
+		this.cancelEvictionTimer();
 	}
 
 	public isIdle(): boolean {
@@ -132,6 +144,11 @@ class MixedExpirationPolicy<
 
 	private scheduleNextCleanup(): void {
 		this.iterateTimeoutId = setTimeout(this.cleanup, this.config.checkInterval);
+	}
+
+	private cancelEvictionTimer(): void {
+		clearTimeout(this.iterateTimeoutId!);
+		this.iterateTimeoutId = null;
 	}
 
 	private static fillWithDefaults<K, V>(config: MixedExpirationPolicyConfig<K, V>): Config<K, V> {

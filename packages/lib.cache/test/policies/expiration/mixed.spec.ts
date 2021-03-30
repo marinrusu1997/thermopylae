@@ -271,6 +271,42 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				}
 			}, chrono.secondsToMilliseconds(TTL) + 100);
 		});
+
+		it('should do nothing when options or ttl from options are not given as arguments', (done) => {
+			const ENTRY = { key: '', value: 1 };
+
+			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
+				checkInterval: 1,
+				iterateThreshold: 1,
+				getNextCacheEntry: () => ENTRY,
+				getCacheSize: () => (EVICTED_ENTRIES.size === 0 ? 1 : 0)
+			};
+			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
+
+			const EVICTED_ENTRIES = new Set();
+			policy.setDeleter((_key, entry) => EVICTED_ENTRIES.add(entry));
+
+			policy.onUpdate('key', ENTRY, { expiresAfter: 1 });
+
+			policy.onUpdate('key', ENTRY); // no options
+			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
+			policy.onUpdate('key', ENTRY, { expiresAfter: undefined }); // no ttl specified
+			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
+			policy.onUpdate('key', ENTRY, { expiresAfter: null! }); // no ttl specified
+			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
+
+			setTimeout(() => {
+				try {
+					expect(EVICTED_ENTRIES.size).to.be.eq(1);
+					expect(EVICTED_ENTRIES.has(ENTRY)).to.be.eq(true);
+					expect(policy.isIdle()).to.be.eq(true);
+
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, 1100);
+		});
 	});
 
 	describe(`${MixedExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {

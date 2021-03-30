@@ -38,7 +38,7 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	 * @inheritDoc
 	 */
 	public onUpdate(): void {
-		throw new Error('NOT IMPLEMENTED! FREQUENCY NEEDS TO BE RECOMPUTED!');
+		throw new Error('NOT IMPLEMENTED! FREQUENCY NEEDS TO BE RECOMPUTED!'); // @fixme but why?
 	}
 
 	/**

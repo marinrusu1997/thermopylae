@@ -1,7 +1,7 @@
 import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
 import { EntryValidity } from '../../contracts/replacement-policy';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
-import { EXPIRES_AT_SYM } from '../../constants';
+import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../constants';
 import { HeapGarbageCollector } from '../../data-structures/garbage-collector/heap-gc';
 import { ExpirableCacheEntry } from './abstract';
 
@@ -46,16 +46,24 @@ class ProactiveExpirationPolicy<
 		this.gc.manage(entry);
 	}
 
+	// @fixme test that on update it does nothing when ttl is not specified
 	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
-		const oldExpiration = entry[EXPIRES_AT_SYM];
-		super.onUpdate(key, entry, options); // this will update entry ttl with some validations
+		if (options == null || options.expiresAfter == null) {
+			return undefined;
+		}
 
 		// @fixme test case when item is set, then update with no ttl, then set again !!!
-		if (oldExpiration != null) {
-			if (entry[EXPIRES_AT_SYM] == null) {
+		if (entry[EXPIRES_AT_SYM]) {
+			// entry has expiration and it needs to be updated
+
+			if (options.expiresAfter === INFINITE_TTL) {
 				// item was added with ttl, but now it's ttl became INFINITE
 				return this.onDelete(key, entry); // we do not track it anymore
 			}
+
+			// update expiration
+			const oldExpiration = entry[EXPIRES_AT_SYM]!; // keep it
+			ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter, options.expiresFrom); // updates entry expiration `in-place`
 
 			if (oldExpiration === entry[EXPIRES_AT_SYM]) {
 				// item was set with a great ttl, time passes, then it's ttl decreased, but summed up, we have same expiration
@@ -63,12 +71,14 @@ class ProactiveExpirationPolicy<
 			}
 
 			// if it's managed by GC, it needs to have oldExpiration
-			return this.gc.update(oldExpiration!, entry); // notice that we updated `expiresAt` above
+			return this.gc.update(oldExpiration, entry); // notice that we updated `expiresAt` above
 		}
 
-		if (options && !ProactiveExpirationPolicy.isNonExpirable(options)) {
+		if (options.expiresAfter !== INFINITE_TTL) {
 			// this is an update of item which had infinite timeout, now we need to track it
+			ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter, options.expiresFrom);
 			entry.key = key;
+
 			return this.gc.manage(entry);
 		}
 

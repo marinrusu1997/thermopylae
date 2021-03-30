@@ -60,20 +60,29 @@ class SlidingExpirationPolicy<
 		this.scheduleEviction(key, entry, options);
 	}
 
+	// @fixme test that on update it does nothing when time span is not specified
 	public onUpdate(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+		if (options == null || options.timeSpan == null) {
+			return undefined;
+		}
+
 		// @fixme test case when item is set, then update with no ttl, then set again !!!
-		if (entry[TIME_SPAN_SYM] != null) {
-			if (options == null || SlidingExpirationPolicy.isNonExpirable(options)) {
+		if (entry[TIME_SPAN_SYM]) {
+			if (options.timeSpan === INFINITE_TTL) {
 				return this.onDelete(key, entry); // we do not track it anymore
 			}
 
-			const oldExpiration = entry[EXPIRES_AT_SYM];
+			if (options.timeSpan === entry[TIME_SPAN_SYM]) {
+				return; // do nothing on same timespan, let it be eviction when old time span expires
+			}
+
+			const oldExpiration = entry[EXPIRES_AT_SYM]!;
 			SlidingExpirationPolicy.storeExpirationMetadata(entry, options);
-			return this.gc.update(oldExpiration!, entry);
+			return this.gc.update(oldExpiration, entry);
 		}
 
-		if (options && !SlidingExpirationPolicy.isNonExpirable(options)) {
-			this.scheduleEviction(key, entry, options);
+		if (options.timeSpan !== INFINITE_TTL) {
+			this.scheduleEviction(key, entry, options); // previously had no time span, now it does
 		}
 	}
 

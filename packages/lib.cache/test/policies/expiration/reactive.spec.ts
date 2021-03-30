@@ -43,7 +43,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 					clearTimeout(timeoutExpired);
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL / 2) + 50);
+			}, chrono.secondsToMilliseconds(TTL / 2) + 100);
 
 			const timeoutExpired = setTimeout(() => {
 				try {
@@ -55,7 +55,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 				} catch (e) {
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL) + 50);
+			}, chrono.secondsToMilliseconds(TTL) + 100);
 		}).timeout(2500);
 
 		it('should evict items even when have negative ttl, but increased expires from', (done) => {
@@ -174,7 +174,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onUpdate('a', ENTRY, { expiresAfter: 1 });
 			expect(ENTRY[EXPIRES_AT_SYM]).to.not.be.greaterThan(now + 1 + 1); // 1 sec for epsilon in case `now` will differ
 
-			policy.onUpdate('a', ENTRY);
+			policy.onUpdate('a', ENTRY, { expiresAfter: INFINITE_TTL });
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 
 			policy.onUpdate('a', ENTRY, { expiresAfter: -1, expiresFrom: now + 1 });
@@ -184,6 +184,33 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 			expect(EVICTED_KEYS).to.be.containingAllOf(['a']);
+		});
+
+		it('should do nothing when options or ttl is not given', (done) => {
+			const policy = new ReactiveExpirationPolicy<string, any>();
+			const EVICTED_KEYS = new Array<string>();
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.push(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+			});
+
+			const ENTRY = generateEntry();
+			policy.onUpdate('a', ENTRY, { expiresAfter: 1 });
+			policy.onUpdate('a', ENTRY); // has no effect
+			policy.onUpdate('a', ENTRY, { expiresAfter: undefined }); // has no effect
+			policy.onUpdate('a', ENTRY, { expiresAfter: null! }); // has no effect
+
+			setTimeout(() => {
+				try {
+					expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+					expect(EVICTED_KEYS).to.be.containingAllOf(['a']);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, 1100);
 		});
 	});
 
