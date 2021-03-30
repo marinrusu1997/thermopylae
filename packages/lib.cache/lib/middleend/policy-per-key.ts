@@ -4,6 +4,8 @@ import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
+import { CacheEventEmitter, CacheEventType } from '../contracts/cache-event-emitter';
+import { MiddleEndEventEmitter } from './event-emitter';
 
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
@@ -15,15 +17,22 @@ interface PolicyPerKeyCacheMiddleEndArgumentsBundle {
 	policies?: Array<string>;
 }
 
+// @fixme test event emitting
 class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKeyCacheMiddleEndArgumentsBundle>
 	implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+	/**
+	 * @private
+	 */
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Map<string, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
+	private readonly emitter: CacheEventEmitter<Key, Value>;
+
 	public constructor(backend: CacheBackend<Key, Value>, policies: Map<string, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies;
+		this.emitter = new MiddleEndEventEmitter<Key, Value>();
 
 		for (const policy of this.policies.values()) {
 			policy.setDeleter(this.internalDelete);
@@ -32,6 +41,10 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 
 	public get size(): number {
 		return this.backend.size;
+	}
+
+	public get events(): CacheEventEmitter<Key, Value> {
+		return this.emitter;
 	}
 
 	public get(key: Key): Undefinable<Value> {
@@ -62,20 +75,22 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 				this.policies.get(policyName)!.onSet(key, entry, argsBundle);
 			}
 
+			this.emitter.emit(CacheEventType.INSERT, key, value);
 			return;
 		}
 
 		entry.value = value;
-
 		for (const policyName of entry[POLICIES_SYM]) {
 			this.policies.get(policyName)!.onUpdate(key, entry, argsBundle);
 		}
+
+		this.emitter.emit(CacheEventType.UPDATE, key, value);
 	}
 
 	/**
 	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
 	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
-	 * therefore even if method returns **true**, trying to *get* item will evict him.
+	 * therefore even if method returns **true**, trying to *get* item might evict him.
 	 *
 	 * @param key	Name of the key.
 	 */
@@ -97,18 +112,23 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 			policy.onClear();
 		}
 		this.backend.clear();
+
+		this.emitter.emit(CacheEventType.FLUSH);
 	}
 
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
 	}
 
-	private internalDelete = (key: Key, entry: CacheEntry<Value>) => {
+	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
 		for (const policyName of (entry as CacheEntryEvictedBySpecialisedPolicies<Value>)[POLICIES_SYM]) {
 			this.policies.get(policyName)!.onDelete(key, entry);
 		}
 
-		return this.backend.del(key);
+		this.backend.del(key);
+		this.emitter.emit(CacheEventType.DELETE, key, entry.value);
+
+		return true;
 	};
 }
 

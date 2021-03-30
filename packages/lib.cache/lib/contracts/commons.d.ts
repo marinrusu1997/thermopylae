@@ -1,19 +1,6 @@
 import { UnixTimestamp } from '@thermopylae/core.declarations';
 
 /**
- * Event emitted by {@link CacheFrontend}.
- */
-declare type EventType = 'set' | 'update' | 'del' | 'flush';
-
-/**
- * Event listener for {@link EventType}.
- *
- * @template Key	Type of the key.
- * @template Value	Type of the value.
- */
-declare type EventListener<Key, Value> = (key?: Key, value?: Value) => void;
-
-/**
  * Query number of elements in the cache.
  */
 declare type CacheSizeGetter = () => number;
@@ -71,4 +58,4 @@ declare interface CacheEntryFilter {
 	notOlder: UnixTimestamp;
 }
 
-export { EventType, EventListener, CacheSizeGetter, CacheEntryGetter, CacheEntriesIterator, CacheStats, CacheKey, CacheEntry };
+export { CacheSizeGetter, CacheEntryGetter, CacheEntriesIterator, CacheStats, CacheKey, CacheEntry };

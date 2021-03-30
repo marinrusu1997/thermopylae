@@ -4,16 +4,22 @@ import { NOT_FOUND_VALUE } from '../constants';
 import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
+import { CacheEventEmitter, CacheEventType } from '../contracts/cache-event-emitter';
+import { MiddleEndEventEmitter } from './event-emitter';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
+// @fixme test event emitting
 class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
+	private readonly emitter: CacheEventEmitter<Key, Value>;
+
+	public constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies || [];
+		this.emitter = new MiddleEndEventEmitter<Key, Value>();
 
 		for (const policy of this.policies) {
 			policy.setDeleter(this.internalDelete);
@@ -22,6 +28,10 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 
 	public get size(): number {
 		return this.backend.size;
+	}
+
+	public get events(): CacheEventEmitter<Key, Value> {
+		return this.emitter;
 	}
 
 	public get(key: Key): Undefinable<Value> {
@@ -46,7 +56,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 	/**
 	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
 	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
-	 * therefore even if method returns **true**, trying to *get* item will evict him.
+	 * therefore even if method returns **true**, trying to *get* item might evict him.
 	 *
 	 * @param key	Name of the key.
 	 */
@@ -71,6 +81,8 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 				for (; policyIndex < this.policies.length; policyIndex++) {
 					this.policies[policyIndex].onSet(key, entry, argsBundle);
 				}
+
+				this.emitter.emit(CacheEventType.INSERT, key, value);
 				return;
 			} catch (e) {
 				// rollback
@@ -85,10 +97,11 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		}
 
 		entry.value = value;
-
 		for (const policy of this.policies) {
 			policy.onUpdate(key, entry, argsBundle); // @fixme should not throw
 		}
+
+		this.emitter.emit(CacheEventType.UPDATE, key, value);
 	}
 
 	public del(key: Key): boolean {
@@ -109,14 +122,19 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 			policy.onClear();
 		}
 		this.backend.clear();
+
+		this.emitter.emit(CacheEventType.FLUSH);
 	}
 
-	private internalDelete = (key: Key, entry: CacheEntry<Value>) => {
+	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
 		for (const policy of this.policies) {
 			policy.onDelete(key, entry); // @fixme should not throw
 		}
 
-		return this.backend.del(key);
+		this.backend.del(key);
+		this.emitter.emit(CacheEventType.DELETE, key, entry.value);
+
+		return true;
 	};
 }
 

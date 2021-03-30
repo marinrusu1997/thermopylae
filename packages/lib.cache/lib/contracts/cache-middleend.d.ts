@@ -1,4 +1,5 @@
 import { Undefinable } from '@thermopylae/core.declarations';
+import { CacheEventEmitter } from './cache-event-emitter';
 
 /**
  * Represents an abstraction over cache entries processing level. <br/>
@@ -17,6 +18,11 @@ declare interface CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	 * Number of cache entries.
 	 */
 	readonly size: number;
+
+	/**
+	 * {@link CacheEventEmitter} instance with controls cache events.
+	 */
+	readonly events: CacheEventEmitter<Key, Value>;
 
 	/**
 	 * Get the value associated with `key`.

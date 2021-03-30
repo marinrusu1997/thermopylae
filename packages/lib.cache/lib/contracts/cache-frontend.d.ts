@@ -1,5 +1,5 @@
 import { Label, Undefinable } from '@thermopylae/core.declarations';
-import { CacheStats, EventType, EventListener } from './commons';
+import { CacheStats } from './commons';
 
 /**
  * Represents an abstraction over cache interface. <br/>
@@ -78,14 +78,6 @@ declare interface CacheFrontend<Key, Value, ArgumentsBundle> {
 	 * Cache statistics.
 	 */
 	readonly stats: CacheStats;
-
-	/**
-	 * Add `listener` for `event`.
-	 *
-	 * @param event		Name of the event.
-	 * @param listener	Event listener.
-	 */
-	on(event: EventType, listener: EventListener<Key, Value>): this;
 }
 
 export { CacheFrontend };

@@ -4,7 +4,7 @@ import { object } from '@thermopylae/lib.utils';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheFrontend } from '../contracts/cache-frontend';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
-import { EventListener, EventType, CacheStats } from '../contracts/commons';
+import { CacheStats } from '../contracts/commons';
 
 interface CacheOptions<Key, Value, ArgumentBundle> {
 	useClones: boolean;
@@ -81,10 +81,6 @@ class Cache<Key, Value, ArgumentsBundle> extends EventEmitter implements CacheFr
 	public clear(): void {
 		this.config.middleEnd.clear();
 		this.emit('flush');
-	}
-
-	public on(event: EventType, listener: EventListener<Key, Value>): this {
-		return super.on(event, listener);
 	}
 
 	private static fillWithDefaults<K, V, ArgsBundle>(options?: Partial<CacheOptions<K, V, ArgsBundle>>): CacheOptions<K, V, ArgsBundle> {
