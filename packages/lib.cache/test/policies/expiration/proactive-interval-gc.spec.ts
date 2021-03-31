@@ -4,7 +4,7 @@ import range from 'lodash.range';
 import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/data-structures/garbage-collector/interval-gc';
@@ -202,7 +202,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 				policy.onSet(key, entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 			for (const key of KEYS_WITH_INFINITE_TTL) {
-				policy.onUpdate(key, BACKEND.get(key)! as ExpirableCacheEntry<string, number>, { expiresAfter: INFINITE_TTL });
+				policy.onUpdate(key, BACKEND.get(key)! as ExpirableCacheEntry<string, number>, { expiresAfter: INFINITE_EXPIRATION });
 			}
 
 			setTimeout(() => {

@@ -1,5 +1,5 @@
 import { createException, ErrorCodes } from '../error';
-import { INFINITE_TTL } from '../constants';
+import { INFINITE_EXPIRATION } from '../constants';
 
 type TtlProvider<K> = (key: K) => number;
 
@@ -36,11 +36,11 @@ class TtlRegistry<Key = string> {
 			throw createException(ErrorCodes.MISCONFIGURATION, `Registry should be array or function. Found ${typeof this.registry}`);
 		}
 
-		return INFINITE_TTL;
+		return INFINITE_EXPIRATION;
 	}
 
 	public static empty<K>(): TtlRegistry<K> {
-		return new TtlRegistry<K>(() => INFINITE_TTL);
+		return new TtlRegistry<K>(() => INFINITE_EXPIRATION);
 	}
 }
 

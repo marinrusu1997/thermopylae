@@ -5,7 +5,7 @@ import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
-import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
@@ -53,7 +53,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 				}, timeout);
 			}
 
-			policy.onSet('a', generateEntry('a'), { expiresAfter: INFINITE_TTL });
+			policy.onSet('a', generateEntry('a'), { expiresAfter: INFINITE_EXPIRATION });
 			policy.onSet('b', generateEntry('b'), { expiresAfter: undefined });
 			policy.onSet('c', generateEntry('c'), { expiresAfter: null! });
 
@@ -496,7 +496,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
 
 			setTimeout(() => {
-				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_TTL });
+				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_EXPIRATION });
 			}, 500);
 		});
 
@@ -572,7 +572,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			policy.onSet(KEY, ENTRY, { expiresAfter: undefined });
 			setTimeout(() => {
-				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_TTL });
+				policy.onUpdate(KEY, ENTRY, { expiresAfter: INFINITE_EXPIRATION });
 			}, 500);
 
 			let checkAttempts = 0;

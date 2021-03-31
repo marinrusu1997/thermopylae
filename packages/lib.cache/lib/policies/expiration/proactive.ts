@@ -1,7 +1,7 @@
 import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
 import { EntryValidity } from '../../contracts/replacement-policy';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
-import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../constants';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
 import { HeapGarbageCollector } from '../../data-structures/garbage-collector/heap-gc';
 import { ExpirableCacheEntry } from './abstract';
 
@@ -55,7 +55,7 @@ class ProactiveExpirationPolicy<
 		if (entry[EXPIRES_AT_SYM]) {
 			// entry has expiration and it needs to be updated
 
-			if (options.expiresAfter === INFINITE_TTL) {
+			if (options.expiresAfter === INFINITE_EXPIRATION) {
 				// item was added with ttl, but now it's ttl became INFINITE
 				return this.onDelete(key, entry); // we do not track it anymore
 			}
@@ -73,7 +73,7 @@ class ProactiveExpirationPolicy<
 			return this.gc.update(oldExpiration, entry); // notice that we updated `expiresAt` above
 		}
 
-		if (options.expiresAfter !== INFINITE_TTL) {
+		if (options.expiresAfter !== INFINITE_EXPIRATION) {
 			// this is an update of item which had infinite timeout, now we need to track it
 			ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter, options.expiresFrom);
 			entry.key = key;

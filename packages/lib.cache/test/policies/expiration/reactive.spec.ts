@@ -4,7 +4,7 @@ import { array, chrono } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { ReactiveExpirationPolicy } from '../../../lib/policies/expiration/reactive';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
-import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 
 function generateEntry(): ExpirableCacheEntry<string, any> {
@@ -101,7 +101,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			});
 
 			const ENTRIES = new Map<string, [ExpirableCacheEntry<string, any>, number | null | undefined]>([
-				['a', [generateEntry(), INFINITE_TTL]],
+				['a', [generateEntry(), INFINITE_EXPIRATION]],
 				['b', [generateEntry(), null]],
 				['c', [generateEntry(), undefined]]
 			]);
@@ -174,7 +174,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onUpdate('a', ENTRY, { expiresAfter: 1 });
 			expect(ENTRY[EXPIRES_AT_SYM]).to.not.be.greaterThan(now + 1 + 1); // 1 sec for epsilon in case `now` will differ
 
-			policy.onUpdate('a', ENTRY, { expiresAfter: INFINITE_TTL });
+			policy.onUpdate('a', ENTRY, { expiresAfter: INFINITE_EXPIRATION });
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 
 			policy.onUpdate('a', ENTRY, { expiresAfter: -1, expiresFrom: now + 1 });
