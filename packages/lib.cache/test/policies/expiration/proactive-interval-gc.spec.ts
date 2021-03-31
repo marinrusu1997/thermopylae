@@ -4,102 +4,14 @@ import range from 'lodash.range';
 import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { MixedExpirationPolicy, MixedExpirationPolicyConfig } from '../../../lib/policies/expiration/mixed';
-import { createCacheEntriesCircularIterator } from '../../../lib/utils';
 import { EXPIRES_AT_SYM, INFINITE_TTL } from '../../../lib/constants';
-import { EntryValidity } from '../../../lib/contracts/replacement-policy';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
+import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
+import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/data-structures/garbage-collector/interval-gc';
+import { EsMapBackend } from '../../../lib/backend/es-map';
 
-describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
-	describe(`${MixedExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
-		it('should evict expired entries on hit', (done) => {
-			const CAPACITY = number.randomInt(1, 10);
-			const KEYS = range(0, CAPACITY).map(String);
-			const TTL = [1, 2];
-			const KEYS_BY_TTL = new Map<string, number>(KEYS.map((key) => [key, array.randomElement(TTL)]));
-			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>(
-				KEYS.map((key) => {
-					return [
-						key,
-						{
-							key: '', // overwritten onSet
-							value: Number(key)
-						}
-					];
-				})
-			);
-
-			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
-				checkInterval: 2,
-				iterateThreshold: number.randomInt(1, CAPACITY),
-				getNextCacheEntry: createCacheEntriesCircularIterator(ENTRIES),
-				getCacheSize: () => ENTRIES.size
-			};
-			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
-
-			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				ENTRIES.delete(evictedKey);
-				EVICTED_KEYS.push(evictedKey);
-
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
-				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
-			});
-
-			function logTestContext() {
-				const message = [
-					'Test Context:',
-					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
-					`${'KEYS_BY_TTL'.magenta}\t: ${JSON.stringify(KEYS_BY_TTL)}`,
-					`${'CONFIG.iterateThreshold'.magenta}: ${CONFIG.iterateThreshold}`,
-					`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
-				];
-
-				UnitTestLogger.info(message.join('\n'));
-			}
-
-			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, { expiresAfter: KEYS_BY_TTL.get(key) });
-			}
-
-			setTimeout(() => {
-				try {
-					for (const [key, ttl] of KEYS_BY_TTL) {
-						if (ttl === 1) {
-							expect(policy.onGet(key, ENTRIES.get(key)!)).to.be.eq(EntryValidity.NOT_VALID);
-							expect(EVICTED_KEYS).to.be.containing(key);
-						}
-					}
-				} catch (e) {
-					clearTimeout(twoSecTtlTimeout);
-					logTestContext();
-					done(e);
-				}
-			}, 1100);
-
-			const twoSecTtlTimeout = setTimeout(() => {
-				try {
-					const keysWith1SecTtl = [...KEYS_BY_TTL].filter(([, ttl]) => ttl === 1).map(([key]) => key);
-					const keysWith2SecTtl = [...KEYS_BY_TTL].filter(([, ttl]) => ttl === 2).map(([key]) => key);
-
-					const evictedKeysNoByTimer = Math.min(keysWith2SecTtl.length, CONFIG.iterateThreshold!);
-					expect(EVICTED_KEYS).to.be.ofSize(keysWith1SecTtl.length + evictedKeysNoByTimer);
-
-					if (keysWith2SecTtl.length) {
-						expect(EVICTED_KEYS).to.be.containingAnyOf(keysWith2SecTtl);
-					}
-
-					expect(policy.isIdle()).to.be.eq(ENTRIES.size === 0);
-					done();
-				} catch (e) {
-					logTestContext();
-					done(e);
-				}
-			}, 2100);
-		}).timeout(2200);
-	});
-
-	describe(`${MixedExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
+describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarbageCollector.name.magenta} spec`, () => {
+	describe(`${ProactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
 		it('should iterate over entries with the given iteration step and evict all expired entries', (done) => {
 			const CAPACITY = number.randomInt(1, 20);
 			const KEYS = range(0, CAPACITY).map(String);
@@ -114,29 +26,21 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				TWO_SECOND: KEY_TO_TTL_ENTRIES.filter((entry) => entry[1] === 2).map((entry) => entry[0])
 			};
 
-			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>(
-				[...KEY_TO_TTL.keys()].map((key) => {
-					return [
-						key,
-						{
-							key: '', // overwritten onSet
-							value: Number(key)
-						}
-					];
-				})
-			);
+			const BACKEND = new EsMapBackend<string, number>();
+			for (const key of KEY_TO_TTL.keys()) {
+				BACKEND.set(key, Number(key));
+			}
 
-			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
+			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
+				backend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: KEYS_BY_TTL.ONE_SECOND.length || KEYS_BY_TTL.TWO_SECOND.length,
-				getNextCacheEntry: createCacheEntriesCircularIterator(ENTRIES),
-				getCacheSize: () => ENTRIES.size
+				iterateThreshold: KEYS_BY_TTL.ONE_SECOND.length || KEYS_BY_TTL.TWO_SECOND.length
 			};
-			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
+			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				ENTRIES.delete(evictedKey);
+				BACKEND.del(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
@@ -156,8 +60,8 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				UnitTestLogger.info(message.join('\n'));
 			}
 
-			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, { expiresAfter: KEY_TO_TTL.get(key) });
+			for (const [key, entry] of BACKEND) {
+				policy.onSet(key, entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 
 			setTimeout(() => {
@@ -192,39 +96,89 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				}
 			}, 2100);
 		}).timeout(2200);
+
+		it('should restart GC after all entries were evicted', (done) => {
+			const BACKEND = new EsMapBackend<string, number>();
+			BACKEND.set('key', 1);
+
+			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
+				backend: BACKEND,
+				checkInterval: 1,
+				iterateThreshold: 1
+			};
+			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
+
+			const EVICTED_KEYS = new Set();
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_KEYS.add(evictedKey);
+				BACKEND.del(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+			});
+
+			policy.onSet('key', BACKEND.get('key')! as ExpirableCacheEntry<string, number>, { expiresAfter: 1 });
+			setTimeout(() => {
+				try {
+					expect(EVICTED_KEYS.has('key')).to.be.eq(true);
+					expect(EVICTED_KEYS.size).to.be.eq(1);
+					expect(BACKEND.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
+
+					const entry = BACKEND.set('second-key', 2) as ExpirableCacheEntry<string, number>;
+					policy.onSet('second-key', entry, { expiresAfter: 1 });
+					expect(policy.isIdle()).to.be.eq(false);
+				} catch (e) {
+					clearTimeout(timeoutAfterGcRestart);
+					done(e);
+				}
+			}, 1100);
+
+			const timeoutAfterGcRestart = setTimeout(() => {
+				try {
+					expect(EVICTED_KEYS.has('second-key')).to.be.eq(true);
+					expect(EVICTED_KEYS.size).to.be.eq(2);
+					expect(BACKEND.size).to.be.eq(0);
+					expect(policy.isIdle()).to.be.eq(true);
+
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, 2200);
+		}).timeout(2500);
 	});
 
-	describe(`${MixedExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
+	describe(`${ProactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
 		it('should update entry ttl and evict expired entries', (done) => {
 			const CAPACITY = number.randomInt(1, 10);
 			const KEYS = range(0, CAPACITY).map(String);
 			const TTL = 1;
 			const KEYS_WITH_INFINITE_TTL = array.filledWith(number.randomInt(1, CAPACITY), () => array.randomElement(KEYS), { noDuplicates: true });
 			const KEY_TO_TTL = new Map<string, number>(KEYS.map((key) => [key, TTL]));
-			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>();
+			const BACKEND = new EsMapBackend<string, number>();
 
 			// insert keys with ttl first, so they might be evicted
 			for (const key of KEYS) {
 				if (!KEYS_WITH_INFINITE_TTL.includes(key)) {
-					ENTRIES.set(key, { key: '', value: Number(key) });
+					BACKEND.set(key, Number(key));
 				}
 			}
 			// insert keys without ttl second
 			for (const key of KEYS_WITH_INFINITE_TTL) {
-				ENTRIES.set(key, { key: '', value: Number(key) });
+				BACKEND.set(key, Number(key));
 			}
 
-			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
+			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
+				backend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: number.randomInt(1, CAPACITY),
-				getNextCacheEntry: createCacheEntriesCircularIterator(ENTRIES),
-				getCacheSize: () => ENTRIES.size
+				iterateThreshold: number.randomInt(1, CAPACITY)
 			};
-			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
+			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				ENTRIES.delete(evictedKey);
+				BACKEND.del(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
@@ -244,11 +198,11 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 				UnitTestLogger.info(message.join('\n'));
 			}
 
-			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry, { expiresAfter: KEY_TO_TTL.get(key) });
+			for (const [key, entry] of BACKEND) {
+				policy.onSet(key, entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 			for (const key of KEYS_WITH_INFINITE_TTL) {
-				policy.onUpdate(key, ENTRIES.get(key)!, { expiresAfter: INFINITE_TTL });
+				policy.onUpdate(key, BACKEND.get(key)! as ExpirableCacheEntry<string, number>, { expiresAfter: INFINITE_TTL });
 			}
 
 			setTimeout(() => {
@@ -262,7 +216,7 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 						expect(EVICTED_KEYS).to.be.containingAnyOf(expectedEvictedKeys); // at least some of them must be evicted
 					}
 
-					expect(policy.isIdle()).to.be.eq(ENTRIES.size === 0);
+					expect(policy.isIdle()).to.be.eq(BACKEND.size === 0);
 
 					done();
 				} catch (e) {
@@ -273,18 +227,24 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('should do nothing when options or ttl from options are not given as arguments', (done) => {
-			const ENTRY = { key: '', value: 1 };
+			const BACKEND = new EsMapBackend<string, number>();
+			const ENTRY = BACKEND.set('key', 1) as ExpirableCacheEntry<string, number>;
 
-			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
+			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
+				backend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: 1,
-				getNextCacheEntry: () => ENTRY,
-				getCacheSize: () => (EVICTED_ENTRIES.size === 0 ? 1 : 0)
+				iterateThreshold: 1
 			};
-			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
+			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_ENTRIES = new Set();
-			policy.setDeleter((_key, entry) => EVICTED_ENTRIES.add(entry));
+			policy.setDeleter((evictedKey, evictedEntry) => {
+				EVICTED_ENTRIES.add(evictedEntry);
+				BACKEND.del(evictedKey);
+
+				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+			});
 
 			policy.onUpdate('key', ENTRY, { expiresAfter: 1 });
 
@@ -309,28 +269,28 @@ describe(`${colors.magenta(MixedExpirationPolicy.name)} spec`, () => {
 		});
 	});
 
-	describe(`${MixedExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
+	describe(`${ProactiveExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('should stop timer when entries are cleared', (done) => {
-			const ENTRIES = new Map<string, ExpirableCacheEntry<string, number>>([['a', { key: '', value: 1 }]]);
+			const BACKEND = new EsMapBackend<string, number>();
+			const ENTRY = BACKEND.set('a', 1) as ExpirableCacheEntry<string, number>;
 
-			const CONFIG: MixedExpirationPolicyConfig<string, number> = {
+			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
+				backend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: 1,
-				getNextCacheEntry: createCacheEntriesCircularIterator(ENTRIES),
-				getCacheSize: () => ENTRIES.size
+				iterateThreshold: 1
 			};
-			const policy = new MixedExpirationPolicy<string, number>(CONFIG);
+			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				ENTRIES.delete(evictedKey);
+				BACKEND.del(evictedKey);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', ENTRIES.get('a')!, { expiresAfter: 1 });
+			policy.onSet('a', ENTRY, { expiresAfter: 1 });
 
 			try {
 				expect(policy.isIdle()).to.be.eq(false);

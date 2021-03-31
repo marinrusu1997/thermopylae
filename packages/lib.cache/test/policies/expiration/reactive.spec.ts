@@ -37,25 +37,25 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			setTimeout(() => {
 				try {
-					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
+					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.VALID, `Expected ${KEY} to be valid.`);
 					expect(EVICTED_KEYS).to.be.ofSize(0);
 				} catch (e) {
 					clearTimeout(timeoutExpired);
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL / 2) + 100);
+			}, chrono.secondsToMilliseconds(TTL / 2) + 120);
 
 			const timeoutExpired = setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
-					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID, `Expected ${KEY} to not be valid.`);
 					expect(EVICTED_KEYS).to.be.ofSize(1); // entry was evicted
 					expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
 					done();
 				} catch (e) {
 					done(e);
 				}
-			}, chrono.secondsToMilliseconds(TTL) + 100);
+			}, chrono.secondsToMilliseconds(TTL) + 120);
 		}).timeout(2500);
 
 		it('should evict items even when have negative ttl, but increased expires from', (done) => {

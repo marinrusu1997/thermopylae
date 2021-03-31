@@ -46,7 +46,6 @@ class ProactiveExpirationPolicy<
 		this.gc.manage(entry);
 	}
 
-	// @fixme test that on update it does nothing when ttl is not specified
 	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.expiresAfter == null) {
 			return undefined;
