@@ -10,8 +10,11 @@ interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
 	dependents?: Array<Key>;
 }
 
-class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryDependenciesEvictionPolicyArgumentsBundle<Key>>
-	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+class EntryDependenciesEvictionPolicy<
+	Key,
+	Value,
+	ArgumentsBundle extends EntryDependenciesEvictionPolicyArgumentsBundle<Key> = EntryDependenciesEvictionPolicyArgumentsBundle<Key>
+> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * @private
 	 */
@@ -33,13 +36,12 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 		return EntryValidity.VALID;
 	}
 
-	// @fixme text with various types of graphs
-	public onSet(_key: Key, entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(key: Key, entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
+		entry.key = key; // dependencies might be added later in the form of dependents
+
 		if (options == null) {
 			return;
 		}
-
-		// @fixme test with keys that don't exist yet in graph, and also with duplicates, reinserts after exceptions
 
 		if (options.dependencies) {
 			for (const dependencyKey of options.dependencies) {
@@ -62,23 +64,21 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 		return undefined;
 	}
 
-	// @fixme test on complex example from notebook
-	// @fixme test with nodes that do not form dependencies with another nodes
-	// @fixme test with other policies (lru + sliding for example)
-	// @fixme test metadata detach
 	public onDelete(_key: Key, entry: CacheEntryWithDependencies<Key, Value>): void {
-		if (this.visitedEntriesOnDeletion.has(entry)) {
-			return; // prevent cycles
-		}
 		this.visitedEntriesOnDeletion.add(entry);
 
 		const dependencies = this.dependencyGraph.directDependenciesOf(entry);
-		for (const dependency of dependencies) {
-			this.deleteFromCache(dependency.key, dependency); // cascade delete
-			this.dependencyGraph.removeNode(dependency);
+
+		let i = dependencies.length;
+		while (i-- && dependencies.length) {
+			if (this.visitedEntriesOnDeletion.has(dependencies[i])) {
+				continue; // prevent cycles
+			}
+			this.deleteFromCache(dependencies[i].key, dependencies[i]); // cascade delete
 		}
 
 		this.visitedEntriesOnDeletion.delete(entry);
+		this.dependencyGraph.removeNode(entry); // remove from graph & detach metadata
 	}
 
 	public onClear(): void {
@@ -99,4 +99,4 @@ class EntryDependenciesEvictionPolicy<Key, Value, ArgumentsBundle extends EntryD
 	}
 }
 
-export { EntryDependenciesEvictionPolicy, EntryDependenciesEvictionPolicyArgumentsBundle };
+export { EntryDependenciesEvictionPolicy, EntryDependenciesEvictionPolicyArgumentsBundle, CacheEntryWithDependencies };

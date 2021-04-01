@@ -5,6 +5,9 @@ import { expect } from '@thermopylae/lib.unit-test';
 import { ExpirableSlidingCacheEntry, SlidingProactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { GarbageCollector } from '../../../lib/data-structures/garbage-collector/interface';
+import { HeapGarbageCollector } from '../../../lib/data-structures/garbage-collector/heap-gc';
+import { BucketGarbageCollector } from '../../../lib/data-structures/garbage-collector/bucket-gc';
 
 function generateEntry(): ExpirableSlidingCacheEntry<string, any> {
 	return {
@@ -13,6 +16,12 @@ function generateEntry(): ExpirableSlidingCacheEntry<string, any> {
 	};
 }
 generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
+
+function gcFactory(): GarbageCollector<any> {
+	return Math.random() >= 0.5 ? new HeapGarbageCollector() : new BucketGarbageCollector();
+}
+
+// @fixme create tests with interval gc
 
 describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => {
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
@@ -24,7 +33,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 				['4', generateEntry()]
 			]);
 
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((key) => {
 				EVICTED_KEYS.add(key);
@@ -62,7 +71,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 		});
 
 		it('refreshes expiration with the time span on each entry hit', (done) => {
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				const slidingEntry = evictedEntry as ExpirableSlidingCacheEntry<string, any>;
@@ -120,7 +129,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			const ENTRY = generateEntry();
 			const EVICTED_KEYS = new Set<string>();
 
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
 
@@ -171,7 +180,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			const ENTRY = generateEntry();
 			const EVICTED_KEYS = new Set<string>();
 
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
 
@@ -216,7 +225,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			const ENTRY = generateEntry();
 			const EVICTED_KEYS = new Set<string>();
 
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			policy.setDeleter((evictedKey) => {
 				EVICTED_KEYS.add(evictedKey);
 			});
@@ -266,7 +275,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 				KEYS_PER_INSERT_TIME_POINT.set(i, keysPerTimePoint);
 			}
 
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
@@ -334,7 +343,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
 		it('does not delete entry which does not have expiration', () => {
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey) => {
 				EVICTED_KEYS.add(evictedKey);
@@ -347,14 +356,14 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('clears gc even if there are no entries', () => {
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			expect(policy.idle).to.be.eq(true);
 			policy.onClear();
 			expect(policy.idle).to.be.eq(true);
 		});
 
 		it('clears internal structures and stops gc', () => {
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 
 			policy.onSet('key1', generateEntry(), { timeSpan: 1 });
 			policy.onSet('key2', generateEntry(), { timeSpan: 2 });
@@ -370,7 +379,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 		});
 
 		it('restarts gc after clear', (done) => {
-			const policy = new SlidingProactiveExpirationPolicy<string, any>();
+			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey) => {
 				EVICTED_KEYS.add(evictedKey);

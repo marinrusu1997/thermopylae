@@ -5,9 +5,8 @@ import { HashMapBucketList } from '../bucket-list/hash-map-bucket-list';
 import { EXPIRES_AT_SYM } from '../../constants';
 import { EvictionTimer } from './eviction-timer';
 
-// @fixme reference: https://groups.google.com/g/memcached/c/MdNPv0oxhO8
+// reference: https://groups.google.com/g/memcached/c/MdNPv0oxhO8
 
-// @fixme no tests (test with Sliding)
 class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollector<T> {
 	private static readonly EVICTION_TIMEOUT: Seconds = 1;
 

@@ -2,14 +2,14 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 
-class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
-	private readonly store: Map<Key, CacheEntry<Value>>;
+class EsMapBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements CacheBackend<Key, Value> {
+	private readonly store: Map<Key, Entry>;
 
 	constructor() {
-		this.store = new Map<Key, CacheEntry<Value>>();
+		this.store = new Map<Key, Entry>();
 	}
 
-	public get(key: Key): Undefinable<CacheEntry<Value>> {
+	public get(key: Key): Undefinable<Entry> {
 		return this.store.get(key);
 	}
 
@@ -17,8 +17,8 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return this.store.has(key);
 	}
 
-	public set(key: Key, value: Value): CacheEntry<Value> {
-		const entry: CacheEntry<Value> = { value };
+	public set(key: Key, value: Value): Entry {
+		const entry = { value } as Entry;
 		this.store.set(key, entry);
 		return entry;
 	}
@@ -35,7 +35,7 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return this.store.size;
 	}
 
-	public [Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]> {
+	public [Symbol.iterator](): IterableIterator<[Key, Entry]> {
 		return this.store[Symbol.iterator]();
 	}
 
@@ -43,7 +43,7 @@ class EsMapBackend<Key, Value> implements CacheBackend<Key, Value> {
 		return this.store.keys();
 	}
 
-	public values(): IterableIterator<CacheEntry<Value>> {
+	public values(): IterableIterator<Entry> {
 		return this.store.values();
 	}
 }
