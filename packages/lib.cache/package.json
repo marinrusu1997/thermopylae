@@ -17,7 +17,7 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
-        "test": "mocha --expose-gc",
+        "test": "gulp test",
         "report": "gulp report",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",

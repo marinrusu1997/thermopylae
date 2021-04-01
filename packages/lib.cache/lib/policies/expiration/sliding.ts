@@ -48,7 +48,6 @@ class SlidingProactiveExpirationPolicy<
 	}
 
 	public onGet(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
-		// @fixme test case when item was untracked after onUpdate, and then accessed onGet
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}
@@ -68,13 +67,11 @@ class SlidingProactiveExpirationPolicy<
 		this.scheduleEviction(key, entry, options);
 	}
 
-	// @fixme test that on update it does nothing when time span is not specified
 	public onUpdate(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.timeSpan == null) {
 			return undefined;
 		}
 
-		// @fixme test case when item is set, then update with no ttl, then set again !!!
 		if (entry[TIME_SPAN_SYM]) {
 			if (options.timeSpan === INFINITE_EXPIRATION) {
 				return this.onDelete(key, entry); // we do not track it anymore
@@ -95,8 +92,6 @@ class SlidingProactiveExpirationPolicy<
 	}
 
 	public onDelete(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): void {
-		// @fixme test that does not remove entry without expiration
-		// @fixme detach metadata
 		this.gc.leave(entry);
 		super.onDelete(key, entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
