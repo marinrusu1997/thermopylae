@@ -1,7 +1,7 @@
 import sizeof from 'object-sizeof';
 import { Threshold } from '@thermopylae/core.declarations';
 import { BaseLFUEvictionPolicy, EvictableKeyNode } from './lfu-base';
-import { CacheSizeGetter } from '../../contracts/commons';
+import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
@@ -24,12 +24,12 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	private cacheAge: number;
 
 	/**
-	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
-	 * @param cacheSizeGetter	Getter for cache size.
-	 * @param sizeOfInBytes		Function which computes sizeof cache entry in bytes.
+	 * @param cacheMaxCapacity				{@link Cache} maximum capacity.
+	 * @param cacheBackendElementsCount		Cache backend elements count.
+	 * @param sizeOfInBytes					Function which computes sizeof cache entry in bytes.
 	 */
-	public constructor(cacheMaxCapacity: Threshold, cacheSizeGetter: CacheSizeGetter, sizeOfInBytes?: SizeOf<Value>) {
-		super(cacheMaxCapacity, cacheSizeGetter);
+	public constructor(cacheMaxCapacity: Threshold, cacheBackendElementsCount: CacheBackendElementsCount, sizeOfInBytes?: SizeOf<Value>) {
+		super(cacheMaxCapacity, cacheBackendElementsCount);
 		this.sizeOf = sizeOfInBytes || sizeof;
 		this.cacheAge = 0;
 	}

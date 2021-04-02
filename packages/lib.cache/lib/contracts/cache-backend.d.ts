@@ -1,18 +1,20 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheEntry } from './commons';
 
+interface CacheBackendElementsCount {
+	/**
+	 * Number of stored entries.
+	 */
+	readonly size: number;
+}
+
 /**
  * Cache backend iterable protocol.
  *
  * @template Key	Type of the key.
  * @template Value	Type of the value.
  */
-interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Value>]> {
-	/**
-	 * Iterate over stored entries.
-	 */
-	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]>;
-
+interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Value>]>, CacheBackendElementsCount {
 	/**
 	 * Returns an iterable of stored keys.
 	 */
@@ -22,6 +24,34 @@ interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Val
 	 * Returns an iterable of stored values.
 	 */
 	values(): IterableIterator<CacheEntry<Value>>;
+
+	/**
+	 * Iterate over stored entries.
+	 */
+	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]>;
+}
+
+/**
+ * Represents an abstraction over the cache storage. <br/>
+ * Clients might perform only read operations on storage.
+ *
+ * @template Key	Type of the key.
+ * @template Value	Type of the value.
+ */
+declare interface ReadonlyCacheBackend<Key, Value> {
+	/**
+	 * Get the {@link CacheEntry} associated with `key`.
+	 *
+	 * @param key	Name of the key.
+	 */
+	get(key: Key): Undefinable<CacheEntry<Value>>;
+
+	/**
+	 * Check if `key` is present in the cache.
+	 *
+	 * @param key	Name of the key.
+	 */
+	has(key: Key): boolean;
 }
 
 /**
@@ -30,14 +60,7 @@ interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Val
  * @template Key	Type of the key.
  * @template Value	Type of the value.
  */
-declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Value> {
-	/**
-	 * Get the {@link CacheEntry} associated with `key`.
-	 *
-	 * @param key	Name of the key.
-	 */
-	get(key: Key): Undefinable<CacheEntry<Value>>;
-
+declare interface CacheBackend<Key, Value> extends ReadonlyCacheBackend<Key, Value>, IterableCacheBackend<Key, Value> {
 	/**
 	 * Store `key` with `value`.
 	 *
@@ -48,13 +71,6 @@ declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Val
 	 *     		Upper level abstractions can attach properties to this object.
 	 */
 	set(key: Key, value: Value): CacheEntry<Value>;
-
-	/**
-	 * Check if `key` is present in the cache.
-	 *
-	 * @param key	Name of the key.
-	 */
-	has(key: Key): boolean;
 
 	/**
 	 * Delete `key`.
@@ -69,11 +85,6 @@ declare interface CacheBackend<Key, Value> extends IterableCacheBackend<Key, Val
 	 * Remove all entries from storage.
 	 */
 	clear(): void;
-
-	/**
-	 * Number of stored entries.
-	 */
-	readonly size: number;
 }
 
-export { CacheBackend, IterableCacheBackend };
+export { CacheBackend, ReadonlyCacheBackend, IterableCacheBackend, CacheBackendElementsCount };

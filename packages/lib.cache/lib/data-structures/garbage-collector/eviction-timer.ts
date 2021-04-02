@@ -6,7 +6,6 @@ interface EvictionInterval {
 	willTickOn: UnixTimestamp;
 }
 
-// @fixme no tests
 class EvictionTimer {
 	private readonly evictionInterval: EvictionInterval;
 

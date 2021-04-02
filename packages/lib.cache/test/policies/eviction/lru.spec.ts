@@ -13,9 +13,12 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 		try {
 			let totalEntriesNo = 0;
-			const cacheSizeGetter = () => totalEntriesNo;
 
-			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
+			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, {
+				get size() {
+					return totalEntriesNo;
+				}
+			});
 
 			// intercept keys that policy wants to delete
 			const keysEvictedByPolicy = new Array<string>();
@@ -93,9 +96,12 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 
 		try {
 			let totalEntriesNo = 0;
-			const cacheSizeGetter = () => totalEntriesNo;
 
-			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
+			const policy = new LRUEvictionPolicy<string, number, any>(CAPACITY, {
+				get size() {
+					return totalEntriesNo;
+				}
+			});
 			const entries = new Map<string, EvictableKeyNode<string, number>>();
 
 			// intercept keys that policy wants to delete

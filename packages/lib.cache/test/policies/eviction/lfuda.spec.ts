@@ -42,9 +42,12 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 		try {
 			let totalEntriesNo = 0;
-			const cacheSizeGetter = () => totalEntriesNo;
 
-			const policy = new LFUDAEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
+			const policy = new LFUDAEvictionPolicy<string, number, any>(CAPACITY, {
+				get size() {
+					return totalEntriesNo;
+				}
+			});
 			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);

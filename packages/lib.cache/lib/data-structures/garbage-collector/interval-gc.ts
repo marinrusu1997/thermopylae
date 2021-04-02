@@ -2,7 +2,7 @@ import { Nullable, Seconds, Threshold, UnixTimestamp } from '@thermopylae/core.d
 import { chrono } from '@thermopylae/lib.utils';
 import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
 import { EXPIRES_AT_SYM } from '../../constants';
-import { CacheBackend, IterableCacheBackend } from '../../contracts/cache-backend';
+import { IterableCacheBackend } from '../../contracts/cache-backend';
 import { CacheEntry } from '../../contracts/commons';
 
 /**
@@ -13,7 +13,7 @@ import { CacheEntry } from '../../contracts/commons';
 type CacheEntriesCircularIterator<T> = () => T | null;
 
 interface IntervalGarbageCollectorOptions<Key, Value> {
-	backend: CacheBackend<Key, Value>;
+	iterableBackend: IterableCacheBackend<Key, Value>;
 
 	/**
 	 * Interval for running GC that checks for expired entries. <br/>
@@ -39,7 +39,7 @@ class IntervalGarbageCollector<Key, Value, T extends ExpirableEntry> implements 
 
 	public constructor(options: IntervalGarbageCollectorOptions<Key, Value>) {
 		this.options = IntervalGarbageCollector.fillWithDefaults(options);
-		this.getNextCacheEntry = IntervalGarbageCollector.createCacheEntriesCircularIterator(this.options.backend);
+		this.getNextCacheEntry = IntervalGarbageCollector.createCacheEntriesCircularIterator(this.options.iterableBackend);
 		this.iterateTimeoutId = null;
 	}
 
@@ -48,7 +48,7 @@ class IntervalGarbageCollector<Key, Value, T extends ExpirableEntry> implements 
 	}
 
 	public get size(): number {
-		return this.options.backend.size;
+		return this.options.iterableBackend.size;
 	}
 
 	public manage(_entry: T): void {
@@ -102,9 +102,9 @@ class IntervalGarbageCollector<Key, Value, T extends ExpirableEntry> implements 
 			break; // early exit from loop, because iterate threshold has been met
 
 			// eslint-disable-next-line eqeqeq
-		} while (currentEntry != startingEntry && this.options.backend.size); // while we iterate we might evict all entries, so check for cache emptiness
+		} while (currentEntry != startingEntry && this.options.iterableBackend.size); // while we iterate we might evict all entries, so check for cache emptiness
 
-		if (this.options.backend.size) {
+		if (this.options.iterableBackend.size) {
 			// if we are there it means we have some unprocessed entries, so schedule next cleanup
 			this.iterateTimeoutId = setTimeout(this.evictExpiredEntries, this.options.checkInterval);
 			return;

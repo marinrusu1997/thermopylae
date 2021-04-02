@@ -34,9 +34,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					const CAPACITY = number.randomInt(1, 11);
 					try {
 						let totalEntriesNo = 0;
-						const cacheSizeGetter = () => totalEntriesNo;
 
-						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, cacheSizeGetter);
+						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, {
+							get size() {
+								return totalEntriesNo;
+							}
+						});
 						const candidates = new Map<string, number>();
 						for (let i = 0; i < CAPACITY; i++) {
 							candidates.set(String(i), i);
@@ -94,9 +97,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 					try {
 						let totalEntriesNo = 0;
-						const cacheSizeGetter = () => totalEntriesNo;
 
-						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, cacheSizeGetter);
+						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, {
+							get size() {
+								return totalEntriesNo;
+							}
+						});
 						const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
 						policy.setDeleter((evictedKey, evictedEntry) => {
 							EVICTED_KEYS.push(evictedKey);
@@ -194,9 +200,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 					try {
 						let totalEntriesNo = 0;
-						const cacheSizeGetter = () => totalEntriesNo;
 
-						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, cacheSizeGetter);
+						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, {
+							get size() {
+								return totalEntriesNo;
+							}
+						});
 						policy.setDeleter((evictedKey, evictedEntry) => {
 							EVICTED_KEYS.push(evictedKey);
 
@@ -260,10 +269,13 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 					try {
 						let totalEntriesNo = 0;
-						const cacheSizeGetter = () => totalEntriesNo;
 
 						// setup policy
-						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, cacheSizeGetter);
+						const policy = lfuFactory<string, number>(LFU_IMPL, CAPACITY, {
+							get size() {
+								return totalEntriesNo;
+							}
+						});
 						const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
 						policy.setDeleter((evictedKey, evictedEntry) => {
 							EVICTED_KEYS.push(evictedKey);
@@ -332,9 +344,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					const HEAP_USED_DELTA = 150_000;
 
 					let totalEntriesNo = 0;
-					const cacheSizeGetter = () => totalEntriesNo;
 
-					const lfu = lfuFactory<string, number>(LFU_IMPL, CAPACITY, cacheSizeGetter);
+					const lfu = lfuFactory<string, number>(LFU_IMPL, CAPACITY, {
+						get size() {
+							return totalEntriesNo;
+						}
+					});
 					const lfuEntries = new Map<string, EvictableKeyNode<string, number>>(); // simulates cache
 
 					gc();

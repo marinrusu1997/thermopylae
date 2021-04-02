@@ -1,22 +1,6 @@
 import { UnixTimestamp } from '@thermopylae/core.declarations';
 
 /**
- * Query number of elements in the cache.
- */
-declare type CacheSizeGetter = () => number;
-
-/**
- * Get entry associated with *key*.
- */
-declare type CacheEntryGetter<Key, Value> = (key: Key) => CacheEntry<Value>;
-
-/**
- * Iterator over {@link CacheBackend} entries. <br/>
- * On each call, it should return next entry. Where no entries remained, it should return *null*.
- */
-declare type CacheEntriesIterator<Value> = () => CacheEntry<Value> | null;
-
-/**
  * Describes collected cache statistics.
  */
 declare interface CacheStats {
@@ -58,4 +42,4 @@ declare interface CacheEntryFilter {
 	notOlder: UnixTimestamp;
 }
 
-export { CacheSizeGetter, CacheEntryGetter, CacheEntriesIterator, CacheStats, CacheKey, CacheEntry };
+export { CacheStats, CacheKey, CacheEntry };

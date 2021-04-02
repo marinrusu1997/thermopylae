@@ -1,8 +1,9 @@
 import { ErrorCodes, Threshold } from '@thermopylae/core.declarations';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { createException } from '../../error';
 import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket-list/ordered-bucket-list';
+import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 const IGNORED_BUCKET_ID = -1;
 
@@ -19,21 +20,21 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 
 	private readonly cacheMaxCapacity: number;
 
-	private readonly cacheSizeGetter: CacheSizeGetter;
+	private readonly cacheBackendElementsCount: CacheBackendElementsCount;
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
 	/**
-	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
-	 * @param cacheSizeGetter	Getter for cache size.
+	 * @param cacheMaxCapacity				{@link Cache} maximum capacity.
+	 * @param cacheBackendElementsCount		Cache backend elements count.
 	 */
-	public constructor(cacheMaxCapacity: Threshold, cacheSizeGetter: CacheSizeGetter) {
+	public constructor(cacheMaxCapacity: Threshold, cacheBackendElementsCount: CacheBackendElementsCount) {
 		if (cacheMaxCapacity <= 0) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
 		this.cacheMaxCapacity = cacheMaxCapacity;
-		this.cacheSizeGetter = cacheSizeGetter;
+		this.cacheBackendElementsCount = cacheBackendElementsCount;
 		this.frequencies = new OrderedBucketList<EvictableKeyNode<Key, Value>>();
 	}
 
@@ -60,7 +61,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
 		// Check for backend overflow
-		if (this.cacheSizeGetter() > this.cacheMaxCapacity) {
+		if (this.cacheBackendElementsCount.size > this.cacheMaxCapacity) {
 			this.evict();
 		}
 

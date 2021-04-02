@@ -37,9 +37,12 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 
 		try {
 			let totalEntriesNo = 0;
-			const cacheSizeGetter = () => totalEntriesNo;
 
-			const policy = new GDSFEvictionPolicy<string, number, any>(CAPACITY, cacheSizeGetter);
+			const policy = new GDSFEvictionPolicy<string, number, any>(CAPACITY, {
+				get size() {
+					return totalEntriesNo;
+				}
+			});
 			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);

@@ -86,6 +86,19 @@ function percentage(number: number, percent: Percentage): number {
 }
 
 /**
+ * Calculates `percentage` from a `number` as an integer. <br/>
+ * Integer is obtained by using {@link Math.round}.
+ *
+ * @param number	Number.
+ * @param percent	Percent from that number.
+ *
+ * @returns		Integer number which represents `percent` from `number`.
+ */
+function integerPercentage(number: number, percent: Percentage): number {
+	return Math.round(percentage(number, percent));
+}
+
+/**
  * Converts a giver value to it's corresponding number.
  *
  * @param value				Number like value.
@@ -135,4 +148,4 @@ function toLetter(nr: number): string {
 		.join('');
 }
 
-export { random, randomInt, assertIsInteger, assertIsPercentage, percentage, convertFrom, toLetter, ErrorCodes };
+export { random, randomInt, assertIsInteger, assertIsPercentage, percentage, integerPercentage, convertFrom, toLetter, ErrorCodes };

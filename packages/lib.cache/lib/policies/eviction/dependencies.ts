@@ -1,6 +1,7 @@
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheEntryGetter, CacheKey } from '../../contracts/commons';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-graph';
+import { ReadonlyCacheBackend } from '../../contracts/cache-backend';
 import { createException, ErrorCodes } from '../../error';
 
 interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
@@ -20,15 +21,15 @@ class EntryDependenciesEvictionPolicy<
 	 */
 	private readonly dependencyGraph: DependencyGraph<CacheEntryWithDependencies<Key, Value>>;
 
-	private readonly getCacheEntry: CacheEntryGetter<Key, Value>;
+	private readonly readonlyCacheBackend: ReadonlyCacheBackend<Key, Value>;
 
 	private readonly visitedEntriesOnDeletion: Set<CacheEntryWithDependencies<Key, Value>>;
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
-	public constructor(getCacheEntry: CacheEntryGetter<Key, Value>) {
+	public constructor(readonlyCacheBackend: ReadonlyCacheBackend<Key, Value>) {
 		this.dependencyGraph = new DependencyGraph<CacheEntryWithDependencies<Key, Value>>();
-		this.getCacheEntry = getCacheEntry;
+		this.readonlyCacheBackend = readonlyCacheBackend;
 		this.visitedEntriesOnDeletion = new Set<CacheEntryWithDependencies<Key, Value>>();
 	}
 
@@ -91,7 +92,7 @@ class EntryDependenciesEvictionPolicy<
 	}
 
 	private getDependencyEntry(dependencyKey: Key): CacheEntryWithDependencies<Key, Value> | never {
-		const foreignEntry = this.getCacheEntry(dependencyKey);
+		const foreignEntry = this.readonlyCacheBackend.get(dependencyKey);
 		if (foreignEntry == null) {
 			throw createException(ErrorCodes.NOT_FOUND, `Entry associated with key '${dependencyKey}' wasn't found.`);
 		}

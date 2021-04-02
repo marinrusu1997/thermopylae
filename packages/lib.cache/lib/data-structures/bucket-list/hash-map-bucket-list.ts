@@ -1,7 +1,6 @@
 import { Processor } from '@thermopylae/core.declarations';
 import { BucketList } from './interface';
 
-// @fixme no tests (test with Sliding)
 class HashMapBucketList<BucketKey, BucketEntry> implements BucketList<BucketKey, BucketEntry> {
 	private readonly buckets: Map<BucketKey, Set<BucketEntry>>;
 

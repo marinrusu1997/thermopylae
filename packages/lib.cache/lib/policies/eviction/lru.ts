@@ -1,9 +1,10 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { CacheReplacementPolicy, EntryValidity, Deleter } from '../../contracts/replacement-policy';
-import { CacheEntry, CacheKey, CacheSizeGetter } from '../../contracts/commons';
+import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { LinkedList } from '../../data-structures/list/interface';
 import { createException, ErrorCodes } from '../../error';
+import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 /**
  * @private		Should not appear in public documentation.
@@ -16,23 +17,23 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
 class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly cacheMaxCapacity: Threshold;
 
-	private readonly cacheSizeGetter: CacheSizeGetter;
+	private readonly cacheBackendElementsCount: CacheBackendElementsCount;
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
 	private usageRecency: LinkedList<EvictableKeyNode<Key, Value>>;
 
 	/**
-	 * @param cacheMaxCapacity	{@link Cache} maximum capacity.
-	 * @param cacheSizeGetter	Getter for cache size.
+	 * @param cacheMaxCapacity				{@link Cache} maximum capacity.
+	 * @param cacheBackendElementsCount		Cache backend elements count.
 	 */
-	public constructor(cacheMaxCapacity: number, cacheSizeGetter: CacheSizeGetter) {
+	public constructor(cacheMaxCapacity: number, cacheBackendElementsCount: CacheBackendElementsCount) {
 		if (cacheMaxCapacity <= 0) {
 			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
 		this.cacheMaxCapacity = cacheMaxCapacity;
-		this.cacheSizeGetter = cacheSizeGetter;
+		this.cacheBackendElementsCount = cacheBackendElementsCount;
 		this.usageRecency = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
 	}
 
@@ -48,7 +49,7 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	 * @inheritDoc
 	 */
 	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		if (this.cacheSizeGetter() > this.cacheMaxCapacity) {
+		if (this.cacheBackendElementsCount.size > this.cacheMaxCapacity) {
 			this.deleteFromCache(this.usageRecency.tail!.key, this.usageRecency.tail!); // removal from list will be made by `onDelete` hook
 		}
 

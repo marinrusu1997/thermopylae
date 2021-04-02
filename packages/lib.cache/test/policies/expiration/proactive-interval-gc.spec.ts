@@ -32,7 +32,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			}
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
-				backend: BACKEND,
+				iterableBackend: BACKEND,
 				checkInterval: 1,
 				iterateThreshold: KEYS_BY_TTL.ONE_SECOND.length || KEYS_BY_TTL.TWO_SECOND.length
 			};
@@ -102,7 +102,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			BACKEND.set('key', 1);
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
-				backend: BACKEND,
+				iterableBackend: BACKEND,
 				checkInterval: 1,
 				iterateThreshold: 1
 			};
@@ -170,7 +170,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			}
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
-				backend: BACKEND,
+				iterableBackend: BACKEND,
 				checkInterval: 1,
 				iterateThreshold: number.randomInt(1, CAPACITY)
 			};
@@ -231,7 +231,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const ENTRY = BACKEND.set('key', 1) as ExpirableCacheEntry<string, number>;
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
-				backend: BACKEND,
+				iterableBackend: BACKEND,
 				checkInterval: 1,
 				iterateThreshold: 1
 			};
@@ -275,7 +275,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const ENTRY = BACKEND.set('a', 1) as ExpirableCacheEntry<string, number>;
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
-				backend: BACKEND,
+				iterableBackend: BACKEND,
 				checkInterval: 1,
 				iterateThreshold: 1
 			};
