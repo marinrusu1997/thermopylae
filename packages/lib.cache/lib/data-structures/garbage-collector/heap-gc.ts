@@ -4,7 +4,6 @@ import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interf
 import { Heap, HeapNode } from '../heap';
 import { EXPIRES_AT_SYM } from '../../constants';
 
-// @fixme use eviction timer
 /**
  * @internal
  */

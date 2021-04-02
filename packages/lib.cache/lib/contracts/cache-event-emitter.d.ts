@@ -21,7 +21,7 @@ interface CacheEventEmitter<Key, Value> {
 	 * Event mask that controls which events needs to be emitted. <br/>
 	 * ** This property needs to be set with an according value before registering listeners. **
 	 */
-	readonly eventMask: CacheEventType;
+	eventMask: CacheEventType;
 
 	/**
 	 * Register *listener* for *event*.

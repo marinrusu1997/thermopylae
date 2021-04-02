@@ -8,7 +8,6 @@ import { CacheEventEmitter, CacheEventType } from '../contracts/cache-event-emit
 import { MiddleEndEventEmitter } from './event-emitter';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
-// @fixme test event emitting
 class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
@@ -44,7 +43,6 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		for (const policy of this.policies) {
 			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
 			if (policy.onGet(key, entry) === EntryValidity.NOT_VALID) {
-				// @fixme test this behaviour with reactive expiration policy, and the one described in bellow comment
 				// it's safe to break the cycle here, because in case an item is evicted, onDelete hook for each policy will be triggered automatically
 				return NOT_FOUND_VALUE;
 			}
@@ -72,8 +70,6 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		if (entry === NOT_FOUND_VALUE) {
 			entry = this.backend.set(key, value);
 			// @fixme add key to entry
-			// @fixme make sure eviction policies use strict >, because we need to check for overflow, as example take capacity 1
-			// @fixme also take care that eviction policies have a dedicated setter for backend size
 			// @fixme prevent multiple eviction by each policy when cache is full by the way that policies get cache latest size (TEST THIS)
 
 			let policyIndex = 0;
@@ -98,7 +94,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 
 		entry.value = value;
 		for (const policy of this.policies) {
-			policy.onUpdate(key, entry, argsBundle); // @fixme should not throw
+			policy.onUpdate(key, entry, argsBundle);
 		}
 
 		this.emitter.emit(CacheEventType.UPDATE, key, value);
@@ -128,7 +124,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 
 	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
 		for (const policy of this.policies) {
-			policy.onDelete(key, entry); // @fixme should not throw
+			policy.onDelete(key, entry);
 		}
 
 		this.backend.del(key);

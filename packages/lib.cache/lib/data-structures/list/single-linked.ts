@@ -100,7 +100,6 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 			previous[NEXT_SYM] = current[NEXT_SYM];
 
 			if (this.tail === node) {
-				// @fixme O(n) -> Worst Case
 				this.tail = previous;
 			}
 		}

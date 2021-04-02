@@ -9,6 +9,9 @@ import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
+import { GarbageCollector } from '../../../lib/data-structures/garbage-collector/interface';
+import { HeapGarbageCollector } from '../../../lib/data-structures/garbage-collector/heap-gc';
+import { BucketGarbageCollector } from '../../../lib/data-structures/garbage-collector/bucket-gc';
 
 interface ExpirableCacheEntryHeapNode<Key, Value> extends ExpirableCacheEntry<Key, Value>, HeapNode {}
 
@@ -23,13 +26,19 @@ function generateEntry<K>(key: K): ExpirableCacheEntryHeapNode<K, any> {
 }
 generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
+function gcFactory(): GarbageCollector<any> {
+	const gc = Math.random() >= 0.5 ? new HeapGarbageCollector() : new BucketGarbageCollector();
+	// UnitTestLogger.info(`Using ${gc.constructor.name.magenta}`);
+	return gc;
+}
+
 // @fixme test with both GC
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second
 
 	describe(`${ProactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
 		it('does not evict item if it has infinite or no ttl', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const MAX_TIMEOUT = 1000;
 			const TIMEOUT_STEP = 100;
@@ -61,7 +70,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('evicts expired item', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const TRACKED_KEY = 'key';
 			const WHEN_TRACKING_BEGAN = chrono.unixTime();
@@ -81,7 +90,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('should not allow inserting of items which have ttl in milliseconds', () => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			expect(() => policy.onSet('a', generateEntry('a'), { expiresAfter: 0.1 })).to.throw(`'expiresAfter' needs to be an integer. Given: ${0.1}.`);
 			expect(() => policy.onSet('a', generateEntry('a'), { expiresAfter: 1, expiresFrom: 0.1 })).to.throw(
@@ -90,7 +99,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('evicts multiple expired keys with same ttl (tracking started at same time)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const trackedKeys = ['key1', 'key2', 'key3'];
 			const whenTrackingBegan = chrono.unixTime();
@@ -115,7 +124,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('evicts multiple expired keys with different ttl (tracking started at same time)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const trackedKeysMap = new Map<string, number>();
 			trackedKeysMap.set('key1', defaultTTL);
@@ -141,7 +150,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(2100);
 
 		it('evicts multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const KEYS_TO_BE_TRACKED = 4;
 
 			const trackedKeysMap = new Map<string, { trackingSince: number; ttl: number }>();
@@ -187,7 +196,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(4100);
 
 		it('evicts duplicate keys with same ttl', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const trackedKeys = ['key', 'key', 'key'];
 			const whenTrackingBegan = chrono.unixTime();
@@ -207,7 +216,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('restarts gc after all tracked keys were evicted', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const trackedKeys = ['key1', 'key2'];
 			let whenTrackingBegan: number | undefined;
@@ -235,7 +244,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(3600);
 
 		it('restarts the gc after it was stopped, discarding and its internal list of tracked keys', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 
 			const trackedKeyBeforeStopping = 'key1';
 			const trackedKeyAfterStopping = 'key2';
@@ -261,7 +270,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(2600);
 
 		it('is synchronized with nearest element to remove while adding keys', async () => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const keys = new Set<string>();
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
@@ -331,7 +340,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 	describe(`${ProactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
 		it('evicts key sooner if ttl decreased (ttl reported to same expiresFrom)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -360,7 +369,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('evicts key later if ttl increased (ttl reported to same expiresFrom)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -400,7 +409,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(2100);
 
 		it('evicts key later if ttl is the same (ttl reported to expiresFrom equal to current timestamp)', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -440,7 +449,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(2100);
 
 		it("evicts key at it's previous timestamp if new ttl + expiresFrom will have the same eviction timestamp as the latest one", (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -471,7 +480,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(2100);
 
 		it('does not evict key if it had tll, but the new one is infinite', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -501,7 +510,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it("evicts the key if it didn't had tll, and the new ttl is specified", (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -528,7 +537,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('should do nothing when options or ttl is not given', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -561,7 +570,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it("does not evict key if it didn't had ttl, and the new ttl is infinite", (done) => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			const KEY = 'a';
 			const ENTRY = generateEntry(KEY);
@@ -594,7 +603,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('is synchronized with nearest element to remove while adding/updating keys', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const CACHE_ACTIVE_KEYS = new Set<string>();
 
 			policy.setDeleter((evictedKey, evictedEntry) => {
@@ -701,7 +710,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 	describe(`${ProactiveExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
 		it('does nothing on hit and returns entry as being valid, as it will be evicted later by timer', () => {
-			const policy = new ProactiveExpirationPolicy<string, number>();
+			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
 			const isValid = policy.onGet();
 			expect(isValid).to.be.eq(EntryValidity.VALID);
 		});
@@ -709,7 +718,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 	describe(`${ProactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
 		it("does not remove keys that don't have expiration", () => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 
 			const entry = generateEntry('a');
 			policy.onSet('a', entry, { expiresAfter: null! });
@@ -720,7 +729,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('removes entry from internal tracking after it is deleted, while the rest entries are evicted', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
@@ -788,14 +797,14 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 	describe(`${ProactiveExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('should clear empty policy and remain idle', () => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			expect(policy.isIdle()).to.be.eq(true);
 			policy.onClear();
 			expect(policy.isIdle()).to.be.eq(true);
 		});
 
 		it('should clear policy, make it idle and avoid further evictions', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
@@ -827,7 +836,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		});
 
 		it('should clear policy, push new items, and old timer not interfere with their expiration', (done) => {
-			const policy = new ProactiveExpirationPolicy<string, any>();
+			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);

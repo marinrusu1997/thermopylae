@@ -4,6 +4,7 @@ import { PolicyBasedCacheMiddleEnd } from '../../lib/middleend/policy-based';
 import { EsMapBackend } from '../../lib/backend/es-map';
 import { PolicyMock } from '../mocks/policy';
 import { EntryValidity } from '../../lib/contracts/replacement-policy';
+import { CacheEventType } from '../../lib/contracts/cache-event-emitter';
 
 describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.get.name.magenta} spec`, () => {
@@ -62,10 +63,19 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 	});
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.set.name.magenta} spec`, () => {
-		it('sets new key-value pair in the cache', () => {
+		it('sets new key-value pair in the cache and emits event', () => {
 			const backend = new EsMapBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
+
+			middleEnd.events.eventMask = CacheEventType.INSERT;
+
+			let eventKey;
+			let eventValue;
+			middleEnd.events.on(CacheEventType.INSERT, (key, value) => {
+				eventKey = key;
+				eventValue = value;
+			});
 
 			middleEnd.set('key', 'value', 'bundle');
 			const entry = backend.get('key')!;
@@ -76,12 +86,30 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const onSetInvocation = policy.methodBehaviours.get('onSet')!;
 			expect(onSetInvocation.arguments![2]).to.be.eq('bundle');
 			expect(onSetInvocation.calls).to.be.eq(1);
+
+			expect(eventKey).to.be.eq('key');
+			expect(eventValue).to.be.eq('value');
 		});
 
-		it('updates the value of the key if it was already present in the cache', () => {
+		it('updates the value of the key if it was already present in the cache and emits event', () => {
 			const backend = new EsMapBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
+
+			middleEnd.events.eventMask = CacheEventType.INSERT | CacheEventType.UPDATE;
+
+			let setEventKey;
+			let setEventValue;
+			let updateEventKey;
+			let updateEventValue;
+			middleEnd.events.on(CacheEventType.INSERT, (key, value) => {
+				setEventKey = key;
+				setEventValue = value;
+			});
+			middleEnd.events.on(CacheEventType.UPDATE, (key, value) => {
+				updateEventKey = key;
+				updateEventValue = value;
+			});
 
 			middleEnd.set('key', 'value', 'bundle');
 			const entry = backend.get('key')!;
@@ -101,6 +129,11 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const onUpdateInvocation = policy.methodBehaviours.get('onUpdate')!;
 			expect(onUpdateInvocation.arguments![1]).to.be.deep.eq({ value: 'new_value' });
 			expect(onUpdateInvocation.calls).to.be.eq(1);
+
+			expect(setEventKey).to.be.eq('key');
+			expect(setEventValue).to.be.eq('value');
+			expect(updateEventKey).to.be.eq('key');
+			expect(updateEventValue).to.be.eq('new_value');
 		});
 
 		it('rolls back insertion if any of the policies "onSet" hook throws', () => {
@@ -136,25 +169,54 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			expect(middleEnd.del('key')).to.be.eq(false);
 		});
 
-		it('deletes entry from cache and calls policies "onDelete" hook', () => {
+		it('deletes entry from cache, calls policies "onDelete" hook and emits event', () => {
 			const backend = new EsMapBackend<string, string>();
-			const policy = new PolicyMock<string, string, string>();
-			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
+			const policy1 = new PolicyMock<string, string, string>();
+			const policy2 = new PolicyMock<string, string, string>();
+			const policy3 = new PolicyMock<string, string, string>();
+			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy1, policy2, policy3]);
+
+			middleEnd.events.eventMask = CacheEventType.DELETE;
+			let eventKey;
+			let eventValue;
+			middleEnd.events.on(CacheEventType.DELETE, (key, value) => {
+				eventKey = key;
+				eventValue = value;
+			});
 
 			middleEnd.set('key', 'value');
 
 			expect(middleEnd.del('key')).to.be.eq(true);
 			expect(middleEnd.has('key')).to.be.eq(false);
 
-			const methodBehaviour = policy.methodBehaviours.get('onDelete')!;
-			expect(methodBehaviour.calls).to.be.eq(1);
-			expect(methodBehaviour.arguments![0]).to.be.eq('key');
+			const methodBehaviour1 = policy1.methodBehaviours.get('onDelete')!;
+			expect(methodBehaviour1.calls).to.be.eq(1);
+			expect(methodBehaviour1.arguments![0]).to.be.eq('key');
+
+			const methodBehaviour2 = policy2.methodBehaviours.get('onDelete')!;
+			expect(methodBehaviour2.calls).to.be.eq(1);
+			expect(methodBehaviour2.arguments![0]).to.be.eq('key');
+
+			const methodBehaviour3 = policy3.methodBehaviours.get('onDelete')!;
+			expect(methodBehaviour3.calls).to.be.eq(1);
+			expect(methodBehaviour3.arguments![0]).to.be.eq('key');
+
+			expect(eventKey).to.be.eq('key');
+			expect(eventValue).to.be.eq('value');
 		});
 
 		it('policy deleter calls "onDelete" hook for all policies and then deletes entry from cache', () => {
 			const backend = new EsMapBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
+
+			middleEnd.events.eventMask = CacheEventType.DELETE;
+			let eventKey;
+			let eventValue;
+			middleEnd.events.on(CacheEventType.DELETE, (key, value) => {
+				eventKey = key;
+				eventValue = value;
+			});
 
 			middleEnd.set('key', 'value');
 			expect(middleEnd.has('key')).to.be.eq(true);
@@ -163,14 +225,23 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 
 			expect(middleEnd.has('key')).to.be.eq(false);
 			expect(policy.methodBehaviours.get('onDelete')!.arguments![0]).to.be.eq('key');
+
+			expect(eventKey).to.be.eq('key');
+			expect(eventValue).to.be.eq('value');
 		});
 	});
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.clear.name.magenta} spec`, () => {
-		it('calls policies "onClear" hook and then clears the cache', () => {
+		it('calls policies "onClear" hook, then clears the cache and emits event', () => {
 			const backend = new EsMapBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
+
+			middleEnd.events.eventMask = CacheEventType.FLUSH;
+			let flushEmitted = false;
+			middleEnd.events.on(CacheEventType.FLUSH, () => {
+				flushEmitted = true;
+			});
 
 			middleEnd.set('key', 'value');
 			expect(middleEnd.size).to.be.eq(1);
@@ -178,6 +249,8 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			middleEnd.clear();
 			expect(middleEnd.size).to.be.eq(0);
 			expect(policy.methodBehaviours.get('onClear')!.calls).to.be.eq(1);
+
+			expect(flushEmitted).to.be.eq(true);
 		});
 	});
 });

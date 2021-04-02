@@ -18,7 +18,9 @@ function generateEntry(): ExpirableSlidingCacheEntry<string, any> {
 generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
 function gcFactory(): GarbageCollector<any> {
-	return Math.random() >= 0.5 ? new HeapGarbageCollector() : new BucketGarbageCollector();
+	const gc = Math.random() >= 0.5 ? new HeapGarbageCollector() : new BucketGarbageCollector();
+	// UnitTestLogger.info(`Using ${gc.constructor.name.magenta}`);
+	return gc;
 }
 
 // @fixme create tests with interval gc
