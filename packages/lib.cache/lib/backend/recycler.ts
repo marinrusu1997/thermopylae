@@ -9,7 +9,7 @@ class RecyclerBackend<Key, Value> implements CacheBackend<Key, Value> {
 
 	private readonly entryPool: obj.ObjectPool<Value>;
 
-	constructor(capacity?: number) {
+	public constructor(capacity?: number) {
 		this.store = new Map<Key, obj.Handle<Value>>();
 		this.entryPool = new obj.ObjectPool<Value>({
 			capacity: capacity || Infinity,

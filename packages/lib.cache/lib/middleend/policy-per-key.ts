@@ -9,30 +9,37 @@ import { MiddleEndEventEmitter } from './event-emitter';
 
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
-interface CacheEntryEvictedBySpecialisedPolicies<Value> extends CacheEntry<Value> {
-	[POLICIES_SYM]: Array<string> | IterableIterator<string>;
+interface CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag> extends CacheEntry<Value> {
+	[POLICIES_SYM]: ReadonlyArray<PolicyTag>;
 }
 
-interface PolicyPerKeyCacheMiddleEndArgumentsBundle {
-	policies?: Array<string>;
+interface PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag> {
+	policies?: ReadonlyArray<PolicyTag>;
 }
 
 // @fixme test event emitting
-class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKeyCacheMiddleEndArgumentsBundle>
-	implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+class PolicyPerKeyCacheMiddleEnd<
+	Key,
+	Value,
+	PolicyTag = string,
+	ArgumentsBundle extends PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag> = PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag>
+> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	/**
 	 * @private
 	 */
 	private readonly backend: CacheBackend<Key, Value>;
 
-	private readonly policies: Map<string, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
+	private readonly policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
 	private readonly emitter: CacheEventEmitter<Key, Value>;
 
-	public constructor(backend: CacheBackend<Key, Value>, policies: Map<string, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
+	private readonly allPoliciesTags: ReadonlyArray<PolicyTag>;
+
+	public constructor(backend: CacheBackend<Key, Value>, policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies;
 		this.emitter = new MiddleEndEventEmitter<Key, Value>();
+		this.allPoliciesTags = Array.from(this.policies.keys());
 
 		for (const policy of this.policies.values()) {
 			policy.setDeleter(this.internalDelete);
@@ -48,7 +55,7 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 	}
 
 	public get(key: Key): Undefinable<Value> {
-		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value>;
+		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 
 		if (entry === NOT_FOUND_VALUE) {
 			return entry;
@@ -64,11 +71,11 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 	}
 
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
-		let entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value>;
+		let entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 
 		if (entry === NOT_FOUND_VALUE) {
-			entry = this.backend.set(key, value) as CacheEntryEvictedBySpecialisedPolicies<Value>;
-			entry[POLICIES_SYM] = argsBundle && argsBundle.policies ? argsBundle.policies : this.policies.keys();
+			entry = this.backend.set(key, value) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
+			entry[POLICIES_SYM] = argsBundle && argsBundle.policies ? argsBundle.policies : this.allPoliciesTags;
 
 			// @fixme take care so that no one throws
 			for (const policyName of entry[POLICIES_SYM]) {
@@ -121,7 +128,7 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 	}
 
 	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
-		for (const policyName of (entry as CacheEntryEvictedBySpecialisedPolicies<Value>)[POLICIES_SYM]) {
+		for (const policyName of (entry as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>)[POLICIES_SYM]) {
 			this.policies.get(policyName)!.onDelete(key, entry);
 		}
 
@@ -132,4 +139,4 @@ class PolicyPerKeyCacheMiddleEnd<Key, Value, ArgumentsBundle extends PolicyPerKe
 	};
 }
 
-export { PolicyPerKeyCacheMiddleEnd, PolicyPerKeyCacheMiddleEndArgumentsBundle };
+export { PolicyPerKeyCacheMiddleEnd, PolicyPerKeyCacheMiddleEndArgumentsBundle, CacheEntryEvictedBySpecialisedPolicies };
