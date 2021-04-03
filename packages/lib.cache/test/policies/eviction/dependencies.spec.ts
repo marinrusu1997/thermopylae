@@ -2,11 +2,11 @@ import { describe, it, afterEach } from 'mocha';
 import colors from 'colors';
 import { expect } from '@thermopylae/lib.unit-test';
 import { CacheEntryWithDependencies, EntryDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies';
-import { EsMapBackend } from '../../../lib/backend/es-map';
+import { EsMapCacheBackend } from '../../../lib/backend/es-map';
 import { DEPENDENCIES_SYM, DEPENDENTS_SYM } from '../../../lib/data-structures/dependency-graph';
 
 describe(`${colors.magenta(EntryDependenciesEvictionPolicy.name)} spec`, () => {
-	const BACKEND = new EsMapBackend<string, string, CacheEntryWithDependencies<string, string>>();
+	const BACKEND = new EsMapCacheBackend<string, string, CacheEntryWithDependencies<string, string>>();
 	const EVICTED_KEYS = new Array<string>();
 
 	afterEach(() => {

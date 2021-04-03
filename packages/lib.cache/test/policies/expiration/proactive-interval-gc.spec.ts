@@ -8,7 +8,7 @@ import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
 import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/data-structures/garbage-collector/interval-gc';
-import { EsMapBackend } from '../../../lib/backend/es-map';
+import { EsMapCacheBackend } from '../../../lib/backend/es-map';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarbageCollector.name.magenta} spec`, () => {
 	describe(`${ProactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
@@ -26,7 +26,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 				TWO_SECOND: KEY_TO_TTL_ENTRIES.filter((entry) => entry[1] === 2).map((entry) => entry[0])
 			};
 
-			const BACKEND = new EsMapBackend<string, number>();
+			const BACKEND = new EsMapCacheBackend<string, number>();
 			for (const key of KEY_TO_TTL.keys()) {
 				BACKEND.set(key, Number(key));
 			}
@@ -98,7 +98,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 		}).timeout(2200);
 
 		it('should restart GC after all entries were evicted', (done) => {
-			const BACKEND = new EsMapBackend<string, number>();
+			const BACKEND = new EsMapCacheBackend<string, number>();
 			BACKEND.set('key', 1);
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
@@ -156,7 +156,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const TTL = 1;
 			const KEYS_WITH_INFINITE_TTL = array.filledWith(number.randomInt(1, CAPACITY), () => array.randomElement(KEYS), { noDuplicates: true });
 			const KEY_TO_TTL = new Map<string, number>(KEYS.map((key) => [key, TTL]));
-			const BACKEND = new EsMapBackend<string, number>();
+			const BACKEND = new EsMapCacheBackend<string, number>();
 
 			// insert keys with ttl first, so they might be evicted
 			for (const key of KEYS) {
@@ -227,7 +227,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 		});
 
 		it('should do nothing when options or ttl from options are not given as arguments', (done) => {
-			const BACKEND = new EsMapBackend<string, number>();
+			const BACKEND = new EsMapCacheBackend<string, number>();
 			const ENTRY = BACKEND.set('key', 1) as ExpirableCacheEntry<string, number>;
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
@@ -271,7 +271,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 
 	describe(`${ProactiveExpirationPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('should stop timer when entries are cleared', (done) => {
-			const BACKEND = new EsMapBackend<string, number>();
+			const BACKEND = new EsMapCacheBackend<string, number>();
 			const ENTRY = BACKEND.set('a', 1) as ExpirableCacheEntry<string, number>;
 
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {

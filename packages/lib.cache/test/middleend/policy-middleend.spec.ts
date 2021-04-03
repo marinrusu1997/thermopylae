@@ -1,21 +1,21 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { PolicyBasedCacheMiddleEnd } from '../../lib/middleend/policy-based';
-import { EsMapBackend } from '../../lib/backend/es-map';
-import { PolicyMock } from '../mocks/policy';
+import { EsMapCacheBackend } from '../../lib/backend/es-map';
+import { PolicyMock } from './mocks/policy';
 import { EntryValidity } from '../../lib/contracts/replacement-policy';
 import { CacheEvent } from '../../lib/contracts/cache-event-emitter';
 
 describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.get.name.magenta} spec`, () => {
 		it('returns undefined if item is not present in cache', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend);
 			expect(middleEnd.get('key')).to.be.eq(undefined);
 		});
 
 		it('returns undefined if item was present in cache, but some of the policies decided that it needs to be evicted (e.g. expired)', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const policy = new PolicyMock<string, any, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend, [policy]);
 
@@ -28,7 +28,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it('returns value if key was present in cache (no policies registered)', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend);
 
 			backend.set('key', 'value');
@@ -36,7 +36,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it('returns value if key was present in cache and policies decided not to evict item', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const policy = new PolicyMock<string, any, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend, [policy]);
 
@@ -51,7 +51,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.has.name.magenta} spec`, () => {
 		it('returns whether key is present in the cache without calling any policies hooks', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const policy = new PolicyMock<string, any, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend, [policy]);
 
@@ -64,7 +64,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.set.name.magenta} spec`, () => {
 		it('sets new key-value pair in the cache and emits event', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
@@ -92,7 +92,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it('updates the value of the key if it was already present in the cache and emits event', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
@@ -137,7 +137,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it('rolls back insertion if any of the policies "onSet" hook throws', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const expirationPolicy = new PolicyMock<string, string, string>();
 			const evictionPolicy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [expirationPolicy, evictionPolicy]);
@@ -163,14 +163,14 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.del.name.magenta} spec`, () => {
 		it('does not delete entry that does not exist', () => {
-			const backend = new EsMapBackend<string, any>();
+			const backend = new EsMapCacheBackend<string, any>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, any, any>(backend);
 
 			expect(middleEnd.del('key')).to.be.eq(false);
 		});
 
 		it('deletes entry from cache, calls policies "onDelete" hook and emits event', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, string>();
 			const policy2 = new PolicyMock<string, string, string>();
 			const policy3 = new PolicyMock<string, string, string>();
@@ -206,7 +206,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it('policy deleter calls "onDelete" hook for all policies and then deletes entry from cache', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
@@ -233,7 +233,7 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.clear.name.magenta} spec`, () => {
 		it('calls policies "onClear" hook, then clears the cache and emits event', () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 

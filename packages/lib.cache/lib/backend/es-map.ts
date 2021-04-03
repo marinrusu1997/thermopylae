@@ -2,7 +2,7 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 
-class EsMapBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements CacheBackend<Key, Value> {
+class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, Entry>;
 
 	constructor() {
@@ -48,4 +48,4 @@ class EsMapBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Valu
 	}
 }
 
-export { EsMapBackend };
+export { EsMapCacheBackend };

@@ -3,7 +3,7 @@ import colors from 'colors';
 import { expect } from '@thermopylae/lib.unit-test';
 import { chrono, number, string } from '@thermopylae/lib.utils';
 import { CacheEntryPriority, PrioritizedCacheEntry, PRIORITY_SYM, PriorityEvictionPolicy } from '../../../lib/policies/eviction/priority';
-import { EsMapBackend } from '../../../lib/backend/es-map';
+import { EsMapCacheBackend } from '../../../lib/backend/es-map';
 
 describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 	describe(`${PriorityEvictionPolicy.prototype.onSet.name.magenta} spec`, () => {
@@ -11,7 +11,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			const CHECK_INTERVAL_SECONDS = 1;
 			const TOTAL_ENTRIES_NO = 1200;
 
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: CHECK_INTERVAL_SECONDS,
@@ -86,7 +86,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 		});
 
 		it('should not evict entries that have NOT_REMOVABLE priority', (done) => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,
@@ -146,7 +146,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 		});
 
 		it('should evict nothing if there are only entries with NOT_REMOVABLE priority', (done) => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,
@@ -183,7 +183,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 		});
 
 		it('should stop eviction timer when all of the entries were evicted', (done) => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,
@@ -221,7 +221,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 
 	describe(`${PriorityEvictionPolicy.prototype.onUpdate.name.magenta} spec`, () => {
 		it('should update entry priority and evict it later', (done) => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,
@@ -290,7 +290,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 
 	describe(`${PriorityEvictionPolicy.prototype.onDelete.name.magenta} spec`, () => {
 		it('should stop eviction timer when all of the entries were deleted', () => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,
@@ -309,7 +309,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 
 	describe(`${PriorityEvictionPolicy.prototype.onClear.name.magenta} spec`, () => {
 		it('restarts eviction timer after clearing and evicts entries added after', (done) => {
-			const backend = new EsMapBackend<string, string, PrioritizedCacheEntry<string, string>>();
+			const backend = new EsMapCacheBackend<string, string, PrioritizedCacheEntry<string, string>>();
 			const policy = new PriorityEvictionPolicy<string, string>({
 				iterableCacheBackend: backend,
 				checkInterval: 1,

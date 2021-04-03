@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { EsMapBackend } from '../../lib/backend/es-map';
-import { PolicyMock } from '../mocks/policy';
+import { EsMapCacheBackend } from '../../lib/backend/es-map';
+import { PolicyMock } from './mocks/policy';
 import { EntryValidity } from '../../lib/contracts/replacement-policy';
 import { PolicyPerKeyCacheMiddleEnd } from '../../lib/middleend/policy-per-key';
 import { NOT_FOUND_VALUE } from '../../lib/constants';
@@ -16,7 +16,7 @@ const enum PolicyTag {
 describe(`${PolicyPerKeyCacheMiddleEnd.name.magenta} spec`, () => {
 	describe(`${PolicyPerKeyCacheMiddleEnd.prototype.get.name.magenta} & ${PolicyPerKeyCacheMiddleEnd.prototype.set.name.magenta} spec`, () => {
 		it("calls 'onGet' hook for policies specified for that particular entry and emits events", () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, any>();
 			const policy2 = new PolicyMock<string, string, any>();
 			const policy3 = new PolicyMock<string, string, any>();
@@ -115,7 +115,7 @@ describe(`${PolicyPerKeyCacheMiddleEnd.name.magenta} spec`, () => {
 		});
 
 		it("calls 'onUpdate' hook for policies specified for that particular entry and emits events", () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, any>();
 			const policy2 = new PolicyMock<string, string, any>();
 			const policy3 = new PolicyMock<string, string, any>();
@@ -158,7 +158,7 @@ describe(`${PolicyPerKeyCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyPerKeyCacheMiddleEnd.prototype.del.name.magenta} spec`, () => {
 		it("calls 'onDelete' hook for policies specified for that particular entry and emits events", () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, any>();
 			const policy2 = new PolicyMock<string, string, any>();
 			const policy3 = new PolicyMock<string, string, any>();
@@ -229,7 +229,7 @@ describe(`${PolicyPerKeyCacheMiddleEnd.name.magenta} spec`, () => {
 
 	describe(`${PolicyPerKeyCacheMiddleEnd.prototype.clear.name.magenta} spec`, () => {
 		it("calls 'onClear' hook for all policies and emits events", () => {
-			const backend = new EsMapBackend<string, string>();
+			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, any>();
 			const policy2 = new PolicyMock<string, string, any>();
 			const policy3 = new PolicyMock<string, string, any>();
