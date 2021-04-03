@@ -1,11 +1,11 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheEventEmitter } from './cache-event-emitter';
+import { CacheEventEmitterInterface } from './cache-event-emitter';
 
 /**
- * Represents an abstraction over cache entries processing level. <br/>
+ * Represents an abstraction over different cache implementations. <br/>
  *
- * Middle-end is able to apply different transformations with the {@link CacheEntry},
- * before and after backend is interrogated, this way it might change the behaviour seen by frontend.
+ * Cache is able to apply different transformations with the {@link CacheEntry},
+ * before and after backend is interrogated, this way it might change the behaviour seen by clients.
  * For example, when a request comes to retrieve value associated with key, it might detect
  * that key is expired, delete it, and return `undefined` to client.
  *
@@ -13,16 +13,16 @@ import { CacheEventEmitter } from './cache-event-emitter';
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle passed to different operations.
  */
-declare interface CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+declare interface Cache<Key, Value, ArgumentsBundle> {
 	/**
 	 * Number of cache entries.
 	 */
 	readonly size: number;
 
 	/**
-	 * {@link CacheEventEmitter} instance with controls cache events.
+	 * {@link CacheEventEmitterInterface} instance with controls cache events.
 	 */
-	readonly events: CacheEventEmitter<Key, Value>;
+	readonly events: CacheEventEmitterInterface<Key, Value>;
 
 	/**
 	 * Get the value associated with `key`.
@@ -67,4 +67,4 @@ declare interface CacheMiddleEnd<Key, Value, ArgumentsBundle> {
 	clear(): void;
 }
 
-export { CacheMiddleEnd };
+export { Cache };

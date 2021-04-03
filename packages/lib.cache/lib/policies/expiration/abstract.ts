@@ -2,7 +2,7 @@ import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declaratio
 import { chrono } from '@thermopylae/lib.utils';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { EXPIRES_AT_SYM } from '../../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { createException } from '../../error';
 
 /**

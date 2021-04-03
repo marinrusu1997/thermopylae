@@ -1,5 +1,5 @@
 import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
-import { EntryValidity } from '../../contracts/replacement-policy';
+import { EntryValidity } from '../../contracts/cache-replacement-policy';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
 import { HeapGarbageCollector } from '../../data-structures/garbage-collector/heap-gc';
@@ -51,7 +51,6 @@ class ProactiveExpirationPolicy<
 			return undefined;
 		}
 
-		// @fixme test case when item is set, then update with no ttl, then set again !!!
 		if (entry[EXPIRES_AT_SYM]) {
 			// entry has expiration and it needs to be updated
 

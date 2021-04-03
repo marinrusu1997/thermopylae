@@ -1,21 +1,6 @@
 import { UnixTimestamp } from '@thermopylae/core.declarations';
 
 /**
- * Describes collected cache statistics.
- */
-declare interface CacheStats {
-	// @fixme maybe we should remove it, we do unnecessary processing
-	/**
-	 * Number of cache hits.
-	 */
-	hits: number;
-	/**
-	 * Number of cache misses.
-	 */
-	misses: number;
-}
-
-/**
  * Represents `key` stored as metadata along with the value.
  */
 declare interface CacheKey<Key> {
@@ -34,7 +19,7 @@ declare interface CacheEntry<Value> {
  * Represents a filter which decides which entries should be returned to client.
  */
 declare interface CacheEntryFilter {
-	// @fixme integrate this into frontend and middle-end, to filter available entries
+	// @fixme integrate this into cache, to filter available entries
 	/**
 	 * Entries that are not older than a given timestamp. <br/>
 	 * Age of the entry is measured since it was inserted in the cache.
@@ -42,4 +27,4 @@ declare interface CacheEntryFilter {
 	notOlder: UnixTimestamp;
 }
 
-export { CacheStats, CacheKey, CacheEntry };
+export { CacheKey, CacheEntry };

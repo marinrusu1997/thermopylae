@@ -1,4 +1,4 @@
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
 import { CacheEntry } from '../../../lib/contracts/commons';
 
 interface MethodBehaviour {

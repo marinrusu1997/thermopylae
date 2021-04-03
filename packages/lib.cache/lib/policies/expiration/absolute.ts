@@ -1,7 +1,7 @@
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
-import { EntryValidity } from '../../contracts/replacement-policy';
+import { EntryValidity } from '../../contracts/cache-replacement-policy';
 import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
 
 interface AbsoluteExpirationPolicyArgumentsBundle {

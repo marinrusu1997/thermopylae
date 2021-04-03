@@ -8,6 +8,7 @@ interface TtlRegistryEntry {
 	ttl: number;
 }
 
+// @fixme review this
 class TtlRegistry<Key = string> {
 	private readonly registry: Array<TtlRegistryEntry> | TtlProvider<Key>;
 

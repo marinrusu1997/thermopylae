@@ -3,7 +3,7 @@ import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
 import { GarbageCollector } from '../../data-structures/garbage-collector/interface';
 import { BucketGarbageCollector } from '../../data-structures/garbage-collector/bucket-gc';
 import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
-import { EntryValidity } from '../../contracts/replacement-policy';
+import { EntryValidity } from '../../contracts/cache-replacement-policy';
 
 const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM');
 

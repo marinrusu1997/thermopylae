@@ -3,7 +3,7 @@ import colors from 'colors';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { expect } from '@thermopylae/lib.unit-test';
 import { ReactiveExpirationPolicy } from '../../../lib/policies/expiration/reactive';
-import { EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 

@@ -1,24 +1,24 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
-import { CacheMiddleEnd } from '../contracts/cache-middleend';
+import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replacement-policy';
+import { Cache } from '../contracts/cache';
 import { CacheEntry } from '../contracts/commons';
-import { CacheEventEmitter, CacheEvent } from '../contracts/cache-event-emitter';
-import { MiddleEndEventEmitter } from './event-emitter';
+import { CacheEventEmitterInterface, CacheEvent } from '../contracts/cache-event-emitter';
+import { CacheEventEmitter } from '../helpers/event-emitter';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
-class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+class PolicyBasedCache<Key, Value, ArgumentsBundle> implements Cache<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	private readonly emitter: CacheEventEmitter<Key, Value>;
+	private readonly emitter: CacheEventEmitterInterface<Key, Value>;
 
 	public constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies || [];
-		this.emitter = new MiddleEndEventEmitter<Key, Value>();
+		this.emitter = new CacheEventEmitter<Key, Value>();
 
 		for (const policy of this.policies) {
 			policy.setDeleter(this.internalDelete);
@@ -29,7 +29,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		return this.backend.size;
 	}
 
-	public get events(): CacheEventEmitter<Key, Value> {
+	public get events(): CacheEventEmitterInterface<Key, Value> {
 		return this.emitter;
 	}
 
@@ -134,4 +134,4 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 	};
 }
 
-export { PolicyBasedCacheMiddleEnd };
+export { PolicyBasedCache };

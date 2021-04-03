@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import { CacheEventEmitter, CacheEventListener, CacheEvent } from '../contracts/cache-event-emitter';
+import { CacheEventEmitterInterface, CacheEventListener, CacheEvent } from '../contracts/cache-event-emitter';
 
-class MiddleEndEventEmitter<Key, Value> implements CacheEventEmitter<Key, Value> {
+class CacheEventEmitter<Key, Value> implements CacheEventEmitterInterface<Key, Value> {
 	private emitter!: EventEmitter;
 
 	private internalEventsMask!: CacheEvent;
@@ -41,4 +41,4 @@ class MiddleEndEventEmitter<Key, Value> implements CacheEventEmitter<Key, Value>
 	}
 }
 
-export { MiddleEndEventEmitter };
+export { CacheEventEmitter };

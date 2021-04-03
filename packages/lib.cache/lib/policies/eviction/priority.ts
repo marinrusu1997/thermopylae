@@ -1,7 +1,7 @@
 import { Nullable, Percentage, Seconds } from '@thermopylae/core.declarations';
 import { chrono, number } from '@thermopylae/lib.utils';
 import { memoryUsage } from 'process';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { IterableCacheBackend } from '../../contracts/cache-backend';
 

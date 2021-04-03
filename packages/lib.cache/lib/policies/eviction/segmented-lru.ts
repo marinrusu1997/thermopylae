@@ -1,6 +1,6 @@
 import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { LinkedList } from '../../data-structures/list/interface';

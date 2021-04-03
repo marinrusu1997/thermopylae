@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import colors from 'colors';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
-import { Deleter, EntryValidity } from '../../../lib/contracts/replacement-policy';
+import { Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';

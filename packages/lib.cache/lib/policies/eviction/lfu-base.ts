@@ -1,5 +1,5 @@
 import { ErrorCodes, Threshold } from '@thermopylae/core.declarations';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { createException } from '../../error';
 import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket-list/ordered-bucket-list';

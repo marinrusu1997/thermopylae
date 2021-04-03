@@ -1,6 +1,6 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
-import { CacheReplacementPolicy, EntryValidity, Deleter } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, EntryValidity, Deleter } from '../../contracts/cache-replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { LinkedList } from '../../data-structures/list/interface';
 import { createException, ErrorCodes } from '../../error';

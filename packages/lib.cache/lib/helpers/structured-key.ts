@@ -1,5 +1,6 @@
 import { createException, ErrorCodes } from '../error';
 
+// @fixme review this
 class StructuredKey {
 	private readonly scope?: string;
 

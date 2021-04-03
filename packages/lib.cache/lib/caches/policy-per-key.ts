@@ -1,11 +1,11 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheMiddleEnd } from '../contracts/cache-middleend';
-import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
+import { Cache } from '../contracts/cache';
+import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replacement-policy';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheEventEmitter, CacheEvent } from '../contracts/cache-event-emitter';
-import { MiddleEndEventEmitter } from './event-emitter';
+import { CacheEventEmitterInterface, CacheEvent } from '../contracts/cache-event-emitter';
+import { CacheEventEmitter } from '../helpers/event-emitter';
 
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
@@ -13,16 +13,16 @@ interface CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag> extends Cache
 	[POLICIES_SYM]: ReadonlyArray<PolicyTag>;
 }
 
-interface PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag> {
+interface PolicyPerKeyCacheArgumentsBundle<PolicyTag> {
 	policies?: ReadonlyArray<PolicyTag>;
 }
 
-class PolicyPerKeyCacheMiddleEnd<
+class PolicyPerKeyCache<
 	Key,
 	Value,
 	PolicyTag = string,
-	ArgumentsBundle extends PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag> = PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag>
-> implements CacheMiddleEnd<Key, Value, ArgumentsBundle> {
+	ArgumentsBundle extends PolicyPerKeyCacheArgumentsBundle<PolicyTag> = PolicyPerKeyCacheArgumentsBundle<PolicyTag>
+> implements Cache<Key, Value, ArgumentsBundle> {
 	/**
 	 * @private
 	 */
@@ -30,14 +30,14 @@ class PolicyPerKeyCacheMiddleEnd<
 
 	private readonly policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	private readonly emitter: CacheEventEmitter<Key, Value>;
+	private readonly emitter: CacheEventEmitterInterface<Key, Value>;
 
 	private readonly allPoliciesTags: ReadonlyArray<PolicyTag>;
 
 	public constructor(backend: CacheBackend<Key, Value>, policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		this.backend = backend;
 		this.policies = policies;
-		this.emitter = new MiddleEndEventEmitter<Key, Value>();
+		this.emitter = new CacheEventEmitter<Key, Value>();
 		this.allPoliciesTags = Array.from(this.policies.keys());
 
 		for (const policy of this.policies.values()) {
@@ -49,7 +49,7 @@ class PolicyPerKeyCacheMiddleEnd<
 		return this.backend.size;
 	}
 
-	public get events(): CacheEventEmitter<Key, Value> {
+	public get events(): CacheEventEmitterInterface<Key, Value> {
 		return this.emitter;
 	}
 
@@ -76,7 +76,6 @@ class PolicyPerKeyCacheMiddleEnd<
 			entry = this.backend.set(key, value) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 			entry[POLICIES_SYM] = argsBundle && argsBundle.policies ? argsBundle.policies : this.allPoliciesTags;
 
-			// @fixme take care so that no one throws
 			for (const policyName of entry[POLICIES_SYM]) {
 				this.policies.get(policyName)!.onSet(key, entry, argsBundle);
 			}
@@ -138,4 +137,4 @@ class PolicyPerKeyCacheMiddleEnd<
 	};
 }
 
-export { PolicyPerKeyCacheMiddleEnd, PolicyPerKeyCacheMiddleEndArgumentsBundle, CacheEntryEvictedBySpecialisedPolicies };
+export { PolicyPerKeyCache, PolicyPerKeyCacheArgumentsBundle, CacheEntryEvictedBySpecialisedPolicies };

@@ -1,4 +1,4 @@
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry, CacheKey } from '../../contracts/commons';
 import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-graph';
 import { ReadonlyCacheBackend } from '../../contracts/cache-backend';

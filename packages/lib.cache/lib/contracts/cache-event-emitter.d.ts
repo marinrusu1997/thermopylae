@@ -1,5 +1,5 @@
 /**
- * Event emitted by {@link CacheMiddleEnd}.
+ * Event emitted by {@link Cache}.
  */
 declare const enum CacheEvent {
 	INSERT = 1 << 0,
@@ -16,7 +16,7 @@ declare const enum CacheEvent {
  */
 declare type CacheEventListener<Key, Value> = (key?: Key, value?: Value) => void;
 
-interface CacheEventEmitter<Key, Value> {
+interface CacheEventEmitterInterface<Key, Value> {
 	/**
 	 * Event mask that controls which events needs to be emitted. <br/>
 	 * ** This property needs to be set with an according value before registering listeners. **
@@ -56,4 +56,4 @@ interface CacheEventEmitter<Key, Value> {
 	emit(event: CacheEvent, key?: Key, value?: Value): boolean;
 }
 
-export { CacheEvent, CacheEventListener, CacheEventEmitter };
+export { CacheEvent, CacheEventListener, CacheEventEmitterInterface };
