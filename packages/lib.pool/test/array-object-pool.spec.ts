@@ -138,4 +138,51 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 		pool.clear();
 		expect(pool.used).to.be.eq(-1);
 	});
+
+	it('can grow dynamically the pool of resources', () => {
+		const pool = new ArrayObjectPool({
+			initializer(resource, args) {
+				[resource.key] = args;
+			},
+			deInitializer(resource) {
+				resource.key = undefined;
+			}
+		});
+
+		const first = pool.acquire('1');
+		expect(first.value.key).to.be.eq('1');
+		expect(pool.used).to.be.eq(1);
+		expect(pool.free).to.be.eq(0);
+
+		const second = pool.acquire('2');
+		expect(second.value.key).to.be.eq('2');
+		expect(pool.used).to.be.eq(2);
+		expect(pool.free).to.be.eq(0);
+
+		const third = pool.acquire('3');
+		expect(third.value.key).to.be.eq('3');
+		expect(pool.used).to.be.eq(3);
+		expect(pool.free).to.be.eq(0);
+
+		pool.release(first);
+		expect(first.value.key).to.be.eq(undefined);
+		expect(second.value.key).to.be.eq('2');
+		expect(third.value.key).to.be.eq('3');
+		expect(pool.free).to.be.eq(1);
+		expect(pool.used).to.be.eq(2);
+
+		pool.release(second);
+		expect(first.value.key).to.be.eq(undefined);
+		expect(second.value.key).to.be.eq(undefined);
+		expect(third.value.key).to.be.eq('3');
+		expect(pool.free).to.be.eq(2);
+		expect(pool.used).to.be.eq(1);
+
+		pool.release(third);
+		expect(first.value.key).to.be.eq(undefined);
+		expect(second.value.key).to.be.eq(undefined);
+		expect(third.value.key).to.be.eq(undefined);
+		expect(pool.free).to.be.eq(3);
+		expect(pool.used).to.be.eq(0);
+	});
 });

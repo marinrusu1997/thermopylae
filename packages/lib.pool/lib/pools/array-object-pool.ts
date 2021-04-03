@@ -23,9 +23,11 @@ interface ObjectResource<Value> {
 
 interface ArrayObjectPoolOptions<Value> {
 	/**
-	 * Capacity of the poll.
+	 * Capacity of the poll. <br/>
+	 * When *capacity* is not given, pool resources will grow dynamically with the clients needs,
+	 * unless there is no available memory.
 	 */
-	capacity: number;
+	capacity?: number;
 	/**
 	 * Function called in order to initialize *resource*.
 	 */
@@ -36,23 +38,32 @@ interface ArrayObjectPoolOptions<Value> {
 	deInitializer: ObjectDeInitializer<Value>;
 }
 
-class ArrayObjectPool<Value extends Record<any, any> = Record<string, any>> {
-	private readonly options: ArrayObjectPoolOptions<Value>;
+/**
+ * Pool of object resources. The internal implementation keeps resources into {@link Array}.
+ *
+ * @template T	Type of the object.
+ */
+class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
+	private readonly options: ArrayObjectPoolOptions<T>;
 
-	private readonly resources: Array<ObjectResource<Value>>;
+	private readonly resources: Array<ObjectResource<T>>;
 
 	private freeResourcesRegionBeginIndex: number;
 
-	public constructor(options: ArrayObjectPoolOptions<Value>) {
+	public constructor(options: ArrayObjectPoolOptions<T>) {
 		this.options = ArrayObjectPool.assertOptions(options);
-		this.resources = new Array<ObjectResource<Value>>(options.capacity);
 		this.freeResourcesRegionBeginIndex = 0;
 
-		for (let i = 0; i < options.capacity; i++) {
-			this.resources[i] = {
-				index: i,
-				value: {} as Value
-			};
+		if (options.capacity) {
+			this.resources = new Array<ObjectResource<T>>(options.capacity);
+			for (let i = 0; i < options.capacity; i++) {
+				this.resources[i] = {
+					index: i,
+					value: {} as T
+				};
+			}
+		} else {
+			this.resources = [];
 		}
 	}
 
@@ -79,9 +90,12 @@ class ArrayObjectPool<Value extends Record<any, any> = Record<string, any>> {
 	 *
 	 * @returns		Object resource.
 	 */
-	public acquire(...args: Array<any>): ObjectResource<Value> {
+	public acquire(...args: Array<any>): ObjectResource<T> {
 		if (this.freeResourcesRegionBeginIndex === this.resources.length) {
-			throw createException(ErrorCodes.LIMIT_REACHED, `Limit of ${this.options.capacity} has been reached.`);
+			if (this.options.capacity) {
+				throw createException(ErrorCodes.LIMIT_REACHED, `Limit of ${this.options.capacity} has been reached.`);
+			}
+			this.resources.push({ index: this.resources.length, value: {} as T });
 		}
 
 		const freeObjectResource = this.resources[this.freeResourcesRegionBeginIndex];
@@ -97,7 +111,7 @@ class ArrayObjectPool<Value extends Record<any, any> = Record<string, any>> {
 	 *
 	 * @param objectResource	Object resource.
 	 */
-	public release(objectResource: ObjectResource<Value>): void {
+	public release(objectResource: ObjectResource<T>): void {
 		if (this.freeResourcesRegionBeginIndex - objectResource.index > 1) {
 			this.swap(objectResource.index, this.freeResourcesRegionBeginIndex - 1);
 		}
@@ -136,16 +150,13 @@ class ArrayObjectPool<Value extends Record<any, any> = Record<string, any>> {
 	}
 
 	private static assertOptions<V>(config: ArrayObjectPoolOptions<V>): ArrayObjectPoolOptions<V> | never {
-		const minCapacity = 0;
-
-		if (!Number.isInteger(config.capacity)) {
-			throw createException(ErrorCodes.INVALID_PARAM, `Capacity needs to be an integer. Given: ${config.capacity}.`);
-		}
-		if (config.capacity <= minCapacity) {
-			throw createException(ErrorCodes.INVALID_PARAM, `Capacity needs to be greater than ${minCapacity}. Given: ${config.capacity}.`);
-		}
-		if (config.capacity === Infinity) {
-			throw createException(ErrorCodes.INVALID_PARAM, `Capacity can't be equal to infinity. Given: ${config.capacity}.`);
+		if (config.capacity) {
+			if (!Number.isInteger(config.capacity)) {
+				throw createException(ErrorCodes.INVALID_PARAM, `Capacity needs to be an integer. Given: ${config.capacity}.`);
+			}
+			if (config.capacity === Infinity) {
+				throw createException(ErrorCodes.INVALID_PARAM, `Capacity can't be equal to infinity. Given: ${config.capacity}.`);
+			}
 		}
 
 		return config;

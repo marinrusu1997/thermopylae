@@ -6,7 +6,7 @@ import { CacheEntry } from '../../lib/contracts/commons';
 
 describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 	it('should manage cache entries', () => {
-		const backend = new EntryPoolCacheBackend<string, string>(10);
+		const backend = new EntryPoolCacheBackend<string, string>();
 
 		/* SET */
 		const firstEntry = backend.set('a', 'a');

@@ -8,10 +8,15 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheE
 
 	private readonly entryPool: ArrayObjectPool<Entry>;
 
-	public constructor(capacity: number) {
+	/**
+	 * @param capacity	Backend capacity. <br/>
+	 * 					When given, cache will not grow above *capacity*.
+	 */
+	public constructor(capacity?: number) {
 		this.store = new Map<Key, ObjectResource<Entry>>();
 		this.entryPool = new ArrayObjectPool<Entry>({
-			capacity,
+			// @fixme HACK: we add 1 so that eviction policies get a chance to evict entries that overflow the cache
+			capacity: capacity ? capacity + 1 : capacity,
 			initializer(entry, args) {
 				[entry.value] = args;
 			},
