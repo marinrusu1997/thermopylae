@@ -62,10 +62,6 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 
 		// in case they are equal, item should be immediately evicted
 		if (expiresAt < now) {
-			if (now - expiresAt > 2) {
-				// (might happen because unixTime() is rounded, so it can be rounded to next second, i.e. in 1-2 second ttl scenario)
-				throw createException(ErrorCodes.INVALID_VALUE, `'expiresAt' ${expiresAt} is lower than current time ${now}.`);
-			}
 			// we can tolerate such small deviations (they are very rare), and evict item immediately after it was set
 			expiresAt = now;
 		}

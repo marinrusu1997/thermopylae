@@ -18,7 +18,7 @@ interface SizeOf<T> {
  * [Greedy Dual-Size with Frequency](https://www.hpl.hp.com/personal/Lucy_Cherkasova/projects/gdfs.html "Improving Web Servers and Proxies Performance with GDSF Caching Policies") eviction policy.
  * To be used carefully, as in practice, if no items are evicted, items frequency will increase with a very low rate.
  */
-class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
+class GDSFEvictionPolicy<Key, Value, ArgumentsBundle = any> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private readonly sizeOf: SizeOf<Value>;
 
 	private cacheAge: number;
@@ -37,8 +37,8 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(): void {
-		throw new Error('NOT IMPLEMENTED! FREQUENCY NEEDS TO BE RECOMPUTED!'); // @fixme but why?
+	public onUpdate(key: Key, entry: EvictableKeyNode<Key, Value>): void {
+		this.onGet(key, entry); // onGet performs the required actions: recomputes frequency and moves to another bucket
 	}
 
 	/**

@@ -7,8 +7,24 @@ import { createException, ErrorCodes } from '../../error';
 interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
 
 interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
+	/**
+	 * Dependencies of the entry.
+	 */
 	dependencies?: Array<Key>;
+	/**
+	 * Dependents of the entry.
+	 */
 	dependents?: Array<Key>;
+	/**
+	 * Behaviour to take when dependency not present in the {@link ReadonlyCacheBackend}:
+	 * Strict mode  | Behaviour
+	 * ------------ | -------------
+	 * true  		| An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use strict mode for debugging or testing, in production is not recommended to use it.
+	 * false  		| Dependency will be ignored and relationship with entry won't be established.
+	 *
+	 * Defaults to **false**.
+	 */
+	strict?: boolean;
 }
 
 class EntryDependenciesEvictionPolicy<
@@ -44,15 +60,33 @@ class EntryDependenciesEvictionPolicy<
 			return;
 		}
 
+		let dependencyEntry;
+
 		if (options.dependencies) {
 			for (const dependencyKey of options.dependencies) {
-				this.dependencyGraph.addDependency(entry, this.getDependencyEntry(dependencyKey));
+				dependencyEntry = this.readonlyCacheBackend.get(dependencyKey) as CacheEntryWithDependencies<Key, Value>;
+				if (dependencyEntry == null) {
+					if (options.strict) {
+						throw createException(ErrorCodes.NOT_FOUND, `Dependency '${dependencyKey}' of the '${key}' wasn't found.`);
+					}
+					continue;
+				}
+
+				this.dependencyGraph.addDependency(entry, dependencyEntry);
 			}
 		}
 
 		if (options.dependents) {
 			for (const dependentKey of options.dependents) {
-				this.dependencyGraph.addDependency(this.getDependencyEntry(dependentKey), entry);
+				dependencyEntry = this.readonlyCacheBackend.get(dependentKey) as CacheEntryWithDependencies<Key, Value>;
+				if (dependencyEntry == null) {
+					if (options.strict) {
+						throw createException(ErrorCodes.NOT_FOUND, `Dependent '${dependentKey}' of the '${key}' wasn't found.`);
+					}
+					continue;
+				}
+
+				this.dependencyGraph.addDependency(dependencyEntry, entry);
 			}
 		}
 	}
@@ -89,14 +123,6 @@ class EntryDependenciesEvictionPolicy<
 
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
-	}
-
-	private getDependencyEntry(dependencyKey: Key): CacheEntryWithDependencies<Key, Value> | never {
-		const foreignEntry = this.readonlyCacheBackend.get(dependencyKey);
-		if (foreignEntry == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Entry associated with key '${dependencyKey}' wasn't found.`);
-		}
-		return foreignEntry as CacheEntryWithDependencies<Key, Value>;
 	}
 }
 

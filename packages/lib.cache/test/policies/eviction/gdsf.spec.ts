@@ -104,4 +104,25 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			throw e;
 		}
 	});
+
+	it("recomputes priority when value changes in the 'onUpdate' hook", () => {
+		let totalEntriesNo = 0;
+
+		const policy = new GDSFEvictionPolicy<string, string>(1, {
+			get size() {
+				return totalEntriesNo;
+			}
+		});
+
+		// @ts-ignore
+		const entry: EvictableKeyNode<string, string> = { key: 'key', value: 'value' };
+		policy.onSet('key', entry);
+		totalEntriesNo += 1;
+		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(0);
+
+		entry.value = string.random({ length: 100 });
+		policy.onUpdate('key', entry);
+		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(1);
+		expect(policy.size).to.be.eq(1);
+	});
 });

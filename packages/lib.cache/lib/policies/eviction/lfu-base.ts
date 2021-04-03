@@ -72,7 +72,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(): void {
+	public onUpdate(_key: Key, _entry: EvictableKeyNode<Key, Value>): void {
 		return undefined;
 	}
 
