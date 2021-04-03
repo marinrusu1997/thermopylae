@@ -1,7 +1,7 @@
 /**
  * Event emitted by {@link CacheMiddleEnd}.
  */
-declare const enum CacheEventType {
+declare const enum CacheEvent {
 	INSERT = 1 << 0,
 	UPDATE = 1 << 1,
 	DELETE = 1 << 2,
@@ -9,7 +9,7 @@ declare const enum CacheEventType {
 }
 
 /**
- * Event listener for {@link CacheEventType}.
+ * Event listener for {@link CacheEvent}.
  *
  * @template Key	Type of the key.
  * @template Value	Type of the value.
@@ -21,7 +21,7 @@ interface CacheEventEmitter<Key, Value> {
 	 * Event mask that controls which events needs to be emitted. <br/>
 	 * ** This property needs to be set with an according value before registering listeners. **
 	 */
-	eventMask: CacheEventType;
+	eventMask: CacheEvent;
 
 	/**
 	 * Register *listener* for *event*.
@@ -31,7 +31,7 @@ interface CacheEventEmitter<Key, Value> {
 	 *
 	 * @returns         Whether the listener was successfully registered.
 	 */
-	on(event: CacheEventType, listener: CacheEventListener<Key, Value>): boolean;
+	on(event: CacheEvent, listener: CacheEventListener<Key, Value>): boolean;
 
 	/**
 	 * Unregister *listener* for *event*.
@@ -41,7 +41,7 @@ interface CacheEventEmitter<Key, Value> {
 	 *
 	 * @returns         Whether the listener was successfully unregistered.
 	 */
-	off(event: CacheEventType, listener: CacheEventListener<Key, Value>): boolean;
+	off(event: CacheEvent, listener: CacheEventListener<Key, Value>): boolean;
 
 	/**
 	 * Emit events with arguments. <br/>
@@ -53,7 +53,7 @@ interface CacheEventEmitter<Key, Value> {
 	 *
 	 * @returns         Whether the *event* has been emitted.
 	 */
-	emit(event: CacheEventType, key?: Key, value?: Value): boolean;
+	emit(event: CacheEvent, key?: Key, value?: Value): boolean;
 }
 
-export { CacheEventType, CacheEventListener, CacheEventEmitter };
+export { CacheEvent, CacheEventListener, CacheEventEmitter };

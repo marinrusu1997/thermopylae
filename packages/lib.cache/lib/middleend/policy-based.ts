@@ -4,7 +4,7 @@ import { NOT_FOUND_VALUE } from '../constants';
 import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-policy';
 import { CacheMiddleEnd } from '../contracts/cache-middleend';
 import { CacheEntry } from '../contracts/commons';
-import { CacheEventEmitter, CacheEventType } from '../contracts/cache-event-emitter';
+import { CacheEventEmitter, CacheEvent } from '../contracts/cache-event-emitter';
 import { MiddleEndEventEmitter } from './event-emitter';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
@@ -78,7 +78,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 					this.policies[policyIndex].onSet(key, entry, argsBundle);
 				}
 
-				this.emitter.emit(CacheEventType.INSERT, key, value);
+				this.emitter.emit(CacheEvent.INSERT, key, value);
 				return;
 			} catch (e) {
 				// rollback
@@ -97,7 +97,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 			policy.onUpdate(key, entry, argsBundle);
 		}
 
-		this.emitter.emit(CacheEventType.UPDATE, key, value);
+		this.emitter.emit(CacheEvent.UPDATE, key, value);
 	}
 
 	public del(key: Key): boolean {
@@ -119,7 +119,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		}
 		this.backend.clear();
 
-		this.emitter.emit(CacheEventType.FLUSH);
+		this.emitter.emit(CacheEvent.FLUSH);
 	}
 
 	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
@@ -128,7 +128,7 @@ class PolicyBasedCacheMiddleEnd<Key, Value, ArgumentsBundle> implements CacheMid
 		}
 
 		this.backend.del(key);
-		this.emitter.emit(CacheEventType.DELETE, key, entry.value);
+		this.emitter.emit(CacheEvent.DELETE, key, entry.value);
 
 		return true;
 	};

@@ -4,7 +4,7 @@ import { PolicyBasedCacheMiddleEnd } from '../../lib/middleend/policy-based';
 import { EsMapBackend } from '../../lib/backend/es-map';
 import { PolicyMock } from '../mocks/policy';
 import { EntryValidity } from '../../lib/contracts/replacement-policy';
-import { CacheEventType } from '../../lib/contracts/cache-event-emitter';
+import { CacheEvent } from '../../lib/contracts/cache-event-emitter';
 
 describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCacheMiddleEnd.prototype.get.name.magenta} spec`, () => {
@@ -68,11 +68,11 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
-			middleEnd.events.eventMask = CacheEventType.INSERT;
+			middleEnd.events.eventMask = CacheEvent.INSERT;
 
 			let eventKey;
 			let eventValue;
-			middleEnd.events.on(CacheEventType.INSERT, (key, value) => {
+			middleEnd.events.on(CacheEvent.INSERT, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -96,17 +96,17 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
-			middleEnd.events.eventMask = CacheEventType.INSERT | CacheEventType.UPDATE;
+			middleEnd.events.eventMask = CacheEvent.INSERT | CacheEvent.UPDATE;
 
 			let setEventKey;
 			let setEventValue;
 			let updateEventKey;
 			let updateEventValue;
-			middleEnd.events.on(CacheEventType.INSERT, (key, value) => {
+			middleEnd.events.on(CacheEvent.INSERT, (key, value) => {
 				setEventKey = key;
 				setEventValue = value;
 			});
-			middleEnd.events.on(CacheEventType.UPDATE, (key, value) => {
+			middleEnd.events.on(CacheEvent.UPDATE, (key, value) => {
 				updateEventKey = key;
 				updateEventValue = value;
 			});
@@ -176,10 +176,10 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const policy3 = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy1, policy2, policy3]);
 
-			middleEnd.events.eventMask = CacheEventType.DELETE;
+			middleEnd.events.eventMask = CacheEvent.DELETE;
 			let eventKey;
 			let eventValue;
-			middleEnd.events.on(CacheEventType.DELETE, (key, value) => {
+			middleEnd.events.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -210,10 +210,10 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
-			middleEnd.events.eventMask = CacheEventType.DELETE;
+			middleEnd.events.eventMask = CacheEvent.DELETE;
 			let eventKey;
 			let eventValue;
-			middleEnd.events.on(CacheEventType.DELETE, (key, value) => {
+			middleEnd.events.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -237,9 +237,9 @@ describe(`${PolicyBasedCacheMiddleEnd.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const middleEnd = new PolicyBasedCacheMiddleEnd<string, string, string>(backend, [policy]);
 
-			middleEnd.events.eventMask = CacheEventType.FLUSH;
+			middleEnd.events.eventMask = CacheEvent.FLUSH;
 			let flushEmitted = false;
-			middleEnd.events.on(CacheEventType.FLUSH, () => {
+			middleEnd.events.on(CacheEvent.FLUSH, () => {
 				flushEmitted = true;
 			});
 

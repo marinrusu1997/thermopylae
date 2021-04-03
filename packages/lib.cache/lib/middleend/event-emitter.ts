@@ -1,23 +1,23 @@
 import { EventEmitter } from 'events';
-import { CacheEventEmitter, CacheEventListener, CacheEventType } from '../contracts/cache-event-emitter';
+import { CacheEventEmitter, CacheEventListener, CacheEvent } from '../contracts/cache-event-emitter';
 
 class MiddleEndEventEmitter<Key, Value> implements CacheEventEmitter<Key, Value> {
 	private emitter!: EventEmitter;
 
-	private internalEventsMask!: CacheEventType;
+	private internalEventsMask!: CacheEvent;
 
-	public get eventMask(): CacheEventType {
+	public get eventMask(): CacheEvent {
 		return this.internalEventsMask;
 	}
 
-	public set eventMask(mask: CacheEventType) {
+	public set eventMask(mask: CacheEvent) {
 		this.internalEventsMask = mask;
 		if (this.emitter == null) {
 			this.emitter = new EventEmitter();
 		}
 	}
 
-	public on(event: CacheEventType, listener: CacheEventListener<Key, Value>): boolean {
+	public on(event: CacheEvent, listener: CacheEventListener<Key, Value>): boolean {
 		if (event === (this.internalEventsMask & event)) {
 			this.emitter!.on((event as unknown) as string, listener);
 			return true;
@@ -25,7 +25,7 @@ class MiddleEndEventEmitter<Key, Value> implements CacheEventEmitter<Key, Value>
 		return false;
 	}
 
-	public off(event: CacheEventType, listener: CacheEventListener<Key, Value>): boolean {
+	public off(event: CacheEvent, listener: CacheEventListener<Key, Value>): boolean {
 		if (event === (this.internalEventsMask & event)) {
 			this.emitter!.off((event as unknown) as string, listener);
 			return true;
@@ -33,7 +33,7 @@ class MiddleEndEventEmitter<Key, Value> implements CacheEventEmitter<Key, Value>
 		return false;
 	}
 
-	public emit(event: CacheEventType, key?: Key, value?: Value): boolean {
+	public emit(event: CacheEvent, key?: Key, value?: Value): boolean {
 		if (event === (this.internalEventsMask & event)) {
 			return this.emitter!.emit((event as unknown) as string, key, value);
 		}

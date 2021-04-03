@@ -4,7 +4,7 @@ import { CacheReplacementPolicy, EntryValidity } from '../contracts/replacement-
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheEventEmitter, CacheEventType } from '../contracts/cache-event-emitter';
+import { CacheEventEmitter, CacheEvent } from '../contracts/cache-event-emitter';
 import { MiddleEndEventEmitter } from './event-emitter';
 
 const POLICIES_SYM = Symbol('POLICIES_SYM');
@@ -17,7 +17,6 @@ interface PolicyPerKeyCacheMiddleEndArgumentsBundle<PolicyTag> {
 	policies?: ReadonlyArray<PolicyTag>;
 }
 
-// @fixme test event emitting
 class PolicyPerKeyCacheMiddleEnd<
 	Key,
 	Value,
@@ -82,7 +81,7 @@ class PolicyPerKeyCacheMiddleEnd<
 				this.policies.get(policyName)!.onSet(key, entry, argsBundle);
 			}
 
-			this.emitter.emit(CacheEventType.INSERT, key, value);
+			this.emitter.emit(CacheEvent.INSERT, key, value);
 			return;
 		}
 
@@ -91,7 +90,7 @@ class PolicyPerKeyCacheMiddleEnd<
 			this.policies.get(policyName)!.onUpdate(key, entry, argsBundle);
 		}
 
-		this.emitter.emit(CacheEventType.UPDATE, key, value);
+		this.emitter.emit(CacheEvent.UPDATE, key, value);
 	}
 
 	/**
@@ -120,7 +119,7 @@ class PolicyPerKeyCacheMiddleEnd<
 		}
 		this.backend.clear();
 
-		this.emitter.emit(CacheEventType.FLUSH);
+		this.emitter.emit(CacheEvent.FLUSH);
 	}
 
 	public keys(): Array<Key> {
@@ -133,7 +132,7 @@ class PolicyPerKeyCacheMiddleEnd<
 		}
 
 		this.backend.del(key);
-		this.emitter.emit(CacheEventType.DELETE, key, entry.value);
+		this.emitter.emit(CacheEvent.DELETE, key, entry.value);
 
 		return true;
 	};
