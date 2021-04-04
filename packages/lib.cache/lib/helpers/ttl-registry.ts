@@ -1,14 +1,23 @@
 import { createException, ErrorCodes } from '../error';
 import { INFINITE_EXPIRATION } from '../constants';
 
+/**
+ * @internal
+ */
 type TtlProvider<K> = (key: K) => number;
 
+/**
+ * @internal
+ */
 interface TtlRegistryEntry {
 	selector: string | RegExp;
 	ttl: number;
 }
 
 // @fixme review this
+/**
+ * @internal
+ */
 class TtlRegistry<Key = string> {
 	private readonly registry: Array<TtlRegistryEntry> | TtlProvider<Key>;
 

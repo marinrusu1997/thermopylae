@@ -6,16 +6,54 @@ import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
 
+/**
+ * @internal
+ */
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
+/**
+ * @internal
+ */
 interface CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag> extends CacheEntry<Value> {
 	[POLICIES_SYM]: ReadonlyArray<PolicyTag>;
 }
 
 interface PolicyPerKeyCacheArgumentsBundle<PolicyTag> {
+	/**
+	 * Array of policies used for a particular key. <br/>
+	 * If not given, key will be tracked by all of the available policies.
+	 */
 	policies?: ReadonlyArray<PolicyTag>;
 }
 
+/**
+ * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
+ * It can selectively use different policies for a particular key.
+ * In order to do so, each policy is tagged for further identification.
+ * When client inserts a new key, it can specify a list of policy tags which will track that key.
+ * If it doesn't specify any tags, key will be tracked by all of the available policies. <br/>
+ * Although any predefined policy can be used, there are some restrictions for multiple policies combination:
+ *
+ * 	- you can use a single type of expiration policies, choices are:
+ * 		- {@link ProactiveExpirationPolicy}
+ * 		- {@link ReactiveExpirationPolicy}
+ * 		- {@link SlidingProactiveExpirationPolicy}
+ *	- you can use a single type of LRU & LFU implementations, choices are:
+ * 		- {@link LRUEvictionPolicy}
+ * 		- {@link SegmentedLRUPolicy}
+ *		- {@link LFUEvictionPolicy}
+ * 		- {@link LFUDAEvictionPolicy}
+ * 		- {@link GDSFEvictionPolicy}
+ *	- you can use {@link PriorityEvictionPolicy}
+ * 	- you can use {@link EntryDependenciesEvictionPolicy}
+ *
+ * Therefore, it results that you use maximum 4 different cache entry replacement policies.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template PolicyTag			Type of the policy tag.
+ * @template ArgumentsBundle	Type of the arguments bundle.
+ */
 class PolicyPerKeyCache<
 		Key,
 		Value,
@@ -33,6 +71,10 @@ class PolicyPerKeyCache<
 
 	private readonly allPoliciesTags: ReadonlyArray<PolicyTag>;
 
+	/**
+	 * @param backend		Cache backend.
+	 * @param policies		Tagged cache replacement policies.
+	 */
 	public constructor(backend: CacheBackend<Key, Value>, policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		super();
 
@@ -45,10 +87,16 @@ class PolicyPerKeyCache<
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public get size(): number {
 		return this.backend.size;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public get(key: Key): Undefinable<Value> {
 		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 
@@ -65,6 +113,9 @@ class PolicyPerKeyCache<
 		return entry.value;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
 		let entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 
@@ -99,6 +150,9 @@ class PolicyPerKeyCache<
 		return this.backend.has(key);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public del(key: Key): boolean {
 		const entry = this.backend.get(key);
 		if (!entry) {
@@ -108,6 +162,9 @@ class PolicyPerKeyCache<
 		return this.internalDelete(key, entry);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public clear(): void {
 		for (const policy of this.policies.values()) {
 			policy.onClear();
@@ -117,6 +174,9 @@ class PolicyPerKeyCache<
 		this.emit(CacheEvent.FLUSH);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
 	}

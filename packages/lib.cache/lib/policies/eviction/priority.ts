@@ -7,6 +7,9 @@ import { IterableCacheBackend } from '../../contracts/cache-backend';
 
 // @fixme take into account gc: https://www.npmjs.com/package/gc-stats
 
+/**
+ * @internal
+ */
 const PRIORITY_SYM = Symbol('PRIORITY_SYM');
 
 /**
@@ -42,11 +45,17 @@ const enum CacheEntryPriority {
 	NOT_REMOVABLE
 }
 
+/**
+ * @internal
+ */
 interface PrioritizedCacheEntry<Key, Value> extends CacheKey<Key>, CacheEntry<Value> {
 	[PRIORITY_SYM]: CacheEntryPriority;
 }
 
 interface PriorityEvictionPolicyArgumentsBundle {
+	/**
+	 * Priority of the key when memory is low and eviction needs to be performed.
+	 */
 	priority?: CacheEntryPriority;
 }
 
@@ -66,7 +75,7 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
 	 * Percentage of the available memory which is considered to be critical. <br/>
 	 * When process reaches it or goes bellow, cache entries eviction kicks in on next {@link PriorityEvictionPolicyOptions.checkInterval}. <br/>
 	 * Percentage is calculated by the following formula: **((heapTotal - heapUsed) * 100) / heapTotal**.
-	 * > ⚠️ WARNING ⚠️ <br/>
+	 * > ⚠️ WARNING ⚠
 	 * > Computation of the available memory doesn't take into account garbage collection and is subject to false positive results.
 	 * GC is performed in a **stop the world** fashion, hence it's delayed by V8 as much as possible and performed when it's
 	 * really needed, i.e. when process is low on memory. <br/>
@@ -87,7 +96,11 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
 /**
  * {@link CacheReplacementPolicy} which evicts entries when NodeJS process is low on memory. <br/>
  * Eviction is based on {@link CacheEntryPriority} and is performed in a **stop the world** way,
- * as it will iterate over cache entries to determine which ones needs to ne evicted.
+ * as it will iterate over cache entries to determine which ones needs to ne evicted based on their priority.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
 class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictionPolicyArgumentsBundle = PriorityEvictionPolicyArgumentsBundle>
 	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {

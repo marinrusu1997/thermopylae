@@ -5,15 +5,24 @@ import { createException } from '../../error';
 import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket-list/ordered-bucket-list';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
+/**
+ * @internal
+ */
 const IGNORED_BUCKET_ID = -1;
 
 /**
- * @private		Should not appear in public documentation.
+ * @internal
  */
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, BucketEntryNode<EvictableKeyNode<Key, Value>> {}
 
 /**
  * Base class for LFU policies.
+ *
+ * @internal
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
 abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly frequencies: OrderedBucketList<EvictableKeyNode<Key, Value>>;

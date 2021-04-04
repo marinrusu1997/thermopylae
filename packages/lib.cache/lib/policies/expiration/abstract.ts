@@ -12,16 +12,28 @@ interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Value>, CacheKey<Ke
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
+/**
+ * @internal
+ */
 abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * Cache entry deleter.
 	 */
 	protected deleteFromCache!: Deleter<Key, Value>;
 
+	/**
+	 * @inheritDoc
+	 */
 	abstract onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
 
+	/**
+	 * @inheritDoc
+	 */
 	abstract onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
+	/**
+	 * @inheritDoc
+	 */
 	abstract onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
@@ -31,6 +43,9 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	abstract onClear(): void;
 
 	/**

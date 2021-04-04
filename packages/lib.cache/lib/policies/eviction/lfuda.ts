@@ -6,6 +6,10 @@ import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 /**
  * [Least Frequently Used with Dynamic Aging](https://en.wikipedia.org/wiki/Cache_replacement_policies#LFU_with_dynamic_aging_(LFUDA) "LFU with dynamic aging (LFUDA)") eviction policy.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
 class LFUDAEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private cacheAge: number;

@@ -1,6 +1,11 @@
 import { Processor } from '@thermopylae/core.declarations';
 import { BucketList } from './interface';
 
+/**
+ * Data structures which keeps buckets identified by bucket key into EcmaScript 6 {@link Map}.
+ *
+ * @internal
+ */
 class HashMapBucketList<BucketKey, BucketEntry> implements BucketList<BucketKey, BucketEntry> {
 	private readonly buckets: Map<BucketKey, Set<BucketEntry>>;
 

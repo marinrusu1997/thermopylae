@@ -1,8 +1,8 @@
 import { Nullable, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { Heap, HeapNode } from '../heap';
-import { EXPIRES_AT_SYM } from '../../constants';
+import { Heap, HeapNode } from '../data-structures/heap';
+import { EXPIRES_AT_SYM } from '../constants';
 
 /**
  * @internal
@@ -12,8 +12,20 @@ interface CleanUpInterval {
 	willCleanUpOn: UnixTimestamp;
 }
 
+/**
+ * @internal
+ */
 interface HeapExpirableEntry extends ExpirableEntry, HeapNode {}
 
+/**
+ * {@link GarbageCollector} which uses a binary min heap to keep entries that needs to be evicted. <br/>
+ * Each heap node is represent by cache entry which contains expiration time. <br/>
+ * Eviction timer is always synchronized with heap root and fires at expiration time of root entry.
+ * When it fires, will evict root and other nodes that have expiration time equal to root.
+ * After that, timer will fire again at the expiration time of the newest root.
+ *
+ * @template T	Type of the cache entry.
+ */
 class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageCollector<T> {
 	private readonly entries: Heap<T>;
 

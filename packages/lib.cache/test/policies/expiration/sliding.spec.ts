@@ -5,9 +5,9 @@ import { expect } from '@thermopylae/lib.unit-test';
 import { ExpirableSlidingCacheEntry, SlidingProactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
-import { GarbageCollector } from '../../../lib/data-structures/garbage-collector/interface';
-import { HeapGarbageCollector } from '../../../lib/data-structures/garbage-collector/heap-gc';
-import { BucketGarbageCollector } from '../../../lib/data-structures/garbage-collector/bucket-gc';
+import { GarbageCollector } from '../../../lib/garbage-collectors/interface';
+import { HeapGarbageCollector } from '../../../lib/garbage-collectors/heap-gc';
+import { BucketGarbageCollector } from '../../../lib/garbage-collectors/bucket-gc';
 
 function generateEntry(): ExpirableSlidingCacheEntry<string, any> {
 	return {

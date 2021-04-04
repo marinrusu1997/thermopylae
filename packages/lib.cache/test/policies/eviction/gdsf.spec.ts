@@ -108,7 +108,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 	it("recomputes priority when value changes in the 'onUpdate' hook", () => {
 		let totalEntriesNo = 0;
 
-		const policy = new GDSFEvictionPolicy<string, string>(1, {
+		const policy = new GDSFEvictionPolicy<string, string, any>(1, {
 			get size() {
 				return totalEntriesNo;
 			}

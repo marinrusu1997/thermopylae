@@ -9,9 +9,9 @@ import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { UniqueKeysGenerator } from '../../utils';
 import { HEAP_NODE_IDX_SYM, HeapNode } from '../../../lib/data-structures/heap';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
-import { GarbageCollector } from '../../../lib/data-structures/garbage-collector/interface';
-import { HeapGarbageCollector } from '../../../lib/data-structures/garbage-collector/heap-gc';
-import { BucketGarbageCollector } from '../../../lib/data-structures/garbage-collector/bucket-gc';
+import { GarbageCollector } from '../../../lib/garbage-collectors/interface';
+import { HeapGarbageCollector } from '../../../lib/garbage-collectors/heap-gc';
+import { BucketGarbageCollector } from '../../../lib/garbage-collectors/bucket-gc';
 
 interface ExpirableCacheEntryHeapNode<Key, Value> extends ExpirableCacheEntry<Key, Value>, HeapNode {}
 

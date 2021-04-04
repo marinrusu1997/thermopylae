@@ -4,6 +4,9 @@ import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-gr
 import { ReadonlyCacheBackend } from '../../contracts/cache-backend';
 import { createException, ErrorCodes } from '../../error';
 
+/**
+ * @internal
+ */
 interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
 
 interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
@@ -19,14 +22,29 @@ interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
 	 * Behaviour to take when dependency not present in the {@link ReadonlyCacheBackend}:
 	 * Strict mode  | Behaviour
 	 * ------------ | -------------
-	 * true  		| An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use strict mode for debugging or testing, in production is not recommended to use it.
+	 * true  		| An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use *throwOnDependencyNotFound* mode for debugging or testing, in production is not recommended to use it.
 	 * false  		| Dependency will be ignored and relationship with entry won't be established.
 	 *
 	 * Defaults to **false**.
 	 */
-	strict?: boolean;
+	throwOnDependencyNotFound?: boolean;
 }
 
+/**
+ * Eviction policy, purpose of which is to offer ***cascade delete*** functionality. <br/>
+ *
+ * When one of the keys is deleted/eviction, all of it's direct and transitive dependencies will also be deleted/evicted. <br/>
+ *
+ * This is achieved by using an internal dependency graph. Graph is able to handle cycles. <br/>
+ *
+ * When `key` is inserted in the cache, clients should also specify a list of dependencies and/or dependents (if `key` has them).
+ * **The only limitation is that dependencies/dependents must be already present in the cache when they are specified,
+ * otherwise relationships of the `key` with them will be ignored.**
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
+ */
 class EntryDependenciesEvictionPolicy<
 	Key,
 	Value,
@@ -43,16 +61,25 @@ class EntryDependenciesEvictionPolicy<
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
+	/**
+	 * @param readonlyCacheBackend	Cache backend instance.
+	 */
 	public constructor(readonlyCacheBackend: ReadonlyCacheBackend<Key, Value>) {
 		this.dependencyGraph = new DependencyGraph<CacheEntryWithDependencies<Key, Value>>();
 		this.readonlyCacheBackend = readonlyCacheBackend;
 		this.visitedEntriesOnDeletion = new Set<CacheEntryWithDependencies<Key, Value>>();
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onGet(): EntryValidity {
 		return EntryValidity.VALID;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onSet(key: Key, entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
 		entry.key = key; // dependencies might be added later in the form of dependents
 
@@ -66,7 +93,7 @@ class EntryDependenciesEvictionPolicy<
 			for (const dependencyKey of options.dependencies) {
 				dependencyEntry = this.readonlyCacheBackend.get(dependencyKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
-					if (options.strict) {
+					if (options.throwOnDependencyNotFound) {
 						throw createException(ErrorCodes.NOT_FOUND, `Dependency '${dependencyKey}' of the '${key}' wasn't found.`);
 					}
 					continue;
@@ -80,7 +107,7 @@ class EntryDependenciesEvictionPolicy<
 			for (const dependentKey of options.dependents) {
 				dependencyEntry = this.readonlyCacheBackend.get(dependentKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
-					if (options.strict) {
+					if (options.throwOnDependencyNotFound) {
 						throw createException(ErrorCodes.NOT_FOUND, `Dependent '${dependentKey}' of the '${key}' wasn't found.`);
 					}
 					continue;
@@ -99,6 +126,9 @@ class EntryDependenciesEvictionPolicy<
 		return undefined;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onDelete(_key: Key, entry: CacheEntryWithDependencies<Key, Value>): void {
 		this.visitedEntriesOnDeletion.add(entry);
 
@@ -116,11 +146,17 @@ class EntryDependenciesEvictionPolicy<
 		this.dependencyGraph.removeNode(entry); // remove from graph & detach metadata
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public onClear(): void {
 		// do nothing, gc should be able to free entries, even if they have references to each other
 		// same happens with linked lists
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}

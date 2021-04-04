@@ -1,13 +1,26 @@
 import { array } from '@thermopylae/lib.utils';
 
+/**
+ * @internal
+ */
 const DEPENDENCIES_SYM = Symbol('GRAPH_DEPENDENCIES_SYM');
+
+/**
+ * @internal
+ */
 const DEPENDENTS_SYM = Symbol('GRAPH_DEPENDENTS_SYM');
 
+/**
+ * @internal
+ */
 interface GraphEntry {
 	[DEPENDENCIES_SYM]?: Array<GraphEntry>;
 	[DEPENDENTS_SYM]?: Array<GraphEntry>;
 }
 
+/**
+ * @internal
+ */
 class DependencyGraph<GraphNode extends GraphEntry> {
 	private static readonly NO_DEPENDENCIES = [];
 

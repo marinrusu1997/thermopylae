@@ -38,7 +38,7 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	readonly size: number;
 
 	/**
-	 * Get the value associated with `key`.
+	 * Get the `value` associated with `key`.
 	 *
 	 * @param key			Name of the key.
 	 * @param argsBundle	Bundle of arguments passed by client for this operation.
@@ -46,7 +46,9 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	get(key: Key, argsBundle?: ArgumentsBundle): MaybePromise<Value | undefined, Returns>;
 
 	/**
-	 * Set `value` associated with `key`.
+	 * Set `value` associated with `key`. <br/>
+	 * After successful insertion/update, according {@link CacheEvent.INSERT}, respectively {@link CacheEvent.UPDATE}
+	 * events will be emitted.
 	 *
 	 * @param key			Name of the key.
 	 * @param value			It's associated value.
@@ -62,7 +64,8 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	has(key: Key): boolean;
 
 	/**
-	 * Delete `key` and it's associated value.
+	 * Delete `key` and it's associated value. <br/>
+	 * After successful deletion, {@link CacheEvent.DELETE} event will be emitted.
 	 *
 	 * @param key	Name of the key.
 	 *
@@ -76,7 +79,8 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	keys(): Array<Key>;
 
 	/**
-	 * Clear all cache entries.
+	 * Clear all cache entries. <br/>
+	 * After successful clear, {@link CacheEvent.FLUSH} event will be emitted.
 	 */
 	clear(): void;
 

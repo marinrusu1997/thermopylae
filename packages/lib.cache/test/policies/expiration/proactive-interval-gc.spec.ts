@@ -7,7 +7,7 @@ import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
-import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/data-structures/garbage-collector/interval-gc';
+import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/garbage-collectors/interval-gc';
 import { EsMapCacheBackend } from '../../../lib/backend/es-map';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarbageCollector.name.magenta} spec`, () => {
@@ -34,7 +34,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
 				iterableBackend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: KEYS_BY_TTL.ONE_SECOND.length || KEYS_BY_TTL.TWO_SECOND.length
+				iterateCount: KEYS_BY_TTL.ONE_SECOND.length || KEYS_BY_TTL.TWO_SECOND.length
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
@@ -53,7 +53,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
 					`${'KEY_TO_TTL'.magenta}\t: ${JSON.stringify([...KEY_TO_TTL])}`,
 					`${'KEYS_BY_TTL'.magenta}\t: ${JSON.stringify(KEYS_BY_TTL)}`,
-					`${'CONFIG.iterateThreshold'.magenta}: ${CONFIG.iterateThreshold}`,
+					`${'CONFIG.iterateCount'.magenta}: ${CONFIG.iterateCount}`,
 					`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 				];
 
@@ -77,7 +77,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 
 			const twoSecTtlTimeout = setTimeout(() => {
 				try {
-					const expectedNumOfEvictedKeys = KEYS_BY_TTL.ONE_SECOND.length + Math.min(CONFIG.iterateThreshold!, KEYS_BY_TTL.TWO_SECOND.length);
+					const expectedNumOfEvictedKeys = KEYS_BY_TTL.ONE_SECOND.length + Math.min(CONFIG.iterateCount!, KEYS_BY_TTL.TWO_SECOND.length);
 
 					expect(EVICTED_KEYS).to.be.ofSize(expectedNumOfEvictedKeys);
 
@@ -104,7 +104,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
 				iterableBackend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: 1
+				iterateCount: 1
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
@@ -172,7 +172,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
 				iterableBackend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: number.randomInt(1, CAPACITY)
+				iterateCount: number.randomInt(1, CAPACITY)
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
@@ -191,7 +191,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 					`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
 					`${'KEY_TO_TTL'.magenta}\t: ${JSON.stringify([...KEY_TO_TTL])}`,
 					`${'KEYS_WITH_INFINITE_TTL'.magenta}\t: ${JSON.stringify(KEYS_WITH_INFINITE_TTL)}`,
-					`${'CONFIG.iterateThreshold'.magenta}: ${CONFIG.iterateThreshold}`,
+					`${'CONFIG.iterateCount'.magenta}: ${CONFIG.iterateCount}`,
 					`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 				];
 
@@ -208,7 +208,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			setTimeout(() => {
 				try {
 					const expectedEvictedKeys = KEYS.filter((key) => !KEYS_WITH_INFINITE_TTL.includes(key));
-					const numberOfEvictedKeys = Math.min(expectedEvictedKeys.length, CONFIG.iterateThreshold!);
+					const numberOfEvictedKeys = Math.min(expectedEvictedKeys.length, CONFIG.iterateCount!);
 
 					expect(EVICTED_KEYS).to.be.ofSize(numberOfEvictedKeys);
 
@@ -233,7 +233,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
 				iterableBackend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: 1
+				iterateCount: 1
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
@@ -277,7 +277,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const CONFIG: IntervalGarbageCollectorOptions<string, number> = {
 				iterableBackend: BACKEND,
 				checkInterval: 1,
-				iterateThreshold: 1
+				iterateCount: 1
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 

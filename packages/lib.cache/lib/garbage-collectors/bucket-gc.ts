@@ -3,11 +3,18 @@
 import { Nullable, Runnable, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { HashMapBucketList } from '../bucket-list/hash-map-bucket-list';
-import { EXPIRES_AT_SYM } from '../../constants';
+import { HashMapBucketList } from '../data-structures/bucket-list/hash-map-bucket-list';
+import { EXPIRES_AT_SYM } from '../constants';
 
 // reference: https://groups.google.com/g/memcached/c/MdNPv0oxhO8
 
+/**
+ * {@link GarbageCollector} implementation which uses a map of buckets to keep entries that needs to be evicted. <br/>
+ * Each timestamp has an according bucket with entries that need to be evicted at that time. <br/>
+ * A timer is set to tick on each second and evicts all entries from the bucket corresponding to timestamp when timer fired.
+ *
+ * @template T	Type of the cache entry.
+ */
 class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollector<T> {
 	private static readonly EVICTION_TIMEOUT: Seconds = 1;
 
@@ -84,11 +91,17 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 	}
 }
 
+/**
+ * @internal
+ */
 interface EvictionInterval {
 	timeoutId: Nullable<NodeJS.Timeout>;
 	willTickOn: UnixTimestamp;
 }
 
+/**
+ * @internal
+ */
 class EvictionTimer {
 	private readonly evictionInterval: EvictionInterval;
 

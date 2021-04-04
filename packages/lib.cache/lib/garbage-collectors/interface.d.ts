@@ -1,11 +1,14 @@
 import { UnixTimestamp } from '@thermopylae/core.declarations';
-import { EXPIRES_AT_SYM } from '../../constants';
+import { EXPIRES_AT_SYM } from '../constants';
 
 /**
  * Callback invoked when entry expires.
  */
 declare type EntryExpiredCallback<T> = (entry: T) => void;
 
+/**
+ * @internal
+ */
 declare interface ExpirableEntry {
 	[EXPIRES_AT_SYM]: UnixTimestamp;
 }

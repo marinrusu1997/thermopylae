@@ -3,12 +3,21 @@ import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../l
 import { LinkedList } from '../list/interface';
 import { BucketList } from './interface';
 
+/**
+ * @internal
+ */
 const BUCKET_HEADER_SYM = Symbol('BUCKET_HEADER_SYM');
 
+/**
+ * @internal
+ */
 interface BucketEntryNode<BucketEntry> extends DoublyLinkedListNode<BucketEntryNode<BucketEntry>> {
 	[BUCKET_HEADER_SYM]: BucketHeaderNode<BucketEntry>;
 }
 
+/**
+ * @internal
+ */
 interface BucketHeaderNode<BucketEntry> extends DoublyLinkedListNode<BucketHeaderNode<BucketEntry>> {
 	id: number;
 	bucket: LinkedList<BucketEntry>;
@@ -16,6 +25,8 @@ interface BucketHeaderNode<BucketEntry> extends DoublyLinkedListNode<BucketHeade
 
 /**
  * Data structure which keeps a list of ordered buckets by their id's.
+ *
+ * @internal
  */
 class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implements BucketList<number, BucketEntry> {
 	private readonly buckets: LinkedList<BucketHeaderNode<BucketEntry>>;

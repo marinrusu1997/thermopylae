@@ -7,12 +7,16 @@ import { createException, ErrorCodes } from '../../error';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 /**
- * @private		Should not appear in public documentation.
+ * @internal
  */
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
 
 /**
  * [Least Recently Used](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU) "Least recently used (LRU)") eviction policy.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
 class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly cacheMaxCapacity: Threshold;

@@ -1,3 +1,6 @@
+/**
+ * Constant used to specify that key will never expire.
+ */
 const INFINITE_EXPIRATION = 0;
 
 /**

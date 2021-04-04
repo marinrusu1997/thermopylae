@@ -16,9 +16,13 @@ interface SizeOf<T> {
 
 /**
  * [Greedy Dual-Size with Frequency](https://www.hpl.hp.com/personal/Lucy_Cherkasova/projects/gdfs.html "Improving Web Servers and Proxies Performance with GDSF Caching Policies") eviction policy.
- * To be used carefully, as in practice, if no items are evicted, items frequency will increase with a very low rate.
+ * **To be used carefully, as in practice, if no items are evicted, items frequency will increase with a very low rate.**
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
-class GDSFEvictionPolicy<Key, Value, ArgumentsBundle = any> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
+class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private readonly sizeOf: SizeOf<Value>;
 
 	private cacheAge: number;

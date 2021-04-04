@@ -7,11 +7,40 @@ import { Cache, CacheEvent } from '../contracts/cache';
 import { CacheEntry } from '../contracts/commons';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
+
+/**
+ * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
+ * Although any predefined policy can be used, there are some restrictions for multiple policies combination:
+ *
+ * 	- you can use a single type of expiration policies, choices are:
+ * 		- {@link ProactiveExpirationPolicy}
+ * 		- {@link ReactiveExpirationPolicy}
+ * 		- {@link SlidingProactiveExpirationPolicy}
+ *	- you can use a single type of LRU & LFU implementations, choices are:
+ * 		- {@link LRUEvictionPolicy}
+ * 		- {@link SegmentedLRUPolicy}
+ *		- {@link LFUEvictionPolicy}
+ * 		- {@link LFUDAEvictionPolicy}
+ * 		- {@link GDSFEvictionPolicy}
+ *	- you can use {@link PriorityEvictionPolicy}
+ * 	- you can use {@link EntryDependenciesEvictionPolicy}
+ *
+ * Therefore, it results that you use maximum 4 different cache entry replacement policies.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
+ */
 class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitter implements Cache<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
+	/**
+	 * @param backend		Cache backend.
+	 * @param policies		Array of policies. <br/>
+	 * 						If you pass nothing or an empty array, cache will act as a simple wrapper over backend.
+	 */
 	public constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		super();
 
@@ -23,10 +52,16 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		}
 	}
 
+	/**
+	 * Get number of cache entries.
+	 */
 	public get size(): number {
 		return this.backend.size;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public get(key: Key): Undefinable<Value> {
 		const entry = this.backend.get(key);
 
@@ -48,7 +83,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	/**
 	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
 	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
-	 * therefore even if method returns **true**, trying to *get* item might evict him.
+	 * therefore even if method returns **true**, trying to *get* item might evict him and you will get `undefined` as result.
 	 *
 	 * @param key	Name of the key.
 	 */
@@ -56,6 +91,9 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		return this.backend.has(key);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
 		// we use raw get, so that we don't call `onGet` and also even if they will remove it within `onGet`,
 		// we will add it back anyway, so better use `onUpdate` which will update policies meta-data while keeping entry in the cache
@@ -94,6 +132,9 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		this.emit(CacheEvent.UPDATE, key, value);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public del(key: Key): boolean {
 		const entry = this.backend.get(key);
 		if (!entry) {
@@ -103,10 +144,16 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		return this.internalDelete(key, entry);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public clear(): void {
 		for (const policy of this.policies) {
 			policy.onClear();

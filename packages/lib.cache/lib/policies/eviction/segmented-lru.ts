@@ -6,10 +6,13 @@ import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/li
 import { LinkedList } from '../../data-structures/list/interface';
 import { createException } from '../../error';
 
+/**
+ * @internal
+ */
 const SEGMENT_SYM = Symbol('SEGMENT_SYM');
 
 /**
- * @private		Should not appear in public documentation.
+ * @internal
  */
 const enum SegmentType {
 	PROBATION,
@@ -17,14 +20,14 @@ const enum SegmentType {
 }
 
 /**
- * @private		Should not appear in public documentation.
+ * @internal
  */
 interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
 	[SEGMENT_SYM]: SegmentType;
 }
 
 /**
- * @private		Should not appear in public documentation.
+ * @internal
  */
 type Segments<Key, Value> = {
 	[Segment in SegmentType]: {
@@ -35,6 +38,10 @@ type Segments<Key, Value> = {
 
 /**
  * [Segmented LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Segmented_LRU_(SLRU) "Segmented LRU (SLRU)") eviction policy.
+ *
+ * @template Key				Type of the key.
+ * @template Value				Type of the value.
+ * @template ArgumentsBundle	Type of the arguments bundle.
  */
 class SegmentedLRUPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly segments: Segments<Key, Value>;

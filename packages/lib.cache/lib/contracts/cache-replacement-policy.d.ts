@@ -3,9 +3,10 @@ import { CacheEntry } from './commons';
 /**
  * Function, that given a `key`, will remove it from storage. <br/>
  * Deleter makes policy able to delete entries on his own, when it detects that they should no longer be kept. <br/>
- * Deleter is also responsible to trigger `onDelete` hook for each policy, so that they can clear metadata and internal data structures.
+ * **Deleter is responsible to call `onDelete` hook for each policy, so that they can clear metadata and internal data structures.**
  *
- * @param key	Name of the key.
+ * @param key		Name of the key.
+ * @param entry		Entry associated with `key`.
  */
 declare type Deleter<Key, Value> = (key: Key, entry: CacheEntry<Value>) => void;
 
@@ -20,7 +21,7 @@ declare const enum EntryValidity {
 /**
  * Represents an abstraction over {@link CacheEntry} processing. <br/>
  * Policy might intercept cache operations and execute different actions using metadata attached to {@link CacheEntry}.
- * These actions will result in {@link CacheEntry} evictions, depending of policy replacement algorithm.
+ * These actions might result in {@link CacheEntry} evictions, depending on policy replacement algorithm.
  *
  * @template Key 				Type of the key.
  * @template Value				Type of the value.
@@ -30,7 +31,9 @@ declare const enum EntryValidity {
  */
 declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
-	 * Hook executed after `entry` for `key` was retrieved.
+	 * Hook executed **after** `entry` for `key` was retrieved. <br/>
+	 * Policy might decide that entry is no longer valid and return {@link EntryValidity.NOT_VALID}.
+	 * **In case it does so, policy is responsible to evict `entry` from cache before this method returns.**
 	 *
 	 * @param key		Name of the key.
 	 * @param entry		Associated entry.
@@ -40,7 +43,7 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
 
 	/**
-	 * Hook executed after `entry` for `key` has been set.
+	 * Hook executed **after** `entry` for `key` has been set.
 	 *
 	 * @param key			Name of the key.
 	 * @param entry			Associated entry.
@@ -49,7 +52,7 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
-	 * Hook executed after value for `entry` related with `key` has been replaced.
+	 * Hook executed **after** value for `entry` associated with `key` has been updated.
 	 *
 	 * @param key			Name of the key.
 	 * @param entry			Associated entry.
@@ -58,9 +61,9 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
-	 * Hook executed after `entry` for `key` has been deleted. <br/>
-	 * Policy is supposed to detach metadata from entry
-	 * and cleanup it's internal data structures when this hook is called.
+	 * Hook executed **before** `entry` for `key` has been deleted. <br/>
+	 * **Policy is supposed to detach metadata from entry
+	 * and cleanup it's internal data structures when this hook is called.**
 	 *
 	 * @param key		Name of the key.
 	 * @param entry		Associated entry.
@@ -68,7 +71,7 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	onDelete(key: Key, entry: CacheEntry<Value>): void;
 
 	/**
-	 * Hook executed after cache has been cleared.
+	 * Hook executed **before** cache has been cleared.
 	 */
 	onClear(): void;
 

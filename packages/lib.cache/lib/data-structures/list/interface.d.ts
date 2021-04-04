@@ -3,7 +3,7 @@ import { Nullable } from '@thermopylae/core.declarations';
 /**
  * [Linked List](https://en.wikipedia.org/wiki/Linked_list "Linked list") data structure.
  *
- * @private
+ * @internal
  */
 interface LinkedList<Node> extends Iterable<Node> {
 	head: Nullable<Node>;
