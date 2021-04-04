@@ -1,6 +1,5 @@
 import { PromiseHolder } from '@thermopylae/core.declarations';
-import { Cache } from '../contracts/cache';
-import { CacheEventEmitterInterface } from '../contracts/cache-event-emitter';
+import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
 
 type KeyRetriever<Key, Value> = (key: Key) => Promise<Value | undefined>;
 type KeyConfigProvider<Key, ArgumentsBundle> = (key: Key) => ArgumentsBundle | undefined;
@@ -19,12 +18,6 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 			options.keyConfigProvider = RenewableCache.defaultKeyConfigProvider;
 		}
 		this.options = options as Readonly<Required<RenewableCacheOptions<Key, Value, ArgumentsBundle>>>;
-	}
-
-	// @ts-ignore
-	public get events(): CacheEventEmitterInterface<Key, PromiseHolder<Value>> {
-		// @ts-ignore
-		return this.options.cache.events;
 	}
 
 	public get size(): number {
@@ -82,6 +75,16 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 
 	public keys(): Array<Key> {
 		return this.options.cache.keys();
+	}
+
+	// @ts-ignore
+	public on(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value>>): this {
+		this.options.cache.on(event, listener);
+	}
+
+	// @ts-ignore
+	public off(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value>>): this {
+		this.options.cache.off(event, listener);
 	}
 
 	private static buildPromiseHolder<T>(): PromiseHolder<T> {

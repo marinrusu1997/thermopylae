@@ -5,7 +5,7 @@ import { chrono } from '@thermopylae/lib.utils';
 import { KeyRetriever, PromiseHolder, RenewableCache } from '../../lib/caches/renewable';
 import { EntryPoolCacheBackend } from '../../lib/backend/entry-pool';
 import { PolicyBasedCache } from '../../lib/caches/policy-based';
-import { CacheEvent } from '../../lib/contracts/cache-event-emitter';
+import { CacheEvent } from '../../lib/contracts/cache';
 
 describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
@@ -244,17 +244,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 
 			const events = new Map<CacheEvent, Array<string>>();
 
-			renewableCache.events.eventMask = CacheEvent.INSERT | CacheEvent.UPDATE | CacheEvent.DELETE | CacheEvent.FLUSH;
-			renewableCache.events.on(CacheEvent.INSERT, async (key, promiseHolder) => {
+			renewableCache.on(CacheEvent.INSERT, async (key, promiseHolder) => {
 				events.set(CacheEvent.INSERT, [key, await promiseHolder.promise]);
 			});
-			renewableCache.events.on(CacheEvent.UPDATE, (key) => {
+			renewableCache.on(CacheEvent.UPDATE, (key) => {
 				events.set(CacheEvent.UPDATE, [key]);
 			});
-			renewableCache.events.on(CacheEvent.DELETE, (key) => {
+			renewableCache.on(CacheEvent.DELETE, (key) => {
 				events.set(CacheEvent.DELETE, [key]);
 			});
-			renewableCache.events.on(CacheEvent.FLUSH, () => {
+			renewableCache.on(CacheEvent.FLUSH, () => {
 				events.set(CacheEvent.FLUSH, []);
 			});
 

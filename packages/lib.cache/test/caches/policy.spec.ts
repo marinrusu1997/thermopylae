@@ -4,7 +4,7 @@ import { PolicyBasedCache } from '../../lib/caches/policy-based';
 import { EsMapCacheBackend } from '../../lib/backend/es-map';
 import { PolicyMock } from './mocks/policy';
 import { EntryValidity } from '../../lib/contracts/cache-replacement-policy';
-import { CacheEvent } from '../../lib/contracts/cache-event-emitter';
+import { CacheEvent } from '../../lib/contracts/cache';
 
 describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCache.prototype.get.name.magenta} spec`, () => {
@@ -68,11 +68,9 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			cache.events.eventMask = CacheEvent.INSERT;
-
 			let eventKey;
 			let eventValue;
-			cache.events.on(CacheEvent.INSERT, (key, value) => {
+			cache.on(CacheEvent.INSERT, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -96,17 +94,15 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			cache.events.eventMask = CacheEvent.INSERT | CacheEvent.UPDATE;
-
 			let setEventKey;
 			let setEventValue;
 			let updateEventKey;
 			let updateEventValue;
-			cache.events.on(CacheEvent.INSERT, (key, value) => {
+			cache.on(CacheEvent.INSERT, (key, value) => {
 				setEventKey = key;
 				setEventValue = value;
 			});
-			cache.events.on(CacheEvent.UPDATE, (key, value) => {
+			cache.on(CacheEvent.UPDATE, (key, value) => {
 				updateEventKey = key;
 				updateEventValue = value;
 			});
@@ -176,10 +172,9 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy3 = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy1, policy2, policy3]);
 
-			cache.events.eventMask = CacheEvent.DELETE;
 			let eventKey;
 			let eventValue;
-			cache.events.on(CacheEvent.DELETE, (key, value) => {
+			cache.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -210,10 +205,9 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			cache.events.eventMask = CacheEvent.DELETE;
 			let eventKey;
 			let eventValue;
-			cache.events.on(CacheEvent.DELETE, (key, value) => {
+			cache.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -237,9 +231,8 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			cache.events.eventMask = CacheEvent.FLUSH;
 			let flushEmitted = false;
-			cache.events.on(CacheEvent.FLUSH, () => {
+			cache.on(CacheEvent.FLUSH, () => {
 				flushEmitted = true;
 			});
 

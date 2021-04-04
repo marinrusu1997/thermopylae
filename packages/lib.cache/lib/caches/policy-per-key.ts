@@ -1,11 +1,10 @@
 import { Undefinable } from '@thermopylae/core.declarations';
-import { Cache } from '../contracts/cache';
+import { EventEmitter } from 'events';
+import { Cache, CacheEvent } from '../contracts/cache';
 import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replacement-policy';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheEventEmitterInterface, CacheEvent } from '../contracts/cache-event-emitter';
-import { CacheEventEmitter } from '../helpers/event-emitter';
 
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
@@ -18,11 +17,13 @@ interface PolicyPerKeyCacheArgumentsBundle<PolicyTag> {
 }
 
 class PolicyPerKeyCache<
-	Key,
-	Value,
-	PolicyTag = string,
-	ArgumentsBundle extends PolicyPerKeyCacheArgumentsBundle<PolicyTag> = PolicyPerKeyCacheArgumentsBundle<PolicyTag>
-> implements Cache<Key, Value, ArgumentsBundle> {
+		Key,
+		Value,
+		PolicyTag = string,
+		ArgumentsBundle extends PolicyPerKeyCacheArgumentsBundle<PolicyTag> = PolicyPerKeyCacheArgumentsBundle<PolicyTag>
+	>
+	extends EventEmitter
+	implements Cache<Key, Value, ArgumentsBundle> {
 	/**
 	 * @private
 	 */
@@ -30,14 +31,13 @@ class PolicyPerKeyCache<
 
 	private readonly policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
-	private readonly emitter: CacheEventEmitterInterface<Key, Value>;
-
 	private readonly allPoliciesTags: ReadonlyArray<PolicyTag>;
 
 	public constructor(backend: CacheBackend<Key, Value>, policies: ReadonlyMap<PolicyTag, CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
+		super();
+
 		this.backend = backend;
 		this.policies = policies;
-		this.emitter = new CacheEventEmitter<Key, Value>();
 		this.allPoliciesTags = Array.from(this.policies.keys());
 
 		for (const policy of this.policies.values()) {
@@ -47,10 +47,6 @@ class PolicyPerKeyCache<
 
 	public get size(): number {
 		return this.backend.size;
-	}
-
-	public get events(): CacheEventEmitterInterface<Key, Value> {
-		return this.emitter;
 	}
 
 	public get(key: Key): Undefinable<Value> {
@@ -80,7 +76,7 @@ class PolicyPerKeyCache<
 				this.policies.get(policyName)!.onSet(key, entry, argsBundle);
 			}
 
-			this.emitter.emit(CacheEvent.INSERT, key, value);
+			this.emit(CacheEvent.INSERT, key, value);
 			return;
 		}
 
@@ -89,7 +85,7 @@ class PolicyPerKeyCache<
 			this.policies.get(policyName)!.onUpdate(key, entry, argsBundle);
 		}
 
-		this.emitter.emit(CacheEvent.UPDATE, key, value);
+		this.emit(CacheEvent.UPDATE, key, value);
 	}
 
 	/**
@@ -118,7 +114,7 @@ class PolicyPerKeyCache<
 		}
 		this.backend.clear();
 
-		this.emitter.emit(CacheEvent.FLUSH);
+		this.emit(CacheEvent.FLUSH);
 	}
 
 	public keys(): Array<Key> {
@@ -131,7 +127,7 @@ class PolicyPerKeyCache<
 		}
 
 		this.backend.del(key);
-		this.emitter.emit(CacheEvent.DELETE, key, entry.value);
+		this.emit(CacheEvent.DELETE, key, entry.value);
 
 		return true;
 	};

@@ -1,5 +1,22 @@
 import { MaybePromise } from '@thermopylae/core.declarations';
-import { CacheEventEmitterInterface } from './cache-event-emitter';
+
+/**
+ * Event emitted by {@link Cache}.
+ */
+declare const enum CacheEvent {
+	INSERT = 'insert',
+	UPDATE = 'update',
+	DELETE = 'delete',
+	FLUSH = 'flush'
+}
+
+/**
+ * Event listener for {@link CacheEvent}.
+ *
+ * @template Key	Type of the key.
+ * @template Value	Type of the value.
+ */
+declare type CacheEventListener<Key, Value> = (key: Key, value: Value) => void;
 
 /**
  * Represents an abstraction over different cache implementations. <br/>
@@ -19,11 +36,6 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	 * Number of cache entries.
 	 */
 	readonly size: number;
-
-	/**
-	 * {@link CacheEventEmitterInterface} instance with controls cache events.
-	 */
-	readonly events: CacheEventEmitterInterface<Key, Value>;
 
 	/**
 	 * Get the value associated with `key`.
@@ -67,6 +79,22 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	 * Clear all cache entries.
 	 */
 	clear(): void;
+
+	/**
+	 * Register event listener.
+	 *
+	 * @param event			Cache event.
+	 * @param listener		Event listener.
+	 */
+	on(event: CacheEvent, listener: CacheEventListener<Key, Value>): this;
+
+	/**
+	 * Unregister event listener.
+	 *
+	 * @param event			Cache event.
+	 * @param listener		Event listener.
+	 */
+	off(event: CacheEvent, listener: CacheEventListener<Key, Value>): this;
 }
 
-export { Cache };
+export { Cache, CacheEvent, CacheEventListener };

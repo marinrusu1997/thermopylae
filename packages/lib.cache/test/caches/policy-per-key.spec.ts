@@ -5,7 +5,7 @@ import { PolicyMock } from './mocks/policy';
 import { EntryValidity } from '../../lib/contracts/cache-replacement-policy';
 import { PolicyPerKeyCache } from '../../lib/caches/policy-per-key';
 import { NOT_FOUND_VALUE } from '../../lib/constants';
-import { CacheEvent } from '../../lib/contracts/cache-event-emitter';
+import { CacheEvent } from '../../lib/contracts/cache';
 
 const enum PolicyTag {
 	EXPIRATION,
@@ -29,16 +29,15 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 				])
 			);
 
-			cache.events.eventMask = CacheEvent.INSERT | CacheEvent.UPDATE;
 			let insertEventKey;
 			let insertEventValue;
-			cache.events.on(CacheEvent.INSERT, (key, value) => {
+			cache.on(CacheEvent.INSERT, (key, value) => {
 				insertEventKey = key;
 				insertEventValue = value;
 			});
 			let updateEventKey;
 			let updateEventValue;
-			cache.events.on(CacheEvent.UPDATE, (key, value) => {
+			cache.on(CacheEvent.UPDATE, (key, value) => {
 				updateEventKey = key;
 				updateEventValue = value;
 			});
@@ -128,10 +127,9 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 				])
 			);
 
-			cache.events.eventMask = CacheEvent.INSERT | CacheEvent.UPDATE;
 			let updateEventKey;
 			let updateEventValue;
-			cache.events.on(CacheEvent.UPDATE, (key, value) => {
+			cache.on(CacheEvent.UPDATE, (key, value) => {
 				updateEventKey = key;
 				updateEventValue = value;
 			});
@@ -171,10 +169,9 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 				])
 			);
 
-			cache.events.eventMask = CacheEvent.DELETE;
 			let eventKey;
 			let eventValue;
-			cache.events.on(CacheEvent.DELETE, (key, value) => {
+			cache.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
@@ -242,9 +239,8 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 				])
 			);
 
-			cache.events.eventMask = CacheEvent.FLUSH;
 			let clearEventEmitted = false;
-			cache.events.on(CacheEvent.FLUSH, () => {
+			cache.on(CacheEvent.FLUSH, () => {
 				clearEventEmitted = true;
 			});
 
