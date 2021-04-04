@@ -1,4 +1,4 @@
-import { Undefinable } from '@thermopylae/core.declarations';
+import { MaybePromise } from '@thermopylae/core.declarations';
 import { CacheEventEmitterInterface } from './cache-event-emitter';
 
 /**
@@ -12,8 +12,9 @@ import { CacheEventEmitterInterface } from './cache-event-emitter';
  * @template Key				Type of the key.
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle passed to different operations.
+ * @template Returns			Type of the return value.
  */
-declare interface Cache<Key, Value, ArgumentsBundle> {
+declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | 'promise' = 'plain'> {
 	/**
 	 * Number of cache entries.
 	 */
@@ -27,9 +28,10 @@ declare interface Cache<Key, Value, ArgumentsBundle> {
 	/**
 	 * Get the value associated with `key`.
 	 *
-	 * @param key	Name of the key.
+	 * @param key			Name of the key.
+	 * @param argsBundle	Bundle of arguments passed by client for this operation.
 	 */
-	get(key: Key): Undefinable<Value>;
+	get(key: Key, argsBundle?: ArgumentsBundle): MaybePromise<Value | undefined, Returns>;
 
 	/**
 	 * Set `value` associated with `key`.

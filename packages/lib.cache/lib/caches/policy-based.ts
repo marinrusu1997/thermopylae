@@ -8,7 +8,7 @@ import { CacheEventEmitterInterface, CacheEvent } from '../contracts/cache-event
 import { CacheEventEmitter } from '../helpers/event-emitter';
 
 // @fixme create example file when try to use all policies to test type safety and also interaction
-class PolicyBasedCache<Key, Value, ArgumentsBundle> implements Cache<Key, Value, ArgumentsBundle> {
+class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
 
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;

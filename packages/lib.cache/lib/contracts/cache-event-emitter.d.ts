@@ -14,7 +14,7 @@ declare const enum CacheEvent {
  * @template Key	Type of the key.
  * @template Value	Type of the value.
  */
-declare type CacheEventListener<Key, Value> = (key?: Key, value?: Value) => void;
+declare type CacheEventListener<Key, Value> = (key: Key, value: Value) => void;
 
 interface CacheEventEmitterInterface<Key, Value> {
 	/**

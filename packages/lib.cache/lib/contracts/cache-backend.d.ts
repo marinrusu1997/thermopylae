@@ -1,4 +1,3 @@
-import { Undefinable } from '@thermopylae/core.declarations';
 import { CacheEntry } from './commons';
 
 interface CacheBackendElementsCount {
@@ -44,7 +43,7 @@ declare interface ReadonlyCacheBackend<Key, Value> {
 	 *
 	 * @param key	Name of the key.
 	 */
-	get(key: Key): Undefinable<CacheEntry<Value>>;
+	get(key: Key): CacheEntry<Value> | undefined;
 
 	/**
 	 * Check if `key` is present in the cache.
