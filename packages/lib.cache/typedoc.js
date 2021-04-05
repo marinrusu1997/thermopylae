@@ -27,7 +27,8 @@ typedoc.outline = [
             "Expiration": {
                 "ProactiveExpirationPolicy": "_policies_expiration_proactive_",
                 "ReactiveExpirationPolicy": "_policies_expiration_reactive_",
-                "SlidingProactiveExpirationPolicy": "_policies_expiration_sliding_"
+                "SlidingProactiveExpirationPolicy": "_policies_expiration_sliding_",
+                "SlidingReactiveExpirationPolicy": "_policies_expiration_sliding_reactive_"
             },
             "Eviction": {
                 "GDSFEvictionPolicy": "_policies_eviction_gdsf_",

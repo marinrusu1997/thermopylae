@@ -32,7 +32,6 @@ function gcFactory(): GarbageCollector<any> {
 	return gc;
 }
 
-// @fixme test with both GC
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 	const defaultTTL = 1; // second
 
@@ -147,7 +146,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 
 			policy.setDeleter(deleter);
 			trackedKeysMap.forEach((ttl, key) => policy.onSet(key, generateEntry(key), { expiresAfter: ttl }));
-		}).timeout(2100);
+		}).timeout(2500);
 
 		it('evicts multiple expired keys with different ttl in the order keys were tracked (tracking stared at different times)', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, any>(gcFactory());
@@ -406,7 +405,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const expiresFrom = chrono.unixTime();
 			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
 			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL, expiresFrom });
-		}).timeout(2100);
+		}).timeout(2500);
 
 		it('evicts key later if ttl is the same (ttl reported to expiresFrom equal to current timestamp)', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
@@ -446,7 +445,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			const expiresFrom = chrono.unixTime();
 			policy.onSet(KEY, ENTRY, { expiresAfter: OLD_TTL, expiresFrom });
 			policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL, expiresFrom: expiresFrom + 1 }); // schedule later
-		}).timeout(2100);
+		}).timeout(2500);
 
 		it("evicts key at it's previous timestamp if new ttl + expiresFrom will have the same eviction timestamp as the latest one", (done) => {
 			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
@@ -477,7 +476,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 			setTimeout(() => {
 				policy.onUpdate(KEY, ENTRY, { expiresAfter: NEW_TTL }); // generates same eviction timestamp
 			}, chrono.secondsToMilliseconds(NEW_TTL));
-		}).timeout(2100);
+		}).timeout(2500);
 
 		it('does not evict key if it had tll, but the new one is infinite', (done) => {
 			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());

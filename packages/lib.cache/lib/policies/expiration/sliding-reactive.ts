@@ -1,14 +1,13 @@
 import { Seconds } from '@thermopylae/core.declarations';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
-import { GarbageCollector } from '../../garbage-collectors/interface';
-import { BucketGarbageCollector } from '../../garbage-collectors/bucket-gc';
+import { chrono } from '@thermopylae/lib.utils';
 import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
 import { EntryValidity } from '../../contracts/cache-replacement-policy';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
 
 /**
  * @internal
  */
-const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM_PROACTIVE');
+const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM_REACTIVE');
 
 /**
  * @internal
@@ -28,71 +27,44 @@ interface SlidingExpirationPolicyArgsBundle {
 /**
  * Expiration policy which evicts keys based on time span access. <br/>
  * If key wasn't accessed in the specified {@link SlidingExpirationPolicyArgsBundle.timeSpan},
- * it will be evicted by {@link GarbageCollector} in the background. <br/>
+ * it will be evicted on the next {@link Cache.get} operation. <br/>
  * If key was accessed in that time span, it's expiration time will be increased with the value of time span.
  *
  * @template Key				Type of the key.
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
-class SlidingProactiveExpirationPolicy<
+class SlidingReactiveExpirationPolicy<
 	Key,
 	Value,
 	ArgumentsBundle extends SlidingExpirationPolicyArgsBundle = SlidingExpirationPolicyArgsBundle
 > extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
 	/**
-	 * @private
-	 */
-	private readonly gc: GarbageCollector<any>;
-
-	public constructor(gc?: GarbageCollector<any>) {
-		super();
-
-		this.gc = gc || new BucketGarbageCollector<any>();
-		this.gc.setEntryExpiredCallback((expiredEntry) => {
-			// remove from cache, will trigger `onDelete` which will detach ttl metadata
-			this.deleteFromCache(expiredEntry.key, expiredEntry);
-		});
-	}
-
-	/**
-	 * Get the number of tracked for expiration keys.
-	 */
-	public get size(): number {
-		return this.gc.size;
-	}
-
-	/**
-	 * Check whether GC is idle.
-	 */
-	public get idle(): boolean {
-		return this.gc.idle;
-	}
-
-	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
+	public onGet(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}
 
-		const oldExpiration = entry[EXPIRES_AT_SYM];
-		SlidingProactiveExpirationPolicy.setEntryExpiration(entry, entry[TIME_SPAN_SYM]!);
-		this.gc.update(oldExpiration!, entry);
+		if (entry[EXPIRES_AT_SYM]! <= chrono.unixTime()) {
+			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
+			return EntryValidity.NOT_VALID;
+		}
 
+		SlidingReactiveExpirationPolicy.setEntryExpiration(entry, entry[TIME_SPAN_SYM]!); // refresh expiration
 		return EntryValidity.VALID;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
-		if (options == null || SlidingProactiveExpirationPolicy.isNonExpirable(options)) {
+	public onSet(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+		if (options == null || SlidingReactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
 
-		this.scheduleEviction(key, entry, options);
+		SlidingReactiveExpirationPolicy.storeExpirationMetadata(entry, options);
 	}
 
 	/**
@@ -105,28 +77,28 @@ class SlidingProactiveExpirationPolicy<
 
 		if (entry[TIME_SPAN_SYM]) {
 			if (options.timeSpan === INFINITE_EXPIRATION) {
-				return this.onDelete(key, entry); // we do not track it anymore
+				return this.onDelete(key, entry); // @fixme we do not track it anymore
 			}
 
 			if (options.timeSpan === entry[TIME_SPAN_SYM]) {
-				return; // do nothing on same timespan, let it be evicted when old time span expires
+				return undefined; // do nothing on same timespan, let it be evicted when old time span expires
 			}
 
-			const oldExpiration = entry[EXPIRES_AT_SYM]!;
-			SlidingProactiveExpirationPolicy.storeExpirationMetadata(entry, options);
-			return this.gc.update(oldExpiration, entry);
+			SlidingReactiveExpirationPolicy.storeExpirationMetadata(entry, options); // update time span and expiration
+			return undefined;
 		}
 
 		if (options.timeSpan !== INFINITE_EXPIRATION) {
-			this.scheduleEviction(key, entry, options); // previously had no time span, now it does
+			SlidingReactiveExpirationPolicy.storeExpirationMetadata(entry, options);
 		}
+
+		return undefined;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public onDelete(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): void {
-		this.gc.leave(entry);
 		super.onDelete(key, entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
 	}
@@ -135,13 +107,7 @@ class SlidingProactiveExpirationPolicy<
 	 * @inheritDoc
 	 */
 	public onClear(): void {
-		this.gc.clear();
-	}
-
-	private scheduleEviction(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options: ArgumentsBundle): void {
-		entry.key = key;
-		SlidingProactiveExpirationPolicy.storeExpirationMetadata(entry, options);
-		this.gc.manage(entry);
+		return undefined; // we have to do nothing
 	}
 
 	private static storeExpirationMetadata<EntryKey, EntryValue, ArgsBundle extends SlidingExpirationPolicyArgsBundle>(
@@ -149,7 +115,7 @@ class SlidingProactiveExpirationPolicy<
 		options: ArgsBundle
 	) {
 		entry[TIME_SPAN_SYM] = options.timeSpan;
-		SlidingProactiveExpirationPolicy.setEntryExpiration(entry, options.timeSpan!);
+		SlidingReactiveExpirationPolicy.setEntryExpiration(entry, options.timeSpan!);
 	}
 
 	private static isNonExpirable(options: SlidingExpirationPolicyArgsBundle): boolean {
@@ -157,4 +123,4 @@ class SlidingProactiveExpirationPolicy<
 	}
 }
 
-export { SlidingProactiveExpirationPolicy, ExpirableSlidingCacheEntry, SlidingExpirationPolicyArgsBundle, TIME_SPAN_SYM };
+export { SlidingReactiveExpirationPolicy, SlidingExpirationPolicyArgsBundle, ExpirableSlidingCacheEntry, TIME_SPAN_SYM };
