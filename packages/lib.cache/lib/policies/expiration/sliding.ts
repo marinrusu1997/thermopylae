@@ -157,4 +157,4 @@ class SlidingProactiveExpirationPolicy<
 	}
 }
 
-export { SlidingProactiveExpirationPolicy, ExpirableSlidingCacheEntry, TIME_SPAN_SYM };
+export { SlidingProactiveExpirationPolicy, ExpirableSlidingCacheEntry, SlidingExpirationPolicyArgsBundle, TIME_SPAN_SYM };

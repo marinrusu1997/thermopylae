@@ -1,11 +1,11 @@
 import { describe, it, afterEach } from 'mocha';
 import colors from 'colors';
 import { expect } from '@thermopylae/lib.unit-test';
-import { CacheEntryWithDependencies, EntryDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies';
+import { CacheEntryWithDependencies, KeysDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies';
 import { EsMapCacheBackend } from '../../../lib/backend/es-map';
 import { DEPENDENCIES_SYM, DEPENDENTS_SYM } from '../../../lib/data-structures/dependency-graph';
 
-describe(`${colors.magenta(EntryDependenciesEvictionPolicy.name)} spec`, () => {
+describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 	const BACKEND = new EsMapCacheBackend<string, string, CacheEntryWithDependencies<string, string>>();
 	const EVICTED_KEYS = new Array<string>();
 
@@ -15,8 +15,8 @@ describe(`${colors.magenta(EntryDependenciesEvictionPolicy.name)} spec`, () => {
 	});
 
 	describe('no cycles spec', () => {
-		function policyFactory(): EntryDependenciesEvictionPolicy<string, string> {
-			const policy = new EntryDependenciesEvictionPolicy<string, string>(BACKEND);
+		function policyFactory(): KeysDependenciesEvictionPolicy<string, string> {
+			const policy = new KeysDependenciesEvictionPolicy<string, string>(BACKEND);
 
 			BACKEND.set('a', 'a');
 			BACKEND.set('b', 'b');
@@ -159,8 +159,8 @@ describe(`${colors.magenta(EntryDependenciesEvictionPolicy.name)} spec`, () => {
 	});
 
 	describe('cycles spec', () => {
-		function policyFactory(): EntryDependenciesEvictionPolicy<string, string> {
-			const policy = new EntryDependenciesEvictionPolicy<string, string>(BACKEND);
+		function policyFactory(): KeysDependenciesEvictionPolicy<string, string> {
+			const policy = new KeysDependenciesEvictionPolicy<string, string>(BACKEND);
 
 			BACKEND.set('0', '0');
 			BACKEND.set('1', '1');
@@ -226,7 +226,7 @@ describe(`${colors.magenta(EntryDependenciesEvictionPolicy.name)} spec`, () => {
 	});
 
 	it('handles duplicated dependencies', () => {
-		const policy = new EntryDependenciesEvictionPolicy<string, string>(BACKEND);
+		const policy = new KeysDependenciesEvictionPolicy<string, string>(BACKEND);
 
 		BACKEND.set('a', 'a');
 		BACKEND.set('b', 'b');

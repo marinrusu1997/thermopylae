@@ -19,12 +19,7 @@ declare const enum CacheEvent {
 declare type CacheEventListener<Key, Value> = (key: Key, value: Value) => void;
 
 /**
- * Represents an abstraction over different cache implementations. <br/>
- *
- * Cache is able to apply different transformations with the {@link CacheEntry},
- * before and after backend is interrogated, this way it might change the behaviour seen by clients.
- * For example, when a request comes to retrieve value associated with key, it might detect
- * that key is expired, delete it, and return `undefined` to client.
+ * Represents an abstraction over different cache implementations.
  *
  * @template Key				Type of the key.
  * @template Value				Type of the value.

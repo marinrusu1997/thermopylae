@@ -2,13 +2,18 @@
     "name": "@thermopylae/lib.cache",
     "description": "Modular cache.",
     "keywords": [
-        "library",
-        "typescript"
+        "library"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "main": "dist/index.js",
-    "exports": "./dist/index.js",
+    "exports": {
+        ".": "./dist/index.js",
+        "./backend/*": "./dist/backend/*.js",
+        "./caches/*": "./dist/caches/*.js",
+        "./garbage-collectors/*": "./dist/garbage-collectors/*.js",
+        "./policies/*": "./dist/policies/**/*.js"
+    },
     "types": "./dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -17,6 +22,7 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
+        "readme": "gulp readme",
         "test": "gulp test",
         "report": "gulp report",
         "coverage": "gulp coverage",

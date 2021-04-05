@@ -20,7 +20,7 @@ class ProactiveExpirationPolicy<
 	Value,
 	ArgumentsBundle extends AbsoluteExpirationPolicyArgumentsBundle = AbsoluteExpirationPolicyArgumentsBundle
 > extends AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle> {
-	private readonly gc: GarbageCollector<any>; // @fixme a bit hackish...
+	private readonly gc: GarbageCollector<any>;
 
 	/**
 	 * @param gc	{@link GarbageCollector} which notifies about expired entries. <br/>

@@ -9,7 +9,7 @@ import { createException, ErrorCodes } from '../../error';
  */
 interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
 
-interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
+interface KeysDependenciesEvictionPolicyArgumentsBundle<Key> {
 	/**
 	 * Dependencies of the entry.
 	 */
@@ -20,10 +20,11 @@ interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
 	dependents?: Array<Key>;
 	/**
 	 * Behaviour to take when dependency not present in the {@link ReadonlyCacheBackend}:
-	 * Strict mode  | Behaviour
-	 * ------------ | -------------
-	 * true  		| An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use *throwOnDependencyNotFound* mode for debugging or testing, in production is not recommended to use it.
-	 * false  		| Dependency will be ignored and relationship with entry won't be established.
+	 *
+	 * Throw on dependency not found  | Behaviour
+	 * ------------------------------ | ------------------------------
+	 * true  						  | An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use *throwOnDependencyNotFound* mode for debugging or testing, in production is not recommended to use it.
+	 * false  						  | Dependency will be ignored and relationship with entry won't be established.
 	 *
 	 * Defaults to **false**.
 	 */
@@ -45,10 +46,10 @@ interface EntryDependenciesEvictionPolicyArgumentsBundle<Key> {
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
-class EntryDependenciesEvictionPolicy<
+class KeysDependenciesEvictionPolicy<
 	Key,
 	Value,
-	ArgumentsBundle extends EntryDependenciesEvictionPolicyArgumentsBundle<Key> = EntryDependenciesEvictionPolicyArgumentsBundle<Key>
+	ArgumentsBundle extends KeysDependenciesEvictionPolicyArgumentsBundle<Key> = KeysDependenciesEvictionPolicyArgumentsBundle<Key>
 > implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * @private
@@ -162,4 +163,4 @@ class EntryDependenciesEvictionPolicy<
 	}
 }
 
-export { EntryDependenciesEvictionPolicy, EntryDependenciesEvictionPolicyArgumentsBundle, CacheEntryWithDependencies };
+export { KeysDependenciesEvictionPolicy, KeysDependenciesEvictionPolicyArgumentsBundle, CacheEntryWithDependencies };

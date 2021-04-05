@@ -180,4 +180,4 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 	}
 }
 
-export { RenewableCache, KeyRetriever, PromiseHolder };
+export { RenewableCache, KeyRetriever, KeyConfigProvider, PromiseHolder };

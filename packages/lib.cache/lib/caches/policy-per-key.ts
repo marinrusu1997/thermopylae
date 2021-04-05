@@ -32,22 +32,18 @@ interface PolicyPerKeyCacheArgumentsBundle<PolicyTag> {
  * In order to do so, each policy is tagged for further identification.
  * When client inserts a new key, it can specify a list of policy tags which will track that key.
  * If it doesn't specify any tags, key will be tracked by all of the available policies. <br/>
- * Although any predefined policy can be used, there are some restrictions for multiple policies combination:
+ * Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
+ * You can combine only 1 policy from each category in the {@link PolicyPerKeyCacheArgumentsBundle.policies}:
  *
- * 	- you can use a single type of expiration policies, choices are:
- * 		- {@link ProactiveExpirationPolicy}
- * 		- {@link ReactiveExpirationPolicy}
- * 		- {@link SlidingProactiveExpirationPolicy}
- *	- you can use a single type of LRU & LFU implementations, choices are:
- * 		- {@link LRUEvictionPolicy}
- * 		- {@link SegmentedLRUPolicy}
- *		- {@link LFUEvictionPolicy}
- * 		- {@link LFUDAEvictionPolicy}
- * 		- {@link GDSFEvictionPolicy}
- *	- you can use {@link PriorityEvictionPolicy}
- * 	- you can use {@link EntryDependenciesEvictionPolicy}
+ * Category			|	Policies
+ * ---------------- | -----------------------------
+ * Expiration		| - {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>- {@link SlidingProactiveExpirationPolicy}
+ * LRU & LFU		| - {@link LRUEvictionPolicy}<br/>- {@link SegmentedLRUEvictionPolicy}<br/>- {@link LFUEvictionPolicy}<br/>- {@link LFUDAEvictionPolicy}<br/>- {@link GDSFEvictionPolicy}
+ * Priority			| - {@link PriorityEvictionPolicy}
+ * Dependencies		| - {@link KeysDependenciesEvictionPolicy}
  *
- * Therefore, it results that you use maximum 4 different cache entry replacement policies.
+ * For example, the following combination is a valid one: [{@link ProactiveExpirationPolicy}, {@link LRUEvictionPolicy}, {@link KeysDependenciesEvictionPolicy}].<br/>
+ * While the following: [{@link ProactiveExpirationPolicy}, {@link SlidingProactiveExpirationPolicy}] isn't, because it contains 2 policies from same category.
  *
  * @template Key				Type of the key.
  * @template Value				Type of the value.

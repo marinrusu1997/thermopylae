@@ -43,7 +43,7 @@ type Segments<Key, Value> = {
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
-class SegmentedLRUPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly segments: Segments<Key, Value>;
 
 	private deleteFromCache!: Deleter<Key, Value>;
@@ -214,4 +214,4 @@ class SegmentedLRUPolicy<Key, Value, ArgumentsBundle> implements CacheReplacemen
 	}
 }
 
-export { SegmentedLRUPolicy, EvictableKeyNode, SegmentType, SEGMENT_SYM };
+export { SegmentedLRUEvictionPolicy, EvictableKeyNode, SegmentType, SEGMENT_SYM };

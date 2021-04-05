@@ -18,6 +18,9 @@ module.exports = {
     // Input Options
     "mode": "modules",
     "includeDeclarations": true,
+    "inputFiles": [
+        "lib/"
+    ],
     "exclude": [
         "test/**/*",
         "lib/index.ts"

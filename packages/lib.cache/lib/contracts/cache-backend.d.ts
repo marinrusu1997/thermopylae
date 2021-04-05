@@ -62,7 +62,7 @@ declare interface ReadonlyCacheBackend<Key, Value> {
 declare interface CacheBackend<Key, Value> extends ReadonlyCacheBackend<Key, Value>, IterableCacheBackend<Key, Value> {
 	/**
 	 * Store *key* with *value*. <br/>
-	 * > 		⚠️ WARNING ⚠️
+	 * > 							⚠️ WARNING ⚠️
 	 * **This method should not be used to overwrite *value* of the *key*!** <br/>
 	 * **You need to query the entry first and update value on the entry object.**
 	 *

@@ -6,26 +6,20 @@ import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replac
 import { Cache, CacheEvent } from '../contracts/cache';
 import { CacheEntry } from '../contracts/commons';
 
-// @fixme create example file when try to use all policies to test type safety and also interaction
-
 /**
  * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
- * Although any predefined policy can be used, there are some restrictions for multiple policies combination:
+ * Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
+ * You can combine only 1 policy from each category:
  *
- * 	- you can use a single type of expiration policies, choices are:
- * 		- {@link ProactiveExpirationPolicy}
- * 		- {@link ReactiveExpirationPolicy}
- * 		- {@link SlidingProactiveExpirationPolicy}
- *	- you can use a single type of LRU & LFU implementations, choices are:
- * 		- {@link LRUEvictionPolicy}
- * 		- {@link SegmentedLRUPolicy}
- *		- {@link LFUEvictionPolicy}
- * 		- {@link LFUDAEvictionPolicy}
- * 		- {@link GDSFEvictionPolicy}
- *	- you can use {@link PriorityEvictionPolicy}
- * 	- you can use {@link EntryDependenciesEvictionPolicy}
+ * Category			|	Policies
+ * ---------------- | -----------------------------
+ * Expiration		| - {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>- {@link SlidingProactiveExpirationPolicy}
+ * LRU & LFU		| - {@link LRUEvictionPolicy}<br/>- {@link SegmentedLRUEvictionPolicy}<br/>- {@link LFUEvictionPolicy}<br/>- {@link LFUDAEvictionPolicy}<br/>- {@link GDSFEvictionPolicy}
+ * Priority			| - {@link PriorityEvictionPolicy}
+ * Dependencies		| - {@link KeysDependenciesEvictionPolicy}
  *
- * Therefore, it results that you use maximum 4 different cache entry replacement policies.
+ * For example, the following combination is a valid one: [{@link ProactiveExpirationPolicy}, {@link LRUEvictionPolicy}, {@link KeysDependenciesEvictionPolicy}].<br/>
+ * While the following: [{@link ProactiveExpirationPolicy}, {@link SlidingProactiveExpirationPolicy}] isn't, because it contains 2 policies from same category.
  *
  * @template Key				Type of the key.
  * @template Value				Type of the value.
@@ -102,7 +96,6 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		if (entry === NOT_FOUND_VALUE) {
 			entry = this.backend.set(key, value);
 			// @fixme add key to entry
-			// @fixme prevent multiple eviction by each policy when cache is full by the way that policies get cache latest size (TEST THIS)
 
 			let policyIndex = 0;
 			try {

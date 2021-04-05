@@ -4,11 +4,11 @@ import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { array, number, string } from '@thermopylae/lib.utils';
 import colors from 'colors';
 import range from 'lodash.range';
-import { SegmentedLRUPolicy, EvictableKeyNode, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
+import { SegmentedLRUEvictionPolicy, EvictableKeyNode, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
 import { MapUtils } from '../../utils';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
-describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
+describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 	it('should work under minimal cache capacity', (done) => {
 		const CAPACITY = 2;
 		const PROTECTED_SEGMENT_RATIO = 0.5;
@@ -17,7 +17,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		let HOPS = 50;
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				ENTRIES_IN_CACHE.delete(evictedKey);
 
@@ -119,7 +119,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
@@ -197,7 +197,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.push(evictedKey);
 
@@ -293,7 +293,7 @@ describe(`${colors.magenta(SegmentedLRUPolicy.name)} spec`, () => {
 	it('should delete entries', () => {
 		const CAPACITY = 2;
 		const EVICTED_KEYS = new Array<string>();
-		const policy = new SegmentedLRUPolicy<string, number, any>(CAPACITY, 0.5);
+		const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, 0.5);
 		policy.setDeleter((evictedKey, evictedEntry) => {
 			EVICTED_KEYS.push(evictedKey);
 
