@@ -22,8 +22,8 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		}
 	}
 
-	public onGet(key: Key, entry: CacheEntry<Value>): EntryValidity {
-		const methodBehaviour = this.methodBehaviours.get('onGet')!;
+	public onHit(key: Key, entry: CacheEntry<Value>): EntryValidity {
+		const methodBehaviour = this.methodBehaviours.get('onHit')!;
 		methodBehaviour.arguments = [key, entry];
 		methodBehaviour.calls += 1;
 

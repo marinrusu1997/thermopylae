@@ -42,7 +42,7 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	 * @inheritDoc
 	 */
 	public onUpdate(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		this.onGet(key, entry); // onGet performs the required actions: recomputes frequency and moves to another bucket
+		this.onHit(key, entry); // onHit performs the required actions: recomputes frequency and moves to another bucket
 	}
 
 	/**

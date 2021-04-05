@@ -44,9 +44,16 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.usageRecency.toFront(entry);
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(): void {
+		return undefined;
 	}
 
 	/**

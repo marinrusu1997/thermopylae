@@ -707,10 +707,10 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} spec`, () => {
 		}).timeout(10_500);
 	});
 
-	describe(`${ProactiveExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
+	describe(`${ProactiveExpirationPolicy.prototype.onHit.name.magenta} spec`, () => {
 		it('does nothing on hit and returns entry as being valid, as it will be evicted later by timer', () => {
 			const policy = new ProactiveExpirationPolicy<string, number>(gcFactory());
-			const isValid = policy.onGet();
+			const isValid = policy.onHit();
 			expect(isValid).to.be.eq(EntryValidity.VALID);
 		});
 	});

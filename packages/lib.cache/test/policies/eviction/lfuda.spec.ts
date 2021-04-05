@@ -71,7 +71,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				policy.onGet(key, entry);
+				policy.onHit(key, entry);
 			}
 			for (const [key, freq] of ENTRY_FREQ) {
 				const entry = lfuEntries.get(key)!;
@@ -100,7 +100,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 				let freq = 4;
 				while (freq--) {
-					policy.onGet(key, entry);
+					policy.onHit(key, entry);
 				}
 				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}

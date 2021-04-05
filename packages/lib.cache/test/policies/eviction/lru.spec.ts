@@ -49,7 +49,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 				{ noDuplicates: true }
 			);
 			for (const retrieveIndex of retrievedEntriesIndexes) {
-				policy.onGet('ignored-key-name', initialEntries[retrieveIndex]);
+				policy.onHit('ignored-key-name', initialEntries[retrieveIndex]);
 			}
 
 			// now let's add new entries to make policy evict least recently used entries

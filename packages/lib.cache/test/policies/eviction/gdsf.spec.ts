@@ -66,7 +66,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				policy.onGet(key, entry);
+				policy.onHit(key, entry);
 			}
 
 			totalEntriesNo += 1; // simulate overflow
@@ -79,7 +79,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				lfuEntries.set(key, entry);
 
 				for (let i = 0; i < FREQ; i++) {
-					policy.onGet(key, entry);
+					policy.onHit(key, entry);
 				}
 			}
 			expect(policy.size).to.be.eq(CAPACITY);

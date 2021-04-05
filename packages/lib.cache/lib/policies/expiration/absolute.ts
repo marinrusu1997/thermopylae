@@ -37,7 +37,7 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(key: Key, entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
+	public onHit(key: Key, entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
 		return this.evictIfExpired(key, entry);
 	}
 

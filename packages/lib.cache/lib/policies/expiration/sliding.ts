@@ -72,7 +72,7 @@ class SlidingProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}

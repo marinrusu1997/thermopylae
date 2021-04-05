@@ -74,8 +74,15 @@ class KeysDependenciesEvictionPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(): EntryValidity {
+	public onHit(): EntryValidity {
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(): void {
+		return undefined;
 	}
 
 	/**

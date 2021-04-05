@@ -24,7 +24,14 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 	/**
 	 * @inheritDoc
 	 */
-	abstract onGet(key: Key, entry: CacheEntry<Value>): EntryValidity;
+	abstract onHit(key: Key, entry: CacheEntry<Value>): EntryValidity;
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(): void {
+		return undefined;
+	}
 
 	/**
 	 * @inheritDoc

@@ -42,7 +42,7 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
+	public onHit(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}

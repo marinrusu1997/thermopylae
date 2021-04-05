@@ -22,7 +22,7 @@ typedoc.outline = [
             "HeapGarbageCollector": "_garbage_collectors_heap_gc_",
             "IntervalGarbageCollector": "_garbage_collectors_interval_gc_"
         },
-        "Policies": {
+        "Replacement Policies": {
             "Interface": "_contracts_cache_replacement_policy_d_",
             "Expiration": {
                 "ProactiveExpirationPolicy": "_policies_expiration_proactive_",

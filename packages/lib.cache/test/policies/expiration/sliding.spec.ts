@@ -26,7 +26,7 @@ function gcFactory(): GarbageCollector<any> {
 // @fixme create tests with interval gc
 
 describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => {
-	describe(`${SlidingProactiveExpirationPolicy.prototype.onGet.name.magenta} spec`, () => {
+	describe(`${SlidingProactiveExpirationPolicy.prototype.onHit.name.magenta} spec`, () => {
 		it('validates entries that have no time span expiration', (done) => {
 			const ENTRIES = new Map<string, ExpirableSlidingCacheEntry<string, any>>([
 				['1', generateEntry()],
@@ -56,7 +56,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			for (const [key, entry] of ENTRIES.entries()) {
 				expect(entry[TIME_SPAN_SYM]).to.be.eq(undefined);
 				expect(entry[EXPIRES_AT_SYM]).to.be.eq(undefined);
-				expect(policy.onGet(key, entry)).to.be.eq(EntryValidity.VALID);
+				expect(policy.onHit(key, entry)).to.be.eq(EntryValidity.VALID);
 			}
 			expect(policy.idle).to.be.eq(true);
 
@@ -92,7 +92,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 				try {
 					expect(EVICTED_KEYS.size).to.be.eq(0);
 					expect(policy.idle).to.be.eq(false);
-					expect(policy.onGet('key', ENTRY)).to.be.eq(EntryValidity.VALID); // refresh expiration
+					expect(policy.onHit('key', ENTRY)).to.be.eq(EntryValidity.VALID); // refresh expiration
 				} catch (e) {
 					clearTimeout(entrySlicedTimeout);
 					clearTimeout(entryEvictedTimeout);
@@ -156,7 +156,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.size).to.be.eq(0); // didn't evict nothing
 
 					policy.onUpdate(KEY, ENTRY, { timeSpan: 1 });
-					policy.onGet(KEY, ENTRY); // should have no effect, will set same expiration as prev one
+					policy.onHit(KEY, ENTRY); // should have no effect, will set same expiration as prev one
 					expect(policy.idle).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(entryEvictedTimeout);
@@ -311,7 +311,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 				setTimeout(() => {
 					for (const key of KEYS_PER_INSERT_TIME_POINT.get(extensionAttempts)!) {
 						if (REFRESH_ON_GET_KEYS.has(key)) {
-							policy.onGet(key, KEY_TO_ENTRY.get(key)!);
+							policy.onHit(key, KEY_TO_ENTRY.get(key)!);
 							KEYS_EXPIRED_AT.get(extensionAttempts + 3)!.push(key);
 						} else {
 							policy.onUpdate(key, KEY_TO_ENTRY.get(key)!, { timeSpan: 3 });

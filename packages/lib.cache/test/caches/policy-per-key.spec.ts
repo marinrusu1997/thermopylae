@@ -15,7 +15,7 @@ const enum PolicyTag {
 
 describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 	describe(`${PolicyPerKeyCache.prototype.get.name.magenta} & ${PolicyPerKeyCache.prototype.set.name.magenta} spec`, () => {
-		it("calls 'onGet' hook for policies specified for that particular entry and emits events", () => {
+		it("calls 'onHit' hook for policies specified for that particular entry and emits events", () => {
 			const backend = new EsMapCacheBackend<string, string>();
 			const policy1 = new PolicyMock<string, string, any>();
 			const policy2 = new PolicyMock<string, string, any>();
@@ -53,61 +53,61 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 			expect(updateEventValue).to.be.eq(undefined);
 
 			expect(cache.get('a')).to.be.eq('a');
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(1);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(0);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(0);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
 
 			expect(cache.get('b')).to.be.eq('b');
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(1);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(1);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(1);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
 
 			expect(cache.get('c')).to.be.eq('c');
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(2);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(2);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(2);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(2);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(2);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(2);
 
 			expect(cache.get('d')).to.be.eq('d');
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
 
 			expect(cache.get('e')).to.be.eq(NOT_FOUND_VALUE);
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
 
-			policy3.methodBehaviours.get('onGet')!.returnValue = EntryValidity.NOT_VALID;
+			policy3.methodBehaviours.get('onHit')!.returnValue = EntryValidity.NOT_VALID;
 			expect(cache.get('b')).to.be.eq(NOT_FOUND_VALUE);
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(3);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(4);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(4);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(3);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(4);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(4);
 			expect(policy1.methodBehaviours.get('onDelete')!.calls).to.be.eq(0);
 			expect(policy2.methodBehaviours.get('onDelete')!.calls).to.be.eq(1);
 			expect(policy3.methodBehaviours.get('onDelete')!.calls).to.be.eq(1);
 
 			expect(cache.get('c')).to.be.eq(NOT_FOUND_VALUE);
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(4);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(5);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(5);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(4);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(5);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(5);
 			expect(policy1.methodBehaviours.get('onDelete')!.calls).to.be.eq(1);
 			expect(policy2.methodBehaviours.get('onDelete')!.calls).to.be.eq(2);
 			expect(policy3.methodBehaviours.get('onDelete')!.calls).to.be.eq(2);
 
-			policy2.methodBehaviours.get('onGet')!.returnValue = EntryValidity.NOT_VALID;
+			policy2.methodBehaviours.get('onHit')!.returnValue = EntryValidity.NOT_VALID;
 			expect(cache.get('d')).to.be.eq(NOT_FOUND_VALUE);
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(5);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(6);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(5);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(5);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(6);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(5);
 			expect(policy1.methodBehaviours.get('onDelete')!.calls).to.be.eq(2);
 			expect(policy2.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 			expect(policy3.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 
-			policy1.methodBehaviours.get('onGet')!.returnValue = EntryValidity.NOT_VALID;
+			policy1.methodBehaviours.get('onHit')!.returnValue = EntryValidity.NOT_VALID;
 			expect(cache.get('a')).to.be.eq(NOT_FOUND_VALUE);
-			expect(policy1.methodBehaviours.get('onGet')!.calls).to.be.eq(6);
-			expect(policy2.methodBehaviours.get('onGet')!.calls).to.be.eq(6);
-			expect(policy3.methodBehaviours.get('onGet')!.calls).to.be.eq(5);
+			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(6);
+			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(6);
+			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(5);
 			expect(policy1.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 			expect(policy2.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 			expect(policy3.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);

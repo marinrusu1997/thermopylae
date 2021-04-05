@@ -19,7 +19,7 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, any, any>();
 			const cache = new PolicyBasedCache<string, any, any>(backend, [policy]);
 
-			policy.methodBehaviours.get('onGet')!.returnValue = EntryValidity.NOT_VALID;
+			policy.methodBehaviours.get('onHit')!.returnValue = EntryValidity.NOT_VALID;
 			backend.set('key', 'value');
 
 			expect(cache.get('key')).to.be.eq(undefined);
@@ -40,12 +40,12 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, any, any>();
 			const cache = new PolicyBasedCache<string, any, any>(backend, [policy]);
 
-			policy.methodBehaviours.get('onGet')!.returnValue = EntryValidity.VALID;
+			policy.methodBehaviours.get('onHit')!.returnValue = EntryValidity.VALID;
 			backend.set('key', 'value');
 
 			expect(cache.get('key')).to.be.eq('value');
-			expect(policy.methodBehaviours.get('onGet')!.calls).to.be.eq(1);
-			expect(policy.methodBehaviours.get('onGet')!.arguments![0]).to.be.eq('key');
+			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy.methodBehaviours.get('onHit')!.arguments![0]).to.be.eq('key');
 		});
 	});
 
@@ -58,7 +58,7 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			backend.set('key', 'value');
 
 			expect(cache.has('key')).to.be.eq(true);
-			expect(policy.methodBehaviours.get('onGet')!.calls).to.be.eq(0);
+			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
 		});
 	});
 

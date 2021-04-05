@@ -57,12 +57,19 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		const oldFrequency = OrderedBucketList.getBucketId(entry);
 		const newFrequency = this.computeEntryFrequency(entry, oldFrequency);
 
 		this.frequencies.move(IGNORED_BUCKET_ID, newFrequency, entry);
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(): void {
+		return undefined;
 	}
 
 	/**

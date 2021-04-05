@@ -32,12 +32,12 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			const TTL = 2; // we use 2 seconds, because of the 'time windows', i.e. when we set item on lasts milliseconds of current second
 			policy.onSet(KEY, ENTRY, { expiresAfter: TTL });
 
-			expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
+			expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
 			expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
 
 			setTimeout(() => {
 				try {
-					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.VALID, `Expected ${KEY} to be valid.`);
+					expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.VALID, `Expected ${KEY} to be valid.`);
 					expect(EVICTED_KEYS).to.be.ofSize(0);
 				} catch (e) {
 					clearTimeout(timeoutExpired);
@@ -48,7 +48,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			const timeoutExpired = setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
-					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID, `Expected ${KEY} to not be valid.`);
+					expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID, `Expected ${KEY} to not be valid.`);
 					expect(EVICTED_KEYS).to.be.ofSize(1); // entry was evicted
 					expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
 					done();
@@ -74,13 +74,13 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			const EXPIRES_FROM = chrono.unixTime() + 2;
 			policy.onSet(KEY, ENTRY, { expiresAfter: TTL, expiresFrom: EXPIRES_FROM });
 
-			expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
+			expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.VALID);
 			expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
 
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
-					expect(policy.onGet(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+					expect(policy.onHit(KEY, ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
 					expect(EVICTED_KEYS).to.be.ofSize(1); // entry was evicted
 					expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
 					done();
@@ -111,14 +111,14 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			}
 
 			for (const [key, [entry]] of ENTRIES) {
-				expect(policy.onGet(key, entry)).to.be.eq(EntryValidity.VALID);
+				expect(policy.onHit(key, entry)).to.be.eq(EntryValidity.VALID);
 				expect(EVICTED_KEYS).to.be.ofSize(0);
 			}
 
 			setTimeout(() => {
 				try {
 					for (const [key, [entry]] of ENTRIES) {
-						expect(policy.onGet(key, entry)).to.be.eq(EntryValidity.VALID);
+						expect(policy.onHit(key, entry)).to.be.eq(EntryValidity.VALID);
 						expect(EVICTED_KEYS).to.be.ofSize(0);
 					}
 
@@ -146,11 +146,11 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onSet('a', ENTRY, { expiresAfter: 3 }); // increase
 			policy.onSet('a', ENTRY, { expiresAfter: 1 }); // decrease
 
-			expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.VALID);
+			expect(policy.onHit('a', ENTRY)).to.be.eq(EntryValidity.VALID);
 
 			setTimeout(() => {
 				try {
-					expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+					expect(policy.onHit('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
 					expect(EVICTED_KEYS).to.be.containingAllOf(['a']);
 					done();
 				} catch (e) {
@@ -180,7 +180,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onUpdate('a', ENTRY, { expiresAfter: -1, expiresFrom: now + 1 });
 			expect(ENTRY[EXPIRES_AT_SYM]).to.not.be.greaterThan(now + 1); // 1 sec for epsilon in case `now` will differ
 
-			expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+			expect(policy.onHit('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 			expect(EVICTED_KEYS).to.be.containingAllOf(['a']);
@@ -204,7 +204,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			setTimeout(() => {
 				try {
-					expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+					expect(policy.onHit('a', ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
 					expect(EVICTED_KEYS).to.be.containingAllOf(['a']);
 					done();
 				} catch (e) {
@@ -225,7 +225,7 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onDelete('a', ENTRY);
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 
-			expect(policy.onGet('a', ENTRY)).to.be.eq(EntryValidity.VALID); // does so because EXPIRES_AT has been deleted
+			expect(policy.onHit('a', ENTRY)).to.be.eq(EntryValidity.VALID); // does so because EXPIRES_AT has been deleted
 		});
 
 		it('does nothing on clear', () => {

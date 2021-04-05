@@ -97,11 +97,14 @@ class PolicyPerKeyCache<
 		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
 
 		if (entry === NOT_FOUND_VALUE) {
+			for (const policy of this.policies.values()) {
+				policy.onMiss(key); // @fixme test it
+			}
 			return entry;
 		}
 
 		for (const policyName of entry[POLICIES_SYM]) {
-			if (this.policies.get(policyName)!.onGet(key, entry) === EntryValidity.NOT_VALID) {
+			if (this.policies.get(policyName)!.onHit(key, entry) === EntryValidity.NOT_VALID) {
 				return NOT_FOUND_VALUE;
 			}
 		}
@@ -136,8 +139,8 @@ class PolicyPerKeyCache<
 	}
 
 	/**
-	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
-	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
+	 * Check whether **key** is present in the cache, without calling policies *onHit* hook. <br/>
+	 * Notice, that some policies might evict item when *onHit* hook is called (e.g. item expired),
 	 * therefore even if method returns **true**, trying to *get* item might evict him.
 	 *
 	 * @param key	Name of the key.

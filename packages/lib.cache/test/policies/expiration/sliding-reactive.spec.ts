@@ -34,14 +34,14 @@ describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
 
 		await chrono.sleep(1000);
 		expect(EVICTED_KEYS).to.be.ofSize(0);
-		expect(policy.onGet(entry.key, entry)).to.be.eq(EntryValidity.VALID); // increase with another 2 sec
+		expect(policy.onHit(entry.key, entry)).to.be.eq(EntryValidity.VALID); // increase with another 2 sec
 
 		await chrono.sleep(2010);
 		expect(EVICTED_KEYS).to.be.ofSize(0);
-		expect(policy.onGet(entry.key, entry)).to.be.eq(EntryValidity.NOT_VALID);
+		expect(policy.onHit(entry.key, entry)).to.be.eq(EntryValidity.NOT_VALID);
 		expect(EVICTED_KEYS).to.be.ofSize(1);
 
-		expect(policy.onGet(entry.key, entry)).to.be.eq(EntryValidity.VALID); // it has no metadata
+		expect(policy.onHit(entry.key, entry)).to.be.eq(EntryValidity.VALID); // it has no metadata
 
 		policy.onUpdate(entry.key, entry, { timeSpan: 5 }); // set time span
 		expect(typeof entry[EXPIRES_AT_SYM]).to.be.eq('number');
@@ -63,7 +63,7 @@ describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
 		policy.onUpdate(entry.key, entry, { timeSpan: 1 }); // has no effect because it's same time span
 
 		await chrono.sleep(510);
-		expect(policy.onGet(entry.key, entry)).to.be.eq(EntryValidity.NOT_VALID);
+		expect(policy.onHit(entry.key, entry)).to.be.eq(EntryValidity.NOT_VALID);
 		expect(EVICTED_KEYS).to.be.equalTo(['key', 'key']);
 
 		policy.onClear(); // has no effect

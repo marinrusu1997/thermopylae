@@ -60,12 +60,15 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		const entry = this.backend.get(key);
 
 		if (entry === NOT_FOUND_VALUE) {
+			for (const policy of this.policies) {
+				policy.onMiss(key); // @fixme test it
+			}
 			return entry;
 		}
 
 		for (const policy of this.policies) {
 			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
-			if (policy.onGet(key, entry) === EntryValidity.NOT_VALID) {
+			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
 				// it's safe to break the cycle here, because in case an item is evicted, onDelete hook for each policy will be triggered automatically
 				return NOT_FOUND_VALUE;
 			}
@@ -75,8 +78,8 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	}
 
 	/**
-	 * Check whether **key** is present in the cache, without calling policies *onGet* hook. <br/>
-	 * Notice, that some policies might evict item when *onGet* hook is called (e.g. item expired),
+	 * Check whether **key** is present in the cache, without calling policies *onHit* hook. <br/>
+	 * Notice, that some policies might evict item when *onHit* hook is called (e.g. item expired),
 	 * therefore even if method returns **true**, trying to *get* item might evict him and you will get `undefined` as result.
 	 *
 	 * @param key	Name of the key.
@@ -89,7 +92,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	 * @inheritDoc
 	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
-		// we use raw get, so that we don't call `onGet` and also even if they will remove it within `onGet`,
+		// we use raw get, so that we don't call `onHit` and also even if they will remove it within `onHit`,
 		// we will add it back anyway, so better use `onUpdate` which will update policies meta-data while keeping entry in the cache
 		let entry = this.backend.get(key);
 

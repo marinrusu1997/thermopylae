@@ -116,9 +116,16 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	/**
 	 * @inheritDoc
 	 */
-	public onGet(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public onMiss(): void {
+		return undefined;
 	}
 
 	/**

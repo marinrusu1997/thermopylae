@@ -125,12 +125,13 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 	}
 
 	public toFront(node: Node): void {
-		if (this.head === node) {
-			return; // nothing to move, it's already in front
-		}
-
 		this.remove(node);
 		this.unshift(node);
+	}
+
+	public toTail(node: Node): void {
+		this.remove(node);
+		this.push(node);
 	}
 
 	[Symbol.iterator](): Iterator<Node> {

@@ -29,7 +29,7 @@ function lfuFactory<Key, Value, ArgumentsBundle = any>(
 describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 	for (const LFU_IMPL of LFU_IMPLS) {
 		describe(`${LFU_IMPL.name.magenta} spec`, () => {
-			describe(`${LFU_IMPL.prototype.onGet.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
+			describe(`${LFU_IMPL.prototype.onHit.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
 				it('should not evict entries until capacity cap is met', () => {
 					const CAPACITY = number.randomInt(1, 11);
 					try {
@@ -135,7 +135,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onGet(key, entry);
+							policy.onHit(key, entry);
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 						}
@@ -154,7 +154,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
 							for (let i = 0; i < spinUpFrequency; i++) {
-								policy.onGet(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
+								policy.onHit(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
 							}
 						}
 
@@ -305,7 +305,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onGet(key, entry);
+							policy.onHit(key, entry);
 						}
 
 						// remove some random keys
