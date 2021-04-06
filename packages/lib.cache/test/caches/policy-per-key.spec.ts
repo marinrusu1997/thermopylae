@@ -54,13 +54,16 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 
 			expect(cache.get('a')).to.be.eq('a');
 			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy1.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
 			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
 			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
 
 			expect(cache.get('b')).to.be.eq('b');
 			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
 			expect(policy2.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy2.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
 			expect(policy3.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
+			expect(policy3.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
 
 			expect(cache.get('c')).to.be.eq('c');
 			expect(policy1.methodBehaviours.get('onHit')!.calls).to.be.eq(2);
@@ -111,6 +114,29 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 			expect(policy1.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 			expect(policy2.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
 			expect(policy3.methodBehaviours.get('onDelete')!.calls).to.be.eq(3);
+		});
+
+		it("calls 'onMiss' hook for all policies when key not found", () => {
+			const backend = new EsMapCacheBackend<string, string>();
+			const policy1 = new PolicyMock<string, string, any>();
+			const policy2 = new PolicyMock<string, string, any>();
+			const cache = new PolicyPerKeyCache<string, string, PolicyTag>(
+				backend,
+				new Map([
+					[PolicyTag.EXPIRATION, policy1],
+					[PolicyTag.EVICTION, policy2]
+				])
+			);
+
+			expect(cache.get('key')).to.be.eq(undefined);
+
+			const p1OnMiss = policy1.methodBehaviours.get('onMiss')!;
+			expect(p1OnMiss.calls).to.be.eq(1);
+			expect(p1OnMiss.arguments).to.be.equalTo(['key']);
+
+			const p2OnMiss = policy2.methodBehaviours.get('onMiss')!;
+			expect(p2OnMiss.calls).to.be.eq(1);
+			expect(p2OnMiss.arguments).to.be.equalTo(['key']);
 		});
 
 		it("calls 'onUpdate' hook for policies specified for that particular entry and emits events", () => {

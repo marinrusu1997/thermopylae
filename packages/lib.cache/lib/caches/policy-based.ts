@@ -61,7 +61,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 
 		if (entry === NOT_FOUND_VALUE) {
 			for (const policy of this.policies) {
-				policy.onMiss(key); // @fixme test it
+				policy.onMiss(key);
 			}
 			return entry;
 		}
@@ -113,7 +113,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 				for (let i = 0; i < policyIndex; i++) {
 					this.policies[i].onDelete(key, entry); // detach metadata + internal structures
 				}
-				this.backend.del(key);
+				this.backend.del(key, entry);
 
 				// re-throw
 				throw e;
@@ -164,8 +164,8 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 			policy.onDelete(key, entry);
 		}
 
-		this.backend.del(key);
 		this.emit(CacheEvent.DELETE, key, entry.value);
+		this.backend.del(key, entry);
 
 		return true;
 	};

@@ -98,7 +98,7 @@ class PolicyPerKeyCache<
 
 		if (entry === NOT_FOUND_VALUE) {
 			for (const policy of this.policies.values()) {
-				policy.onMiss(key); // @fixme test it
+				policy.onMiss(key);
 			}
 			return entry;
 		}
@@ -185,8 +185,8 @@ class PolicyPerKeyCache<
 			this.policies.get(policyName)!.onDelete(key, entry);
 		}
 
-		this.backend.del(key);
 		this.emit(CacheEvent.DELETE, key, entry.value);
+		this.backend.del(key, entry);
 
 		return true;
 	};

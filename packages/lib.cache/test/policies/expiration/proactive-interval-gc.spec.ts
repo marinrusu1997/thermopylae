@@ -40,7 +40,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey);
+				BACKEND.del(evictedKey, evictedEntry);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
@@ -111,7 +111,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const EVICTED_KEYS = new Set();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_KEYS.add(evictedKey);
-				BACKEND.del(evictedKey);
+				BACKEND.del(evictedKey, evictedEntry);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
@@ -178,11 +178,12 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey);
+				BACKEND.del(evictedKey, evictedEntry);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -240,7 +241,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const EVICTED_ENTRIES = new Set();
 			policy.setDeleter((evictedKey, evictedEntry) => {
 				EVICTED_ENTRIES.add(evictedEntry);
-				BACKEND.del(evictedKey);
+				BACKEND.del(evictedKey, evictedEntry);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
@@ -283,7 +284,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey);
+				BACKEND.del(evictedKey, evictedEntry);
 				EVICTED_KEYS.push(evictedKey);
 
 				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);

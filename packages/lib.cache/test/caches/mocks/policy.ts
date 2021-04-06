@@ -34,6 +34,12 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		return methodBehaviour.returnValue;
 	}
 
+	public onMiss(key: Key): void {
+		const methodBehaviour = this.methodBehaviours.get('onMiss')!;
+		methodBehaviour.arguments = [key];
+		methodBehaviour.calls += 1;
+	}
+
 	public onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void {
 		const methodBehaviour = this.methodBehaviours.get('onSet')!;
 		methodBehaviour.arguments = [key, entry, argsBundle];

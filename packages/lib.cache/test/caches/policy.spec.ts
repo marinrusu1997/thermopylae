@@ -46,6 +46,25 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			expect(cache.get('key')).to.be.eq('value');
 			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
 			expect(policy.methodBehaviours.get('onHit')!.arguments![0]).to.be.eq('key');
+
+			expect(policy.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
+		});
+
+		it("calls 'onMiss' hook when key was not found in the cache", () => {
+			const backend = new EsMapCacheBackend<string, any>();
+			const policy1 = new PolicyMock<string, any, any>();
+			const policy2 = new PolicyMock<string, any, any>();
+			const cache = new PolicyBasedCache<string, any, any>(backend, [policy1, policy2]);
+
+			expect(cache.get('key')).to.be.eq(undefined);
+
+			const p1OnMiss = policy1.methodBehaviours.get('onMiss')!;
+			expect(p1OnMiss.calls).to.be.eq(1);
+			expect(p1OnMiss.arguments).to.be.equalTo(['key']);
+
+			const p2OnMiss = policy2.methodBehaviours.get('onMiss')!;
+			expect(p2OnMiss.calls).to.be.eq(1);
+			expect(p2OnMiss.arguments).to.be.equalTo(['key']);
 		});
 	});
 
@@ -180,8 +199,11 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			});
 
 			cache.set('key', 'value');
+			const entry = backend.get('key')!;
+			expect(entry.value).to.be.eq('value');
 
 			expect(cache.del('key')).to.be.eq(true);
+			expect(entry.value).to.be.eq(undefined);
 			expect(cache.has('key')).to.be.eq(false);
 
 			const methodBehaviour1 = policy1.methodBehaviours.get('onDelete')!;

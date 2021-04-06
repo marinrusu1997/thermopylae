@@ -45,7 +45,8 @@ class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry
 	/**
 	 * @inheritDoc
 	 */
-	public del(key: Key): boolean {
+	public del(key: Key, entry: Entry): boolean {
+		entry.value = undefined!; // let GC collect value
 		return this.store.delete(key);
 	}
 

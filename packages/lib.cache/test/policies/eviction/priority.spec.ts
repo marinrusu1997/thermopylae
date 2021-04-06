@@ -197,7 +197,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				backend.del(evictedKey);
+				backend.del(evictedKey, prioritizedEntry);
 				policy.onDelete(evictedKey, prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
@@ -323,7 +323,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				backend.del(evictedKey);
+				backend.del(evictedKey, prioritizedEntry);
 				policy.onDelete(evictedKey, prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
