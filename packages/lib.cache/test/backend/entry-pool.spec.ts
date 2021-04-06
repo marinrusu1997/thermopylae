@@ -61,9 +61,7 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		expect(keys.size).to.be.eq(0);
 
 		/* DELETE */
-		expect(backend.del('c')).to.be.eq(false);
-
-		expect(backend.del('a')).to.be.eq(true); // deleted entry
+		backend.del('a'); // deleted entry
 		expect(backend.size).to.be.eq(1); // size decreased
 		expect(Array.from(backend)).to.be.ofSize(1); // iterates correctly
 		expect(Array.from(backend.values())).to.be.ofSize(1); // iterates correctly

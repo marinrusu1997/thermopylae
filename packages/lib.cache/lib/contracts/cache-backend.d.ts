@@ -79,10 +79,8 @@ declare interface CacheBackend<Key, Value> extends ReadonlyCacheBackend<Key, Val
 	 *
 	 * @param key		Name of the key.
 	 * @param entry		Entry associated with `key`.
-	 *
-	 * @returns		Boolean flag that indicates whether entry was deleted.
 	 */
-	del(key: Key, entry: CacheEntry<Value>): boolean;
+	del(key: Key, entry: CacheEntry<Value>): void;
 
 	/**
 	 * Remove all entries from storage.

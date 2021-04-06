@@ -68,14 +68,10 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheE
 	/**
 	 * @inheritDoc
 	 */
-	public del(key: Key): boolean {
-		const objectResource = this.store.get(key);
-		if (!objectResource) {
-			return false;
-		}
-
+	public del(key: Key): void {
+		const objectResource = this.store.get(key)!;
 		this.entryPool.release(objectResource);
-		return this.store.delete(key);
+		this.store.delete(key);
 	}
 
 	/**
