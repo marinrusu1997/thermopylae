@@ -42,13 +42,13 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
+	public onHit(entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}
 
 		if (entry[EXPIRES_AT_SYM]! <= chrono.unixTime()) {
-			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
+			this.deleteFromCache(entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
 			return EntryValidity.NOT_VALID;
 		}
 
@@ -59,7 +59,7 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || SlidingReactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
@@ -70,14 +70,14 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.timeSpan == null) {
 			return undefined;
 		}
 
 		if (entry[TIME_SPAN_SYM]) {
 			if (options.timeSpan === INFINITE_EXPIRATION) {
-				return this.onDelete(key, entry); // @fixme we do not track it anymore
+				return this.onDelete(entry);
 			}
 
 			if (options.timeSpan === entry[TIME_SPAN_SYM]) {
@@ -98,8 +98,8 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): void {
-		super.onDelete(key, entry); // detach expiration metadata
+	public onDelete(entry: ExpirableSlidingCacheEntry<Key, Value>): void {
+		super.onDelete(entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
 	}
 

@@ -1,4 +1,4 @@
-import { BaseLFUEvictionPolicy, EvictableKeyNode } from './lfu-base';
+import { BaseLFUEvictionPolicy, EvictableCacheEntry } from './lfu-base';
 
 /**
  * [Least Frequently Used](https://en.wikipedia.org/wiki/Least_frequently_used "Least frequently used") eviction policy.
@@ -18,7 +18,7 @@ class LFUEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPoli
 	/**
 	 * @inheritDoc
 	 */
-	protected computeEntryFrequency(_entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
+	protected computeEntryFrequency(_entry: EvictableCacheEntry<Key, Value>, entryScore: number): number {
 		return entryScore + 1;
 	}
 

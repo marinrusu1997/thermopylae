@@ -1,6 +1,6 @@
 import { ErrorCodes, Threshold } from '@thermopylae/core.declarations';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { createException } from '../../error';
 import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket-list/ordered-bucket-list';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
@@ -13,7 +13,7 @@ const IGNORED_BUCKET_ID = -1;
 /**
  * @internal
  */
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, BucketEntryNode<EvictableKeyNode<Key, Value>> {}
+interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, BucketEntryNode<EvictableCacheEntry<Key, Value>> {}
 
 /**
  * Base class for LFU policies.
@@ -25,7 +25,7 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
 abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
-	private readonly frequencies: OrderedBucketList<EvictableKeyNode<Key, Value>>;
+	private readonly frequencies: OrderedBucketList<EvictableCacheEntry<Key, Value>>;
 
 	private readonly cacheMaxCapacity: number;
 
@@ -44,7 +44,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 
 		this.cacheMaxCapacity = cacheMaxCapacity;
 		this.cacheBackendElementsCount = cacheBackendElementsCount;
-		this.frequencies = new OrderedBucketList<EvictableKeyNode<Key, Value>>();
+		this.frequencies = new OrderedBucketList<EvictableCacheEntry<Key, Value>>();
 	}
 
 	/**
@@ -57,7 +57,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(entry: EvictableCacheEntry<Key, Value>): EntryValidity {
 		const oldFrequency = OrderedBucketList.getBucketId(entry);
 		const newFrequency = this.computeEntryFrequency(entry, oldFrequency);
 
@@ -75,27 +75,26 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onSet(entry: EvictableCacheEntry<Key, Value>): void {
 		// Check for backend overflow
 		if (this.cacheBackendElementsCount.size > this.cacheMaxCapacity) {
 			this.evict();
 		}
 
-		entry.key = key;
 		this.frequencies.add(this.initialFrequency, entry);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(_key: Key, _entry: EvictableKeyNode<Key, Value>): void {
+	public onUpdate(_entry: EvictableCacheEntry<Key, Value>): void {
 		return undefined;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onDelete(entry: EvictableCacheEntry<Key, Value>): void {
 		this.frequencies.remove(IGNORED_BUCKET_ID, entry);
 	}
 
@@ -116,7 +115,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	private evict(): void {
 		const currentFreqListHead = this.frequencies.head!;
 
-		this.deleteFromCache(currentFreqListHead.bucket.tail!.key, currentFreqListHead.bucket.tail!);
+		this.deleteFromCache(currentFreqListHead.bucket.tail!);
 		// removal from frequency list will be made by `onDelete` hook invoked by cache deleter
 
 		// removal from frequency bucket might update `this.freqList` head, that's why we pass a copy of the head to this function
@@ -138,7 +137,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	 *
 	 * @returns     New frequency of the entry.
 	 */
-	protected abstract computeEntryFrequency(entry: EvictableKeyNode<Key, Value>, entryScore: number): number;
+	protected abstract computeEntryFrequency(entry: EvictableCacheEntry<Key, Value>, entryScore: number): number;
 
 	/**
 	 * Delegate called after item has been evicted from cache.
@@ -148,4 +147,4 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	protected abstract onEvict(frequency: number): void;
 }
 
-export { BaseLFUEvictionPolicy, EvictableKeyNode };
+export { BaseLFUEvictionPolicy, EvictableCacheEntry };

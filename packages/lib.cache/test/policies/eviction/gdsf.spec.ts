@@ -3,7 +3,7 @@ import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { array, number, string } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
+import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
 import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
@@ -43,17 +43,17 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 					return totalEntriesNo;
 				}
 			});
-			const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.push(evictedKey);
-				policy.onDelete(evictedKey, evictedEntry as any);
+			const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>();
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
+				policy.onDelete(evictedEntry as any);
 			});
 
 			/* Add entries */
 			for (const [key, value] of ENTRIES) {
 				// @ts-ignore
-				const entry: EvictableKeyNode<string, number> = { key, value };
-				policy.onSet(key, entry);
+				const entry: EvictableCacheEntry<string, number> = { key, value };
+				policy.onSet(entry);
 				lfuEntries.set(key, entry);
 				totalEntriesNo += 1;
 			}
@@ -66,7 +66,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				if (entry == null) {
 					throw new Error(`Could not find entry for ${key.magenta}.`);
 				}
-				policy.onHit(key, entry);
+				policy.onHit(entry);
 			}
 
 			totalEntriesNo += 1; // simulate overflow
@@ -74,12 +74,12 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
 				// @ts-ignore
-				const entry: EvictableKeyNode<string, number> = { key, value };
-				policy.onSet(key, entry);
+				const entry: EvictableCacheEntry<string, number> = { key, value };
+				policy.onSet(entry);
 				lfuEntries.set(key, entry);
 
 				for (let i = 0; i < FREQ; i++) {
-					policy.onHit(key, entry);
+					policy.onHit(entry);
 				}
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
@@ -115,13 +115,13 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 		});
 
 		// @ts-ignore
-		const entry: EvictableKeyNode<string, string> = { key: 'key', value: 'value' };
-		policy.onSet('key', entry);
+		const entry: EvictableCacheEntry<string, string> = { key: 'key', value: 'value' };
+		policy.onSet(entry);
 		totalEntriesNo += 1;
 		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(0);
 
 		entry.value = string.random({ length: 100 });
-		policy.onUpdate('key', entry);
+		policy.onUpdate(entry);
 		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(1);
 		expect(policy.size).to.be.eq(1);
 	});

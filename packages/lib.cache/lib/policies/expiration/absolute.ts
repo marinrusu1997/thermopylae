@@ -37,14 +37,14 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(key: Key, entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
-		return this.evictIfExpired(key, entry);
+	public onHit(entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
+		return this.evictIfExpired(entry);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(_key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || AbsoluteExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
@@ -55,7 +55,7 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(_key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.expiresAfter == null) {
 			return;
 		}
@@ -75,9 +75,9 @@ abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends Abso
 		// there is no need to clear metadata, backend entries should also be removed
 	}
 
-	protected evictIfExpired(key: Key, entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
+	protected evictIfExpired(entry: ExpirableCacheEntry<Key, Value>): EntryValidity {
 		if (entry[EXPIRES_AT_SYM]! <= chrono.unixTime()) {
-			this.deleteFromCache(key, entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
+			this.deleteFromCache(entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
 			return EntryValidity.NOT_VALID;
 		}
 		return EntryValidity.VALID;

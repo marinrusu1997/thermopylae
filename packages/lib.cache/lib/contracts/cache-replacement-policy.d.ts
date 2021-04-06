@@ -8,7 +8,7 @@ import { CacheEntry } from './commons';
  * @param key		Name of the key.
  * @param entry		Entry associated with `key`.
  */
-declare type Deleter<Key, Value> = (key: Key, entry: CacheEntry<Value>) => void;
+declare type Deleter<Key, Value> = (entry: CacheEntry<Key, Value>) => void;
 
 /**
  * Indicates whether {@link CacheEntry} is still valid.
@@ -35,12 +35,11 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	 * Policy might decide that entry is no longer valid and return {@link EntryValidity.NOT_VALID}.
 	 * **In case it does so, policy is responsible to evict `entry` from cache before this method returns.**
 	 *
-	 * @param key		Name of the key.
-	 * @param entry		Associated entry.
+	 * @param entry		Entry hit on which was made.
 	 *
 	 * @returns			Whether entry is still valid.
 	 */
-	onHit(key: Key, entry: CacheEntry<Value>): EntryValidity;
+	onHit(entry: CacheEntry<Key, Value>): EntryValidity;
 
 	/**
 	 * Hook executed **after** `key` wasn't found in the cache on {@link Cache.get} operation.
@@ -52,30 +51,27 @@ declare interface CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**
 	 * Hook executed **after** `entry` for `key` has been set.
 	 *
-	 * @param key			Name of the key.
-	 * @param entry			Associated entry.
+	 * @param entry			Entry that was inserted.
 	 * @param argsBundle	Arguments bundle for cache `set` operation.
 	 */
-	onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
+	onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
 	 * Hook executed **after** value for `entry` associated with `key` has been updated.
 	 *
-	 * @param key			Name of the key.
-	 * @param entry			Associated entry.
+	 * @param entry			Entry that was update.
 	 * @param argsBundle	Arguments bundle for cache `set` operation.
 	 */
-	onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
+	onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
 	 * Hook executed **before** `entry` for `key` has been deleted. <br/>
 	 * **Policy is supposed to detach metadata from entry
 	 * and cleanup it's internal data structures when this hook is called.**
 	 *
-	 * @param key		Name of the key.
-	 * @param entry		Associated entry.
+	 * @param entry		Entry that's being deleted.
 	 */
-	onDelete(key: Key, entry: CacheEntry<Value>): void;
+	onDelete(entry: CacheEntry<Key, Value>): void;
 
 	/**
 	 * Hook executed **before** cache has been cleared.

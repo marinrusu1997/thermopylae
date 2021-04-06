@@ -39,12 +39,14 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey, evictedEntry);
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
+				BACKEND.del(evictedEntry);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				policy.onDelete(evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.key).to.be.eq(undefined);
+				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
 			function logTestContext() {
@@ -61,7 +63,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			}
 
 			for (const [key, entry] of BACKEND) {
-				policy.onSet(key, entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
+				policy.onSet(entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 
 			setTimeout(() => {
@@ -109,15 +111,17 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Set();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.add(evictedKey);
-				BACKEND.del(evictedKey, evictedEntry);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.add(evictedEntry.key);
+				BACKEND.del(evictedEntry);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				policy.onDelete(evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.key).to.be.eq(undefined);
+				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
-			policy.onSet('key', BACKEND.get('key')! as ExpirableCacheEntry<string, number>, { expiresAfter: 1 });
+			policy.onSet(BACKEND.get('key')! as ExpirableCacheEntry<string, number>, { expiresAfter: 1 });
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS.has('key')).to.be.eq(true);
@@ -126,7 +130,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 					expect(policy.isIdle()).to.be.eq(true);
 
 					const entry = BACKEND.set('second-key', 2) as ExpirableCacheEntry<string, number>;
-					policy.onSet('second-key', entry, { expiresAfter: 1 });
+					policy.onSet(entry, { expiresAfter: 1 });
 					expect(policy.isIdle()).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(timeoutAfterGcRestart);
@@ -177,12 +181,13 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey, evictedEntry);
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
+				BACKEND.del(evictedEntry);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				policy.onDelete(evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.key).to.be.eq(undefined);
 				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
@@ -200,10 +205,10 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			}
 
 			for (const [key, entry] of BACKEND) {
-				policy.onSet(key, entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
+				policy.onSet(entry as ExpirableCacheEntry<string, number>, { expiresAfter: KEY_TO_TTL.get(key) });
 			}
 			for (const key of KEYS_WITH_INFINITE_TTL) {
-				policy.onUpdate(key, BACKEND.get(key)! as ExpirableCacheEntry<string, number>, { expiresAfter: INFINITE_EXPIRATION });
+				policy.onUpdate(BACKEND.get(key)! as ExpirableCacheEntry<string, number>, { expiresAfter: INFINITE_EXPIRATION });
 			}
 
 			setTimeout(() => {
@@ -238,28 +243,29 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			};
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
-			const EVICTED_ENTRIES = new Set();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_ENTRIES.add(evictedEntry);
-				BACKEND.del(evictedKey, evictedEntry);
+			const EVICTED_KEYS = new Array<string>();
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
+				BACKEND.del(evictedEntry);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				policy.onDelete(evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.key).to.be.eq(undefined);
+				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
-			policy.onUpdate('key', ENTRY, { expiresAfter: 1 });
+			policy.onUpdate(ENTRY, { expiresAfter: 1 });
 
-			policy.onUpdate('key', ENTRY); // no options
-			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
-			policy.onUpdate('key', ENTRY, { expiresAfter: undefined }); // no ttl specified
-			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
-			policy.onUpdate('key', ENTRY, { expiresAfter: null! }); // no ttl specified
-			expect(EVICTED_ENTRIES.size).to.be.eq(0); // nothing evicted, yet
+			policy.onUpdate(ENTRY); // no options
+			expect(EVICTED_KEYS.length).to.be.eq(0); // nothing evicted, yet
+			policy.onUpdate(ENTRY, { expiresAfter: undefined }); // no ttl specified
+			expect(EVICTED_KEYS.length).to.be.eq(0); // nothing evicted, yet
+			policy.onUpdate(ENTRY, { expiresAfter: null! }); // no ttl specified
+			expect(EVICTED_KEYS.length).to.be.eq(0); // nothing evicted, yet
 
 			setTimeout(() => {
 				try {
-					expect(EVICTED_ENTRIES.size).to.be.eq(1);
-					expect(EVICTED_ENTRIES.has(ENTRY)).to.be.eq(true);
+					expect(EVICTED_KEYS).to.be.equalTo(['key']);
 					expect(policy.isIdle()).to.be.eq(true);
 
 					done();
@@ -283,15 +289,17 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 			const policy = new ProactiveExpirationPolicy<string, number>(new IntervalGarbageCollector(CONFIG));
 
 			const EVICTED_KEYS = new Array<string>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				BACKEND.del(evictedKey, evictedEntry);
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
+				BACKEND.del(evictedEntry);
 
-				policy.onDelete(evictedKey, evictedEntry as ExpirableCacheEntry<string, number>);
+				policy.onDelete(evictedEntry as ExpirableCacheEntry<string, number>);
 				expect((evictedEntry as ExpirableCacheEntry<string, number>)[EXPIRES_AT_SYM]).to.be.eq(undefined);
+				expect(evictedEntry.key).to.be.eq(undefined);
+				expect(evictedEntry.value).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', ENTRY, { expiresAfter: 1 });
+			policy.onSet(ENTRY, { expiresAfter: 1 });
 
 			try {
 				expect(policy.isIdle()).to.be.eq(false);

@@ -51,7 +51,7 @@ class SlidingProactiveExpirationPolicy<
 		this.gc = gc || new BucketGarbageCollector<any>();
 		this.gc.setEntryExpiredCallback((expiredEntry) => {
 			// remove from cache, will trigger `onDelete` which will detach ttl metadata
-			this.deleteFromCache(expiredEntry.key, expiredEntry);
+			this.deleteFromCache(expiredEntry);
 		});
 	}
 
@@ -72,7 +72,7 @@ class SlidingProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
+	public onHit(entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}
@@ -87,25 +87,25 @@ class SlidingProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || SlidingProactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
 
-		this.scheduleEviction(key, entry, options);
+		this.scheduleEviction(entry, options);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.timeSpan == null) {
 			return undefined;
 		}
 
 		if (entry[TIME_SPAN_SYM]) {
 			if (options.timeSpan === INFINITE_EXPIRATION) {
-				return this.onDelete(key, entry); // we do not track it anymore
+				return this.onDelete(entry); // we do not track it anymore
 			}
 
 			if (options.timeSpan === entry[TIME_SPAN_SYM]) {
@@ -118,16 +118,16 @@ class SlidingProactiveExpirationPolicy<
 		}
 
 		if (options.timeSpan !== INFINITE_EXPIRATION) {
-			this.scheduleEviction(key, entry, options); // previously had no time span, now it does
+			this.scheduleEviction(entry, options); // previously had no time span, now it does
 		}
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>): void {
+	public onDelete(entry: ExpirableSlidingCacheEntry<Key, Value>): void {
 		this.gc.leave(entry);
-		super.onDelete(key, entry); // detach expiration metadata
+		super.onDelete(entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
 	}
 
@@ -138,8 +138,7 @@ class SlidingProactiveExpirationPolicy<
 		this.gc.clear();
 	}
 
-	private scheduleEviction(key: Key, entry: ExpirableSlidingCacheEntry<Key, Value>, options: ArgumentsBundle): void {
-		entry.key = key;
+	private scheduleEviction(entry: ExpirableSlidingCacheEntry<Key, Value>, options: ArgumentsBundle): void {
 		SlidingProactiveExpirationPolicy.storeExpirationMetadata(entry, options);
 		this.gc.manage(entry);
 	}

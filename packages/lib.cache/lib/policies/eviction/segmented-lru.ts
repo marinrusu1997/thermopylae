@@ -1,7 +1,7 @@
 import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { LinkedList } from '../../data-structures/list/interface';
 import { createException } from '../../error';
@@ -22,7 +22,7 @@ const enum SegmentType {
 /**
  * @internal
  */
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {
 	[SEGMENT_SYM]: SegmentType;
 }
 
@@ -32,7 +32,7 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
 type Segments<Key, Value> = {
 	[Segment in SegmentType]: {
 		capacity: number;
-		items: LinkedList<EvictableKeyNode<Key, Value>>;
+		items: LinkedList<EvictableCacheEntry<Key, Value>>;
 	};
 };
 
@@ -69,11 +69,11 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		this.segments = {
 			[SegmentType.PROTECTED]: {
 				capacity: protectedSegmentSize,
-				items: new DoublyLinkedList<EvictableKeyNode<Key, Value>>()
+				items: new DoublyLinkedList<EvictableCacheEntry<Key, Value>>()
 			},
 			[SegmentType.PROBATION]: {
 				capacity: cacheMaxCapacity - protectedSegmentSize,
-				items: new DoublyLinkedList<EvictableKeyNode<Key, Value>>()
+				items: new DoublyLinkedList<EvictableCacheEntry<Key, Value>>()
 			}
 		};
 
@@ -102,21 +102,21 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	/**
 	 * Get most recently used key.
 	 */
-	public get mostRecent(): Nullable<EvictableKeyNode<Key, Value>> {
+	public get mostRecent(): Nullable<EvictableCacheEntry<Key, Value>> {
 		return this.getEntryFrom('head');
 	}
 
 	/**
 	 * Get least recently used key.
 	 */
-	public get leastRecent(): Nullable<EvictableKeyNode<Key, Value>> {
+	public get leastRecent(): Nullable<EvictableCacheEntry<Key, Value>> {
 		return this.getEntryFrom('tail');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(entry: EvictableCacheEntry<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
 	}
@@ -131,8 +131,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		entry.key = key;
+	public onSet(entry: EvictableCacheEntry<Key, Value>): void {
 		this.demote(entry);
 	}
 
@@ -146,7 +145,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onDelete(entry: EvictableCacheEntry<Key, Value>): void {
 		this.segments[entry[SEGMENT_SYM]].items.remove(entry);
 		entry[SEGMENT_SYM] = undefined!; // logical delete
 	}
@@ -171,9 +170,9 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		return this.segments[segment].items.size === this.segments[segment].capacity;
 	}
 
-	private demote(entry: EvictableKeyNode<Key, Value>): void {
+	private demote(entry: EvictableCacheEntry<Key, Value>): void {
 		if (this.isFull(SegmentType.PROBATION)) {
-			this.deleteFromCache(this.segments[SegmentType.PROBATION].items.tail!.key, this.segments[SegmentType.PROBATION].items.tail!);
+			this.deleteFromCache(this.segments[SegmentType.PROBATION].items.tail!);
 			// entry will be removed from PROBATION segment list by `onDelete` hook
 		}
 
@@ -181,7 +180,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		entry[SEGMENT_SYM] = SegmentType.PROBATION;
 	}
 
-	private promote(entry: EvictableKeyNode<Key, Value>): void {
+	private promote(entry: EvictableCacheEntry<Key, Value>): void {
 		switch (entry[SEGMENT_SYM]) {
 			case SegmentType.PROBATION:
 				// we need to make room in the PROBATION first,
@@ -210,7 +209,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		}
 	}
 
-	private getEntryFrom(pos: 'tail' | 'head'): Nullable<EvictableKeyNode<Key, Value>> {
+	private getEntryFrom(pos: 'tail' | 'head'): Nullable<EvictableCacheEntry<Key, Value>> {
 		if (this.segments[SegmentType.PROTECTED].items[pos] == null) {
 			if (this.segments[SegmentType.PROBATION].items[pos] == null) {
 				return null;
@@ -221,4 +220,4 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	}
 }
 
-export { SegmentedLRUEvictionPolicy, EvictableKeyNode, SegmentType, SEGMENT_SYM };
+export { SegmentedLRUEvictionPolicy, EvictableCacheEntry, SegmentType, SEGMENT_SYM };

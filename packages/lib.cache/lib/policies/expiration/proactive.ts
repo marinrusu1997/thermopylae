@@ -32,7 +32,7 @@ class ProactiveExpirationPolicy<
 
 		this.gc.setEntryExpiredCallback((expiredEntry) => {
 			// remove from cache, will trigger `onDelete` which will detach ttl metadata
-			this.deleteFromCache(expiredEntry.key, expiredEntry);
+			this.deleteFromCache(expiredEntry);
 		});
 	}
 
@@ -54,21 +54,19 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onSet(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || ProactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
 
 		ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter!, options.expiresFrom);
-		entry.key = key;
-
 		this.gc.manage(entry);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(key: Key, entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.expiresAfter == null) {
 			return undefined;
 		}
@@ -78,7 +76,7 @@ class ProactiveExpirationPolicy<
 
 			if (options.expiresAfter === INFINITE_EXPIRATION) {
 				// item was added with ttl, but now it's ttl became INFINITE
-				return this.onDelete(key, entry); // we do not track it anymore
+				return this.onDelete(entry); // we do not track it anymore
 			}
 
 			// update expiration
@@ -97,8 +95,6 @@ class ProactiveExpirationPolicy<
 		if (options.expiresAfter !== INFINITE_EXPIRATION) {
 			// this is an update of item which had infinite timeout, now we need to track it
 			ProactiveExpirationPolicy.setEntryExpiration(entry, options.expiresAfter, options.expiresFrom);
-			entry.key = key;
-
 			return this.gc.manage(entry);
 		}
 
@@ -108,9 +104,9 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(key: Key, entry: ExpirableCacheEntry<Key, Value>): void {
+	public onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
 		this.gc.leave(entry); // do not track it anymore for expiration
-		super.onDelete(key, entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
+		super.onDelete(entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 	}
 
 	/**

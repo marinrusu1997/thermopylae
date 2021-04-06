@@ -1,6 +1,6 @@
 import sizeof from 'object-sizeof';
 import { Threshold } from '@thermopylae/core.declarations';
-import { BaseLFUEvictionPolicy, EvictableKeyNode } from './lfu-base';
+import { BaseLFUEvictionPolicy, EvictableCacheEntry } from './lfu-base';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
@@ -41,8 +41,8 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		this.onHit(key, entry); // onHit performs the required actions: recomputes frequency and moves to another bucket
+	public onUpdate(entry: EvictableCacheEntry<Key, Value>): void {
+		this.onHit(entry); // onHit performs the required actions: recomputes frequency and moves to another bucket
 	}
 
 	/**
@@ -58,7 +58,7 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	/**
 	 * @inheritDoc
 	 */
-	protected computeEntryFrequency(entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
+	protected computeEntryFrequency(entry: EvictableCacheEntry<Key, Value>, entryScore: number): number {
 		return Math.round((entryScore / this.sizeOf(entry.value)) * 10) / 10 + this.cacheAge + 1;
 		// return Math.round(entryScore / this.sizeOf(entry.value)) + this.cacheAge + 1;
 	}

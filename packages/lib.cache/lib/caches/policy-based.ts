@@ -2,9 +2,8 @@ import { Undefinable } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
 import { Cache, CacheEvent } from '../contracts/cache';
-import { CacheEntry } from '../contracts/commons';
 
 /**
  * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
@@ -68,7 +67,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 
 		for (const policy of this.policies) {
 			// if policy tries to remove entry (e.g. expired entry, cache full -> evicted entry), other ones will be notified
-			if (policy.onHit(key, entry) === EntryValidity.NOT_VALID) {
+			if (policy.onHit(entry) === EntryValidity.NOT_VALID) {
 				// it's safe to break the cycle here, because in case an item is evicted, onDelete hook for each policy will be triggered automatically
 				return NOT_FOUND_VALUE;
 			}
@@ -98,12 +97,11 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 
 		if (entry === NOT_FOUND_VALUE) {
 			entry = this.backend.set(key, value);
-			// @fixme add key to entry
 
 			let policyIndex = 0;
 			try {
 				for (; policyIndex < this.policies.length; policyIndex++) {
-					this.policies[policyIndex].onSet(key, entry, argsBundle);
+					this.policies[policyIndex].onSet(entry, argsBundle);
 				}
 
 				this.emit(CacheEvent.INSERT, key, value);
@@ -111,9 +109,9 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 			} catch (e) {
 				// rollback
 				for (let i = 0; i < policyIndex; i++) {
-					this.policies[i].onDelete(key, entry); // detach metadata + internal structures
+					this.policies[i].onDelete(entry); // detach metadata + internal structures
 				}
-				this.backend.del(key, entry);
+				this.backend.del(entry);
 
 				// re-throw
 				throw e;
@@ -122,7 +120,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 
 		entry.value = value;
 		for (const policy of this.policies) {
-			policy.onUpdate(key, entry, argsBundle);
+			policy.onUpdate(entry, argsBundle);
 		}
 
 		this.emit(CacheEvent.UPDATE, key, value);
@@ -137,7 +135,8 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 			return false;
 		}
 
-		return this.internalDelete(key, entry);
+		this.internalDelete(entry);
+		return true;
 	}
 
 	/**
@@ -159,15 +158,13 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		this.emit(CacheEvent.FLUSH);
 	}
 
-	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
+	private internalDelete: Deleter<Key, Value> = (entry) => {
 		for (const policy of this.policies) {
-			policy.onDelete(key, entry);
+			policy.onDelete(entry);
 		}
 
-		this.emit(CacheEvent.DELETE, key, entry.value);
-		this.backend.del(key, entry);
-
-		return true;
+		this.emit(CacheEvent.DELETE, entry.key, entry.value);
+		this.backend.del(entry);
 	};
 }
 

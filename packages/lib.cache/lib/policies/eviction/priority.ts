@@ -2,7 +2,7 @@ import { Nullable, Percentage, Seconds } from '@thermopylae/core.declarations';
 import { chrono, number } from '@thermopylae/lib.utils';
 import { memoryUsage } from 'process';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { IterableCacheBackend } from '../../contracts/cache-backend';
 
 // @fixme take into account gc: https://www.npmjs.com/package/gc-stats
@@ -48,7 +48,7 @@ const enum CacheEntryPriority {
 /**
  * @internal
  */
-interface PrioritizedCacheEntry<Key, Value> extends CacheKey<Key>, CacheEntry<Value> {
+interface PrioritizedCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[PRIORITY_SYM]: CacheEntryPriority;
 }
 
@@ -146,8 +146,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
-		entry.key = key;
+	public onSet(entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		entry[PRIORITY_SYM] = options && options.priority != null ? options.priority : CacheEntryPriority.NORMAL;
 
 		this.increaseNumberOfEntries(entry[PRIORITY_SYM]);
@@ -161,7 +160,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(_key: Key, entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public onUpdate(entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.priority == null) {
 			return;
 		}
@@ -178,7 +177,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: PrioritizedCacheEntry<Key, Value>): void {
+	public onDelete(entry: PrioritizedCacheEntry<Key, Value>): void {
 		this.decreaseNumberOfEntries(entry[PRIORITY_SYM]);
 		entry[PRIORITY_SYM] = undefined!; // logical deletion
 
@@ -218,7 +217,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 					break;
 				}
 				if (numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]]) {
-					this.deleteFromCache(entry.key, entry); // will trigger `onDelete` hook
+					this.deleteFromCache(entry); // will trigger `onDelete` hook
 					numberOfEntriesToEvictByPriority[entry[PRIORITY_SYM]] -= 1;
 					totalNumberOfEntriesToBeEvicted -= 1;
 				}

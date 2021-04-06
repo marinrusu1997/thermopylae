@@ -1,5 +1,5 @@
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-graph';
 import { ReadonlyCacheBackend } from '../../contracts/cache-backend';
 import { createException, ErrorCodes } from '../../error';
@@ -7,7 +7,7 @@ import { createException, ErrorCodes } from '../../error';
 /**
  * @internal
  */
-interface CacheEntryWithDependencies<Key, Value> extends CacheKey<Key>, CacheEntry<Value>, GraphEntry {}
+interface CacheEntryWithDependencies<Key, Value> extends CacheEntry<Key, Value>, GraphEntry {}
 
 interface KeysDependenciesEvictionPolicyArgumentsBundle<Key> {
 	/**
@@ -88,9 +88,7 @@ class KeysDependenciesEvictionPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
-		entry.key = key; // dependencies might be added later in the form of dependents
-
+	public onSet(entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null) {
 			return;
 		}
@@ -102,7 +100,7 @@ class KeysDependenciesEvictionPolicy<
 				dependencyEntry = this.readonlyCacheBackend.get(dependencyKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
 					if (options.throwOnDependencyNotFound) {
-						throw createException(ErrorCodes.NOT_FOUND, `Dependency '${dependencyKey}' of the '${key}' wasn't found.`);
+						throw createException(ErrorCodes.NOT_FOUND, `Dependency '${dependencyKey}' of the '${entry.key}' wasn't found.`);
 					}
 					continue;
 				}
@@ -116,7 +114,7 @@ class KeysDependenciesEvictionPolicy<
 				dependencyEntry = this.readonlyCacheBackend.get(dependentKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
 					if (options.throwOnDependencyNotFound) {
-						throw createException(ErrorCodes.NOT_FOUND, `Dependent '${dependentKey}' of the '${key}' wasn't found.`);
+						throw createException(ErrorCodes.NOT_FOUND, `Dependent '${dependentKey}' of the '${entry.key}' wasn't found.`);
 					}
 					continue;
 				}
@@ -137,7 +135,7 @@ class KeysDependenciesEvictionPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: CacheEntryWithDependencies<Key, Value>): void {
+	public onDelete(entry: CacheEntryWithDependencies<Key, Value>): void {
 		this.visitedEntriesOnDeletion.add(entry);
 
 		const dependencies = this.dependencyGraph.directDependenciesOf(entry);
@@ -147,7 +145,7 @@ class KeysDependenciesEvictionPolicy<
 			if (this.visitedEntriesOnDeletion.has(dependencies[i])) {
 				continue; // prevent cycles
 			}
-			this.deleteFromCache(dependencies[i].key, dependencies[i]); // cascade delete
+			this.deleteFromCache(dependencies[i]); // cascade delete
 		}
 
 		this.visitedEntriesOnDeletion.delete(entry);

@@ -1,3 +1,4 @@
+import { expect } from '@thermopylae/lib.unit-test';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
 import { CacheEntry } from '../../../lib/contracts/commons';
 
@@ -22,13 +23,16 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		}
 	}
 
-	public onHit(key: Key, entry: CacheEntry<Value>): EntryValidity {
+	public onHit(entry: CacheEntry<Key, Value>): EntryValidity {
+		expect(entry.key).to.not.be.eq(undefined);
+		expect(entry.value).to.not.be.eq(undefined);
+
 		const methodBehaviour = this.methodBehaviours.get('onHit')!;
-		methodBehaviour.arguments = [key, entry];
+		methodBehaviour.arguments = [entry];
 		methodBehaviour.calls += 1;
 
 		if (methodBehaviour.returnValue === EntryValidity.NOT_VALID) {
-			this.deleteFromCache(key, entry);
+			this.deleteFromCache(entry);
 		}
 
 		return methodBehaviour.returnValue;
@@ -40,9 +44,12 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		methodBehaviour.calls += 1;
 	}
 
-	public onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void {
+	public onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void {
+		expect(entry.key).to.not.be.eq(undefined);
+		expect(entry.value).to.not.be.eq(undefined);
+
 		const methodBehaviour = this.methodBehaviours.get('onSet')!;
-		methodBehaviour.arguments = [key, entry, argsBundle];
+		methodBehaviour.arguments = [entry, argsBundle];
 		methodBehaviour.calls += 1;
 
 		if (methodBehaviour.throws) {
@@ -50,9 +57,12 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		}
 	}
 
-	public onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void {
+	public onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void {
+		expect(entry.key).to.not.be.eq(undefined);
+		expect(entry.value).to.not.be.eq(undefined);
+
 		const methodBehaviour = this.methodBehaviours.get('onUpdate')!;
-		methodBehaviour.arguments = [key, entry, argsBundle];
+		methodBehaviour.arguments = [entry, argsBundle];
 		methodBehaviour.calls += 1;
 
 		if (methodBehaviour.throws) {
@@ -60,9 +70,12 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 		}
 	}
 
-	public onDelete(key: Key, entry: CacheEntry<Value>): void {
+	public onDelete(entry: CacheEntry<Key, Value>): void {
+		expect(entry.key).to.not.be.eq(undefined);
+		expect(entry.value).to.not.be.eq(undefined);
+
 		const methodBehaviour = this.methodBehaviours.get('onDelete')!;
-		methodBehaviour.arguments = [key, entry];
+		methodBehaviour.arguments = [entry];
 		methodBehaviour.calls += 1;
 	}
 

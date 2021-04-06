@@ -21,11 +21,11 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			expect(policy.idle).to.be.eq(true);
 
 			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
 
@@ -49,7 +49,7 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			for (let i = 0; i < TOTAL_ENTRIES_NO; i++) {
 				const key = String(i);
 				const entry = backend.set(key, string.random()) as PrioritizedCacheEntry<string, string>;
-				policy.onSet(key, entry, { priority: getPriority(i) });
+				policy.onSet(entry, { priority: getPriority(i) });
 			}
 
 			setTimeout(() => {
@@ -95,22 +95,22 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			});
 
 			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.LOW });
-			policy.onSet('b', backend.set('b', 'b'), { priority: CacheEntryPriority.BELOW_NORMAL });
-			policy.onSet('c', backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
-			policy.onSet('d', backend.set('d', 'd'), { priority: CacheEntryPriority.ABOVE_NORMAL });
-			policy.onSet('e', backend.set('e', 'e'), { priority: CacheEntryPriority.HIGH });
-			policy.onSet('f', backend.set('f', 'f'), { priority: CacheEntryPriority.NOT_REMOVABLE });
-			policy.onSet('g', backend.set('g', 'g'), { priority: CacheEntryPriority.NOT_REMOVABLE });
-			policy.onSet('h', backend.set('h', 'h'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.LOW });
+			policy.onSet(backend.set('b', 'b'), { priority: CacheEntryPriority.BELOW_NORMAL });
+			policy.onSet(backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
+			policy.onSet(backend.set('d', 'd'), { priority: CacheEntryPriority.ABOVE_NORMAL });
+			policy.onSet(backend.set('f', 'f'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('e', 'e'), { priority: CacheEntryPriority.HIGH });
+			policy.onSet(backend.set('g', 'g'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('h', 'h'), { priority: CacheEntryPriority.NOT_REMOVABLE });
 
 			setTimeout(() => {
 				try {
@@ -156,15 +156,15 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			expect(policy.idle).to.be.eq(true);
 
 			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
 			expect(policy.idle).to.be.eq(false);
 
 			setTimeout(() => {
@@ -192,23 +192,25 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			});
 			expect(policy.idle).to.be.eq(true);
 
-			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			const EVICTED_KEYS = new Set<string>();
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
-				EVICTED_ENTRIES.add(prioritizedEntry);
+				EVICTED_KEYS.add(prioritizedEntry.key);
 
-				backend.del(evictedKey, prioritizedEntry);
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
+				backend.del(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
+				expect(prioritizedEntry.key).to.be.eq(undefined);
+				expect(prioritizedEntry.value).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.HIGH });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.HIGH });
 			expect(policy.idle).to.be.eq(false);
 
 			setTimeout(() => {
 				try {
-					expect(EVICTED_ENTRIES.size).to.be.eq(1);
-					expect(EVICTED_ENTRIES.values().next().value.key).to.be.eq('a');
+					expect(EVICTED_KEYS.size).to.be.eq(1);
+					expect(EVICTED_KEYS.has('a')).to.be.eq(true);
 					expect(policy.idle).to.be.eq(true);
 
 					done();
@@ -231,26 +233,26 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			expect(policy.idle).to.be.eq(true);
 
 			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
 				EVICTED_ENTRIES.add(prioritizedEntry);
 
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
-			policy.onSet('b', backend.set('b', 'b'), { priority: CacheEntryPriority.HIGH });
-			policy.onSet('c', backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
-			policy.onSet('d', backend.set('d', 'd'), { priority: CacheEntryPriority.LOW });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('b', 'b'), { priority: CacheEntryPriority.HIGH });
+			policy.onSet(backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
+			policy.onSet(backend.set('d', 'd'), { priority: CacheEntryPriority.LOW });
 
-			policy.onUpdate('a', backend.get('a')!, { priority: CacheEntryPriority.LOW });
-			policy.onUpdate('d', backend.get('d')!, { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onUpdate(backend.get('a')!, { priority: CacheEntryPriority.LOW });
+			policy.onUpdate(backend.get('d')!, { priority: CacheEntryPriority.NOT_REMOVABLE });
 
-			policy.onUpdate('b', backend.get('b')!); // has no effect
-			policy.onUpdate('b', backend.get('b')!, { priority: undefined }); // has no effect
-			policy.onUpdate('b', backend.get('b')!, { priority: null! }); // has no effect
-			policy.onUpdate('c', backend.get('c')!, { priority: CacheEntryPriority.NORMAL }); // has no effect, same priority
+			policy.onUpdate(backend.get('b')!); // has no effect
+			policy.onUpdate(backend.get('b')!, { priority: undefined }); // has no effect
+			policy.onUpdate(backend.get('b')!, { priority: null! }); // has no effect
+			policy.onUpdate(backend.get('c')!, { priority: CacheEntryPriority.NORMAL }); // has no effect, same priority
 
 			setTimeout(() => {
 				try {
@@ -299,10 +301,10 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			});
 			expect(policy.idle).to.be.eq(true);
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
 			expect(policy.idle).to.be.eq(false);
 
-			policy.onDelete('a', backend.get('a')!);
+			policy.onDelete(backend.get('a')!);
 			expect(policy.idle).to.be.eq(true);
 		});
 	});
@@ -318,34 +320,36 @@ describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 			});
 			expect(policy.idle).to.be.eq(true);
 
-			const EVICTED_ENTRIES = new Set<PrioritizedCacheEntry<string, string>>();
-			policy.setDeleter((evictedKey, evictedEntry) => {
+			const EVICTED_KEYS = new Set<string>();
+			policy.setDeleter((evictedEntry) => {
 				const prioritizedEntry = evictedEntry as PrioritizedCacheEntry<string, string>;
-				EVICTED_ENTRIES.add(prioritizedEntry);
+				EVICTED_KEYS.add(prioritizedEntry.key);
 
-				backend.del(evictedKey, prioritizedEntry);
-				policy.onDelete(evictedKey, prioritizedEntry);
+				policy.onDelete(prioritizedEntry);
+				backend.del(prioritizedEntry);
 				expect(prioritizedEntry[PRIORITY_SYM]).to.be.eq(undefined);
+				expect(prioritizedEntry.key).to.be.eq(undefined);
+				expect(prioritizedEntry.value).to.be.eq(undefined);
 			});
 
-			policy.onSet('a', backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
+			policy.onSet(backend.set('a', 'a'), { priority: CacheEntryPriority.NOT_REMOVABLE });
 			expect(policy.idle).to.be.eq(false);
 
 			backend.clear();
 			policy.onClear();
 			expect(policy.idle).to.be.eq(true);
-			expect(EVICTED_ENTRIES.size).to.be.eq(0);
+			expect(EVICTED_KEYS.size).to.be.eq(0);
 
-			policy.onSet('b', backend.set('b', 'b'), { priority: CacheEntryPriority.HIGH });
-			policy.onSet('c', backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
+			policy.onSet(backend.set('b', 'b'), { priority: CacheEntryPriority.HIGH });
+			policy.onSet(backend.set('c', 'c'), { priority: CacheEntryPriority.NORMAL });
 
 			setTimeout(() => {
 				try {
 					policy.onClear();
 					expect(policy.idle).to.be.eq(true); // stop that interval timer
 
-					expect(EVICTED_ENTRIES.size).to.be.eq(1);
-					expect(EVICTED_ENTRIES.values().next().value.key).to.be.eq('c');
+					expect(EVICTED_KEYS.size).to.be.eq(1);
+					expect(EVICTED_KEYS.has('c')).to.be.eq(true);
 
 					expect(backend.size).to.be.eq(1);
 					expect(backend.has('b')).to.be.eq(true);

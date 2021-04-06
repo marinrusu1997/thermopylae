@@ -1,5 +1,5 @@
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { CircularBuffer } from '../../data-structures/circular-buffer';
 import { createException, ErrorCodes } from '../../error';
@@ -29,7 +29,7 @@ const enum SegmentType {
 /**
  * @internal
  */
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {
+interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {
 	[SEGMENT_TYPE_SYM]: SegmentType;
 }
 
@@ -38,7 +38,7 @@ interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>,
  */
 interface CacheSegment<Key, Value> {
 	capacity: number;
-	block: DoublyLinkedList<EvictableKeyNode<Key, Value>>;
+	block: DoublyLinkedList<EvictableCacheEntry<Key, Value>>;
 	ghosts: CircularBuffer<Key>;
 }
 
@@ -65,12 +65,12 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 		this.segments = {
 			[SegmentType.T1]: {
 				capacity: Math.round(cacheMaxCapacity / 2),
-				block: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
+				block: new DoublyLinkedList<EvictableCacheEntry<Key, Value>>(),
 				ghosts: new CircularBuffer<Key>(Math.round(cacheMaxCapacity / 2))
 			},
 			[SegmentType.T2]: {
 				capacity: 0,
-				block: new DoublyLinkedList<EvictableKeyNode<Key, Value>>(),
+				block: new DoublyLinkedList<EvictableCacheEntry<Key, Value>>(),
 				ghosts: new CircularBuffer<Key>(Math.round(cacheMaxCapacity / 2))
 			}
 		};
@@ -81,7 +81,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(entry: EvictableCacheEntry<Key, Value>): EntryValidity {
 		if (entry[SEGMENT_TYPE_SYM] === SegmentType.T1) {
 			if (this.segments[SegmentType.T2].capacity === 0) {
 				this.segments[SegmentType.T1].block.toTail(entry);
@@ -110,7 +110,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 			this.segments[SegmentType.T2].capacity -= 1;
 
 			if (this.segments[SegmentType.T2].block.size > this.segments[SegmentType.T2].capacity) {
-				this.deleteFromCache(this.segments[SegmentType.T2].block.tail!.key, this.segments[SegmentType.T2].block.tail!); // `onDelete` does the job
+				this.deleteFromCache(this.segments[SegmentType.T2].block.tail!); // `onDelete` does the job
 			}
 
 			return;
@@ -125,7 +125,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 			this.segments[SegmentType.T1].capacity -= 1;
 
 			if (this.segments[SegmentType.T1].block.size > this.segments[SegmentType.T1].capacity) {
-				this.deleteFromCache(this.segments[SegmentType.T1].block.head!.key, this.segments[SegmentType.T1].block.head!); // `onDelete` does the job
+				this.deleteFromCache(this.segments[SegmentType.T1].block.head!); // `onDelete` does the job
 			}
 		}
 	}
@@ -133,8 +133,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
-		entry.key = key;
+	public onSet(entry: EvictableCacheEntry<Key, Value>): void {
 		this.insertInT1(entry);
 	}
 
@@ -148,7 +147,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onDelete(entry: EvictableCacheEntry<Key, Value>): void {
 		this.segments[entry[SEGMENT_TYPE_SYM]].block.remove(entry);
 		this.segments[entry[SEGMENT_TYPE_SYM]].ghosts.add(entry.key);
 		entry[SEGMENT_TYPE_SYM] = undefined!; // clear metadata
@@ -175,23 +174,23 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 		this.deleteFromCache = deleter;
 	}
 
-	private insertInT1(entry: EvictableKeyNode<Key, Value>): void {
+	private insertInT1(entry: EvictableCacheEntry<Key, Value>): void {
 		if (this.segments[SegmentType.T1].capacity === 0) {
 			this.insertInT2(entry);
 			return;
 		}
 
 		if (this.segments[SegmentType.T1].block.size === this.segments[SegmentType.T1].capacity) {
-			this.deleteFromCache(this.segments[SegmentType.T1].block.head!.key, this.segments[SegmentType.T1].block.head!); // `onDelete` will do the job
+			this.deleteFromCache(this.segments[SegmentType.T1].block.head!); // `onDelete` will do the job
 		}
 
 		entry[SEGMENT_TYPE_SYM] = SegmentType.T1;
 		this.segments[SegmentType.T1].block.push(entry);
 	}
 
-	private insertInT2(entry: EvictableKeyNode<Key, Value>): void {
+	private insertInT2(entry: EvictableCacheEntry<Key, Value>): void {
 		if (this.segments[SegmentType.T2].block.size === this.segments[SegmentType.T2].capacity) {
-			this.deleteFromCache(this.segments[SegmentType.T2].block.tail!.key, this.segments[SegmentType.T2].block.tail!); // `onDelete` does the job
+			this.deleteFromCache(this.segments[SegmentType.T2].block.tail!); // `onDelete` does the job
 		}
 
 		entry[SEGMENT_TYPE_SYM] = SegmentType.T2;
@@ -199,4 +198,4 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 	}
 }
 
-export { ArcEvictionPolicy, EvictableKeyNode, SegmentType, SEGMENT_TYPE_SYM };
+export { ArcEvictionPolicy, EvictableCacheEntry, SegmentType, SEGMENT_TYPE_SYM };

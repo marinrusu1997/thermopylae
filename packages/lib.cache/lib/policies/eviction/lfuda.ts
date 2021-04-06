@@ -1,5 +1,5 @@
 import { Threshold } from '@thermopylae/core.declarations';
-import { BaseLFUEvictionPolicy, EvictableKeyNode } from './lfu-base';
+import { BaseLFUEvictionPolicy, EvictableCacheEntry } from './lfu-base';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
@@ -33,7 +33,7 @@ class LFUDAEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPo
 	/**
 	 * @inheritDoc
 	 */
-	protected computeEntryFrequency(_entry: EvictableKeyNode<Key, Value>, entryScore: number): number {
+	protected computeEntryFrequency(_entry: EvictableCacheEntry<Key, Value>, entryScore: number): number {
 		return entryScore + this.cacheAge + 1;
 	}
 

@@ -13,7 +13,7 @@ interface CacheBackendElementsCount {
  * @template Key	Type of the key.
  * @template Value	Type of the value.
  */
-interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Value>]>, CacheBackendElementsCount {
+interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Key, Value>]>, CacheBackendElementsCount {
 	/**
 	 * Returns an iterable of stored keys.
 	 */
@@ -22,12 +22,12 @@ interface IterableCacheBackend<Key, Value> extends Iterable<[Key, CacheEntry<Val
 	/**
 	 * Returns an iterable of stored values.
 	 */
-	values(): IterableIterator<CacheEntry<Value>>;
+	values(): IterableIterator<CacheEntry<Key, Value>>;
 
 	/**
 	 * Iterate over stored entries.
 	 */
-	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Value>]>;
+	[Symbol.iterator](): IterableIterator<[Key, CacheEntry<Key, Value>]>;
 }
 
 /**
@@ -43,7 +43,7 @@ declare interface ReadonlyCacheBackend<Key, Value> {
 	 *
 	 * @param key	Name of the key.
 	 */
-	get(key: Key): CacheEntry<Value> | undefined;
+	get(key: Key): CacheEntry<Key, Value> | undefined;
 
 	/**
 	 * Check if `key` is present in the cache.
@@ -72,15 +72,14 @@ declare interface CacheBackend<Key, Value> extends ReadonlyCacheBackend<Key, Val
 	 * @returns	{@link CacheEntry} stored by backend. <br/>
 	 *     		Upper level abstractions can attach properties to this object.
 	 */
-	set(key: Key, value: Value): CacheEntry<Value>;
+	set(key: Key, value: Value): CacheEntry<Key, Value>;
 
 	/**
-	 * Delete `key`.
+	 * Delete `entry`.
 	 *
-	 * @param key		Name of the key.
-	 * @param entry		Entry associated with `key`.
+	 * @param entry		Entry that needs to be deleted.
 	 */
-	del(key: Key, entry: CacheEntry<Value>): void;
+	del(entry: CacheEntry<Key, Value>): void;
 
 	/**
 	 * Remove all entries from storage.

@@ -25,18 +25,18 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			BACKEND.set('e', 'e');
 			BACKEND.set('f', 'f');
 
-			policy.onSet('a', BACKEND.get('a')!);
-			policy.onSet('b', BACKEND.get('b')!, { dependents: ['a'] });
-			policy.onSet('c', BACKEND.get('c')!, { dependents: ['a'] });
-			policy.onSet('d', BACKEND.get('d')!, { dependents: ['a', 'b', 'c'] });
-			policy.onSet('e', BACKEND.get('e')!, { dependents: ['a', 'c', 'd'] });
-			policy.onSet('f', BACKEND.get('f')!);
+			policy.onSet(BACKEND.get('a')!);
+			policy.onSet(BACKEND.get('b')!, { dependents: ['a'] });
+			policy.onSet(BACKEND.get('c')!, { dependents: ['a'] });
+			policy.onSet(BACKEND.get('d')!, { dependents: ['a', 'b', 'c'] });
+			policy.onSet(BACKEND.get('e')!, { dependents: ['a', 'c', 'd'] });
+			policy.onSet(BACKEND.get('f')!);
 
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
 
 				const entryWithDeps = evictedEntry as CacheEntryWithDependencies<string, string>;
-				policy.onDelete(evictedKey, entryWithDeps);
+				policy.onDelete(entryWithDeps);
 			});
 
 			return policy;
@@ -56,7 +56,7 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 				const policy = policyFactory();
 
 				const deletedEntry = BACKEND.get(deletedKey)!;
-				policy.onDelete(deletedKey, deletedEntry);
+				policy.onDelete(deletedEntry);
 
 				expect(deletedEntry[DEPENDENCIES_SYM]).to.be.eq(undefined);
 				expect(deletedEntry[DEPENDENTS_SYM]).to.be.eq(undefined);
@@ -78,17 +78,17 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		it('deletes all nodes starting from node b', () => {
 			const policy = policyFactory();
 
-			policy.onDelete('b', BACKEND.get('b')!);
+			policy.onDelete(BACKEND.get('b')!);
 			expect(EVICTED_KEYS).to.be.containing('d');
 			expect(EVICTED_KEYS).to.be.containing('e');
 
-			policy.onDelete('c', BACKEND.get('c')!);
+			policy.onDelete(BACKEND.get('c')!);
 			expect(EVICTED_KEYS).to.be.ofSize(2);
 
-			policy.onDelete('a', BACKEND.get('a')!);
+			policy.onDelete(BACKEND.get('a')!);
 			expect(EVICTED_KEYS).to.be.ofSize(2);
 
-			policy.onDelete('f', BACKEND.get('f')!);
+			policy.onDelete(BACKEND.get('f')!);
 			expect(EVICTED_KEYS).to.be.ofSize(2);
 
 			for (const entry of BACKEND.values()) {
@@ -100,14 +100,14 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		it('deletes all nodes starting from node c', () => {
 			const policy = policyFactory();
 
-			policy.onDelete('c', BACKEND.get('c')!);
+			policy.onDelete(BACKEND.get('c')!);
 			expect(EVICTED_KEYS).to.be.containing('d');
 			expect(EVICTED_KEYS).to.be.containing('e');
 
-			policy.onDelete('a', BACKEND.get('a')!);
+			policy.onDelete(BACKEND.get('a')!);
 			expect(EVICTED_KEYS).to.be.containing('b');
 
-			policy.onDelete('f', BACKEND.get('f')!);
+			policy.onDelete(BACKEND.get('f')!);
 			expect(EVICTED_KEYS).to.be.ofSize(3);
 
 			for (const entry of BACKEND.values()) {
@@ -119,16 +119,16 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		it('deletes all nodes starting from node d', () => {
 			const policy = policyFactory();
 
-			policy.onDelete('d', BACKEND.get('d')!);
+			policy.onDelete(BACKEND.get('d')!);
 			expect(EVICTED_KEYS).to.be.containing('e');
 
-			policy.onDelete('c', BACKEND.get('c')!);
+			policy.onDelete(BACKEND.get('c')!);
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 
-			policy.onDelete('a', BACKEND.get('a')!);
+			policy.onDelete(BACKEND.get('a')!);
 			expect(EVICTED_KEYS).to.be.containing('b');
 
-			policy.onDelete('f', BACKEND.get('f')!);
+			policy.onDelete(BACKEND.get('f')!);
 			expect(EVICTED_KEYS).to.be.ofSize(2);
 
 			for (const entry of BACKEND.values()) {
@@ -140,15 +140,15 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		it('deletes all nodes starting from node e', () => {
 			const policy = policyFactory();
 
-			policy.onDelete('e', BACKEND.get('e')!);
+			policy.onDelete(BACKEND.get('e')!);
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
-			policy.onDelete('a', BACKEND.get('a')!);
+			policy.onDelete(BACKEND.get('a')!);
 			expect(EVICTED_KEYS).to.be.containing('b');
 			expect(EVICTED_KEYS).to.be.containing('c');
 			expect(EVICTED_KEYS).to.be.containing('d');
 
-			policy.onDelete('f', BACKEND.get('f')!);
+			policy.onDelete(BACKEND.get('f')!);
 			expect(EVICTED_KEYS).to.be.ofSize(3);
 
 			for (const entry of BACKEND.values()) {
@@ -167,16 +167,16 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			BACKEND.set('2', '2');
 			BACKEND.set('3', '3');
 
-			policy.onSet('0', BACKEND.get('0')!);
-			policy.onSet('1', BACKEND.get('1')!, { dependents: ['0'] });
-			policy.onSet('2', BACKEND.get('2')!, { dependencies: ['0'], dependents: ['0', '1'] });
-			policy.onSet('3', BACKEND.get('3')!, { dependencies: ['3'], dependents: ['2'] });
+			policy.onSet(BACKEND.get('0')!);
+			policy.onSet(BACKEND.get('1')!, { dependents: ['0'] });
+			policy.onSet(BACKEND.get('2')!, { dependencies: ['0'], dependents: ['0', '1'] });
+			policy.onSet(BACKEND.get('3')!, { dependencies: ['3'], dependents: ['2'] });
 
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
 
 				const entryWithDeps = evictedEntry as CacheEntryWithDependencies<string, string>;
-				policy.onDelete(evictedKey, entryWithDeps);
+				policy.onDelete(entryWithDeps);
 			});
 
 			return policy;
@@ -187,7 +187,7 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 				const policy = policyFactory();
 				const key = String(i);
 
-				policy.onDelete(key, BACKEND.get(key)!);
+				policy.onDelete(BACKEND.get(key)!);
 
 				expect(EVICTED_KEYS).to.be.ofSize(3);
 
@@ -210,10 +210,10 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		it('deletes all nodes starting from node 3', () => {
 			const policy = policyFactory();
 
-			policy.onDelete('3', BACKEND.get('3')!);
+			policy.onDelete(BACKEND.get('3')!);
 			expect(EVICTED_KEYS).to.be.ofSize(0); // it had no deps
 
-			policy.onDelete('0', BACKEND.get('0')!);
+			policy.onDelete(BACKEND.get('0')!);
 			expect(EVICTED_KEYS).to.be.ofSize(2); // it had 2 deps
 			expect(EVICTED_KEYS).to.be.containing('1');
 			expect(EVICTED_KEYS).to.be.containing('2');
@@ -231,17 +231,17 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		BACKEND.set('a', 'a');
 		BACKEND.set('b', 'b');
 
-		policy.onSet('a', BACKEND.get('a')!);
-		policy.onSet('b', BACKEND.get('b')!, { dependents: ['a', 'a'] });
+		policy.onSet(BACKEND.get('a')!);
+		policy.onSet(BACKEND.get('b')!, { dependents: ['a', 'a'] });
 
-		policy.setDeleter((evictedKey, evictedEntry) => {
-			EVICTED_KEYS.push(evictedKey);
+		policy.setDeleter((evictedEntry) => {
+			EVICTED_KEYS.push(evictedEntry.key);
 
 			const entryWithDeps = evictedEntry as CacheEntryWithDependencies<string, string>;
-			policy.onDelete(evictedKey, entryWithDeps);
+			policy.onDelete(entryWithDeps);
 		});
 
-		policy.onDelete('a', BACKEND.get('a')!);
+		policy.onDelete(BACKEND.get('a')!);
 		expect(EVICTED_KEYS).to.be.ofSize(1); // it had 1 dep
 		expect(EVICTED_KEYS).to.be.containing('b');
 

@@ -45,7 +45,7 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			expect(cache.get('key')).to.be.eq('value');
 			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
-			expect(policy.methodBehaviours.get('onHit')!.arguments![0]).to.be.eq('key');
+			expect(policy.methodBehaviours.get('onHit')!.arguments![0]).to.be.eq(backend.get('key'));
 
 			expect(policy.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
 		});
@@ -98,10 +98,10 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const entry = backend.get('key')!;
 
 			expect(entry.value).to.be.eq('value');
-			expect(backend.get('key')).to.be.deep.eq({ value: 'value' });
+			expect(backend.get('key')).to.be.deep.eq({ key: 'key', value: 'value' });
 
 			const onSetInvocation = policy.methodBehaviours.get('onSet')!;
-			expect(onSetInvocation.arguments![2]).to.be.eq('bundle');
+			expect(onSetInvocation.arguments![1]).to.be.eq('bundle');
 			expect(onSetInvocation.calls).to.be.eq(1);
 
 			expect(eventKey).to.be.eq('key');
@@ -134,15 +134,15 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			cache.set('key', 'new_value', 'new_bundle');
 			expect(entry.value).to.be.eq('new_value');
-			expect(backend.get('key')).to.be.deep.eq({ value: 'new_value' });
+			expect(backend.get('key')).to.be.deep.eq({ key: 'key', value: 'new_value' });
 			expect(cache.size).to.be.eq(1);
 
 			const onSetInvocation = policy.methodBehaviours.get('onSet')!;
-			expect(onSetInvocation.arguments![2]).to.be.eq('bundle');
+			expect(onSetInvocation.arguments![1]).to.be.eq('bundle');
 			expect(onSetInvocation.calls).to.be.eq(1);
 
 			const onUpdateInvocation = policy.methodBehaviours.get('onUpdate')!;
-			expect(onUpdateInvocation.arguments![1]).to.be.deep.eq({ value: 'new_value' });
+			expect(onUpdateInvocation.arguments![0]).to.be.deep.eq(backend.get('key'));
 			expect(onUpdateInvocation.calls).to.be.eq(1);
 
 			expect(setEventKey).to.be.eq('key');
@@ -208,15 +208,12 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			const methodBehaviour1 = policy1.methodBehaviours.get('onDelete')!;
 			expect(methodBehaviour1.calls).to.be.eq(1);
-			expect(methodBehaviour1.arguments![0]).to.be.eq('key');
 
 			const methodBehaviour2 = policy2.methodBehaviours.get('onDelete')!;
 			expect(methodBehaviour2.calls).to.be.eq(1);
-			expect(methodBehaviour2.arguments![0]).to.be.eq('key');
 
 			const methodBehaviour3 = policy3.methodBehaviours.get('onDelete')!;
 			expect(methodBehaviour3.calls).to.be.eq(1);
-			expect(methodBehaviour3.arguments![0]).to.be.eq('key');
 
 			expect(eventKey).to.be.eq('key');
 			expect(eventValue).to.be.eq('value');
@@ -237,10 +234,10 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			cache.set('key', 'value');
 			expect(cache.has('key')).to.be.eq(true);
 
-			policy.deleteFromCache('key', backend.get('key')!);
+			policy.deleteFromCache(backend.get('key')!);
 
 			expect(cache.has('key')).to.be.eq(false);
-			expect(policy.methodBehaviours.get('onDelete')!.arguments![0]).to.be.eq('key');
+			expect(policy.methodBehaviours.get('onDelete')!.calls).to.be.eq(1);
 
 			expect(eventKey).to.be.eq('key');
 			expect(eventValue).to.be.eq('value');

@@ -1,7 +1,7 @@
 import { Threshold } from '@thermopylae/core.declarations';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { CacheReplacementPolicy, EntryValidity, Deleter } from '../../contracts/cache-replacement-policy';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { LinkedList } from '../../data-structures/list/interface';
 import { createException, ErrorCodes } from '../../error';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
@@ -9,7 +9,7 @@ import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 /**
  * @internal
  */
-interface EvictableKeyNode<Key, Value> extends CacheEntry<Value>, CacheKey<Key>, DoublyLinkedListNode<EvictableKeyNode<Key, Value>> {}
+interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {}
 
 /**
  * [Least Recently Used](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU) "Least recently used (LRU)") eviction policy.
@@ -25,7 +25,7 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
-	private usageRecency: LinkedList<EvictableKeyNode<Key, Value>>;
+	private usageRecency: LinkedList<EvictableCacheEntry<Key, Value>>;
 
 	/**
 	 * @param cacheMaxCapacity				{@link Cache} maximum capacity.
@@ -38,13 +38,13 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 
 		this.cacheMaxCapacity = cacheMaxCapacity;
 		this.cacheBackendElementsCount = cacheBackendElementsCount;
-		this.usageRecency = new DoublyLinkedList<EvictableKeyNode<Key, Value>>();
+		this.usageRecency = new DoublyLinkedList<EvictableCacheEntry<Key, Value>>();
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(_key: Key, entry: EvictableKeyNode<Key, Value>): EntryValidity {
+	public onHit(entry: EvictableCacheEntry<Key, Value>): EntryValidity {
 		this.usageRecency.toFront(entry);
 		return EntryValidity.VALID;
 	}
@@ -59,12 +59,11 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onSet(entry: EvictableCacheEntry<Key, Value>): void {
 		if (this.cacheBackendElementsCount.size > this.cacheMaxCapacity) {
-			this.deleteFromCache(this.usageRecency.tail!.key, this.usageRecency.tail!); // removal from list will be made by `onDelete` hook
+			this.deleteFromCache(this.usageRecency.tail!); // removal from list will be made by `onDelete` hook
 		}
 
-		entry.key = key;
 		this.usageRecency.unshift(entry);
 	}
 
@@ -78,7 +77,7 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: EvictableKeyNode<Key, Value>): void {
+	public onDelete(entry: EvictableCacheEntry<Key, Value>): void {
 		this.usageRecency.remove(entry);
 	}
 
@@ -97,4 +96,4 @@ class LRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacement
 	}
 }
 
-export { LRUEvictionPolicy, EvictableKeyNode };
+export { LRUEvictionPolicy, EvictableCacheEntry };

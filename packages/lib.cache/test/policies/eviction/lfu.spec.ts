@@ -9,7 +9,7 @@ import range from 'lodash.range';
 import gc from 'js-gc';
 import { LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
 import { ReverseMap } from '../../utils';
-import { BaseLFUEvictionPolicy, EvictableKeyNode } from '../../../lib/policies/eviction/lfu-base';
+import { BaseLFUEvictionPolicy, EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
 import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
 import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
@@ -47,28 +47,28 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						for (const [key, value] of candidates) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry);
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry);
 							totalEntriesNo += 1;
 
 							expect(policy.size).to.be.eq(totalEntriesNo); // stacks up entries
 						}
 
 						// @ts-ignore
-						const entry: EvictableKeyNode<string, number> = { key: String(CAPACITY + 1), value: CAPACITY + 1 };
+						const entry: EvictableCacheEntry<string, number> = { key: String(CAPACITY + 1), value: CAPACITY + 1 };
 						let deleted: Nullable<string> = null;
-						policy.setDeleter((evictedKey, evictedEntry) => {
-							deleted = evictedKey;
+						policy.setDeleter((evictedEntry) => {
+							deleted = evictedEntry.key;
 
-							const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-							policy.onDelete(evictedKey, evictableKeyNode);
+							const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
 						});
 
 						totalEntriesNo += 1; // simulate overflow
-						policy.onSet(entry.key, entry);
+						policy.onSet(entry);
 
 						expect(deleted).to.not.be.eq(null); // our deleter has been called...
 						expect(deleted).to.not.be.eq(entry.key); // ...on some random entry (all of them have 0 frequency)...
@@ -103,12 +103,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								return totalEntriesNo;
 							}
 						});
-						const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
-						policy.setDeleter((evictedKey, evictedEntry) => {
-							EVICTED_KEYS.push(evictedKey);
+						const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>();
+						policy.setDeleter((evictedEntry) => {
+							EVICTED_KEYS.push(evictedEntry.key);
 
-							const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-							policy.onDelete(evictedKey, evictableKeyNode);
+							const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
@@ -116,8 +116,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						for (const [key, value] of ENTRIES) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry);
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry);
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 
@@ -135,7 +135,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onHit(key, entry);
+							policy.onHit(entry);
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 						}
@@ -146,15 +146,15 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry); // we don't increment totalEntriesNo, as we know entries are evicted and it's value remains the same
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry); // we don't increment totalEntriesNo, as we know entries are evicted and it's value remains the same
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 							// console.log(policy.size);
 
 							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
 							for (let i = 0; i < spinUpFrequency; i++) {
-								policy.onHit(key, entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
+								policy.onHit(entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
 							}
 						}
 
@@ -206,11 +206,11 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								return totalEntriesNo;
 							}
 						});
-						policy.setDeleter((evictedKey, evictedEntry) => {
-							EVICTED_KEYS.push(evictedKey);
+						policy.setDeleter((evictedEntry) => {
+							EVICTED_KEYS.push(evictedEntry.key);
 
-							const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-							policy.onDelete(evictedKey, evictableKeyNode);
+							const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
@@ -218,8 +218,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						for (const [key, value] of ENTRIES) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry);
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry);
 							totalEntriesNo += 1;
 						}
 						expect(policy.size).to.be.eq(CAPACITY);
@@ -229,8 +229,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry);
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry);
 						}
 
 						const entriesIter = ENTRIES.keys();
@@ -276,12 +276,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								return totalEntriesNo;
 							}
 						});
-						const lfuEntries = new Map<string, EvictableKeyNode<string, number>>();
-						policy.setDeleter((evictedKey, evictedEntry) => {
-							EVICTED_KEYS.push(evictedKey);
+						const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>();
+						policy.setDeleter((evictedEntry) => {
+							EVICTED_KEYS.push(evictedEntry.key);
 
-							const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-							policy.onDelete(evictedKey, evictableKeyNode);
+							const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
@@ -290,8 +290,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						// add entries
 						for (const [key, value] of ENTRIES) {
 							// @ts-ignore
-							const entry: EvictableKeyNode<string, number> = { key, value };
-							policy.onSet(key, entry);
+							const entry: EvictableCacheEntry<string, number> = { key, value };
+							policy.onSet(entry);
 							lfuEntries.set(key, entry);
 							totalEntriesNo += 1;
 						}
@@ -305,7 +305,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`Could not find entry for ${key.magenta}.`);
 							}
 
-							policy.onHit(key, entry);
+							policy.onHit(entry);
 						}
 
 						// remove some random keys
@@ -315,7 +315,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								throw new Error(`No entry found for ${key.magenta}.`);
 							}
 
-							policy.onDelete(key, entry);
+							policy.onDelete(entry);
 						}
 
 						// assertions
@@ -350,15 +350,15 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							return totalEntriesNo;
 						}
 					});
-					const lfuEntries = new Map<string, EvictableKeyNode<string, number>>(); // simulates cache
+					const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>(); // simulates cache
 
 					gc();
 					const memUsageBeforeInsert = { ...process.memoryUsage() };
 
 					for (let i = 0; i < CAPACITY; i++) {
 						// @ts-ignore
-						const entry: EvictableKeyNode<string, number> = { key: String(i), value: i };
-						lfu.onSet(entry.key, entry);
+						const entry: EvictableCacheEntry<string, number> = { key: String(i), value: i };
+						lfu.onSet(entry);
 						lfuEntries.set(entry.key, entry);
 						totalEntriesNo += 1;
 					}

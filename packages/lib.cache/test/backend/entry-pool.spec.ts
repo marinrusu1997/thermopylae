@@ -31,7 +31,7 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 
 		/* ITERATION */
 		const keys = new Set<string>(['a', 'b']);
-		const entries = new Set<CacheEntry<string>>([firstEntry, secondEntry]);
+		const entries = new Set<CacheEntry<string, string>>([firstEntry, secondEntry]);
 		for (const [key, entry] of backend) {
 			expect(keys.has(key)).to.be.eq(true);
 			expect(entries.has(entry)).to.be.eq(true);
@@ -61,11 +61,12 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		expect(keys.size).to.be.eq(0);
 
 		/* DELETE */
-		backend.del('a'); // deleted entry
+		backend.del(backend.get('a')!); // deleted entry
 		expect(backend.size).to.be.eq(1); // size decreased
 		expect(Array.from(backend)).to.be.ofSize(1); // iterates correctly
 		expect(Array.from(backend.values())).to.be.ofSize(1); // iterates correctly
 		expect(firstEntry.value).to.be.eq(undefined); // detaches metadata
+		expect(firstEntry.key).to.be.eq(undefined); // detaches metadata
 
 		const thirdEntry = backend.set('c', 'c');
 		expect(thirdEntry).to.be.eq(firstEntry); // it reused entry from pool

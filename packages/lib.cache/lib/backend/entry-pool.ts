@@ -14,7 +14,7 @@ import { CacheEntry } from '../contracts/commons';
  * @template Entry	Type of the cache entry. <br/>
  * 					Defaults to {@link CacheEntry}.
  */
-class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements CacheBackend<Key, Value> {
+class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = CacheEntry<Key, Value>> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, ObjectResource<Entry>>;
 
 	private readonly entryPool: ArrayObjectPool<Entry>;
@@ -30,9 +30,11 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheE
 			// @fixme HACK: we add 1 so that eviction policies get a chance to evict entries that overflow the cache
 			capacity: capacity ? capacity + 1 : capacity,
 			initializer(entry, args) {
-				[entry.value] = args;
+				entry.key = args[0] as Key;
+				entry.value = args[1] as Value;
 			},
 			deInitializer(entry) {
+				entry.key = undefined!; // let GC collect the value
 				entry.value = undefined!; // let GC collect the value
 			}
 		});
@@ -60,7 +62,7 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheE
 	 * @inheritDoc
 	 */
 	public set(key: Key, value: Value): Entry {
-		const objectResource = this.entryPool.acquire(value);
+		const objectResource = this.entryPool.acquire(key, value);
 		this.store.set(key, objectResource);
 		return objectResource.value;
 	}
@@ -68,10 +70,10 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheE
 	/**
 	 * @inheritDoc
 	 */
-	public del(key: Key): void {
-		const objectResource = this.store.get(key)!;
+	public del(entry: Entry): void {
+		const objectResource = this.store.get(entry.key)!;
+		this.store.delete(entry.key);
 		this.entryPool.release(objectResource);
-		this.store.delete(key);
 	}
 
 	/**

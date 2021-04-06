@@ -4,7 +4,7 @@ import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { array, number, string } from '@thermopylae/lib.utils';
 import colors from 'colors';
 import range from 'lodash.range';
-import { SegmentedLRUEvictionPolicy, EvictableKeyNode, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
+import { SegmentedLRUEvictionPolicy, EvictableCacheEntry, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
 import { MapUtils } from '../../utils';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
@@ -13,16 +13,16 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const CAPACITY = 2;
 		const PROTECTED_SEGMENT_RATIO = 0.5;
 
-		const ENTRIES_IN_CACHE = new Map<string, EvictableKeyNode<string, number>>();
+		const ENTRIES_IN_CACHE = new Map<string, EvictableCacheEntry<string, number>>();
 		let HOPS = 50;
 
 		try {
 			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				ENTRIES_IN_CACHE.delete(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				ENTRIES_IN_CACHE.delete(evictedEntry.key);
 
-				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-				policy.onDelete(evictedKey, evictableKeyNode);
+				const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
@@ -33,14 +33,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 					return;
 				}
 				const key = string.random({ length: 2, allowedCharRegex: /[0-9]/ });
-				const entry: EvictableKeyNode<string, number> = {
+				const entry: EvictableCacheEntry<string, number> = {
 					key,
 					value: Number(key),
 					// @ts-expect-error
 					[SEGMENT_SYM]: null
 				};
 
-				policy.onSet(key, entry);
+				policy.onSet(entry);
 				ENTRIES_IN_CACHE.set(key, entry);
 			}, 5);
 
@@ -48,8 +48,8 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				if (isDone() || !ENTRIES_IN_CACHE.size) {
 					return;
 				}
-				const [key, entry] = array.randomElement(Array.from(ENTRIES_IN_CACHE));
-				policy.onHit(key, entry);
+				const entry = array.randomElement(Array.from(ENTRIES_IN_CACHE.values()));
+				policy.onHit(entry);
 			}, 2);
 
 			const isDone = (): boolean => {
@@ -93,9 +93,9 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const PROTECTED_SIZE = Math.round(number.percentage(CAPACITY, PROTECTED_OVER_PROBATION_RATIO));
 		const PROBATION_SIZE = CAPACITY - PROTECTED_SIZE;
 
-		const ENTRIES = new Map<string, EvictableKeyNode<string, number>>(
+		const ENTRIES = new Map<string, EvictableCacheEntry<string, number>>(
 			range(0, PROBATION_SIZE).map((value) => {
-				const entry: EvictableKeyNode<string, number> = {
+				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
 					// @ts-expect-error
@@ -104,9 +104,9 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				return [entry.key, entry];
 			})
 		);
-		const ADDITIONAL_ENTRIES = new Map<string, EvictableKeyNode<string, number>>(
+		const ADDITIONAL_ENTRIES = new Map<string, EvictableCacheEntry<string, number>>(
 			range(PROBATION_SIZE, number.randomInt(1, PROBATION_SIZE)).map((value) => {
-				const entry: EvictableKeyNode<string, number> = {
+				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
 					// @ts-expect-error
@@ -120,22 +120,22 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 
 		try {
 			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
 
-				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-				policy.onDelete(evictedKey, evictableKeyNode);
+				const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
 			});
 
-			for (const [key, entry] of ENTRIES) {
-				policy.onSet(key, entry);
+			for (const entry of ENTRIES.values()) {
+				policy.onSet(entry);
 			}
 
-			for (const [key, entry] of ADDITIONAL_ENTRIES) {
-				policy.onSet(key, entry);
+			for (const entry of ADDITIONAL_ENTRIES.values()) {
+				policy.onSet(entry);
 			}
 
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
@@ -169,9 +169,9 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const PROTECTED_SIZE = Math.round(number.percentage(CAPACITY, PROTECTED_OVER_PROBATION_RATIO));
 		const PROBATION_SIZE = CAPACITY - PROTECTED_SIZE;
 
-		const PROTECTED_ENTRIES = new Map<string, EvictableKeyNode<string, number>>(
+		const PROTECTED_ENTRIES = new Map<string, EvictableCacheEntry<string, number>>(
 			range(0, PROTECTED_SIZE).map((value) => {
-				const entry: EvictableKeyNode<string, number> = {
+				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
 					// @ts-expect-error
@@ -180,11 +180,11 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				return [entry.key, entry];
 			})
 		);
-		const PROBATION_ENTRIES = new Map<string, EvictableKeyNode<string, number>>(
+		const PROBATION_ENTRIES = new Map<string, EvictableCacheEntry<string, number>>(
 			range(0, PROBATION_SIZE).map((value) => {
 				value += PROTECTED_SIZE; // to generate distinct key-values from PROTECTED SEGMENT
 
-				const entry: EvictableKeyNode<string, number> = {
+				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
 					// @ts-expect-error
@@ -198,20 +198,20 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 
 		try {
 			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
-			policy.setDeleter((evictedKey, evictedEntry) => {
-				EVICTED_KEYS.push(evictedKey);
+			policy.setDeleter((evictedEntry) => {
+				EVICTED_KEYS.push(evictedEntry.key);
 
-				const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-				policy.onDelete(evictedKey, evictableKeyNode);
+				const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
 			});
 
 			// 1. Insert protected items
-			for (const [key, entry] of PROTECTED_ENTRIES) {
-				policy.onSet(key, entry);
-				policy.onHit(key, entry);
+			for (const entry of PROTECTED_ENTRIES.values()) {
+				policy.onSet(entry);
+				policy.onHit(entry);
 			}
 			const mostRecentEntry = MapUtils.lastEntry(PROTECTED_ENTRIES)![1];
 			const leastRecentEntry = MapUtils.firstEntry(PROTECTED_ENTRIES)![1];
@@ -219,35 +219,35 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			expect(policy.leastRecent).to.be.eq(leastRecentEntry);
 
 			// 2. Insert probation items
-			for (const [key, entry] of PROBATION_ENTRIES) {
-				policy.onSet(key, entry);
+			for (const entry of PROBATION_ENTRIES.values()) {
+				policy.onSet(entry);
 			}
 			expect(policy.size).to.be.eq(CAPACITY); // full
 
 			// 3. onHit for probation tail
 			const probationTail = MapUtils.firstEntry(PROBATION_ENTRIES)![1];
-			policy.onHit(probationTail.key, probationTail);
+			policy.onHit(probationTail);
 			expect(policy.mostRecent).to.be.eq(probationTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
 			// 4. onHit for probation head
 			const probationHead = leastRecentEntry;
-			policy.onHit(probationHead.key, probationHead);
+			policy.onHit(probationHead);
 			expect(policy.mostRecent).to.be.eq(probationHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
 			// 5. onHit for protected head
 			const protectedHead = leastRecentEntry;
-			policy.onHit(protectedHead.key, protectedHead);
+			policy.onHit(protectedHead);
 			expect(policy.mostRecent).to.be.eq(protectedHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
 
 			// 6. onHit for protected tail
 			const protectedTail = policy.leastRecent!;
-			policy.onHit(protectedTail.key, protectedTail);
+			policy.onHit(protectedTail);
 			expect(policy.mostRecent).to.be.eq(protectedTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(0);
@@ -255,20 +255,20 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			// 7. onSet
 			const protectedTailBeforeSet = policy.leastRecent;
 
-			const entry: EvictableKeyNode<string, number> = {
+			const entry: EvictableCacheEntry<string, number> = {
 				key: string.random(),
 				value: number.random(CAPACITY, CAPACITY + 10),
 				// @ts-ignore
 				[SEGMENT_SYM]: null
 			};
-			policy.onSet(entry.key, entry);
+			policy.onSet(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 			expect(policy.mostRecent).to.be.eq(protectedTail); // protected remained untouched
 			expect(policy.leastRecent).to.be.eq(protectedTailBeforeSet); // protected remained untouched
 
 			// 8. onHit for last inserted entry
-			policy.onHit(entry.key, entry);
+			policy.onHit(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
 			expect(EVICTED_KEYS).to.be.ofSize(1);
 			expect(policy.mostRecent).to.be.eq(entry);
@@ -294,23 +294,23 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const CAPACITY = 2;
 		const EVICTED_KEYS = new Array<string>();
 		const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, 0.5);
-		policy.setDeleter((evictedKey, evictedEntry) => {
-			EVICTED_KEYS.push(evictedKey);
+		policy.setDeleter((evictedEntry) => {
+			EVICTED_KEYS.push(evictedEntry.key);
 
-			const evictableKeyNode = evictedEntry as EvictableKeyNode<string, number>;
-			policy.onDelete(evictedKey, evictableKeyNode);
+			const evictableKeyNode = evictedEntry as EvictableCacheEntry<string, number>;
+			policy.onDelete(evictableKeyNode);
 			expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 			expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
 			expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
 		});
 
-		const firstEntry: EvictableKeyNode<string, number> = {
+		const firstEntry: EvictableCacheEntry<string, number> = {
 			key: 'a',
 			value: 1,
 			// @ts-ignore
 			[SEGMENT_SYM]: null
 		};
-		const secondEntry: EvictableKeyNode<string, number> = {
+		const secondEntry: EvictableCacheEntry<string, number> = {
 			key: 'b',
 			value: 2,
 			// @ts-ignore
@@ -318,21 +318,21 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		};
 
 		// 1. Set entries
-		policy.onSet(firstEntry.key, firstEntry);
-		policy.onHit(firstEntry.key, firstEntry); // move to protected
-		policy.onSet(secondEntry.key, secondEntry);
+		policy.onSet(firstEntry);
+		policy.onHit(firstEntry); // move to protected
+		policy.onSet(secondEntry);
 		expect(policy.size).to.be.eq(CAPACITY);
 
 		// 2. Delete them one by one
-		policy.onDelete(firstEntry.key, firstEntry);
+		policy.onDelete(firstEntry);
 		expect(policy.size).to.be.eq(CAPACITY - 1);
-		policy.onDelete(secondEntry.key, secondEntry);
+		policy.onDelete(secondEntry);
 		expect(policy.size).to.be.eq(CAPACITY - 2);
 
 		// 3. Set them back
-		policy.onSet(firstEntry.key, firstEntry);
-		policy.onHit(firstEntry.key, firstEntry); // move to protected
-		policy.onSet(secondEntry.key, secondEntry);
+		policy.onSet(firstEntry);
+		policy.onHit(firstEntry); // move to protected
+		policy.onSet(secondEntry);
 		expect(policy.size).to.be.eq(CAPACITY);
 
 		// 4. Clear them

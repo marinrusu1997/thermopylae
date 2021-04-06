@@ -1,7 +1,7 @@
 import { Undefinable } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
 import { Cache, CacheEvent } from '../contracts/cache';
-import { CacheReplacementPolicy, EntryValidity } from '../contracts/cache-replacement-policy';
+import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
@@ -14,7 +14,7 @@ const POLICIES_SYM = Symbol('POLICIES_SYM');
 /**
  * @internal
  */
-interface CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag> extends CacheEntry<Value> {
+interface CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag> extends CacheEntry<Key, Value> {
 	[POLICIES_SYM]: ReadonlyArray<PolicyTag>;
 }
 
@@ -94,7 +94,7 @@ class PolicyPerKeyCache<
 	 * @inheritDoc
 	 */
 	public get(key: Key): Undefinable<Value> {
-		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
+		const entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag>;
 
 		if (entry === NOT_FOUND_VALUE) {
 			for (const policy of this.policies.values()) {
@@ -104,7 +104,7 @@ class PolicyPerKeyCache<
 		}
 
 		for (const policyName of entry[POLICIES_SYM]) {
-			if (this.policies.get(policyName)!.onHit(key, entry) === EntryValidity.NOT_VALID) {
+			if (this.policies.get(policyName)!.onHit(entry) === EntryValidity.NOT_VALID) {
 				return NOT_FOUND_VALUE;
 			}
 		}
@@ -116,14 +116,14 @@ class PolicyPerKeyCache<
 	 * @inheritDoc
 	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
-		let entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
+		let entry = this.backend.get(key) as CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag>;
 
 		if (entry === NOT_FOUND_VALUE) {
-			entry = this.backend.set(key, value) as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>;
+			entry = this.backend.set(key, value) as CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag>;
 			entry[POLICIES_SYM] = argsBundle && argsBundle.policies ? argsBundle.policies : this.allPoliciesTags;
 
 			for (const policyName of entry[POLICIES_SYM]) {
-				this.policies.get(policyName)!.onSet(key, entry, argsBundle);
+				this.policies.get(policyName)!.onSet(entry, argsBundle);
 			}
 
 			this.emit(CacheEvent.INSERT, key, value);
@@ -132,7 +132,7 @@ class PolicyPerKeyCache<
 
 		entry.value = value;
 		for (const policyName of entry[POLICIES_SYM]) {
-			this.policies.get(policyName)!.onUpdate(key, entry, argsBundle);
+			this.policies.get(policyName)!.onUpdate(entry, argsBundle);
 		}
 
 		this.emit(CacheEvent.UPDATE, key, value);
@@ -158,7 +158,8 @@ class PolicyPerKeyCache<
 			return false;
 		}
 
-		return this.internalDelete(key, entry);
+		this.internalDelete(entry);
+		return true;
 	}
 
 	/**
@@ -180,15 +181,13 @@ class PolicyPerKeyCache<
 		return Array.from(this.backend.keys());
 	}
 
-	private internalDelete = (key: Key, entry: CacheEntry<Value>): boolean => {
-		for (const policyName of (entry as CacheEntryEvictedBySpecialisedPolicies<Value, PolicyTag>)[POLICIES_SYM]) {
-			this.policies.get(policyName)!.onDelete(key, entry);
+	private internalDelete: Deleter<Key, Value> = (entry): void => {
+		for (const policyName of (entry as CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag>)[POLICIES_SYM]) {
+			this.policies.get(policyName)!.onDelete(entry);
 		}
 
-		this.emit(CacheEvent.DELETE, key, entry.value);
-		this.backend.del(key, entry);
-
-		return true;
+		this.emit(CacheEvent.DELETE, entry.key, entry.value);
+		this.backend.del(entry);
 	};
 }
 

@@ -1,6 +1,6 @@
 import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { CacheEntry, CacheKey } from '../../contracts/commons';
+import { CacheEntry } from '../../contracts/commons';
 import { EXPIRES_AT_SYM } from '../../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { createException } from '../../error';
@@ -8,7 +8,7 @@ import { createException } from '../../error';
 /**
  * @internal
  */
-interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Value>, CacheKey<Key> {
+interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
@@ -24,7 +24,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 	/**
 	 * @inheritDoc
 	 */
-	abstract onHit(key: Key, entry: CacheEntry<Value>): EntryValidity;
+	abstract onHit(entry: CacheEntry<Key, Value>): EntryValidity;
 
 	/**
 	 * @inheritDoc
@@ -36,17 +36,17 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 	/**
 	 * @inheritDoc
 	 */
-	abstract onSet(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
+	abstract onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
 	 * @inheritDoc
 	 */
-	abstract onUpdate(key: Key, entry: CacheEntry<Value>, argsBundle?: ArgumentsBundle): void;
+	abstract onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(_key: Key, entry: ExpirableCacheEntry<Key, Value>): void {
+	public onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
 		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 

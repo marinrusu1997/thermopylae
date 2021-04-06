@@ -1,4 +1,4 @@
-import { Nullable, Seconds, Threshold, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
 import { EXPIRES_AT_SYM } from '../constants';
@@ -65,19 +65,19 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 		return this.options.iterableBackend.size;
 	}
 
-	public manage(_entry: Entry): void {
+	public manage(): void {
 		if (this.idle) {
 			this.iterateTimeoutId = setTimeout(this.evictExpiredEntries, this.options.checkInterval);
 		}
 	}
 
-	public update(_oldExpiration: UnixTimestamp, _entry: Entry): void {
+	public update(): void {
 		if (this.idle) {
 			this.iterateTimeoutId = setTimeout(this.evictExpiredEntries, this.options.checkInterval);
 		}
 	}
 
-	public leave(_entry: Entry): void {
+	public leave(): void {
 		return undefined; // do nothing
 	}
 
@@ -135,7 +135,7 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 	}
 
 	private static createCacheEntriesCircularIterator<K, V, E>(backend: IterableCacheBackend<K, V>): CacheEntriesCircularIterator<E> {
-		let iterator: IterableIterator<CacheEntry<V>> = backend.values();
+		let iterator: IterableIterator<CacheEntry<K, V>> = backend.values();
 
 		return function nextCacheEntry(): E | null {
 			let iterResult = iterator.next();

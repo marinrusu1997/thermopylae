@@ -12,7 +12,7 @@ import { CacheEntry } from '../contracts/commons';
  * @template Entry	Type of the cache entry. <br/>
  * 					Defaults to {@link CacheEntry}.
  */
-class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry<Value>> implements CacheBackend<Key, Value> {
+class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = CacheEntry<Key, Value>> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, Entry>;
 
 	public constructor() {
@@ -37,7 +37,7 @@ class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry
 	 * @inheritDoc
 	 */
 	public set(key: Key, value: Value): Entry {
-		const entry = { value } as Entry;
+		const entry = { key, value } as Entry;
 		this.store.set(key, entry);
 		return entry;
 	}
@@ -45,9 +45,10 @@ class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Value> = CacheEntry
 	/**
 	 * @inheritDoc
 	 */
-	public del(key: Key, entry: Entry): void {
+	public del(entry: Entry): void {
 		entry.value = undefined!; // let GC collect value
-		this.store.delete(key);
+		this.store.delete(entry.key);
+		entry.key = undefined!; // let GC collect value
 	}
 
 	/**
