@@ -47,11 +47,9 @@
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/array-move": "2",
-        "@types/dotenv": "8",
         "@types/lodash.range": "3",
         "array-move": "3",
         "colors": "1",
-        "dotenv": "8",
         "js-gc": "1",
         "lodash.range": "3"
     },

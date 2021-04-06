@@ -1,5 +1,7 @@
 import { CacheEntry } from './commons';
 
+// @fixme take care for policies that share symbols on entry which comes from data structures
+
 /**
  * Function, that given a `key`, will remove it from storage. <br/>
  * Deleter makes policy able to delete entries on his own, when it detects that they should no longer be kept. <br/>

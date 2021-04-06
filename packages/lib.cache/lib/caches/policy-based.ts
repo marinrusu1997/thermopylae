@@ -5,6 +5,8 @@ import { NOT_FOUND_VALUE } from '../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
 import { Cache, CacheEvent } from '../contracts/cache';
 
+// @fixme maybe arguments bundle should use symbols
+
 /**
  * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
  * Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
