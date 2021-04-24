@@ -66,7 +66,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 		// we check them only for integer, as values are checked implicitly for expiresAt, because we sum them
 
 		if (!Number.isInteger(expiresAfter)) {
-			throw createException(ErrorCodes.INVALID_VALUE, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
+			throw createException(ErrorCodes.INVALID, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
 		}
 
 		const now = chrono.unixTime();
@@ -74,7 +74,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 
 		if (expiresFrom != null) {
 			if (!Number.isInteger(expiresFrom)) {
-				throw createException(ErrorCodes.INVALID_VALUE, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
+				throw createException(ErrorCodes.INVALID, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
 			}
 
 			expiresAt = expiresFrom + expiresAfter;

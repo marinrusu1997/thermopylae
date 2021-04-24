@@ -39,7 +39,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	 */
 	public constructor(cacheMaxCapacity: Threshold, cacheBackendElementsCount: CacheBackendElementsCount) {
 		if (cacheMaxCapacity <= 0) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
+			throw createException(ErrorCodes.INVALID, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
 		this.cacheMaxCapacity = cacheMaxCapacity;

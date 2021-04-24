@@ -1,6 +1,6 @@
 {
-    "name": "@thermopylae/lib.logger",
-    "description": "Logger for backend services.",
+    "name": "@thermopylae/lib.user-session",
+    "description": "Cookie based authentication.",
     "keywords": [
         "library"
     ],
@@ -29,24 +29,13 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
-    "dependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.exception": "0",
-        "winston": "3",
-        "winston-daily-rotate-file": "4",
-        "winston-graylog2": "2"
-    },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
-        "moment": "2"
+        "@thermopylae/core.declarations": "0"
     },
     "peerDependencies": {
-        "mocha": "8",
         "chai": "4",
-        "logform": "2",
-        "winston-transport": "4"
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [
@@ -54,8 +43,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 15"
     },
-    "license": "ISC",
-    "type": "commonjs"
+    "license": "ISC"
 }

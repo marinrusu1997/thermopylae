@@ -3,11 +3,6 @@ export interface PublicPrivateKeys {
 	readonly public: string | Buffer;
 }
 
-export interface SessionTokens {
-	readonly accessToken: string;
-	readonly refreshToken?: string;
-}
-
 export interface PromiseHolder<T> {
 	promise: Promise<T>;
 	resolve: PromiseResolve<T>;
@@ -38,9 +33,9 @@ export const enum ErrorCodes {
 	BAD_INVARIANT = 'BAD_INVARIANT',
 	DUPLICATE = 'DUPLICATE',
 	EXISTS = 'EXISTS',
+	EXPIRED = 'EXPIRED',
 	FULL = 'FULL',
-	INVALID_TYPE = 'INVALID_TYPE',
-	INVALID_VALUE = 'INVALID_VALUE',
+	INVALID = 'INVALID',
 	MISCONFIGURATION = 'MISCONFIGURATION',
 	NOT_ALLOWED = 'NOT_ALLOWED',
 	NOT_FOUND = 'NOT_FOUND',
@@ -55,6 +50,7 @@ export const enum Library {
 	COLLECTION = 'LIB_COLLECTION',
 	HEAP = 'LIB_HEAP',
 	GEO_IP = 'LIB_GEO_IP',
+	JWT_SESSION = 'LIB_JWT_SESSION',
 	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
 	SMS_CLIENT = 'LIB_SMS_CLIENT',
@@ -63,7 +59,6 @@ export const enum Library {
 }
 
 export const enum CoreModule {
-	JWT = 'CORE_JWT',
 	AUTH_ENGINE = 'CORE_AUTH_ENGINE',
 	REST_API = 'CORE_REST_API'
 }
@@ -161,6 +156,13 @@ export type Xor<T extends ObjMap> = Values<
 export type OneOf<T extends ObjMap[]> = Xor<Tuplize<T>>;
 
 export type Conditional<Dispatcher, Expectation, Truthy, Falsy> = Dispatcher extends Expectation ? Truthy : Falsy;
+
+export type PartialSome<T, K extends keyof T> = Omit<T, K> & Partial<T>;
+
+export type RequireSome<T extends Record<string | number | symbol, any>, K extends keyof T> = Omit<T, K> &
+	{
+		[MK in K]-?: NonNullable<T[MK]>;
+	};
 
 export type Nullable<T> = T | null;
 export type Undefinable<T> = T | undefined;

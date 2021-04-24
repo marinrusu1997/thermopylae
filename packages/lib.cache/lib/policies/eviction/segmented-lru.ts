@@ -55,7 +55,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	 */
 	public constructor(cacheMaxCapacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
 		if (cacheMaxCapacity < 2) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Capacity needs to be at least 2. Given: ${cacheMaxCapacity}.`);
+			throw createException(ErrorCodes.INVALID, `Capacity needs to be at least 2. Given: ${cacheMaxCapacity}.`);
 		}
 
 		const protectedSegmentSize = Math.round(
@@ -63,7 +63,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		);
 		if (protectedSegmentSize < 1) {
 			const context = { cacheMaxCapacity, protectedOverProbationRatio, protectedSegmentSize };
-			throw createException(ErrorCodes.INVALID_VALUE, `Protected segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
+			throw createException(ErrorCodes.INVALID, `Protected segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
 		}
 
 		this.segments = {
@@ -84,7 +84,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 				protectedSegmentSize,
 				probationSegmentSize: this.segments[SegmentType.PROBATION].capacity
 			};
-			throw createException(ErrorCodes.INVALID_VALUE, `Probation segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
+			throw createException(ErrorCodes.INVALID, `Probation segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
 		}
 	}
 

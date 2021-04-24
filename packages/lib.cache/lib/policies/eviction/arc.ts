@@ -59,7 +59,7 @@ class ArcEvictionPolicy<Key, Value, ArgumentsBundle = unknown> implements CacheR
 	 */
 	public constructor(cacheMaxCapacity: number) {
 		if (cacheMaxCapacity < 2) {
-			throw createException(ErrorCodes.INVALID_VALUE, `Cache maximum capacity needs to be at least 2.`);
+			throw createException(ErrorCodes.INVALID, `Cache maximum capacity needs to be at least 2.`);
 		}
 
 		this.segments = {

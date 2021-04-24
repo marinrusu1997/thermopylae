@@ -94,7 +94,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 
 					if (operators.length === 1) {
 						if (operators[0][0] === '$eq') {
-							throw createException(ErrorCodes.INVALID_VALUE, "Operator '$eq' is not supported. Specify value directly.");
+							throw createException(ErrorCodes.INVALID, "Operator '$eq' is not supported. Specify value directly.");
 						}
 
 						if (operators[0][0] === QueryOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {

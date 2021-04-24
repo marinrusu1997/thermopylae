@@ -1,11 +1,11 @@
 {
-    "name": "@thermopylae/lib.logger",
-    "description": "Logger for backend services.",
+    "name": "@thermopylae/lib.jwt-session",
+    "description": "User sessions implementation based on JsonWebTokens.",
     "keywords": [
         "library"
     ],
     "version": "0.0.1",
-    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
@@ -16,6 +16,7 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
+        "readme": "gulp readme",
         "test": "gulp test",
         "report": "gulp report",
         "coverage": "gulp coverage",
@@ -30,23 +31,18 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "winston": "3",
-        "winston-daily-rotate-file": "4",
-        "winston-graylog2": "2"
+        "@thermopylae/lib.utils": "0",
+        "jsonwebtoken": "8"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/lib.utils": "0",
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "moment": "2"
+        "@types/jsonwebtoken": "8"
     },
     "peerDependencies": {
-        "mocha": "8",
         "chai": "4",
-        "logform": "2",
-        "winston-transport": "4"
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [
