@@ -128,7 +128,7 @@ class InvalidationStrategy {
 	 *
 	 * @throws {Exception}		When:
 	 * 								- refresh token doesn't exist
-	 * 								- refresh token has a remaining ttl <= 60 seconds
+	 * 								- refresh token has a remaining ttl <= 1 second
 	 *
 	 * @returns					Refreshed access token session.
 	 */
@@ -139,7 +139,7 @@ class InvalidationStrategy {
 		}
 
 		const refreshTokenRemainingTtl = expiresAt - chrono.unixTime();
-		if (refreshTokenRemainingTtl <= 60) {
+		if (refreshTokenRemainingTtl <= 1) {
 			throw createException(
 				ErrorCodes.EXPIRED,
 				`Refresh token ${refreshToken} for subject ${subject} is almost expired. It's remaining time to live is equal to ${refreshTokenRemainingTtl} seconds.`
@@ -194,4 +194,4 @@ class InvalidationStrategy {
 	}
 }
 
-export { InvalidationStrategy, InvalidationStrategyOptions };
+export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken, RefreshedAccessSession, InvalidAccessTokensCache, RefreshTokensStorage };

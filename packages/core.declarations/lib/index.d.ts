@@ -159,10 +159,16 @@ export type Conditional<Dispatcher, Expectation, Truthy, Falsy> = Dispatcher ext
 
 export type PartialSome<T, K extends keyof T> = Omit<T, K> & Partial<T>;
 
-export type RequireSome<T extends Record<string | number | symbol, any>, K extends keyof T> = Omit<T, K> &
+export type RequireSome<T, K extends keyof T> = Omit<T, K> &
 	{
 		[MK in K]-?: NonNullable<T[MK]>;
 	};
+
+export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+
+export type MutableSome<T, K extends keyof T> = {
+	-readonly [P in K]: T[P];
+};
 
 export type Nullable<T> = T | null;
 export type Undefinable<T> = T | undefined;

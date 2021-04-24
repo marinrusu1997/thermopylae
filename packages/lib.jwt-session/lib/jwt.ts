@@ -1,7 +1,7 @@
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
-import { PublicPrivateKeys, ErrorCodes, RequireSome } from '@thermopylae/core.declarations';
-import { AllowedEndpointsByJWT, IssuedJwtPayload, JwtPayload } from './declarations';
+import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
+import { IssuedJwtPayload, JwtPayload } from './declarations';
 import { createException } from './error';
 import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation-strategy';
 
@@ -15,30 +15,17 @@ interface SignableJwtPayload extends JwtPayload {
 	 * Anchor is used for invalidation purposes.
 	 */
 	anc: string;
-
-	/**
-	 * Endpoints where this token can be used.
-	 */
-	endp?: AllowedEndpointsByJWT;
 }
 
 /**
  * Signing options for Json Web Token.
  */
-type JwtSignOptions = Omit<
-	RequireSome<SignOptions, 'algorithm' | 'expiresIn' | 'subject' | 'issuer' | 'audience'>,
-	'mutatePayload' | 'noTimestamp' | 'header' | 'encoding'
->;
+type JwtSignOptions<T extends SignOptions = SignOptions> = Readonly<Omit<T, 'mutatePayload' | 'noTimestamp' | 'header' | 'encoding'>>;
 
 /**
  * Verifying options for Json Web Token
  */
-type JwtVerifyOptions = Omit<RequireSome<VerifyOptions, 'algorithms' | 'audience' | 'issuer'>, 'complete' | 'ignoreExpiration' | 'ignoreNotBefore'>;
-
-/**
- * Function which resolves a set of endpoints where access is allowed with the issued JWT.
- */
-type AllowedEndpointsResolver = (subject: string) => Promise<AllowedEndpointsByJWT>;
+type JwtVerifyOptions = Readonly<Omit<RequireSome<VerifyOptions, 'algorithms' | 'audience' | 'issuer'>, 'complete' | 'ignoreExpiration' | 'ignoreNotBefore'>>;
 
 interface JwtSessionManagerOptions {
 	/**
@@ -52,15 +39,11 @@ interface JwtSessionManagerOptions {
 	/**
 	 * Default sign options.
 	 */
-	signOptions?: JwtSignOptions;
+	signOptions: JwtSignOptions<RequireSome<SignOptions, 'algorithm' | 'expiresIn' | 'issuer' | 'audience'>>;
 	/**
 	 * Default verify options.
 	 */
-	verifyOptions?: JwtVerifyOptions;
-	/**
-	 * Allowed endpoints resolver.
-	 */
-	resolveAllowedEndpoints?: AllowedEndpointsResolver;
+	verifyOptions: JwtVerifyOptions;
 }
 
 /**
@@ -106,8 +89,8 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @returns 	Session access and refresh tokens.
 	 */
-	public async create(payload: JwtPayload, signOptions?: Readonly<JwtSignOptions>): Promise<SessionTokens> {
-		signOptions = signOptions ? { ...this.config.signOptions, ...signOptions } : this.config.signOptions;
+	public async create(payload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<SessionTokens> {
+		signOptions = { ...this.config.signOptions, ...signOptions };
 
 		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject);
 		const accessToken = await this.issueJWT(payload, anchorableRefreshToken.anchor, signOptions);
@@ -157,15 +140,16 @@ class JwtSessionManager extends EventEmitter {
 	 * @param payload			Payload for the newly access token.
 	 * @param signOptions		Sign options. Provided properties will override the default ones.
 	 *
-	 * @throws {Exception}		When refresh token is not valid or will expire soon.
+	 * @throws {Exception}		When refresh token is not valid or will expire very very soon.
 	 *
 	 * @returns		JWT access token.
 	 */
-	public async update(refreshToken: string, payload: JwtPayload, signOptions?: JwtSignOptions): Promise<string> {
+	public async update(refreshToken: string, payload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<string> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
 		const refreshedSession = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, signOptions.expiresIn as number);
-		signOptions.expiresIn = refreshedSession.accessTokenTtl;
+		// hackish
+		(signOptions as MutableSome<typeof signOptions, 'expiresIn'>).expiresIn = refreshedSession.accessTokenTtl;
 
 		return this.issueJWT(payload, refreshedSession.refreshAnchor, signOptions);
 	}
@@ -213,10 +197,9 @@ class JwtSessionManager extends EventEmitter {
 		return this.config.secret[keyType];
 	}
 
-	private async issueJWT(payload: JwtPayload, anchorToRefreshToken: string, signOptions: Readonly<JwtSignOptions>): Promise<string> {
+	private async issueJWT(payload: JwtPayload, anchorToRefreshToken: string, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<string> {
 		// add some meta-data
 		(payload as SignableJwtPayload).anc = anchorToRefreshToken;
-		(payload as SignableJwtPayload).endp = await this.config.resolveAllowedEndpoints(signOptions.subject); // @fixme this should be removed
 
 		const secret = this.getSecret('private');
 
@@ -232,13 +215,10 @@ class JwtSessionManager extends EventEmitter {
 
 	private static fillWithDefaults(options: JwtSessionManagerOptions): Readonly<Required<JwtSessionManagerOptions>> {
 		if (options.signOptions == null) {
-			// mutate payload directly and avoid unnecessary object creations
-			((options.signOptions as unknown) as SignOptions) = { mutatePayload: true };
+			((options.signOptions as unknown) as SignOptions) = {};
 		}
-
-		if (options.resolveAllowedEndpoints == null) {
-			options.resolveAllowedEndpoints = () => Promise.resolve(undefined); // allow unrestricted access to all endpoints
-		}
+		// mutate payload directly and avoid unnecessary object creations
+		((options.signOptions as unknown) as SignOptions).mutatePayload = true;
 
 		return options as Readonly<Required<JwtSessionManagerOptions>>;
 	}
@@ -248,7 +228,6 @@ export {
 	JwtSessionManager,
 	JwtSessionManagerOptions,
 	InvalidationStrategyOptions,
-	AllowedEndpointsResolver,
 	JwtSignOptions,
 	JwtVerifyOptions,
 	JwtPayload,

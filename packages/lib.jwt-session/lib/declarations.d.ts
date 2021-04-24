@@ -1,14 +1,4 @@
 /**
- * Endpoints where this token can be used.
- *
- * Can take the following values:
- * 	- **part of the request path** - this means client can access all of the application endpoints which starts from this path (e.g. /api/latest/ will force clients to use only newest api version)
- * 	- **regex string** - this means client can access only application endpoints which will match this regex (e.g. (chat|phone) this may be useful in case of simple REST apps and can be used to restrict access to mapped resources in the request path in a stateless manner, rejecting request from the validator, before going to cache or db to check this).
- *	- *undefined* - clients have unrestricted access to all endpoints.
- */
-type AllowedEndpointsByJWT = string | Array<string> | undefined;
-
-/**
  * Payload of the JWT token. <br/>
  * This payload needs to signed first, before being issue to clients.
  */
@@ -69,4 +59,4 @@ declare interface IssuedJwtPayload extends JwtPayload {
 	readonly role?: string;
 }
 
-export { JwtPayload, IssuedJwtPayload, AllowedEndpointsByJWT };
+export { JwtPayload, IssuedJwtPayload };
