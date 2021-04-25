@@ -2,10 +2,9 @@
     "compilerOptions": {
         "incremental": true,
         "target": "esnext",
-        "module": "esnext",
+        "module": "commonjs",
         "allowJs": true,
         "declaration": true,
-        "rootDir": ".",
         "outDir": "dist",
         "composite": true,
         "tsBuildInfoFile": "build/tsbuildinfo",
@@ -25,7 +24,7 @@
         "moduleResolution": "node",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
-        "experimentalDecorators": true
+        "rootDir": "."
     },
     "include": [
         "lib/**/*.ts",

@@ -1,10 +1,10 @@
-import { Clients } from '@marin/lib.utils/dist/declarations';
-import LoggerInstance, { WinstonLogger } from '../../lib.logger.bk';
+import { Client } from '@thermopylae/core.declarations';
+import { LoggerInstance, WinstonLogger } from '@thermopylae/lib.logger';
 
 let logger: WinstonLogger | undefined;
 function getLogger(): WinstonLogger {
 	if (!logger) {
-		logger = LoggerInstance.for(Clients.EMAIL);
+		logger = LoggerInstance.for(Client.EMAIL);
 	}
 	return logger;
 }

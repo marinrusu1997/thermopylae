@@ -1,5 +1,2 @@
-import { ErrorCodes } from './error';
-
-export * from './email-client';
-export * from './types';
-export { ErrorCodes };
+export * from './client';
+export type { EmailTransportDefaults, EmailTransportOptions, SentMessageInfo, SMTPEnvelope } from './types';

@@ -1,19 +1,33 @@
+// eslint-disable-next-line import/extensions
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+// eslint-disable-next-line import/extensions
 import SMTPPool from 'nodemailer/lib/smtp-pool';
+// eslint-disable-next-line import/extensions
 import SendmailTransport from 'nodemailer/lib/sendmail-transport';
+// eslint-disable-next-line import/extensions
 import StreamTransport from 'nodemailer/lib/stream-transport';
+// eslint-disable-next-line import/extensions
 import JSONTransport from 'nodemailer/lib/json-transport';
+// eslint-disable-next-line import/extensions
 import SESTransport from 'nodemailer/lib/ses-transport';
 import { Transport, TransportOptions } from 'nodemailer';
 
 export interface SMTPEnvelope {
-	/** the first address gets used as MAIL FROM address in SMTP */
+	/**
+	 * The first address gets used as MAIL FROM address in SMTP.
+	 */
 	from?: string;
-	/** addresses from this value get added to RCPT TO list */
+	/**
+	 * Addresses from this value get added to RCPT TO list.
+	 */
 	to?: string | Array<string>;
-	/** addresses from this value get added to RCPT TO list */
+	/**
+	 * Addresses from this value get added to RCPT TO list.
+	 */
 	cc?: string | Array<string>;
-	/** addresses from this value get added to RCPT TO list */
+	/**
+	 * Addresses from this value get added to RCPT TO list.
+	 */
 	bcc?: string | Array<string>;
 }
 

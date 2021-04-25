@@ -4,19 +4,20 @@
   "private": true,
   "workspaces": [
     "packages/core.declarations",
-    "packages/lib.jwt-session",
     "packages/lib.async",
     "packages/lib.cache",
     "packages/lib.collection",
-    "packages/lib.user-session",
     "packages/lib.decorators",
+    "packages/lib.email",
     "packages/lib.exception",
     "packages/lib.heap",
     "packages/lib.indexed-store",
+    "packages/lib.jwt-session",
     "packages/lib.logger",
     "packages/lib.pool",
     "packages/lib.sms",
     "packages/lib.unit-test",
+    "packages/lib.user-session",
     "packages/lib.utils",
     "packages/module-builder"
   ]
