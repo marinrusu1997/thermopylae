@@ -2,17 +2,17 @@
  * Payload of the JWT token. <br/>
  * This payload needs to signed first, before being issue to clients.
  */
-declare interface JwtPayload {
+declare type JwtPayload = {
 	/**
-	 * Other properties.
+	 * Payload data.
 	 */
 	readonly [x: string]: any;
-}
+};
 
 /**
  * JWT payload that has been issued to clients.
  */
-declare interface IssuedJwtPayload extends JwtPayload {
+declare interface IssuedJwtPayload {
 	/**
 	 * Identifies the subject of the JWT.
 	 */
@@ -57,6 +57,11 @@ declare interface IssuedJwtPayload extends JwtPayload {
 	 * Role of the subject (e.g. *admin*, *user*).
 	 */
 	readonly role?: string;
+
+	/**
+	 * Other properties.
+	 */
+	readonly [x: string]: any;
 }
 
 export { JwtPayload, IssuedJwtPayload };

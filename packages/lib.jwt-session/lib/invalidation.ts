@@ -29,27 +29,73 @@ declare interface AnchorableRefreshToken {
 	anchor: string;
 }
 
-interface RefreshedAccessSession {
-	/**
-	 * Anchor to refresh token.
-	 */
-	refreshAnchor: string;
-	/**
-	 * Time to live for the refreshed access token.
-	 */
-	accessTokenTtl: Seconds;
-}
-
+/**
+ * *In-memory* cache where invalid access tokens are stored.
+ */
 interface InvalidAccessTokensCache {
-	upset(refreshTokenAnchor: string, invalidatedAt: UnixTimestamp | null, ttl: Seconds): void;
-	has(refreshTokenAnchor: string): boolean;
-	get(refreshTokenAnchor: string): UnixTimestamp | null | undefined;
+	/**
+	 * Upset access token.
+	 *
+	 * @param accessToken		Access token that's no longer valid.
+	 * @param invalidatedAt		Invalidation timestamp.
+	 * @param ttl				How many seconds invalid access token should be kept in the cache.
+	 */
+	upset(accessToken: string, invalidatedAt: UnixTimestamp | null, ttl: Seconds): void;
+
+	/**
+	 * Check for access token existence in the cache. <br/>
+	 * If found, it means access token is no longer valid.
+	 *
+	 * @param accessToken		Access token.
+	 */
+	has(accessToken: string): boolean;
+
+	/**
+	 * Get invalidation timestamp of the access token.
+	 *
+	 * @param accessToken		Access token.
+	 *
+	 * @returns		Invalidation timestamp or *undefined* if `accessToken` was not present in the cache.
+	 */
+	get(accessToken: string): UnixTimestamp | null | undefined;
 }
 
+/**
+ * External persistent storage where refresh tokens are kept.
+ */
 interface RefreshTokensStorage {
+	/**
+	 * Insert refresh token.
+	 *
+	 * @param subject			Subject refresh token belongs to.
+	 * @param refreshToken		Refresh token.
+	 * @param ttl				TTL of the refresh token.
+	 */
 	set(subject: string, refreshToken: string, ttl: Seconds): Promise<void>;
-	get(subject: string, refreshToken: string): Promise<UnixTimestamp | undefined>;
-	delete(subject: string, refreshToken: string): Promise<boolean>;
+
+	/**
+	 * Check for refresh token existence.
+	 *
+	 * @param subject			Subject refresh token belongs to.
+	 * @param refreshToken		Refresh token.
+	 */
+	has(subject: string, refreshToken: string): Promise<boolean>;
+
+	/**
+	 * Delete `refreshToken` from the storage.
+	 *
+	 * @param subject			Subject refresh token belongs to.
+	 * @param refreshToken		Refresh token.
+	 */
+	delete(subject: string, refreshToken: string): Promise<void>;
+
+	/**
+	 * Delete all refresh tokens that belong to `subject`.
+	 *
+	 * @param subject			Subject refresh tokens belonging to.
+	 *
+	 * @returns		Number of deleted tokens.
+	 */
 	deleteAll(subject: string): Promise<number>;
 }
 
@@ -119,37 +165,21 @@ class InvalidationStrategy {
 	}
 
 	/**
-	 * Refreshes access token session. <br/>
-	 * In case `accessTokenTtl` is lower than the remaining ttl of the refresh token, it's value will be updated with the latest.
+	 * Refreshes access token session.
 	 *
 	 * @param subject			Subject whose session needs to be refreshed.
 	 * @param refreshToken		Refresh token of the subject.
-	 * @param accessTokenTtl	Ttl of the access token.
 	 *
-	 * @throws {Exception}		When:
-	 * 								- refresh token doesn't exist
-	 * 								- refresh token has a remaining ttl <= 1 second
+	 * @throws {Exception}		When refresh token doesn't exist.
 	 *
-	 * @returns					Refreshed access token session.
+	 * @returns					Anchor to refresh token.
 	 */
-	public async refreshAccessSession(subject: string, refreshToken: string, accessTokenTtl: Seconds): Promise<RefreshedAccessSession> {
-		const expiresAt = await this.options.refreshTokensStorage.get(subject, refreshToken);
-		if (typeof expiresAt !== 'number') {
+	public async refreshAccessSession(subject: string, refreshToken: string): Promise<string> {
+		if (!(await this.options.refreshTokensStorage.has(subject, refreshToken))) {
 			throw createException(ErrorCodes.NOT_FOUND, `Refresh token ${refreshToken} for subject ${subject} doesn't exist.`);
 		}
 
-		const refreshTokenRemainingTtl = expiresAt - chrono.unixTime();
-		if (refreshTokenRemainingTtl <= 1) {
-			throw createException(
-				ErrorCodes.EXPIRED,
-				`Refresh token ${refreshToken} for subject ${subject} is almost expired. It's remaining time to live is equal to ${refreshTokenRemainingTtl} seconds.`
-			);
-		}
-
-		return {
-			refreshAnchor: refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH),
-			accessTokenTtl: Math.min(accessTokenTtl, refreshTokenRemainingTtl)
-		};
+		return refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH);
 	}
 
 	/**
@@ -158,19 +188,9 @@ class InvalidationStrategy {
 	 * @param jwtAccessToken	Access token.
 	 * @param refreshToken		Refresh token.
 	 */
-	public async invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string): Promise<boolean> {
-		if (!(await this.options.refreshTokensStorage.delete(jwtAccessToken.sub, refreshToken))) {
-			// this might happen if either:
-			//	- refresh token was not valid
-			//  - refresh token was invalidated in the last second of it's lifetime (i.e. it was evicted by the storage itself implicitly)
-			return false;
-		}
-
-		const invalidationKey = `${jwtAccessToken.sub}@${jwtAccessToken.anc}`;
-		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
-		this.options.invalidAccessTokensCache.upset(invalidationKey, null, invalidationTtl);
-
-		return true;
+	public async invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string): Promise<void> {
+		await this.options.refreshTokensStorage.delete(jwtAccessToken.sub, refreshToken);
+		this.invalidateAccessToken(jwtAccessToken);
 	}
 
 	/**
@@ -182,16 +202,40 @@ class InvalidationStrategy {
 	 */
 	public async invalidateAllSessions(jwtAccessToken: IssuedJwtPayload): Promise<number> {
 		const invalidatedSessions = await this.options.refreshTokensStorage.deleteAll(jwtAccessToken.sub);
+		this.invalidateAccessTokensFromAllSessions(jwtAccessToken);
+		return invalidatedSessions;
+	}
 
+	/**
+	 * Invalidates JWT Access Token, so that it can't be longer used, despite it's not expired yet. <br/>
+	 * **Notice** that session associated with `jwtAccessToken` won't be invalidated,
+	 * meaning that user can obtain another access token with the help of refresh token.
+	 *
+	 * @param jwtAccessToken	Access token that needs to be invalidated.
+	 */
+	public invalidateAccessToken(jwtAccessToken: IssuedJwtPayload): void {
+		const invalidationKey = `${jwtAccessToken.sub}@${jwtAccessToken.anc}`;
+		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
+
+		this.options.invalidAccessTokensCache.upset(invalidationKey, null, invalidationTtl);
+	}
+
+	/**
+	 * Invalidates all JWT Access Tokens that were issued up to current timestamp from all existing user sessions. <br/>
+	 * **Notice** that associated user sessions won't be invalidated,
+	 * meaning that the user can obtain another access tokens from them by using their refresh tokens.
+	 *
+	 * @param jwtAccessToken	Access token of the session from where invalidation is being made.
+	 */
+	public invalidateAccessTokensFromAllSessions(jwtAccessToken: IssuedJwtPayload): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
 		// all of the tokens issues before this timestamp becomes invalid ones
 		const invalidatedAt = chrono.unixTime();
 		// those issued nearly invalidation timestamp will have a ttl less than or equal to this one (assuming access tokens for one subject will have same ttl across all sessions)
 		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
-		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, invalidationTtl);
 
-		return invalidatedSessions;
+		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, invalidationTtl);
 	}
 }
 
-export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken, RefreshedAccessSession, InvalidAccessTokensCache, RefreshTokensStorage };
+export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken, InvalidAccessTokensCache, RefreshTokensStorage };

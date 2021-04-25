@@ -170,6 +170,14 @@ export type MutableSome<T, K extends keyof T> = {
 	-readonly [P in K]: T[P];
 };
 
+export type NoDefinedProperties<K extends keyof any> = {
+	[P in K]: never;
+};
+
+export type NoDefinedPropertiesFrom<T, K extends keyof T> = {
+	[P in K]: never;
+};
+
 export type Nullable<T> = T | null;
 export type Undefinable<T> = T | undefined;
 export type Voidable<T> = T | void;

@@ -1,12 +1,14 @@
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
-import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
+import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne } from '@thermopylae/core.declarations';
 import { IssuedJwtPayload, JwtPayload } from './declarations';
 import { createException } from './error';
-import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation-strategy';
+import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
 
 /**
  * Payload of the JWT that will be actually signed.
+ *
+ * @internal
  */
 interface SignableJwtPayload extends JwtPayload {
 	/**
@@ -25,7 +27,9 @@ type JwtSignOptions<T extends SignOptions = SignOptions> = Readonly<Omit<T, 'mut
 /**
  * Verifying options for Json Web Token
  */
-type JwtVerifyOptions = Readonly<Omit<RequireSome<VerifyOptions, 'algorithms' | 'audience' | 'issuer'>, 'complete' | 'ignoreExpiration' | 'ignoreNotBefore'>>;
+type JwtVerifyOptions = Readonly<
+	Omit<RequireSome<VerifyOptions, 'algorithms' | 'audience' | 'issuer'>, 'complete' | 'ignoreExpiration' | 'ignoreNotBefore' | 'clockTimestamp'>
+>;
 
 interface JwtSessionManagerOptions {
 	/**
@@ -35,7 +39,7 @@ interface JwtSessionManagerOptions {
 	/**
 	 * Options for invalidation strategy.
 	 */
-	readonly invalidationStrategyOptions: InvalidationStrategyOptions;
+	readonly invalidationOptions: InvalidationStrategyOptions;
 	/**
 	 * Default sign options.
 	 */
@@ -78,7 +82,7 @@ class JwtSessionManager extends EventEmitter {
 	public constructor(options: JwtSessionManagerOptions) {
 		super();
 		this.config = JwtSessionManager.fillWithDefaults(options);
-		this.invalidationStrategy = new InvalidationStrategy(options.invalidationStrategyOptions);
+		this.invalidationStrategy = new InvalidationStrategy(options.invalidationOptions);
 	}
 
 	/**
@@ -140,18 +144,15 @@ class JwtSessionManager extends EventEmitter {
 	 * @param payload			Payload for the newly access token.
 	 * @param signOptions		Sign options. Provided properties will override the default ones.
 	 *
-	 * @throws {Exception}		When refresh token is not valid or will expire very very soon.
+	 * @throws {Exception}		When refresh token is not valid.
 	 *
 	 * @returns		JWT access token.
 	 */
 	public async update(refreshToken: string, payload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<string> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
-		const refreshedSession = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, signOptions.expiresIn as number);
-		// hackish
-		(signOptions as MutableSome<typeof signOptions, 'expiresIn'>).expiresIn = refreshedSession.accessTokenTtl;
-
-		return this.issueJWT(payload, refreshedSession.refreshAnchor, signOptions);
+		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken);
+		return this.issueJWT(payload, anchorToRefreshToken, signOptions);
 	}
 
 	/**
@@ -160,12 +161,11 @@ class JwtSessionManager extends EventEmitter {
 	 * @param jwtPayload		Payload of the access token.
 	 * @param refreshToken		Refresh token.
 	 *
-	 * @emits {@link JwtManagerEvents.SESSION_INVALIDATED}	When session is deleted successfully.
+	 * @emits {@link JwtManagerEvents.SESSION_INVALIDATED}.
 	 */
 	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
-		if (await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken)) {
-			this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
-		}
+		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
+		this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
 	}
 
 	/**
@@ -182,6 +182,43 @@ class JwtSessionManager extends EventEmitter {
 		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
 		this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
 		return invalidateSessionsNo;
+	}
+
+	/**
+	 * Restricts access to user session from the access token having `jwtPayload`. <br/>
+	 * **Notice** that user session won't be deleted, it can be accessed with other access tokens. <br/>
+	 *
+	 * @example
+	 * This method is useful if your NodeJS app operates in cluster mode.
+	 * One of the nodes receives delete session request, deletes session from shared DB,
+	 * invalidates access tokens for that session on his local cache,
+	 * and then notifies other nodes via some sort of EventBus.
+	 * Other notes upon receiving notification, will restrict access to deleted user session
+	 * (i.e. they will update their local caches with invalidated access tokens).
+	 *
+	 * @param jwtPayload	Access token to be invalidated.
+	 */
+	public restrictOne(jwtPayload: IssuedJwtPayload): void {
+		this.invalidationStrategy.invalidateAccessToken(jwtPayload);
+	}
+
+	/**
+	 * Restricts access to all user sessions from all the access tokens issued before. <br/>
+	 * **Notice** that user sessions won't be deleted, they can be accessed with access tokens
+	 * that can be obtained later with the refresh tokens of these sessions. <br/>
+	 *
+	 * @example
+	 * This method is useful if your NodeJS app operates in cluster mode.
+	 * One of the nodes receives delete all sessions request, deletes sessions from shared DB,
+	 * invalidates all access tokens from all sessions on his local cache,
+	 * and then notifies other nodes via some sort of EventBus.
+	 * Other notes upon receiving notification, will restrict access to deleted user sessions
+	 * (i.e. they will update their local caches with invalidated access tokens).
+	 *
+	 * @param jwtPayload	Access token of the session from where restrict operation is performed.
+	 */
+	public restrictAll(jwtPayload: IssuedJwtPayload): void {
+		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(jwtPayload);
 	}
 
 	public on(event: JwtManagerEvents, listener: JwtManagerEventListener): this {

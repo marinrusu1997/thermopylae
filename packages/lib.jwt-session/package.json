@@ -1,6 +1,6 @@
 {
     "name": "@thermopylae/lib.jwt-session",
-    "description": "User sessions implementation based on JsonWebTokens.",
+    "description": "User session implementation based on JsonWebTokens.",
     "keywords": [
         "library"
     ],

@@ -8,7 +8,7 @@ import {
 } from '@thermopylae/lib.cache';
 import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { RefreshTokensStorage } from '../../lib/invalidation-strategy';
+import { RefreshTokensStorage } from '../../lib/invalidation';
 
 class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 	private readonly cache: PolicyBasedCache<string, UnixTimestamp, AbsoluteExpirationPolicyArgumentsBundle>;
@@ -44,12 +44,12 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 		this.cache.set(`${subject}@${refreshToken}`, chrono.unixTime() + ttl, { expiresAfter: ttl });
 	}
 
-	public async get(subject: string, refreshToken: string): Promise<UnixTimestamp | undefined> {
-		return this.cache.get(`${subject}@${refreshToken}`);
+	public async has(subject: string, refreshToken: string): Promise<boolean> {
+		return this.cache.has(`${subject}@${refreshToken}`);
 	}
 
-	public async delete(subject: string, refreshToken: string): Promise<boolean> {
-		return this.cache.del(`${subject}@${refreshToken}`);
+	public async delete(subject: string, refreshToken: string): Promise<void> {
+		this.cache.del(`${subject}@${refreshToken}`);
 	}
 
 	public async deleteAll(subject: string): Promise<number> {
