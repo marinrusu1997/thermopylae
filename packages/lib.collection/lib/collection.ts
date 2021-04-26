@@ -452,11 +452,11 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	private static validateDocuments<Document>(validator: Ajv.Ajv, documents: ReadonlyArray<Document>): void | never {
+	private static validateDocuments<DocumentType>(validator: Ajv.Ajv, documents: ReadonlyArray<DocumentType>): void | never {
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
 				AjvLocalizeEn(validator.errors);
-				throw createException(ErrorCodes.INVALID_TYPE, validator.errorsText(validator.errors, { separator: '\n' }), document);
+				throw createException(ErrorCodes.INVALID, validator.errorsText(validator.errors, { separator: '\n' }), document);
 			}
 		}
 	}

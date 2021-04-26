@@ -6,8 +6,6 @@ import { defaultCompare, ArrayEqualsPredicate } from './utils';
 
 /**
  * Binary heap.
- *
- * @fixme this needs to be optimized and tested more carefully
  */
 class Heap<T = number> {
 	private readonly compare: CompareFunction<T>;

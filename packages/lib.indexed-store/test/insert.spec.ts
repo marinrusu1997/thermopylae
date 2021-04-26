@@ -60,7 +60,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			.haveOwnProperty('code', ErrorCodes.INVALID);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
 		/** OBJECT INDEX */
@@ -76,7 +76,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			.haveOwnProperty('code', ErrorCodes.INVALID);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
 		/** BOOLEAN INDEX */
@@ -98,7 +98,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			.haveOwnProperty('code', ErrorCodes.INVALID);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 

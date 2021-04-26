@@ -14,7 +14,7 @@ import { Cache, CacheEvent } from '../contracts/cache';
  *
  * Category			|	Policies
  * ---------------- | -----------------------------
- * Expiration		| - {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>- {@link SlidingProactiveExpirationPolicy}
+ * Expiration		| - {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>- {@link SlidingProactiveExpirationPolicy}<br/>- {@link SlidingReactiveExpirationPolicy}
  * Eviction			| - {@link ArcEvictionPolicy}<br/>- {@link LRUEvictionPolicy}<br/>- {@link SegmentedLRUEvictionPolicy}<br/>- {@link LFUEvictionPolicy}<br/>- {@link LFUDAEvictionPolicy}<br/>- {@link GDSFEvictionPolicy}
  * Priority			| - {@link PriorityEvictionPolicy}
  * Dependencies		| - {@link KeysDependenciesEvictionPolicy}

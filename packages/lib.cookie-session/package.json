@@ -1,5 +1,5 @@
 {
-    "name": "@thermopylae/lib.user-session",
+    "name": "@thermopylae/lib.cookie-session",
     "description": "Cookie based authentication.",
     "keywords": [
         "library"
@@ -30,8 +30,9 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "devDependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "@thermopylae/core.declarations": "0"
+        "@types/uid-safe": "^2.1.2"
     },
     "peerDependencies": {
         "chai": "4",
@@ -43,7 +44,10 @@
         ]
     },
     "engines": {
-        "node": ">= 15"
+        "node": ">= 14"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "dependencies": {
+        "uid-safe": "^2.1.5"
+    }
 }

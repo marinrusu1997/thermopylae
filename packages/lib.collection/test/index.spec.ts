@@ -186,7 +186,7 @@ describe(`${Collection.name} spec`, () => {
 			delete person.birthYear;
 
 			const throwable = () => collection.insert(new PersonDocument(person));
-			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.INVALID);
 		});
 
 		it('inserts documents and indexes them', () => {

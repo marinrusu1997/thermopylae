@@ -46,6 +46,8 @@ module.exports = {
 		"no-restricted-syntax": "off",
 		"no-bitwise": "warn",
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
+		// base rule can report incorrect errors for TS code
+		"no-shadow": "off",
 
 		"import/no-unresolved": [
 			"error",
@@ -77,6 +79,7 @@ module.exports = {
 		"@typescript-eslint/no-explicit-any": "warn",
 		"@typescript-eslint/no-use-before-define": "off",
 		"@typescript-eslint/no-namespace": "warn",
+		"@typescript-eslint/no-shadow": "error",
 
 		"node/no-unsupported-features/es-syntax": "off",
 		"node/no-missing-import": "off", // never works as expected, broken rule

@@ -6,11 +6,11 @@ import { createException, ErrorCodes } from './error';
 /**
  * Options used at {@link IndexedStore} construction.
  */
-interface IndexedStoreOptions<Recordable> {
+interface IndexedStoreOptions<RecordType> {
 	/**
 	 * Name of the properties that need to be indexed.
 	 */
-	indexes?: ReadonlyArray<IndexName<Recordable>>;
+	indexes?: ReadonlyArray<IndexName<RecordType>>;
 }
 
 /**
@@ -18,7 +18,7 @@ interface IndexedStoreOptions<Recordable> {
  * Records ar stored in a multilevel map, with the following structure: <br>
  * <pre><code>
  *     PrimaryIndexName 	--> IndexValue --> [document]
- *     		  		   --> IndexValue --> [document]
+ *     		  		   		--> IndexValue --> [document]
  *     SecondaryIndexName   --> IndexValue --> [document, document]
  * </code></pre>
  * Indexed properties are allowed to be nullable (i.e. have `null` or `undefined` as their values). <br>
@@ -510,7 +510,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				return value;
 			default:
 				throw createException(
-					ErrorCodes.INVALID_TYPE,
+					ErrorCodes.INVALID,
 					`Index property '${String(indexName)}' is allowed to have a 'string' or 'number' value. Given: ${JSON.stringify(value)}`
 				);
 		}
@@ -519,7 +519,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	private static assertNonNullableIndexValue<R>(indexName: IndexName<R>, indexValue: IndexValue): NonNullable<IndexValue> | never {
 		if (indexValue == null) {
 			throw createException(
-				ErrorCodes.INVALID_TYPE,
+				ErrorCodes.INVALID,
 				`Nullable index value is not allowed in current context for index name '${indexName}'. Given: ${indexValue}`
 			);
 		}

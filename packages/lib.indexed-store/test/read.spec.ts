@@ -60,7 +60,7 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 		expect(storage.read(PK_INDEX_NAME, person.id)).to.be.equalTo([person]);
 		expect(() => storage.read(PK_INDEX_NAME, person.birthYear))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			.haveOwnProperty('code', ErrorCodes.INVALID);
 	});
 
 	it('fails to read from invalid index', () => {

@@ -41,7 +41,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 
 		expect(() => store.remove(PersonIndexes.I_BIRTH_YEAR, unIndexedVal, predicate))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+			.haveOwnProperty('code', ErrorCodes.INVALID);
 		expect(store.size).to.be.eq(originalSize);
 	});
 

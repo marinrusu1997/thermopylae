@@ -71,6 +71,8 @@ const enum JwtManagerEvents {
 
 type JwtManagerEventListener = (jwtAccessToken: IssuedJwtPayload) => void;
 
+// @fixme get active user sessions (readAll)
+
 /**
  * Class which manages user sessions. User session is represented by Json Web Token.
  */

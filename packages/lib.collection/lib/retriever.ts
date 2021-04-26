@@ -64,7 +64,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 		return match !== undefined ? [match] : [];
 	}
 
-	private queryToPredicate<Document>(query?: Nullable<Query<Document>>): UnaryPredicate<Document> {
+	private queryToPredicate(query?: Nullable<Query<Document>>): UnaryPredicate<Document> {
 		if (query == null) {
 			return () => true; // match all documents
 		}
@@ -77,10 +77,10 @@ class Retriever<Document extends DocumentContract<Document>> {
 		return (doc) => (query as ObjMap).matches(doc);
 	}
 
-	private static inferIndexedProperty<Document>(
-		query?: Nullable<Query<Document>>,
-		options?: Partial<FindOptions<Document>>
-	): Partial<IndexedProperty<Document>> {
+	private static inferIndexedProperty<DocumentType>(
+		query?: Nullable<Query<DocumentType>>,
+		options?: Partial<FindOptions<DocumentType>>
+	): Partial<IndexedProperty<DocumentType>> {
 		if (options == null) {
 			if (isObject(query)) {
 				const primaryKeyCondition = dotProp.get(query as ObjMap, PK_INDEX_NAME);

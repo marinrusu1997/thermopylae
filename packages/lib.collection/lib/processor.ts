@@ -48,15 +48,21 @@ class Processor<Document extends DocumentContract<Document>> {
 		}
 	}
 
-	public static clone<Document extends DocumentContract<Document>>(matches: Array<Document>): Array<Document> {
+	public static clone<DocumentType extends DocumentContract<DocumentType>>(matches: Array<DocumentType>): Array<DocumentType> {
 		return matches.map((document) => document.clone());
 	}
 
-	public static project<Document extends DocumentContract<Document>>(matches: Array<Document>, projection: Projection<Document>): Array<Document> {
+	public static project<DocumentType extends DocumentContract<DocumentType>>(
+		matches: Array<DocumentType>,
+		projection: Projection<DocumentType>
+	): Array<DocumentType> {
 		return matches.map((document) => Processor.applyProjection(document.clone(), projection));
 	}
 
-	public static sort<Document extends DocumentContract<Document>>(matches: Array<Document>, sortFields: SortFields<Document>): Array<Document> {
+	public static sort<DocumentType extends DocumentContract<DocumentType>>(
+		matches: Array<DocumentType>,
+		sortFields: SortFields<DocumentType>
+	): Array<DocumentType> {
 		if (matches.length <= 1) {
 			return matches; // 0 or 1 match, we have nothing to sort there
 		}
@@ -69,7 +75,7 @@ class Processor<Document extends DocumentContract<Document>> {
 		return orderBy(matches, Object.keys(sortFields), Object.values(sortFields));
 	}
 
-	private static applyProjection<Document>(documentClone: Document, projection: Projection<Document>): Document {
+	private static applyProjection<DocumentType>(documentClone: DocumentType, projection: Projection<DocumentType>): DocumentType {
 		switch (projection.type) {
 			case ProjectionType.EXCLUDE:
 				for (const field of projection.fields) {
@@ -91,11 +97,11 @@ class Processor<Document extends DocumentContract<Document>> {
 		return documentClone;
 	}
 
-	private static snapshotIndexableProperties<Document>(
-		document: Document,
-		indexes: Array<IndexedKey<Document>>
-	): Record<IndexedKey<Document>, Optional<IndexValue>> {
-		const snapshot = {} as Record<IndexedKey<Document>, Optional<IndexValue>>;
+	private static snapshotIndexableProperties<DocumentType>(
+		document: DocumentType,
+		indexes: Array<IndexedKey<DocumentType>>
+	): Record<IndexedKey<DocumentType>, Optional<IndexValue>> {
+		const snapshot = {} as Record<IndexedKey<DocumentType>, Optional<IndexValue>>;
 
 		for (const index of indexes) {
 			snapshot[index] = dotprop.get(document, index);

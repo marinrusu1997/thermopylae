@@ -220,7 +220,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 			expect(store.read(indexName, oldIndexValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 			expect(() => store.read(indexName, newIndexValue).find(predicate))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.INVALID_TYPE);
+				.haveOwnProperty('code', ErrorCodes.INVALID);
 		}
 	});
 });
