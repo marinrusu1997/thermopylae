@@ -3,7 +3,7 @@ import { Logger, WinstonLogger } from './logger';
 const LoggerInstance = new Logger();
 Object.freeze(LoggerInstance);
 
-export { LoggerInstance, WinstonLogger };
+export { LoggerInstance, Logger, WinstonLogger };
 
 export { DefaultFormatters, OutputFormat } from './formatting-manager';
 export { ConsoleTransportOptions } from './transports/console';

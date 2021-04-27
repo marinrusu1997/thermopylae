@@ -12,24 +12,24 @@ class Logger {
 	/**
 	 * Formatting manager which configures format of the logging output.
 	 */
-	public formatting: FormattingManager;
+	public readonly formatting: FormattingManager;
 
 	/**
 	 * Console transport manager which configures console transport.
 	 */
-	public console: ConsoleLogsManager;
+	public readonly console: ConsoleLogsManager;
 
 	/**
 	 * File transport manager which configures file transport.
 	 */
-	public file: FileLogsManager;
+	public readonly file: FileLogsManager;
 
 	/**
 	 * Graylog2 transport manager which configures graylog2 transport.
 	 */
-	public graylog2: GrayLogsManager;
+	public readonly graylog2: GrayLogsManager;
 
-	private transports: TransportsManager;
+	private readonly transports: TransportsManager;
 
 	public constructor() {
 		this.formatting = new FormattingManager();

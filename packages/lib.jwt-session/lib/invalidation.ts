@@ -1,6 +1,6 @@
-import { token, chrono } from '@thermopylae/lib.utils';
 import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import equals from 'fast-deep-equal';
+import safeUid from 'uid-safe';
 import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
 import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData } from './declarations';
@@ -69,6 +69,10 @@ interface RefreshTokensStorage {
 	/**
 	 * Insert refresh token.
 	 *
+	 * > **IMPORTANT!** <br/>
+	 * > It's highly advisable to hash refresh token before storing it in the database,
+	 * > especially if RDBMS is used.
+	 *
 	 * @param subject			Subject refresh token belongs to.
 	 * @param refreshToken		Refresh token.
 	 * @param metaData			User session metadata.
@@ -115,7 +119,10 @@ interface RefreshTokensStorage {
 
 interface InvalidationStrategyOptions {
 	/**
-	 * Length of the refresh token. Should not be lower than 20 characters.
+	 * Length of the refresh token. <br/>
+	 * Because base64 encoding is used underneath, this is not the string length.
+	 * For example, to create a token of length 24, you want a byte length of 18. <br/>
+	 * Value of this option should not be lower than 15.
 	 */
 	refreshTokenLength: number;
 	/**
@@ -147,8 +154,8 @@ class InvalidationStrategy {
 	 * 						It should not be modified after, as it will be used by strategy without being cloned.
 	 */
 	public constructor(options: InvalidationStrategyOptions) {
-		if (options.refreshTokenLength < 20) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 20 characters. Given: ${options.refreshTokenLength}.`);
+		if (options.refreshTokenLength < 15) {
+			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 15 characters. Given: ${options.refreshTokenLength}.`);
 		}
 		this.options = options;
 	}
@@ -163,8 +170,8 @@ class InvalidationStrategy {
 	 * @returns		Anchorable refresh token.
 	 */
 	public async generateRefreshToken(subject: string, context: UserSessionOperationContext): Promise<AnchorableRefreshToken> {
-		const refreshToken = token.generate(token.TokenGenerationType.CRYPTOGRAPHIC, this.options.refreshTokenLength);
-		(context as UserSessionMetaData).createdAt = chrono.unixTime();
+		const refreshToken = await safeUid(this.options.refreshTokenLength);
+		(context as UserSessionMetaData).createdAt = InvalidationStrategy.currentTimestamp();
 
 		await this.options.refreshTokensStorage.insert(subject, refreshToken, context as UserSessionMetaData, this.options.refreshTokenTtl);
 		return { token: refreshToken, anchor: refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH) };
@@ -201,13 +208,13 @@ class InvalidationStrategy {
 	public async refreshAccessSession(subject: string, refreshToken: string, context: DeepReadonly<UserSessionOperationContext>): Promise<string> {
 		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
 		if (!userSessionMetadata) {
-			throw createException(ErrorCodes.NOT_FOUND, `Refresh token ${refreshToken} for subject ${subject} doesn't exist.`);
+			throw createException(ErrorCodes.NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
 		}
 
 		if (!equals(context.device, userSessionMetadata.device)) {
 			throw createException(
 				ErrorCodes.NOT_EQUAL,
-				`Attempting to regenerate access token with refresh token ${refreshToken} for subject ${subject}` +
+				`Attempting to regenerate access token with refresh token '${refreshToken}' for subject '${subject}'` +
 					`from context that differs from user session metadata. Refresh context: ${JSON.stringify(context)}. User session metadata: ${JSON.stringify(
 						userSessionMetadata
 					)}`
@@ -280,11 +287,15 @@ class InvalidationStrategy {
 	public invalidateAccessTokensFromAllSessions(jwtAccessToken: Readonly<IssuedJwtPayload>): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
 		// all of the tokens issues before this timestamp becomes invalid ones
-		const invalidatedAt = chrono.unixTime();
+		const invalidatedAt = InvalidationStrategy.currentTimestamp();
 		// those issued nearly invalidation timestamp will have a ttl less than or equal to this one (assuming access tokens for one subject will have same ttl across all sessions)
 		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
 
 		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, invalidationTtl);
+	}
+
+	private static currentTimestamp(): UnixTimestamp {
+		return Math.floor(new Date().getTime() / 1000);
 	}
 }
 

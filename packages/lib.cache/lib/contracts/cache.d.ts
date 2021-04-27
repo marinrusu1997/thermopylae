@@ -25,8 +25,9 @@ declare type CacheEventListener<Key, Value> = (key: Key, value: Value) => void;
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle passed to different operations.
  * @template Returns			Type of the return value.
+ * @template EventValue			Type of the value emitted in the events payload.
  */
-declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | 'promise' = 'plain'> {
+declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | 'promise' = 'plain', EventValue = MaybePromise<Value, Returns>> {
 	/**
 	 * Number of cache entries.
 	 */
@@ -85,7 +86,7 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	 * @param event			Cache event.
 	 * @param listener		Event listener.
 	 */
-	on(event: CacheEvent, listener: CacheEventListener<Key, Value>): this;
+	on(event: CacheEvent, listener: CacheEventListener<Key, EventValue>): this;
 
 	/**
 	 * Unregister event listener.
@@ -93,7 +94,7 @@ declare interface Cache<Key, Value, ArgumentsBundle, Returns extends 'plain' | '
 	 * @param event			Cache event.
 	 * @param listener		Event listener.
 	 */
-	off(event: CacheEvent, listener: CacheEventListener<Key, Value>): this;
+	off(event: CacheEvent, listener: CacheEventListener<Key, EventValue>): this;
 }
 
 export { Cache, CacheEvent, CacheEventListener };

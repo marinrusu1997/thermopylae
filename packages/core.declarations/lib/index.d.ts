@@ -214,7 +214,7 @@ export type AsyncMapper<T, U = T> = (val: T) => Promise<U>;
 export type Equals<T> = (first: T, second: T) => boolean;
 export type Comparator<T> = (first: T, second: T) => ComparisonResult;
 
-export type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
+export type PromiseResolve<T> = (value: T | PromiseLike<T>) => void;
 export type PromiseReject = (reason?: any) => void;
 
 export type UnixTimestamp = number;

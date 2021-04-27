@@ -24,6 +24,7 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 
 		this.cache.on(CacheEvent.DELETE, (key) => {
 			const [user, token] = key.split('@');
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 			const sessions = this.userSessions.get(user)!;
 
 			sessions.delete(token);
@@ -57,6 +58,7 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 		const sessionsMetaData = new Array<UserSessionMetaData>(sessions.size);
 		let i = 0;
 		for (const refreshToken of sessions) {
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-plusplus
 			sessionsMetaData[i++] = this.cache.get(`${subject}@${refreshToken}`)!;
 		}
 		return sessionsMetaData;

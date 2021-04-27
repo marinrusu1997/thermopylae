@@ -1,4 +1,5 @@
 import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+// eslint-disable-next-line import/extensions
 import { Console, ConsoleTransportOptions } from 'winston/lib/winston/transports';
 import TransportStream from 'winston-transport';
 // eslint-disable-next-line import/extensions, import/no-unresolved

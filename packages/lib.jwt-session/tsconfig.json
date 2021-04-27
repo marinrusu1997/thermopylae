@@ -3,7 +3,7 @@
         "incremental": true,
         "target": "esnext",
         "module": "commonjs",
-        "allowJs": true,
+        "allowJs": false,
         "declaration": true,
         "outDir": "dist",
         "composite": true,

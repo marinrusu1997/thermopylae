@@ -4,9 +4,10 @@ typedoc.externalPattern = [
 ];
 typedoc.outline = [
     {
-        "Declarations": "_declarations_d_",
-        "Invalidation": "_invalidation_",
-        "SessionManager": "_jwt_"
+        "Declarations": "declarations",
+        "Invalidation": "invalidation",
+        "SessionManager": "jwt",
+        "Logging": "logger"
     }
 ];
 typedoc.links = [{

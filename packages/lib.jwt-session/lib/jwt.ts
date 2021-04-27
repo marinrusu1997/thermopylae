@@ -1,15 +1,16 @@
+import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
-import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
 import type { DeepReadonly } from 'utility-types';
 import { IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
 import { createException } from './error';
 import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
+import { logger } from './logger';
 
 /**
  * Payload of the JWT that will be actually signed.
  *
- * @internal
+ * @private
  */
 interface SignableJwtPayload extends JwtPayload {
 	/**
@@ -114,6 +115,10 @@ class JwtSessionManager extends EventEmitter {
 		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject, context);
 		const accessToken = await this.issueJWT(payload, anchorableRefreshToken.anchor, signOptions);
 
+		logger.info(
+			`Created new session for subject '${signOptions.subject}' with anchor '${anchorableRefreshToken.anchor}' and context: ${JSON.stringify(context)}.`
+		);
+
 		return { accessToken, refreshToken: anchorableRefreshToken.token };
 	}
 
@@ -145,9 +150,9 @@ class JwtSessionManager extends EventEmitter {
 						return resolve(decoded as IssuedJwtPayload);
 					}
 
-					reject(createException(ErrorCodes.INVALID, 'Token was forcibly invalidated.', decoded));
+					return reject(createException(ErrorCodes.INVALID, `Token '${jwtAccessToken}' was forcibly invalidated.`));
 				} catch (e) {
-					reject(e);
+					return reject(e);
 				}
 			})
 		);
@@ -188,7 +193,13 @@ class JwtSessionManager extends EventEmitter {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
 		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, context);
-		return this.issueJWT(payload, anchorToRefreshToken, signOptions);
+		const accessToken = await this.issueJWT(payload, anchorToRefreshToken, signOptions);
+
+		logger.info(
+			`Refreshed access token for subject '${signOptions.subject}' on session with anchor '${anchorToRefreshToken}'. Context: ${JSON.stringify(context)}`
+		);
+
+		return accessToken;
 	}
 
 	/**
@@ -201,6 +212,7 @@ class JwtSessionManager extends EventEmitter {
 	 */
 	public async deleteOne(jwtPayload: Readonly<IssuedJwtPayload>, refreshToken: string): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
+		logger.info(`Deleted session with refresh token '${refreshToken}' of the subject '${jwtPayload.sub}'.`);
 		this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
 	}
 
@@ -216,6 +228,9 @@ class JwtSessionManager extends EventEmitter {
 	 */
 	public async deleteAll(jwtPayload: Readonly<IssuedJwtPayload>): Promise<number> {
 		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
+		logger.warning(
+			`Deleted all sessions (${invalidateSessionsNo}) of the subject '${jwtPayload.sub}'. Deletion has been made from session with anchor '${jwtPayload.anc}'.`
+		);
 		this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
 		return invalidateSessionsNo;
 	}
@@ -281,7 +296,8 @@ class JwtSessionManager extends EventEmitter {
 				if (signErr) {
 					return reject(signErr);
 				}
-				return resolve(encoded);
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+				return resolve(encoded!);
 			})
 		);
 	}

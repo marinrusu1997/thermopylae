@@ -8,6 +8,7 @@ declare type JwtPayload = {
 	/**
 	 * Payload data.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	readonly [x: string]: any;
 };
 
@@ -63,6 +64,7 @@ declare interface IssuedJwtPayload {
 	/**
 	 * Other properties.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	readonly [x: string]: any;
 }
 

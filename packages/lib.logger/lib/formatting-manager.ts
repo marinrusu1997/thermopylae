@@ -80,8 +80,8 @@ class FormattingManager {
 	 * Configures a recipe from a predefined set of formatters. <br>
 	 * If a recipe exists, it will be rewritten.
 	 *
-	 * @param   outputFormat      Logs output format for which recipe needs to be constructed.
-	 * @param   colorize    Whether output needs to be colored.
+	 * @param   outputFormat    Logs output format for which recipe needs to be constructed.
+	 * @param   colorize    	Whether output needs to be colored.
 	 */
 	public setDefaultRecipe(outputFormat: OutputFormat, colorize?: boolean): void {
 		const order = [DefaultFormatters.TIMESTAMP, DefaultFormatters.ERRORS, DefaultFormatters.SPLAT, DefaultFormatters.ALIGN];
@@ -153,7 +153,22 @@ class FormattingManager {
 		formatters.set(DefaultFormatters.ALIGN, align());
 		formatters.set(DefaultFormatters.ERRORS, errors({ stack: true }));
 		formatters.set(DefaultFormatters.SPLAT, splat());
-		formatters.set(DefaultFormatters.COLORIZE, colorize({ all: true }));
+		formatters.set(
+			DefaultFormatters.COLORIZE,
+			colorize({
+				level: true,
+				colors: {
+					emerg: 'magenta',
+					alert: 'magenta',
+					crit: 'magenta',
+					error: 'red',
+					warning: 'yellow',
+					notice: 'cyan',
+					info: 'green',
+					debug: 'blue'
+				}
+			})
+		);
 		formatters.set(
 			DefaultFormatters.PRINTF,
 			printf((info) => {

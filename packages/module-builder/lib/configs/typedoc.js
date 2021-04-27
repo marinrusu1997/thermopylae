@@ -16,21 +16,17 @@ function getThemePath() {
 
 module.exports = {
     // Input Options
-    "mode": "modules",
-    "includeDeclarations": true,
-    "inputFiles": [
+    "entryPoints": [
         "lib/"
     ],
     "exclude": [
         "test/**/*",
-        "lib/index.ts"
+        "lib/index.ts",
+        "lib/error.ts"
     ],
     "excludeExternals": true,
-    "excludeNotExported": true,
     "excludePrivate": true,
     "excludeProtected": true,
-    "stripInternal": true,
-    "ignoreCompilerErrors": false,
 
     // Output Options
     "out": "doc/html",

@@ -29,10 +29,13 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
+    "dependencies": {
+        "uid-safe": "2"
+    },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "@types/uid-safe": "^2.1.2"
+        "@types/uid-safe": "2"
     },
     "peerDependencies": {
         "chai": "4",
@@ -46,8 +49,5 @@
     "engines": {
         "node": ">= 14"
     },
-    "license": "ISC",
-    "dependencies": {
-        "uid-safe": "^2.1.5"
-    }
+    "license": "ISC"
 }

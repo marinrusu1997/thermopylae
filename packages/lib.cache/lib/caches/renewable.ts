@@ -1,4 +1,4 @@
-import { PromiseHolder } from '@thermopylae/core.declarations';
+import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
 import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
 
 /**
@@ -25,7 +25,7 @@ interface RenewableCacheOptions<Key, Value, ArgumentsBundle> {
 	/**
 	 * Synchronous implementation of the {@link Cache}.
 	 */
-	cache: Cache<Key, PromiseHolder<Value>, ArgumentsBundle>;
+	cache: Cache<Key, PromiseHolder<Undefinable<Value>>, ArgumentsBundle>;
 	/**
 	 * Retriever function.
 	 */
@@ -49,7 +49,7 @@ interface RenewableCacheOptions<Key, Value, ArgumentsBundle> {
  * @template Value				Type of the value.
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
-class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key, Value, ArgumentsBundle, 'promise'> {
+class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key, Value, ArgumentsBundle, 'promise', PromiseHolder<Undefinable<Value>>> {
 	private readonly options: Readonly<Required<RenewableCacheOptions<Key, Value, ArgumentsBundle>>>;
 
 	public constructor(options: RenewableCacheOptions<Key, Value, ArgumentsBundle>) {
@@ -83,11 +83,12 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 
 		try {
 			const result = await this.options.keyRetriever(key);
+			promiseHolder.resolve(result);
+
 			if (result === undefined) {
 				this.options.cache.del(key);
 			}
 
-			promiseHolder.resolve(result);
 			return result;
 		} catch (e) {
 			this.options.cache.del(key); // revert cache insertion
@@ -113,7 +114,7 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 	 * @param argsBundle	Arguments bundle.
 	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
-		const promiseHolder = RenewableCache.buildPromiseHolder<Value>();
+		const promiseHolder = RenewableCache.buildPromiseHolder<Undefinable<Value>>();
 		promiseHolder.resolve(value);
 
 		if (argsBundle == null) {
@@ -146,17 +147,17 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 	/**
 	 * @inheritDoc
 	 */
-	// @ts-ignore
-	public on(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value>>): this {
+	public on(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value | undefined>>): this {
 		this.options.cache.on(event, listener);
+		return this;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	// @ts-ignore
-	public off(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value>>): this {
+	public off(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value | undefined>>): this {
 		this.options.cache.off(event, listener);
+		return this;
 	}
 
 	private static buildPromiseHolder<T>(): PromiseHolder<T> {
