@@ -3,16 +3,16 @@ import { Nullable } from '@thermopylae/core.declarations';
 import { LinkedList } from './interface';
 
 /**
- * @internal
+ * @private
  */
 const PREV_SYM = Symbol.for('PREV_SYM_DLL');
 /**
- * @internal
+ * @private
  */
 const NEXT_SYM = Symbol.for('NEXT_SYM_DLL');
 
 /**
- * @internal
+ * @private
  */
 interface DoublyLinkedListNode<Node> {
 	[PREV_SYM]: Nullable<Node>;
@@ -20,7 +20,7 @@ interface DoublyLinkedListNode<Node> {
 }
 
 /**
- * @internal
+ * @private
  */
 class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
@@ -42,7 +42,7 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 }
 
 /**
- * @internal
+ * @private
  */
 class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements LinkedList<DoublyLinkedListNode<Node>> {
 	public head: Nullable<Node>;

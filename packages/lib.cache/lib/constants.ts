@@ -4,12 +4,12 @@
 const INFINITE_EXPIRATION = 0;
 
 /**
- * @internal
+ * @private
  */
 const NOT_FOUND_VALUE = undefined;
 
 /**
- * @internal
+ * @private
  */
 const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
 

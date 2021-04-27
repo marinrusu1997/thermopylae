@@ -27,7 +27,7 @@ interface AbsoluteExpirationPolicyArgumentsBundle {
 }
 
 /**
- * @internal
+ * @private
  */
 abstract class AbsoluteExpirationPolicy<Key, Value, ArgumentsBundle extends AbsoluteExpirationPolicyArgumentsBundle> extends AbstractExpirationPolicy<
 	Key,

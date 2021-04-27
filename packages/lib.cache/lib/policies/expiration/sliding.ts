@@ -6,12 +6,12 @@ import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
 import { EntryValidity } from '../../contracts/cache-replacement-policy';
 
 /**
- * @internal
+ * @private
  */
 const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM_PROACTIVE');
 
 /**
- * @internal
+ * @private
  */
 interface ExpirableSlidingCacheEntry<Key, Value> extends ExpirableCacheEntry<Key, Value> {
 	[TIME_SPAN_SYM]?: Seconds;

@@ -5,7 +5,7 @@ import { ReadonlyCacheBackend } from '../../contracts/cache-backend';
 import { createException, ErrorCodes } from '../../error';
 
 /**
- * @internal
+ * @private
  */
 interface CacheEntryWithDependencies<Key, Value> extends CacheEntry<Key, Value>, GraphEntry {}
 

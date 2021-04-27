@@ -7,12 +7,12 @@ import { LinkedList } from '../../data-structures/list/interface';
 import { createException } from '../../error';
 
 /**
- * @internal
+ * @private
  */
 const SEGMENT_SYM = Symbol('SEGMENT_SYM');
 
 /**
- * @internal
+ * @private
  */
 const enum SegmentType {
 	PROBATION,
@@ -20,14 +20,14 @@ const enum SegmentType {
 }
 
 /**
- * @internal
+ * @private
  */
 interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {
 	[SEGMENT_SYM]: SegmentType;
 }
 
 /**
- * @internal
+ * @private
  */
 type Segments<Key, Value> = {
 	[Segment in SegmentType]: {

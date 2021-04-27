@@ -6,19 +6,19 @@ import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 /**
- * @internal
+ * @private
  */
 const IGNORED_BUCKET_ID = -1;
 
 /**
- * @internal
+ * @private
  */
 interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, BucketEntryNode<EvictableCacheEntry<Key, Value>> {}
 
 /**
  * Base class for LFU policies.
  *
- * @internal
+ * @private
  *
  * @template Key				Type of the key.
  * @template Value				Type of the value.

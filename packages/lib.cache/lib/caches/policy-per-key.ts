@@ -7,12 +7,12 @@ import { CacheEntry } from '../contracts/commons';
 import { NOT_FOUND_VALUE } from '../constants';
 
 /**
- * @internal
+ * @private
  */
 const POLICIES_SYM = Symbol('POLICIES_SYM');
 
 /**
- * @internal
+ * @private
  */
 interface CacheEntryEvictedBySpecialisedPolicies<Key, Value, PolicyTag> extends CacheEntry<Key, Value> {
 	[POLICIES_SYM]: ReadonlyArray<PolicyTag>;

@@ -6,14 +6,14 @@ import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/
 import { createException } from '../../error';
 
 /**
- * @internal
+ * @private
  */
 interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
 /**
- * @internal
+ * @private
  */
 abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	/**

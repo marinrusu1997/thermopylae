@@ -8,7 +8,7 @@ import { IterableCacheBackend } from '../../contracts/cache-backend';
 // @fixme take into account gc: https://www.npmjs.com/package/gc-stats
 
 /**
- * @internal
+ * @private
  */
 const PRIORITY_SYM = Symbol('PRIORITY_SYM');
 
@@ -46,7 +46,7 @@ const enum CacheEntryPriority {
 }
 
 /**
- * @internal
+ * @private
  */
 interface PrioritizedCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[PRIORITY_SYM]: CacheEntryPriority;

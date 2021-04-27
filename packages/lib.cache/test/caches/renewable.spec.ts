@@ -2,11 +2,8 @@ import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { chrono } from '@thermopylae/lib.utils';
-import { PromiseHolder } from '@thermopylae/core.declarations';
-import { KeyRetriever, RenewableCache } from '../../lib/caches/renewable';
-import { EntryPoolCacheBackend } from '../../lib/backend/entry-pool';
-import { PolicyBasedCache } from '../../lib/caches/policy-based';
-import { CacheEvent } from '../../lib/contracts/cache';
+import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
+import { KeyRetriever, RenewableCache, EntryPoolCacheBackend, PolicyBasedCache, CacheEvent } from '../../lib';
 
 describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
@@ -19,8 +16,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({
 				cache,
 				keyRetriever
@@ -57,8 +54,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			const results = await Promise.allSettled([
@@ -103,8 +100,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			const requests = Promise.all([
@@ -140,7 +137,7 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('removes promise holder from cache if retriever found nothing', async () => {
 			const requestedKeys = new Array<string>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((resolve) => {
+				return new Promise<string | undefined>((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
 						resolve(undefined);
@@ -148,8 +145,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			const results = await Promise.all([
@@ -180,8 +177,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
@@ -203,8 +200,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
@@ -239,14 +236,14 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				});
 			};
 
-			const backend = new EntryPoolCacheBackend<string, PromiseHolder<string>>(10);
-			const cache = new PolicyBasedCache<string, PromiseHolder<string>>(backend);
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			const events = new Map<CacheEvent, Array<string>>();
 
 			renewableCache.on(CacheEvent.INSERT, async (key, promiseHolder) => {
-				events.set(CacheEvent.INSERT, [key, await promiseHolder.promise]);
+				events.set(CacheEvent.INSERT, [key, (await promiseHolder.promise) as string]);
 			});
 			renewableCache.on(CacheEvent.UPDATE, (key) => {
 				events.set(CacheEvent.UPDATE, [key]);

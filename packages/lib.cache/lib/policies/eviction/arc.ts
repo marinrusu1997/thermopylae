@@ -8,12 +8,12 @@ import { createException, ErrorCodes } from '../../error';
 // resource2: https://www.youtube.com/watch?v=_XDHPhdQHMQ
 
 /**
- * @internal
+ * @private
  */
 const SEGMENT_TYPE_SYM = Symbol('ARC_SEGMENT_TYPE_SYM');
 
 /**
- * @internal
+ * @private
  */
 const enum SegmentType {
 	/**
@@ -27,14 +27,14 @@ const enum SegmentType {
 }
 
 /**
- * @internal
+ * @private
  */
 interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {
 	[SEGMENT_TYPE_SYM]: SegmentType;
 }
 
 /**
- * @internal
+ * @private
  */
 interface CacheSegment<Key, Value> {
 	capacity: number;

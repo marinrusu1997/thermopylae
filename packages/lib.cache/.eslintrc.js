@@ -4,7 +4,13 @@ const eslint = object.cloneDeep(require('@thermopylae/module-builder').configs.e
 eslint.rules["import/no-unresolved"][1].ignore.push(
     '../contracts',
     './contracts',
-    './commons'
+    './commons',
+    './interface',
+    '../list/interface',
+    './garbage-collectors/interface',
+    '../../garbage-collectors/interface',
+    '../../data-structures/list/interface',
+    '../../../lib/garbage-collectors/interface'
 );
 
 module.exports = eslint;

@@ -6,42 +6,42 @@ typedoc.externalPattern = [
 typedoc.outline = [
     {
         "Backends": {
-            "Interface": "_contracts_cache_backend_d_",
-            "EntryPoolCacheBackend": "_backend_entry_pool_",
-            "EsMapCacheBackend": "_backend_es_map_"
+            "Interface": "contracts_cache_backend",
+            "EntryPoolCacheBackend": "backend_entry_pool",
+            "EsMapCacheBackend": "backend_es_map"
         },
         "Caches": {
-            "Interface": "_contracts_cache_d_",
-            "PolicyBasedCache": "_caches_policy_based_",
-            "PolicyPerKeyCache": "_caches_policy_per_key_",
-            "RenewableCache": "_caches_renewable_"
+            "Interface": "contracts_cache",
+            "PolicyBasedCache": "caches_policy_based",
+            "PolicyPerKeyCache": "caches_policy_per_key",
+            "RenewableCache": "caches_renewable"
         },
         "Garbage Collectors": {
-            "Interface": "_garbage_collectors_interface_d_",
-            "BucketGarbageCollector": "_garbage_collectors_bucket_gc_",
-            "HeapGarbageCollector": "_garbage_collectors_heap_gc_",
-            "IntervalGarbageCollector": "_garbage_collectors_interval_gc_"
+            "Interface": "garbage_collectors_interface",
+            "BucketGarbageCollector": "garbage_collectors_bucket_gc",
+            "HeapGarbageCollector": "garbage_collectors_heap_gc",
+            "IntervalGarbageCollector": "garbage_collectors_interval_gc"
         },
         "Replacement Policies": {
-            "Interface": "_contracts_cache_replacement_policy_d_",
+            "Interface": "contracts_cache_replacement_policy",
             "Expiration": {
-                "ProactiveExpirationPolicy": "_policies_expiration_proactive_",
-                "ReactiveExpirationPolicy": "_policies_expiration_reactive_",
-                "SlidingProactiveExpirationPolicy": "_policies_expiration_sliding_",
-                "SlidingReactiveExpirationPolicy": "_policies_expiration_sliding_reactive_"
+                "ProactiveExpirationPolicy": "policies_expiration_proactive",
+                "ReactiveExpirationPolicy": "policies_expiration_reactive",
+                "SlidingProactiveExpirationPolicy": "policies_expiration_sliding",
+                "SlidingReactiveExpirationPolicy": "policies_expiration_sliding_reactive"
             },
             "Eviction": {
-                "ArcEvictionPolicy": "_policies_eviction_arc_",
-                "GDSFEvictionPolicy": "_policies_eviction_gdsf_",
-                "KeysDependenciesEvictionPolicy": "_policies_eviction_dependencies_",
-                "LFUEvictionPolicy": "_policies_eviction_lfu_",
-                "LFUDAEvictionPolicy": "_policies_eviction_lfuda_",
-                "LRUEvictionPolicy": "_policies_eviction_lru_",
-                "PriorityEvictionPolicy": "_policies_eviction_priority_",
-                "SegmentedLRUEvictionPolicy": "_policies_eviction_segmented_lru_"
+                "ArcEvictionPolicy": "policies_eviction_arc",
+                "GDSFEvictionPolicy": "policies_eviction_gdsf",
+                "KeysDependenciesEvictionPolicy": "policies_eviction_dependencies",
+                "LFUEvictionPolicy": "policies_eviction_lfu",
+                "LFUDAEvictionPolicy": "policies_eviction_lfuda",
+                "LRUEvictionPolicy": "policies_eviction_lru",
+                "PriorityEvictionPolicy": "policies_eviction_priority",
+                "SegmentedLRUEvictionPolicy": "policies_eviction_segmented_lru"
             }
         },
-        "Constants": "_constants_"
+        "Constants": "constants"
     }
 ];
 typedoc.links = [{

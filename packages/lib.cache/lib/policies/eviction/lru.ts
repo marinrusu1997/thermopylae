@@ -7,7 +7,7 @@ import { createException, ErrorCodes } from '../../error';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
 /**
- * @internal
+ * @private
  */
 interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {}
 

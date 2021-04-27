@@ -1,19 +1,19 @@
 import { CompareFunction, Undefinable } from '@thermopylae/core.declarations';
 
 /**
- * @internal
+ * @private
  */
 const HEAP_NODE_IDX_SYM = Symbol('HEAP_NODE_INDEX_SYMBOL');
 
 /**
- * @internal
+ * @private
  */
 interface HeapNode {
 	[HEAP_NODE_IDX_SYM]: number;
 }
 
 /**
- * @internal
+ * @private
  */
 class Heap<T extends HeapNode> {
 	private readonly comparator: CompareFunction<T>;

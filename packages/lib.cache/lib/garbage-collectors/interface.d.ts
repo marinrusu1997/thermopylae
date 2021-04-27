@@ -7,7 +7,7 @@ import { EXPIRES_AT_SYM } from '../constants';
 declare type EntryExpiredCallback<T> = (entry: T) => void;
 
 /**
- * @internal
+ * @private
  */
 declare interface ExpirableEntry {
 	[EXPIRES_AT_SYM]: UnixTimestamp;

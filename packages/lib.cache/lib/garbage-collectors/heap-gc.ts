@@ -5,7 +5,7 @@ import { Heap, HeapNode } from '../data-structures/heap';
 import { EXPIRES_AT_SYM } from '../constants';
 
 /**
- * @internal
+ * @private
  */
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
@@ -13,7 +13,7 @@ interface CleanUpInterval {
 }
 
 /**
- * @internal
+ * @private
  */
 interface HeapExpirableEntry extends ExpirableEntry, HeapNode {}
 

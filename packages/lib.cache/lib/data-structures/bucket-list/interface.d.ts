@@ -1,7 +1,7 @@
 /**
  * Data Structure which represents a list of buckets.
  *
- * @internal
+ * @private
  */
 interface BucketList<BucketKey, BucketEntry> {
 	/**

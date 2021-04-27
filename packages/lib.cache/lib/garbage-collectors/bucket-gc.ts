@@ -92,7 +92,7 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 }
 
 /**
- * @internal
+ * @private
  */
 interface EvictionInterval {
 	timeoutId: Nullable<NodeJS.Timeout>;
@@ -100,7 +100,7 @@ interface EvictionInterval {
 }
 
 /**
- * @internal
+ * @private
  */
 class EvictionTimer {
 	private readonly evictionInterval: EvictionInterval;

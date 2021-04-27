@@ -3,19 +3,19 @@ import { Nullable } from '@thermopylae/core.declarations';
 import { LinkedList } from './interface';
 
 /**
- * @internal
+ * @private
  */
 const NEXT_SYM = Symbol.for('NEXT_SYM_SLL');
 
 /**
- * @internal
+ * @private
  */
 interface SingleLinkedListNode<Node> {
 	[NEXT_SYM]: Nullable<Node>;
 }
 
 /**
- * @internal
+ * @private
  */
 class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
@@ -37,7 +37,7 @@ class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implemen
 }
 
 /**
- * @internal
+ * @private
  */
 class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements LinkedList<SingleLinkedListNode<Node>> {
 	public head: Nullable<Node>;

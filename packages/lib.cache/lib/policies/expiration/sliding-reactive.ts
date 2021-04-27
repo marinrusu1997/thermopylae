@@ -5,12 +5,12 @@ import { EntryValidity } from '../../contracts/cache-replacement-policy';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
 
 /**
- * @internal
+ * @private
  */
 const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM_REACTIVE');
 
 /**
- * @internal
+ * @private
  */
 interface ExpirableSlidingCacheEntry<Key, Value> extends ExpirableCacheEntry<Key, Value> {
 	[TIME_SPAN_SYM]?: Seconds;
