@@ -33,14 +33,16 @@
     "dependencies": {
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.utils": "0",
+        "fast-deep-equal": "3",
         "jsonwebtoken": "8"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.cache": "0",
+        "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
-        "@types/jsonwebtoken": "8"
+        "@types/jsonwebtoken": "8",
+        "utility-types": "3"
     },
     "peerDependencies": {
         "chai": "4",

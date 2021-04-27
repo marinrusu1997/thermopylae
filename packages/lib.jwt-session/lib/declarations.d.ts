@@ -1,3 +1,5 @@
+import { DeviceType, UnixTimestamp } from '@thermopylae/core.declarations';
+
 /**
  * Payload of the JWT token. <br/>
  * This payload needs to signed first, before being issue to clients.
@@ -64,4 +66,55 @@ declare interface IssuedJwtPayload {
 	readonly [x: string]: any;
 }
 
-export { JwtPayload, IssuedJwtPayload };
+/**
+ * Represents context of the user session at it's creation/access.
+ */
+interface UserSessionOperationContext {
+	/**
+	 * Ip from where session was created/accessed.
+	 */
+	ip: string;
+	/**
+	 * Device from where session was created/accessed.
+	 */
+	device: {
+		/**
+		 * Name of the device.
+		 */
+		name: string;
+		/**
+		 * Type of the device.
+		 */
+		type: DeviceType;
+		/**
+		 * Device description.
+		 */
+		description?: string;
+	};
+	/**
+	 * Location from where session was created/accessed.
+	 */
+	location?: string;
+}
+
+/**
+ * Represents user session metadata that is stored along the refresh token.
+ */
+interface UserSessionMetaData extends UserSessionOperationContext {
+	/**
+	 * When session was created.
+	 */
+	createdAt: UnixTimestamp;
+}
+
+/**
+ * Represents user session metadata that is queried by external to application clients.
+ */
+interface QueriedUserSessionMetaData extends UserSessionMetaData {
+	/**
+	 * When session will expire.
+	 */
+	expiresAt: UnixTimestamp;
+}
+
+export { JwtPayload, IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData };

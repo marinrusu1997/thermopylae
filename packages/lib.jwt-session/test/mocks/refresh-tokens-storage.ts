@@ -6,18 +6,18 @@ import {
 	ProactiveExpirationPolicy,
 	CacheEvent
 } from '@thermopylae/lib.cache';
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { chrono } from '@thermopylae/lib.utils';
+import { Seconds } from '@thermopylae/core.declarations';
 import { RefreshTokensStorage } from '../../lib/invalidation';
+import { UserSessionMetaData } from '../../lib/declarations';
 
 class RefreshTokensStorageAdapter implements RefreshTokensStorage {
-	private readonly cache: PolicyBasedCache<string, UnixTimestamp, AbsoluteExpirationPolicyArgumentsBundle>;
+	private readonly cache: PolicyBasedCache<string, UserSessionMetaData, AbsoluteExpirationPolicyArgumentsBundle>;
 
 	private readonly userSessions: Map<string, Set<string>>;
 
 	public constructor() {
-		const backend = new EsMapCacheBackend<string, UnixTimestamp>();
-		const policies = [new ProactiveExpirationPolicy<string, UnixTimestamp>(new BucketGarbageCollector())];
+		const backend = new EsMapCacheBackend<string, UserSessionMetaData>();
+		const policies = [new ProactiveExpirationPolicy<string, UserSessionMetaData>(new BucketGarbageCollector())];
 		this.cache = new PolicyBasedCache(backend, policies);
 
 		this.userSessions = new Map<string, Set<string>>();
@@ -33,7 +33,7 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 		});
 	}
 
-	public async set(subject: string, refreshToken: string, ttl: Seconds): Promise<void> {
+	public async insert(subject: string, refreshToken: string, metaData: UserSessionMetaData, ttl: Seconds): Promise<void> {
 		let sessions = this.userSessions.get(subject);
 		if (sessions == null) {
 			sessions = new Set<string>();
@@ -41,11 +41,25 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage {
 		}
 
 		sessions.add(refreshToken);
-		this.cache.set(`${subject}@${refreshToken}`, chrono.unixTime() + ttl, { expiresAfter: ttl });
+		this.cache.set(`${subject}@${refreshToken}`, metaData, { expiresAfter: ttl });
 	}
 
-	public async has(subject: string, refreshToken: string): Promise<boolean> {
-		return this.cache.has(`${subject}@${refreshToken}`);
+	public async read(subject: string, refreshToken: string): Promise<UserSessionMetaData | undefined> {
+		return this.cache.get(`${subject}@${refreshToken}`);
+	}
+
+	public async readAll(subject: string): Promise<Array<UserSessionMetaData>> {
+		const sessions = this.userSessions.get(subject);
+		if (sessions == null) {
+			return [];
+		}
+
+		const sessionsMetaData = new Array<UserSessionMetaData>(sessions.size);
+		let i = 0;
+		for (const refreshToken of sessions) {
+			sessionsMetaData[i++] = this.cache.get(`${subject}@${refreshToken}`)!;
+		}
+		return sessionsMetaData;
 	}
 
 	public async delete(subject: string, refreshToken: string): Promise<void> {

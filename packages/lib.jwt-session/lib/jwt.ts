@@ -1,7 +1,8 @@
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
-import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne } from '@thermopylae/core.declarations';
-import { IssuedJwtPayload, JwtPayload } from './declarations';
+import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
+import type { DeepReadonly } from 'utility-types';
+import { IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
 import { createException } from './error';
 import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
 
@@ -16,7 +17,7 @@ interface SignableJwtPayload extends JwtPayload {
 	 * Represents a sub-part (usually the first 6 letters) of the refresh token.
 	 * Anchor is used for invalidation purposes.
 	 */
-	anc: string;
+	readonly anc: string;
 }
 
 /**
@@ -37,17 +38,19 @@ interface JwtSessionManagerOptions {
 	 */
 	readonly secret: string | Buffer | PublicPrivateKeys;
 	/**
-	 * Options for invalidation strategy.
+	 * Options for invalidation strategy. <br/>
+	 * **Note!** They should not be modified after,
+	 * as this object will be used by invalidation strategy without being cloned.
 	 */
 	readonly invalidationOptions: InvalidationStrategyOptions;
 	/**
 	 * Default sign options.
 	 */
-	signOptions: JwtSignOptions<RequireSome<SignOptions, 'algorithm' | 'expiresIn' | 'issuer' | 'audience'>>;
+	readonly signOptions: JwtSignOptions<RequireSome<SignOptions, 'algorithm' | 'expiresIn' | 'issuer' | 'audience'>>;
 	/**
 	 * Default verify options.
 	 */
-	verifyOptions: JwtVerifyOptions;
+	readonly verifyOptions: JwtVerifyOptions;
 }
 
 /**
@@ -71,8 +74,6 @@ const enum JwtManagerEvents {
 
 type JwtManagerEventListener = (jwtAccessToken: IssuedJwtPayload) => void;
 
-// @fixme get active user sessions (readAll)
-
 /**
  * Class which manages user sessions. User session is represented by Json Web Token.
  */
@@ -81,6 +82,10 @@ class JwtSessionManager extends EventEmitter {
 
 	private readonly invalidationStrategy: InvalidationStrategy;
 
+	/**
+	 * @param options		Options object. <br/>
+	 * 						It should not be modified after, as it will be used without being cloned.
+	 */
 	public constructor(options: JwtSessionManagerOptions) {
 		super();
 		this.config = JwtSessionManager.fillWithDefaults(options);
@@ -90,15 +95,23 @@ class JwtSessionManager extends EventEmitter {
 	/**
 	 * Create user session.
 	 *
-	 * @param payload		JWT payload.
-	 * @param signOptions	Sign options. Provided properties will override the default ones.
+	 * @param payload		JWT payload. <br/>
+	 * 						The object will be modified *in-place*.
+	 * @param signOptions	Sign options. <br/>
+	 * 						Provided properties will override the default ones.
+	 * @param context		User session creation context. <br/>
+	 * 						Context won't be cloned, therefore you should not update it after operation finishes.
 	 *
 	 * @returns 	Session access and refresh tokens.
 	 */
-	public async create(payload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<SessionTokens> {
+	public async create(
+		payload: JwtPayload,
+		signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>,
+		context: DeepReadonly<UserSessionOperationContext>
+	): Promise<Readonly<SessionTokens>> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
-		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject);
+		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject, context);
 		const accessToken = await this.issueJWT(payload, anchorableRefreshToken.anchor, signOptions);
 
 		return { accessToken, refreshToken: anchorableRefreshToken.token };
@@ -109,7 +122,8 @@ class JwtSessionManager extends EventEmitter {
 	 * Token will be validated before being decoded and it's payload extracted.
 	 *
 	 * @param jwtAccessToken	Access token.
-	 * @param verifyOptions		Verify options. Provided properties will override the default ones.
+	 * @param verifyOptions		Verify options. <br/>
+	 * 							Provided properties will override the default ones.
 	 *
 	 * @throws {TokenExpiredError}	When token is expired.
 	 * @throws {Exception}			When token was invalided.
@@ -140,20 +154,40 @@ class JwtSessionManager extends EventEmitter {
 	}
 
 	/**
+	 * Read all the **active** sessions of the `subject`. <br/>
+	 * **Note!** Session objects are returned directly from storage, without being cloned,
+	 * therefore you are not advised to modify them after this operation.
+	 *
+	 * @param subject		Subject from the JWT (i.e. user/account id).
+	 */
+	public readAll(subject: string): Promise<Array<DeepReadonly<QueriedUserSessionMetaData>>> {
+		return this.invalidationStrategy.getActiveUserSessions(subject);
+	}
+
+	/**
 	 * Update user access token session.
 	 *
 	 * @param refreshToken		Refresh token.
-	 * @param payload			Payload for the newly access token.
+	 * @param payload			Payload for the newly access token. <br/>
+	 * 							The object will be modified *in-place*.
 	 * @param signOptions		Sign options. Provided properties will override the default ones.
+	 * @param context			Update access token context.
 	 *
-	 * @throws {Exception}		When refresh token is not valid.
+	 * @throws {Exception}		When:
+	 * 								- refresh token is not valid.
+	 * 								- update is performed from a device different than the one from where session was created
 	 *
 	 * @returns		JWT access token.
 	 */
-	public async update(refreshToken: string, payload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<string> {
+	public async update(
+		refreshToken: string,
+		payload: JwtPayload,
+		signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>,
+		context: DeepReadonly<UserSessionOperationContext>
+	): Promise<string> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
-		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken);
+		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, context);
 		return this.issueJWT(payload, anchorToRefreshToken, signOptions);
 	}
 
@@ -165,7 +199,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @emits {@link JwtManagerEvents.SESSION_INVALIDATED}.
 	 */
-	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
+	public async deleteOne(jwtPayload: Readonly<IssuedJwtPayload>, refreshToken: string): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
 		this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
 	}
@@ -180,7 +214,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @returns		Number of the deleted sessions.
 	 */
-	public async deleteAll(jwtPayload: IssuedJwtPayload): Promise<number> {
+	public async deleteAll(jwtPayload: Readonly<IssuedJwtPayload>): Promise<number> {
 		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
 		this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
 		return invalidateSessionsNo;
@@ -200,7 +234,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @param jwtPayload	Access token to be invalidated.
 	 */
-	public restrictOne(jwtPayload: IssuedJwtPayload): void {
+	public restrictOne(jwtPayload: Readonly<IssuedJwtPayload>): void {
 		this.invalidationStrategy.invalidateAccessToken(jwtPayload);
 	}
 
@@ -219,7 +253,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @param jwtPayload	Access token of the session from where restrict operation is performed.
 	 */
-	public restrictAll(jwtPayload: IssuedJwtPayload): void {
+	public restrictAll(jwtPayload: Readonly<IssuedJwtPayload>): void {
 		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(jwtPayload);
 	}
 
@@ -238,7 +272,7 @@ class JwtSessionManager extends EventEmitter {
 
 	private async issueJWT(payload: JwtPayload, anchorToRefreshToken: string, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<string> {
 		// add some meta-data
-		(payload as SignableJwtPayload).anc = anchorToRefreshToken;
+		(payload as MutableSome<SignableJwtPayload, 'anc'>).anc = anchorToRefreshToken;
 
 		const secret = this.getSecret('private');
 
@@ -252,13 +286,9 @@ class JwtSessionManager extends EventEmitter {
 		);
 	}
 
-	private static fillWithDefaults(options: JwtSessionManagerOptions): Readonly<Required<JwtSessionManagerOptions>> {
-		if (options.signOptions == null) {
-			((options.signOptions as unknown) as SignOptions) = {};
-		}
+	private static fillWithDefaults(options: JwtSessionManagerOptions): Readonly<JwtSessionManagerOptions> {
 		// mutate payload directly and avoid unnecessary object creations
 		((options.signOptions as unknown) as SignOptions).mutatePayload = true;
-
 		return options as Readonly<Required<JwtSessionManagerOptions>>;
 	}
 }

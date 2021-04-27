@@ -1,7 +1,9 @@
 import { token, chrono } from '@thermopylae/lib.utils';
 import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import equals from 'fast-deep-equal';
+import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
-import { IssuedJwtPayload } from './declarations';
+import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData } from './declarations';
 
 // FIXME reference links
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
@@ -22,11 +24,11 @@ declare interface AnchorableRefreshToken {
 	/**
 	 * The actual refresh token.
 	 */
-	token: string;
+	readonly token: string;
 	/**
 	 * Anchor to refresh token.
 	 */
-	anchor: string;
+	readonly anchor: string;
 }
 
 /**
@@ -69,17 +71,29 @@ interface RefreshTokensStorage {
 	 *
 	 * @param subject			Subject refresh token belongs to.
 	 * @param refreshToken		Refresh token.
+	 * @param metaData			User session metadata.
 	 * @param ttl				TTL of the refresh token.
 	 */
-	set(subject: string, refreshToken: string, ttl: Seconds): Promise<void>;
+	insert(subject: string, refreshToken: string, metaData: UserSessionMetaData, ttl: Seconds): Promise<void>;
 
 	/**
-	 * Check for refresh token existence.
+	 * Read user session associated with `refreshToken`.
 	 *
 	 * @param subject			Subject refresh token belongs to.
 	 * @param refreshToken		Refresh token.
+	 *
+	 * @returns		User session metadata.
 	 */
-	has(subject: string, refreshToken: string): Promise<boolean>;
+	read(subject: string, refreshToken: string): Promise<UserSessionMetaData | undefined>;
+
+	/**
+	 * Read all of the **active** user sessions.
+	 *
+	 * @param subject		Subject user sessions are belonging to.
+	 *
+	 * @returns			Refresh tokens with the sessions metadata.
+	 */
+	readAll(subject: string): Promise<Array<UserSessionMetaData>>;
 
 	/**
 	 * Delete `refreshToken` from the storage.
@@ -128,6 +142,10 @@ class InvalidationStrategy {
 
 	private readonly options: InvalidationStrategyOptions;
 
+	/**
+	 * @param options		Options object. <br/>
+	 * 						It should not be modified after, as it will be used by strategy without being cloned.
+	 */
 	public constructor(options: InvalidationStrategyOptions) {
 		if (options.refreshTokenLength < 20) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 20 characters. Given: ${options.refreshTokenLength}.`);
@@ -138,14 +156,17 @@ class InvalidationStrategy {
 	/**
 	 * Generates anchorable refresh token.
 	 *
-	 * @param subject	Subject of the access token. <br/>
-	 * 					Usually this is the user/account id.
+	 * @param subject			Subject of the access token. <br/>
+	 * 							Usually this is the user/account id.
+	 * @param context			User session creation context.
 	 *
 	 * @returns		Anchorable refresh token.
 	 */
-	public async generateRefreshToken(subject: string): Promise<AnchorableRefreshToken> {
+	public async generateRefreshToken(subject: string, context: UserSessionOperationContext): Promise<AnchorableRefreshToken> {
 		const refreshToken = token.generate(token.TokenGenerationType.CRYPTOGRAPHIC, this.options.refreshTokenLength);
-		await this.options.refreshTokensStorage.set(subject, refreshToken, this.options.refreshTokenTtl);
+		(context as UserSessionMetaData).createdAt = chrono.unixTime();
+
+		await this.options.refreshTokensStorage.insert(subject, refreshToken, context as UserSessionMetaData, this.options.refreshTokenTtl);
 		return { token: refreshToken, anchor: refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH) };
 	}
 
@@ -155,7 +176,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token.
 	 */
-	public isAccessTokenStillValid(jwtAccessToken: IssuedJwtPayload): boolean {
+	public isAccessTokenStillValid(jwtAccessToken: Readonly<IssuedJwtPayload>): boolean {
 		if (this.options.invalidAccessTokensCache.has(`${jwtAccessToken.sub}@${jwtAccessToken.anc}`)) {
 			return false;
 		}
@@ -169,17 +190,46 @@ class InvalidationStrategy {
 	 *
 	 * @param subject			Subject whose session needs to be refreshed.
 	 * @param refreshToken		Refresh token of the subject.
+	 * @param context			Refresh context.
 	 *
-	 * @throws {Exception}		When refresh token doesn't exist.
+	 * @throws {Exception}		When:
+	 * 								- refresh token doesn't exist.
+	 * 								- device from refresh context differs from user session metadata device.
 	 *
 	 * @returns					Anchor to refresh token.
 	 */
-	public async refreshAccessSession(subject: string, refreshToken: string): Promise<string> {
-		if (!(await this.options.refreshTokensStorage.has(subject, refreshToken))) {
+	public async refreshAccessSession(subject: string, refreshToken: string, context: DeepReadonly<UserSessionOperationContext>): Promise<string> {
+		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
+		if (!userSessionMetadata) {
 			throw createException(ErrorCodes.NOT_FOUND, `Refresh token ${refreshToken} for subject ${subject} doesn't exist.`);
 		}
 
+		if (!equals(context.device, userSessionMetadata.device)) {
+			throw createException(
+				ErrorCodes.NOT_EQUAL,
+				`Attempting to regenerate access token with refresh token ${refreshToken} for subject ${subject}` +
+					`from context that differs from user session metadata. Refresh context: ${JSON.stringify(context)}. User session metadata: ${JSON.stringify(
+						userSessionMetadata
+					)}`
+			);
+		}
+
 		return refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH);
+	}
+
+	/**
+	 * Get all of the active user sessions.
+	 *
+	 * @param subject		Subject sessions of which need to be retrieved.
+	 *
+	 * @returns				Active user sessions.
+	 */
+	public async getActiveUserSessions(subject: string): Promise<Array<DeepReadonly<QueriedUserSessionMetaData>>> {
+		const activeSessions = await this.options.refreshTokensStorage.readAll(subject);
+		for (const session of activeSessions) {
+			(session as QueriedUserSessionMetaData).expiresAt = session.createdAt + this.options.refreshTokenTtl;
+		}
+		return activeSessions as Array<QueriedUserSessionMetaData>;
 	}
 
 	/**
@@ -188,7 +238,7 @@ class InvalidationStrategy {
 	 * @param jwtAccessToken	Access token.
 	 * @param refreshToken		Refresh token.
 	 */
-	public async invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string): Promise<void> {
+	public async invalidateSession(jwtAccessToken: Readonly<IssuedJwtPayload>, refreshToken: string): Promise<void> {
 		await this.options.refreshTokensStorage.delete(jwtAccessToken.sub, refreshToken);
 		this.invalidateAccessToken(jwtAccessToken);
 	}
@@ -200,7 +250,7 @@ class InvalidationStrategy {
 	 *
 	 * @returns		Number of invalidated sessions.
 	 */
-	public async invalidateAllSessions(jwtAccessToken: IssuedJwtPayload): Promise<number> {
+	public async invalidateAllSessions(jwtAccessToken: Readonly<IssuedJwtPayload>): Promise<number> {
 		const invalidatedSessions = await this.options.refreshTokensStorage.deleteAll(jwtAccessToken.sub);
 		this.invalidateAccessTokensFromAllSessions(jwtAccessToken);
 		return invalidatedSessions;
@@ -213,7 +263,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token that needs to be invalidated.
 	 */
-	public invalidateAccessToken(jwtAccessToken: IssuedJwtPayload): void {
+	public invalidateAccessToken(jwtAccessToken: Readonly<IssuedJwtPayload>): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${jwtAccessToken.anc}`;
 		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
 
@@ -227,7 +277,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token of the session from where invalidation is being made.
 	 */
-	public invalidateAccessTokensFromAllSessions(jwtAccessToken: IssuedJwtPayload): void {
+	public invalidateAccessTokensFromAllSessions(jwtAccessToken: Readonly<IssuedJwtPayload>): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
 		// all of the tokens issues before this timestamp becomes invalid ones
 		const invalidatedAt = chrono.unixTime();

@@ -39,6 +39,7 @@ export const enum ErrorCodes {
 	MISCONFIGURATION = 'MISCONFIGURATION',
 	NOT_ALLOWED = 'NOT_ALLOWED',
 	NOT_FOUND = 'NOT_FOUND',
+	NOT_EQUAL = 'NOT_EQUAL',
 	REQUIRED = 'REQUIRED',
 	UNKNOWN = 'UNKNOWN'
 }
@@ -229,3 +230,5 @@ export type Label = string;
 export type Index = number;
 
 export type PackageID = string;
+
+export type DeviceType = 'BROWSER' | 'DESKTOP' | 'LAPTOP' | 'MOBILE' | 'OTHER' | 'SERVER' | 'TABLET' | 'TV' | 'UNKNOWN';
