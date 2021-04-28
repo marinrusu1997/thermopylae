@@ -1,43 +1,43 @@
 {
-  "compilerOptions": {
-    "incremental": true,
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "lib": [
-        "ESNext"
+    "compilerOptions": {
+        "incremental": true,
+        "target": "esnext",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "lib": [
+            "ESNext"
+        ],
+        "allowJs": false,
+        "checkJs": false,
+        "declaration": true,
+        "rootDir": ".",
+        "outDir": "dist",
+        "composite": true,
+        "tsBuildInfoFile": "build/tsbuildinfo",
+        "removeComments": false,
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "experimentalDecorators": true
+    },
+    "include": [
+        "lib/**/*.ts",
+        "test/**/*.ts"
     ],
-    "allowJs": true,
-    "checkJs": false,
-    "declaration": true,
-    "rootDir": ".",
-    "outDir": "dist",
-    "composite": true,
-    "tsBuildInfoFile": "build/tsbuildinfo",
-    "removeComments": false,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "experimentalDecorators": true
-  },
-  "include": [
-    "lib/**/*.ts",
-    "test/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build"
-  ]
+    "exclude": [
+        "node_modules",
+        "dist",
+        "build"
+    ]
 }

@@ -76,7 +76,7 @@ const enum JwtManagerEvents {
 type JwtManagerEventListener = (jwtAccessToken: IssuedJwtPayload) => void;
 
 /**
- * Class which manages user sessions. User session is represented by Json Web Token.
+ * Stateless implementation of the user sessions using JWT as exchange mechanism.
  */
 class JwtSessionManager extends EventEmitter {
 	private readonly config: Readonly<Required<JwtSessionManagerOptions>>;

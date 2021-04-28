@@ -47,6 +47,7 @@ export const enum ErrorCodes {
 export const enum Library {
 	ASYNC = 'LIB_ASYNC',
 	CACHE = 'LIB_CACHE',
+	COOKIE_SESSION = 'LIB_COOKIE_SESSION',
 	INDEXED_STORE = 'LIB_INDEXED_STORE',
 	COLLECTION = 'LIB_COLLECTION',
 	HEAP = 'LIB_HEAP',

@@ -1,6 +1,6 @@
 {
     "name": "@thermopylae/lib.cookie-session",
-    "description": "Cookie based authentication.",
+    "description": "Stateful implementation of the user session.",
     "keywords": [
         "library"
     ],
@@ -30,12 +30,18 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.logger": "0",
+        "cookie": "0",
+        "fast-deep-equal": "3",
         "uid-safe": "2"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "@types/uid-safe": "2"
+        "@types/cookie": "0",
+        "@types/uid-safe": "2",
+        "utility-types": "3"
     },
     "peerDependencies": {
         "chai": "4",
@@ -47,7 +53,8 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "type": "commonjs"
 }
