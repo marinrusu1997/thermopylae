@@ -1,4 +1,3 @@
-import { Clients } from '@marin/lib.utils/dist/declarations';
 import {
 	Connection,
 	createPool,
@@ -14,8 +13,9 @@ import {
 	QueryOptions,
 	FieldInfo
 } from 'mysql';
-import { getLogger } from './logger';
-import { ErrorCodes, createException } from './error';
+import { Client, ErrorCodes, PromiseReject, PromiseResolve } from '@thermopylae/core.declarations';
+import { mysqlLogger } from './logger';
+import { createException } from './error';
 
 interface MySqlPoolClusterConfigs {
 	[name: string]: PoolConfig;
@@ -55,9 +55,9 @@ class MySqlClient {
 				for (let i = poolConfigNames.length - 1; i >= 0; i--) {
 					poolConfigName = poolConfigNames[i];
 					if (!/^(?:MASTER|SLAVE)/.test(poolConfigName)) {
-						this.poolCluster.end(err => {
+						this.poolCluster.end((err) => {
 							if (err) {
-								getLogger(Clients.MYSQL).error(
+								mysqlLogger.error(
 									`Failed to shutdown pool cluster after invalid pool config name detection. Error: ${formatMySqlError(err)}`,
 									err
 								);
@@ -66,18 +66,14 @@ class MySqlClient {
 
 						this.poolCluster = null;
 
-						throw createException(
-							Clients.MYSQL,
-							ErrorCodes.MYSQL_MISCONFIGURATION_POOL_CONFIG_NAME,
-							`${poolConfigName} should begin with MASTER or SLAVE`
-						);
+						throw createException(Client.MYSQL, ErrorCodes.MISCONFIGURATION, `${poolConfigName} should begin with MASTER or SLAVE`);
 					}
 					this.poolCluster.add(poolConfigName, options.poolCluster.pools[poolConfigName]);
 				}
 
-				this.poolCluster.on('online', nodeId => getLogger(Clients.MYSQL).notice(`Node with id ${nodeId} is online. `));
-				this.poolCluster.on('offline', nodeId => getLogger(Clients.MYSQL).warning(`Node with id ${nodeId} went offline. `));
-				this.poolCluster.on('remove', nodeId => getLogger(Clients.MYSQL).crit(`Node with id ${nodeId} has been removed. `));
+				this.poolCluster.on('online', (nodeId) => mysqlLogger.notice(`Node with id ${nodeId} is online.`));
+				this.poolCluster.on('offline', (nodeId) => mysqlLogger.warning(`Node with id ${nodeId} went offline.`));
+				this.poolCluster.on('remove', (nodeId) => mysqlLogger.crit(`Node with id ${nodeId} has been removed.`));
 
 				this.internalWritePool = this.poolCluster.of('MASTER*');
 				this.internalReadPool = this.poolCluster.of('SLAVE*');
@@ -93,13 +89,13 @@ class MySqlClient {
 				return;
 			}
 
-			throw createException(Clients.MYSQL, ErrorCodes.MYSQL_MISCONFIGURATION_NOR_POOL_NOR_CLUSTER_CONFIG, '', options);
+			throw createException(Client.MYSQL, ErrorCodes.MISCONFIGURATION, 'You need to provide pool or pool cluster configurations.', options);
 		}
 	}
 
 	public shutdown(): Promise<void> {
-		let resolve: Function;
-		let reject: Function;
+		let resolve: PromiseResolve<void>;
+		let reject: PromiseReject;
 		const shutdownPromise = new Promise<void>((_resolve, _reject) => {
 			resolve = _resolve;
 			reject = _reject;
@@ -115,7 +111,7 @@ class MySqlClient {
 			return resolve();
 		};
 
-		getLogger(Clients.MYSQL).notice('Shutting down gracefully...');
+		mysqlLogger.notice('Shutting down gracefully...');
 
 		if (this.poolCluster) {
 			this.poolCluster.end(shutdownCallback);
@@ -142,21 +138,21 @@ class MySqlClient {
 
 	private static createMySqlErrorHandler(): (err: MysqlError) => void {
 		return (error: MysqlError): void => {
-			getLogger(Clients.MYSQL).alert(`Connection Error: ${formatMySqlError(error)}`, error);
+			mysqlLogger.alert(`Connection Error: ${formatMySqlError(error)}`, error);
 		};
 	}
 
 	private static createPollConnectionEventHandler(sessionVariablesQueries?: Array<string>): (con: Connection) => void {
 		return (connection: Connection): void => {
-			getLogger(Clients.MYSQL).info(`Connected as id ${connection.threadId}. `);
+			mysqlLogger.info(`Connected as id ${connection.threadId}.`);
 
 			if (sessionVariablesQueries) {
 				for (let i = sessionVariablesQueries.length - 1; i >= 0; i--) {
-					connection.query(sessionVariablesQueries![i], err => {
+					connection.query(sessionVariablesQueries![i], (err) => {
 						if (err) {
-							throw createException(Clients.MYSQL, ErrorCodes.MYSQL_SESSION_VARIABLE_QUERY_FAILED, formatConnectionDetails(connection), err); // fatal error
+							throw createException(Client.MYSQL, ErrorCodes.QUERY_FAILURE, formatConnectionDetails(connection), err); // fatal error
 						}
-						getLogger(Clients.MYSQL).notice(`Session variable query '${sessionVariablesQueries![i]}' completed successfully.`);
+						mysqlLogger.notice(`Session variable query '${sessionVariablesQueries![i]}' completed successfully.`);
 					});
 				}
 			}
@@ -249,15 +245,15 @@ async function updateWithAssertion(
 }
 
 async function beginTransaction(connection: Connection): Promise<void> {
-	return new Promise((resolve, reject) => connection.beginTransaction(err => (err ? reject(err) : resolve())));
+	return new Promise((resolve, reject) => connection.beginTransaction((err) => (err ? reject(err) : resolve())));
 }
 
 async function commitTransaction(connection: Connection): Promise<void> {
-	return new Promise((resolve, reject) => connection.commit(err => (err ? reject(err) : resolve(err))));
+	return new Promise((resolve, reject) => connection.commit((err) => (err ? reject(err) : resolve(err))));
 }
 
 async function rollbackTransaction(connection: Connection): Promise<void> {
-	return new Promise((resolve, reject) => connection.rollback(err => (err ? reject(err) : resolve(err))));
+	return new Promise((resolve, reject) => connection.rollback((err) => (err ? reject(err) : resolve(err))));
 }
 
 const MySqlClientInstance = new MySqlClient();

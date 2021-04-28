@@ -4,10 +4,12 @@
   "private": true,
   "workspaces": [
     "packages/core.declarations",
+    "packages/core.redis",
     "packages/lib.async",
     "packages/lib.cache",
     "packages/lib.collection",
     "packages/lib.cookie-session",
+    "packages/lib.data-access",
     "packages/lib.decorators",
     "packages/lib.email",
     "packages/lib.exception",
