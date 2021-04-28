@@ -1,6 +1,6 @@
-import { Undefinable } from '@thermopylae/core.declarations';
+import { MaybePromise, Undefinable } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
-import { Cache, CacheEvent } from '../contracts/cache';
+import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
 import { CacheBackend } from '../contracts/cache-backend';
 import { CacheEntry } from '../contracts/commons';
@@ -179,6 +179,13 @@ class PolicyPerKeyCache<
 	 */
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public on(event: CacheEvent, listener: CacheEventListener<Key, MaybePromise<Value, 'plain'>>): this {
+		return super.on(event, listener);
 	}
 
 	private internalDelete: Deleter<Key, Value> = (entry): void => {

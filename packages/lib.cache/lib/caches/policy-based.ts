@@ -1,9 +1,9 @@
-import { Undefinable } from '@thermopylae/core.declarations';
+import { MaybePromise, Undefinable } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
 import { CacheBackend } from '../contracts/cache-backend';
 import { NOT_FOUND_VALUE } from '../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
-import { Cache, CacheEvent } from '../contracts/cache';
+import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
 
 // @fixme maybe arguments bundle should use symbols
 
@@ -158,6 +158,13 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		this.backend.clear();
 
 		this.emit(CacheEvent.FLUSH);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public on(event: CacheEvent, listener: CacheEventListener<Key, MaybePromise<Value, 'plain'>>): this {
+		return super.on(event, listener);
 	}
 
 	private internalDelete: Deleter<Key, Value> = (entry) => {

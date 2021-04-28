@@ -30,9 +30,9 @@ interface CookieSessionManagerOptions {
 		 */
 		name?: string;
 		/**
-		 * Should be always *true*.
+		 * **Defaults** to *true*.
 		 */
-		secure: true;
+		secure?: boolean;
 		/**
 		 * Cookie and session ttl.
 		 */
@@ -85,27 +85,11 @@ interface CookieSessionManagerOptions {
 		 */
 		oldSessionAvailabilityTimeoutAfterRenewal?: Seconds;
 	};
-
 	/**
 	 * Storage where users sessions are stored.
 	 */
 	storage: SessionsStorage;
 }
-
-/**
- * Principles:
- * 	- session id longer than 24 chars, crypto, without sensitive info, with some unpredictable cookie name,		+
- * 	- cookie secure, http=only, same-site, domain and path, expire and max-age									+
- * 	- perform validation on session id for XSS, SQLi etc. (on storage side)										+
- * 	- allow to delete and recreate session (renew)																+
- * 	- idle, absolute, renewal timeouts																			+
- * 	- get active user sessions																					+
- * 	- set header Cache-Control: no-cache="Set-Cookie, Set-Cookie2"												+
- * 	- bind context to session																					+
- * 	- logging																									+
- * 	- logout all sessions																						+
- * 	- record multiple client details such as IP address, User-Agent, login date and time, idle time				+
- */
 
 /**
  * Mark session as being renewed.
@@ -285,12 +269,22 @@ class CookieSessionManager {
 			`Renewing session '${CookieSessionManager.hash(sessionId)}' created at ${sessionMetaData.createdAt} for subject '${sessionMetaData.subject}'.`
 		);
 
-		// notify other processes first, so that they do not try to renew it too
-		await this.options.storage.update(sessionId, { accessedAt: RENEWED_SESSION_FLAG }, CommitType.IMMEDIATE);
+		// notify others first, so that they do not try to renew it too
+		try {
+			this.renewedSessions.set(sessionId, null!);
+			await this.options.storage.update(sessionId, { accessedAt: RENEWED_SESSION_FLAG }, CommitType.IMMEDIATE);
+		} catch (e) {
+			this.renewedSessions.delete(sessionId);
+			throw e;
+		}
+
 		// then, schedule deletion of the marked as renewed session
-		setTimeout(
-			() => this.delete(sessionId).catch((e) => logger.error(`Failed to delete renewed session '${CookieSessionManager.hash(sessionId)}'.`, e)),
-			this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal * 1000
+		this.renewedSessions.set(
+			sessionId,
+			setTimeout(
+				() => this.delete(sessionId).catch((e) => logger.error(`Failed to delete renewed session '${CookieSessionManager.hash(sessionId)}'.`, e)),
+				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal * 1000
+			)
 		);
 
 		// create new session
@@ -330,6 +324,18 @@ class CookieSessionManager {
 		return numberOfDeletedSessions;
 	}
 
+	/**
+	 * Hashes session id.
+	 *
+	 * @private		Used for test purposes.
+	 * @param sessionId		Session id.
+	 *
+	 * @returns		Hashed session id.
+	 */
+	public static hash(sessionId: string): string {
+		return createHash('sha1').update(sessionId).digest('base64');
+	}
+
 	private static fillWithDefaults(options: CookieSessionManagerOptions): DeepRequired<CookieSessionManagerOptions> {
 		if (options.idLength == null) {
 			options.idLength = 18;
@@ -339,6 +345,9 @@ class CookieSessionManager {
 
 		if (options.cookie.name == null) {
 			options.cookie.name = 'zvf';
+		}
+		if (options.cookie.secure == null) {
+			options.cookie.secure = true;
 		}
 		if (options.cookie.httpOnly == null) {
 			options.cookie.httpOnly = true;
@@ -359,18 +368,23 @@ class CookieSessionManager {
 		if (options.timeouts == null) {
 			options.timeouts = {};
 		} else {
-			if (options.timeouts.idle! <= 0) {
-				throw createException(ErrorCodes.INVALID, `Idle timeout can't be <= 0. Given ${options.timeouts.idle}`);
+			if (options.timeouts.idle! <= 0 || options.timeouts.idle! >= options.cookie.maxAge) {
+				throw createException(ErrorCodes.INVALID, `Idle timeout needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.idle}`);
 			}
+
 			if (options.timeouts.renewal != null) {
-				if (options.timeouts.renewal <= 0) {
-					throw createException(ErrorCodes.INVALID, `Renew timeout can't be <= 0. Given ${options.timeouts.renewal}`);
+				if (options.timeouts.renewal <= 0 || options.timeouts.renewal >= options.cookie.maxAge) {
+					throw createException(ErrorCodes.INVALID, `Renew timeout needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.renewal}`);
 				}
+
 				if (options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal != null) {
-					if (options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal <= 0) {
+					if (
+						options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal <= 0 ||
+						options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal >= options.cookie.maxAge
+					) {
 						throw createException(
 							ErrorCodes.INVALID,
-							`Old session availability can't be <= 0. Given ${options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal}`
+							`Old session availability needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal}`
 						);
 					}
 				} else {
@@ -384,10 +398,6 @@ class CookieSessionManager {
 
 	private static currentTimestamp(): UnixTimestamp {
 		return Math.floor(new Date().getTime() / 1000);
-	}
-
-	private static hash(sessionId: string): string {
-		return createHash('sha1').update(sessionId).digest('base64');
 	}
 }
 

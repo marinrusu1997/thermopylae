@@ -16,6 +16,7 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
+        "readme": "gulp readme",
         "test": "gulp test",
         "report": "gulp report",
         "coverage": "gulp coverage",
@@ -38,6 +39,8 @@
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.cache": "0",
+        "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/cookie": "0",
         "@types/uid-safe": "2",
