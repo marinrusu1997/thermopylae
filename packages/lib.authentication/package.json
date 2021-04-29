@@ -1,0 +1,75 @@
+{
+    "name": "@thermopylae/lib.authentication",
+    "description": "Authentication library.",
+    "keywords": [
+        "library"
+    ],
+    "version": "0.0.1",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "main": "dist/index.js",
+    "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "doc": "gulp doc",
+        "readme": "gulp readme",
+        "test": "gulp test",
+        "report": "gulp report",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "precommit": "npm run lint",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "dependencies": {
+        "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.logger": "0",
+        "@thermopylae/lib.utils": "0",
+        "owasp-password-strength-test": "1",
+        "uid-safe": "2"
+    },
+    "devDependencies": {
+        "@ronomon/crypto-async": "5",
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.cache": "0",
+        "@thermopylae/lib.email": "0",
+        "@thermopylae/lib.jwt-session": "0",
+        "@thermopylae/lib.sms": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/bcrypt": "3",
+        "@types/uid-safe": "2",
+        "@types/geoip-lite": "1",
+        "@types/mongoose": "5",
+        "@types/owasp-password-strength-test": "1",
+        "@types/ronomon__crypto-async": "2",
+        "argon2": "0",
+        "bcrypt": "5",
+        "keypair": "1",
+        "mongodb-memory-server": "6",
+        "mongoose": "5"
+    },
+    "peerDependencies": {
+        "chai": "4",
+        "mocha": "8"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": ">= 16"
+    },
+    "license": "ISC",
+    "type": "commonjs"
+}
