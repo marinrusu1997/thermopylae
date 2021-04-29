@@ -1,6 +1,5 @@
 import { number } from '@thermopylae/lib.utils';
-import { PromiseReject, PromiseResolve } from '@thermopylae/core.declarations';
-import redis, { AggregateError, ClientOpts as RedisLibraryClientOptions, RedisClient as RedisLibraryClient, RedisError, ReplyError } from 'redis';
+import redis, { AggregateError, ClientOpts, RedisError, ReplyError } from 'redis';
 import { createNodeRedisClient, WrappedNodeRedisClient } from 'handy-redis';
 import { logger } from './logger';
 
@@ -8,7 +7,7 @@ interface ConnectOptions {
 	/**
 	 * Options for the underlying redis client.
 	 */
-	client: RedisLibraryClientOptions;
+	client: ClientOpts;
 	/**
 	 * Whether to issue **MONITOR** command after client connected.
 	 */
@@ -24,12 +23,16 @@ interface ConnectOptions {
  * 	- connection
  * 	- disconnection
  * 	- event listeners
+ * 	- logging
  */
 class RedisClient {
 	private redisClient: WrappedNodeRedisClient | null = null;
 
 	private connectedAfterInitialization = false;
 
+	/**
+	 * Get wrapped redis client.
+	 */
 	public client(): WrappedNodeRedisClient {
 		return this.redisClient!;
 	}
@@ -58,12 +61,12 @@ class RedisClient {
 						return Math.min(number.randomInt(2 ** (retryOptions.attempt - 1), 2 ** retryOptions.attempt) * 1000, options.client.retry_max_delay!);
 					};
 
-					logger.debug(`Redis client connecting to ${options.client.host}:${options.client.port} ...`);
+					logger.info(`Redis client connecting to ${options.client.host}:${options.client.port} ...`);
 					redis.debug_mode = options.debug || false;
 					this.redisClient = createNodeRedisClient(options.client);
 
 					this.redisClient.nodeRedis.on('ready', () => {
-						logger.info('Connection established.');
+						logger.debug('Connection established.');
 
 						if (options.monitor) {
 							this.redisClient!.nodeRedis.on('monitor', (timestamp: string, args: any[], replyStr: string) => {
@@ -123,45 +126,14 @@ class RedisClient {
 	 *
 	 * @param graceful		Whether to perform graceful disconnect.
 	 */
-	public disconnect(graceful = true): Promise<void> {
-		let resolve: PromiseResolve<void>;
-		let reject: PromiseReject;
-		const promise = new Promise<void>((_resolve, _reject) => {
-			resolve = _resolve;
-			reject = _reject;
-		});
-
-		const shutdownCallback = (err: Error | null, res: 'OK'): void => {
-			this.reset();
-
-			if (err) {
-				return reject(err);
-			}
-
-			if (res !== 'OK') {
-				return reject(new Error(`Redis client, unexpected quit result: ${res}.`));
-			}
-
-			return resolve();
-		};
-
-		logger.notice(`Shutting down ${graceful ? 'gracefully' : 'forcibly'}...`);
-
+	public async disconnect(graceful = true): Promise<void> {
 		if (graceful) {
-			this.redisClient!.nodeRedis.quit(shutdownCallback);
+			logger.notice('Shutting down gracefully...');
+			await this.redisClient!.quit();
 		} else {
-			this.redisClient!.nodeRedis.end(true);
-			process.nextTick(() => {
-				shutdownCallback(null, 'OK');
-			});
+			logger.notice('Shutting down forcibly...');
+			await this.redisClient!.end(true);
 		}
-
-		return promise;
-	}
-
-	private reset(): void {
-		this.redisClient = null;
-		this.connectedAfterInitialization = false;
 	}
 
 	private static logRedisError(error: RedisError): void {
@@ -179,4 +151,4 @@ class RedisClient {
 	}
 }
 
-export { RedisClient, ConnectOptions, RedisLibraryClientOptions, RedisLibraryClient };
+export { RedisClient, ConnectOptions, ClientOpts };

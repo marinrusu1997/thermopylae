@@ -41,8 +41,7 @@ export const enum ErrorCodes {
 	NOT_FOUND = 'NOT_FOUND',
 	NOT_EQUAL = 'NOT_EQUAL',
 	REQUIRED = 'REQUIRED',
-	UNKNOWN = 'UNKNOWN',
-	QUERY_FAILURE = 'QUERY_FAILURE'
+	UNKNOWN = 'UNKNOWN'
 }
 
 export const enum Library {

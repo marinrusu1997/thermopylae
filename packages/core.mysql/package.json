@@ -1,6 +1,6 @@
 {
-    "name": "@thermopylae/lib.data-access",
-    "description": "Clients used for accessing external data storages.",
+    "name": "@thermopylae/core.mysql",
+    "description": "MySQL client.",
     "keywords": [
         "library"
     ],
@@ -33,12 +33,11 @@
     "dependencies": {
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
-        "mysql": "2"
+        "mysql2": "2"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/mysql": "2"
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
         "chai": "4",

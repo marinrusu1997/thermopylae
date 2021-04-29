@@ -4,8 +4,8 @@ import { Client, ErrorCodes } from '@thermopylae/core.declarations';
 /**
  * @private
  */
-function createException(client: Client, code: ErrorCodes, message: string, data?: any): Exception {
-	return new Exception(client, code, message, data);
+function createException(code: ErrorCodes, message: string, data?: any): Exception {
+	return new Exception(Client.MYSQL, code, message, data);
 }
 
 export { createException };
