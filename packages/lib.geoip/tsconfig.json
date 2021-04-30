@@ -2,8 +2,13 @@
     "compilerOptions": {
         "incremental": true,
         "target": "esnext",
-        "module": "CommonJS",
-        "allowJs": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "lib": [
+            "ESNext"
+        ],
+        "allowJs": false,
+        "checkJs": false,
         "declaration": true,
         "rootDir": ".",
         "outDir": "dist",
@@ -22,7 +27,6 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "moduleResolution": "node",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true

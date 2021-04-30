@@ -17,6 +17,7 @@
     "packages/lib.decorators",
     "packages/lib.email",
     "packages/lib.exception",
+    "packages/lib.geoip",
     "packages/lib.heap",
     "packages/lib.indexed-store",
     "packages/lib.jwt-session",

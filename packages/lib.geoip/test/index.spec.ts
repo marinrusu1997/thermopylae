@@ -1,16 +1,13 @@
 import { before, describe, it } from 'mocha';
-import { expect } from 'chai';
+import { expect } from '@thermopylae/lib.unit-test';
+import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
-import { chrono } from '@marin/lib.utils';
-// eslint-disable-next-line import/no-unresolved
-import { Libraries } from '@marin/lib.utils/dist/declarations';
-import Exception from '@marin/lib.error';
-import LoggerInstance from '../../lib.logger.bk';
-import { GeoIP, ExternalService, ErrorCodes } from '../lib';
-import { HttpClientMock, ServiceFailureType } from './http-client-mock';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { GeoIpLiteRepository, GeoIpLocator, initLogger, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';
+import { IpRepositoryMock } from './mock/ip-repository';
 
 describe('geoip spec', () => {
-	let ipstackAccessKey: string | undefined;
+	const repositories = new Array<IpLocationsRepository>();
 
 	before(() => {
 		const dotEnv = dotEnvConfig();
@@ -18,321 +15,172 @@ describe('geoip spec', () => {
 			throw dotEnv.error;
 		}
 
-		ipstackAccessKey = process.env.IPSTACK_ACCESS_KEY;
+		LoggerInstance.console.createTransport({ level: 'debug' });
+		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, true);
+		initLogger();
 
-		if (!ipstackAccessKey) {
-			throw new Error('Could not load ip stack onGet key from env variable');
-		}
-
-		LoggerInstance.console.setConfig({ level: 'emerg' }); // suppress error logs
-	});
-
-	const externalServiceLoadBalancerMock = () => [ExternalService.IPSTACK, ExternalService.IPLOCATE];
-
-	// fixme this needs to be first test
-	it.skip('loads lazily geoip lite only when external services are failing', async () => {
-		function checkMemoryUsage(expectedMB: number): void {
-			expect(Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100).to.be.lte(expectedMB);
-		}
-
-		const httpClient = new HttpClientMock();
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient);
-
-		checkMemoryUsage(30);
-
-		// get location from ipstack, memory consumption must remain the same
-		let location = await geoip.locate('8.8.8.8');
-		expect(location.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
-		checkMemoryUsage(30);
-
-		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.NETWORK;
-
-		// lazy load geoip lite
-		location = await geoip.locate('8.8.8.8');
-		expect(location!.countryCode).to.be.eq('US');
-		checkMemoryUsage(130);
+		repositories.push(new GeoIpLiteRepository(1));
+		repositories.push(
+			new IpstackRepository({
+				apiKey: process.env.IPSTACK_ACCESS_KEY!,
+				lang: 'en',
+				proto: 'http',
+				weight: 2
+			})
+		);
+		repositories.push(
+			new IpLocateRepository({
+				apiKey: process.env.IP_LOCATE_ACCESS_KEY,
+				weight: 3
+			})
+		);
 	});
 
 	it('retrieves location', async () => {
-		const geoip = new GeoIP(ipstackAccessKey!);
-		const location = await geoip.locate('8.8.8.8');
-		expect(location).not.to.be.eq(null);
-		expect(location!.countryCode).to.be.eq('US');
-		expect(location!.regionCode).to.be.oneOf(['CA', null]);
-		expect(location!.city).to.be.oneOf(['Mountain View', null]);
-		expect(location!.timeZone).to.be.oneOf(['America/Los_Angeles', 'America/Chicago', null]);
-		expect(location!.postalCode).to.be.oneOf(['94041', null]);
-		expect(location!.latitude).to.be.oneOf([37.38801956176758, 37.751]);
-		expect(location!.longitude).to.be.oneOf([-122.07431030273438, -97.822]);
-	});
+		const geoip = new GeoIpLocator(repositories);
+		const ipToCountry = new Map<string, ObjMap>([
+			[
+				'8.8.8.8',
+				{
+					countryCode: ['US'],
+					regionCode: ['', 'CA', null],
+					city: ['', 'Mountain View', null],
+					timezone: ['America/Chicago', null],
+					latitude: [37.751, 37.38801956176758],
+					longitude: [-97.822, -122.07431030273438]
+				}
+			],
+			[
+				'1.1.1.1',
+				{
+					countryCode: ['AU'],
+					regionCode: ['', 'NSW', null],
+					city: ['', 'Sydney', null],
+					timezone: ['Australia/Sydney', null],
+					latitude: [-33.494, -33.86714172363281],
+					longitude: [143.2104, 151.2071075439453]
+				}
+			],
+			[
+				'8.8.4.4',
+				{
+					countryCode: ['US'],
+					regionCode: ['', 'CA', null],
+					city: ['', 'Mountain View', null],
+					timezone: ['America/Chicago', null],
+					latitude: [37.751, 37.419158935546875],
+					longitude: [-97.822, -122.07540893554688]
+				}
+			],
+			[
+				'139.130.4.5',
+				{
+					countryCode: ['AU'],
+					regionCode: ['WA', 'VIC', null],
+					city: ['Broome', 'Melbourne', 'Balwyn North'],
+					timezone: ['Australia/Perth', 'Australia/Melbourne', null],
+					latitude: [-17.9668, -37.81425094604492, -37.7907],
+					longitude: [122.2387, 144.96316528320312, 145.0839]
+				}
+			]
+		]);
 
-	it('retrieves location when partially specialized', async () => {
-		const geoip = new GeoIP(ipstackAccessKey!, null, () => [ExternalService.IPLOCATE, ExternalService.IPSTACK]);
-		const location = await geoip.locate('8.8.8.8');
-		expect(location).not.to.be.eq(null);
-		expect(location!.countryCode).to.be.eq('US');
-		expect(location!.regionCode).to.be.eq(null);
-		expect(location!.city).to.be.eq(null);
-		expect(location!.timeZone).to.be.eq('America/Chicago');
-		expect(location!.postalCode).to.be.eq(null);
-		expect(location!.latitude).to.be.eq(37.751);
-		expect(location!.longitude).to.be.eq(-97.822);
-	});
+		for (const [ip, locationOptions] of ipToCountry) {
+			const location = (await geoip.locate(ip))!;
+			expect(locationOptions.countryCode).to.include(location.countryCode);
+			expect(locationOptions.regionCode).to.include(location.regionCode);
+			expect(locationOptions.city).to.include(location.city);
+			expect(locationOptions.timezone).to.include(location.timezone);
+			expect(locationOptions.latitude).to.include(location.latitude);
+			expect(locationOptions.longitude).to.include(location.longitude);
+		}
+	}).timeout(5000);
 
 	it('refresh local ip database in a fast manner (less than 400 ms)', async () => {
 		const begin = new Date().getTime();
-		await GeoIP.refresh();
+		await GeoIpLiteRepository.refresh();
 		const end = new Date().getTime();
 		expect(end - begin).to.be.lte(400);
 	});
 
-	it("throws when could't find location", async () => {
-		const httpClient = new HttpClientMock();
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient);
+	it('returns null when no one repo can find location', async () => {
+		const repo1 = new IpRepositoryMock(1);
+		const repo2 = new IpRepositoryMock(2);
+		const repo3 = new IpRepositoryMock(3);
 
-		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.NETWORK;
+		const geoip = new GeoIpLocator([repo1, repo2, repo3]);
+		const location = await geoip.locate('127.0.0.1');
 
-		const ip = '255.255.255.255';
-		let err;
-		try {
-			await geoip.locate('255.255.255.255');
-		} catch (e) {
-			err = e;
-		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('emitter', Libraries.GEO_IP);
-		expect(err).to.haveOwnProperty('code', ErrorCodes.IP_LOCATION_NOT_FOUND);
-		expect(err).to.haveOwnProperty('message', `Couldn't locate ip ${ip}. `);
+		expect(location).to.be.eq(null);
+		expect(repo1.lookups).to.be.eq(1);
+		expect(repo2.lookups).to.be.eq(1);
+		expect(repo3.lookups).to.be.eq(1);
 	});
 
-	it('does fallback to iplocate if ipstack service call failed (unavailable)', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK;
+	it('returns null when all repo are not available', async () => {
+		const repo1 = new IpRepositoryMock(1);
+		const repo2 = new IpRepositoryMock(2);
+		const repo3 = new IpRepositoryMock(3);
 
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const location = await geoip.locate('8.8.8.8');
+		const geoip = new GeoIpLocator([repo1, repo2, repo3]);
+		repo1.availability = false;
+		repo2.availability = false;
+		repo3.availability = false;
 
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
+		const location = await geoip.locate('127.0.0.1');
+
+		expect(location).to.be.eq(null);
+		expect(repo1.lookups).to.be.eq(0);
+		expect(repo2.lookups).to.be.eq(0);
+		expect(repo3.lookups).to.be.eq(0);
 	});
 
-	it('does fallback to geoip-lite if both service calls failed (unavailable)', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.NETWORK;
+	it('returns null when no one repo can find location or are not available', async () => {
+		const repo1 = new IpRepositoryMock(1);
+		const repo2 = new IpRepositoryMock(2);
+		const repo3 = new IpRepositoryMock(3);
 
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const location = await geoip.locate('8.8.8.8');
+		const geoip = new GeoIpLocator([repo1, repo2, repo3]);
+		repo2.availability = false;
 
-		// they were called...
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
+		const location = await geoip.locate('127.0.0.1');
 
-		// ... but failed (check just in case in future these constants may change)
-		expect(location!.countryCode).not.to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
-		expect(location!.countryCode).not.to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
-
-		// retrieved from local geoip-lite
-		expect(location!.countryCode).to.be.eq('US');
+		expect(location).to.be.eq(null);
+		expect(repo1.lookups).to.be.eq(1);
+		expect(repo2.lookups).to.be.eq(0);
+		expect(repo3.lookups).to.be.eq(1);
 	});
 
-	it('does not call ipstack service if limit reached', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
+	it("when repo can't locate ip, fallbacks to another", async () => {
+		const repo1 = new IpRepositoryMock(1);
+		const repo2 = new IpRepositoryMock(10);
+		const repo3 = new IpRepositoryMock(20);
+		const geoip = new GeoIpLocator([repo1, repo2, repo3]);
 
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
+		repo1.location = 'location';
+		const location = await geoip.locate('127.0.0.1');
 
-		// first call resolved with ip stack and ip locate service
-		let location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
-
-		// second call resolved directly with ip locate service
-		httpClient.resetServiceCalls();
-		location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(0);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
+		expect(location).to.be.eq('location');
+		expect(repo1.lookups).to.be.eq(1);
+		expect(repo2.lookups).to.be.lte(1);
+		expect(repo3.lookups).to.be.lte(1);
 	});
 
-	it('does not call iplocate service if limit reached', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.NETWORK; // let the location being resolved with ip locate
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.LIMIT_EXPIRED;
+	it("when repo isn't active, fallbacks to another", async () => {
+		const repo1 = new IpRepositoryMock(1);
+		const repo2 = new IpRepositoryMock(20);
+		const repo3 = new IpRepositoryMock(30);
+		const geoip = new GeoIpLocator([repo1, repo2, repo3]);
 
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
+		repo1.location = 'location';
+		repo2.availability = false;
+		repo3.availability = false;
 
-		// first call resolved with geoip lite
-		let location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-		expect(location!.countryCode).to.be.eq('US');
+		const location = await geoip.locate('127.0.0.1');
 
-		// second call resolved directly with geoip-lite
-		httpClient.resetServiceCalls();
-		location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1); // still called because of last network error
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(0);
-		expect(location!.countryCode).to.be.eq('US');
-	});
-
-	it('resets internal reached limit for ipstack on successfull response after expiry time', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
-
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const now = chrono.dateToUNIX();
-
-		// detect that limit expired for ipstack
-		await geoip.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-
-		// reset limit expired for ipstack
-		// @ts-ignore
-		geoip.whenLimitsWillExpire.ipStack = now - 1;
-		httpClient.serviceFailures.ipStack = undefined;
-		httpClient.resetServiceCalls();
-
-		let location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(0);
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(-1);
-
-		location = await geoip.locate('8.8.8.8');
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_STACK);
-	});
-
-	it('does not resets internal reached limit for ipstack on error response after expiry time', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
-
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const now = chrono.dateToUNIX();
-
-		// detect that limit expired for ipstack
-		await geoip.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-
-		// reset limit expired for ipstack
-		// @ts-ignore
-		geoip.whenLimitsWillExpire.ipStack = now - 1;
-		httpClient.resetServiceCalls();
-
-		const location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1); // it tried to call service, because internal expiry timestamp is old
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.not.be.eq(-1);
-	});
-
-	it('does resets internal reached limit for iplocate on success response after expiry time', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.LIMIT_EXPIRED;
-
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const now = chrono.dateToUNIX();
-
-		// detect that limit expired for ipstack and iplocate
-		await geoip.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
-
-		// reset limit expired for iplocate
-		// @ts-ignore
-		geoip.whenLimitsWillExpire.ipLocate = now - 1;
-		httpClient.serviceFailures.ipLocate = undefined;
-		httpClient.resetServiceCalls();
-
-		let location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(0); // won't be called because of expiry limit
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1); // try to call
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(-1);
-
-		location = await geoip.locate('8.8.8.8');
-		expect(location!.countryCode).to.be.eq(HttpClientMock.COUNTRY_CODES.IP_LOCATE);
-	});
-
-	it('does not reset internal reached count limit for iplocate on failure response after expiry time', async () => {
-		const httpClient = new HttpClientMock();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.LIMIT_EXPIRED;
-
-		const geoip = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const now = chrono.dateToUNIX();
-
-		// detect that limit expired for ipstack and iplocate
-		await geoip.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
-
-		// @ts-ignore
-		geoip.whenLimitsWillExpire.ipLocate = now - 1;
-		httpClient.resetServiceCalls();
-
-		const location = await geoip.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(0); // won't be called because of expiry limit
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1); // will try to call, because internal expiry timestamp is old
-		expect(location!.countryCode).to.be.eq('US'); // but will fallback to geoip-lite
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(geoip.whenLimitsWillExpire.ipLocate).to.not.be.eq(-1);
-	});
-
-	it('a new instance of GeoIp which tries to call services with expired limit detects it and computes correctly reset timestamp', async () => {
-		const httpClient = new HttpClientMock();
-		const firstGeoipInstance = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-		const secondGeoipInstance = new GeoIP(ipstackAccessKey!, httpClient, externalServiceLoadBalancerMock);
-
-		await firstGeoipInstance.locate('8.8.8.8');
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(0);
-
-		httpClient.resetServiceCalls();
-		httpClient.serviceFailures.ipStack = ServiceFailureType.LIMIT_EXPIRED;
-		httpClient.serviceFailures.ipLocate = ServiceFailureType.LIMIT_EXPIRED;
-
-		// first instance detects that limit expired for ipstack and iplocate
-		await firstGeoipInstance.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(firstGeoipInstance.whenLimitsWillExpire.ipStack).to.be.eq(chrono.dateToUNIX(chrono.firstDayOfNextMonth()));
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(firstGeoipInstance.whenLimitsWillExpire.ipLocate).to.be.eq(chrono.dateToUNIX(chrono.tomorrow()));
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
-
-		httpClient.resetServiceCalls();
-
-		// FIXME could be a source of potential bug; now it works due to fact that first day of next week is not calculated based on current day, but on current month
-		//  tomorrow is calculated based on current day, but is not so harmful, maybe a process with had a higher delay because tomorrow is calculated with current time
-		// 	adding a 1 sec sleep will cause test to fail, because computations are tied to current time
-
-		// second instance detects that limit expired for ipstack and iplocate
-		await secondGeoipInstance.locate('8.8.8.8');
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(secondGeoipInstance.whenLimitsWillExpire.ipStack).to.be.eq(firstGeoipInstance.whenLimitsWillExpire.ipStack);
-		// @ts-ignore very unsafe, but we have to test this somehow
-		expect(secondGeoipInstance.whenLimitsWillExpire.ipLocate).to.be.eq(firstGeoipInstance.whenLimitsWillExpire.ipLocate);
-		expect(httpClient.serviceCalls.ipStack).to.be.eq(1);
-		expect(httpClient.serviceCalls.ipLocate).to.be.eq(1);
+		expect(location).to.be.eq('location');
+		expect(repo1.lookups).to.be.eq(1);
+		expect(repo2.lookups).to.be.lte(1);
+		expect(repo3.lookups).to.be.lte(1);
 	});
 });

@@ -1,13 +1,18 @@
-import { Libraries } from '@marin/lib.utils/dist/declarations';
-import LoggerInstance, { WinstonLogger } from '../../lib.logger.bk';
-// eslint-disable-next-line import/no-unresolved
+import { LoggerInstance, WinstonLogger } from '@thermopylae/lib.logger';
+import { Library } from '@thermopylae/core.declarations';
 
-let logger: WinstonLogger | undefined;
-function getLogger(): WinstonLogger {
-	if (!logger) {
-		logger = LoggerInstance.for(Libraries.GEO_IP);
-	}
-	return logger;
+/**
+ * @private
+ */
+// eslint-disable-next-line import/no-mutable-exports
+let logger: WinstonLogger;
+
+/**
+ * Init internal logger used by the library. <br/>
+ * This method should be called once, at the application start, before using library.
+ */
+function initLogger(): void {
+	logger = LoggerInstance.for(Library.GEO_IP);
 }
 
-export { getLogger };
+export { logger, initLogger };

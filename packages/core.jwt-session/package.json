@@ -30,7 +30,11 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
+    "dependencies": {
+        "@thermopylae/lib.jwt-session": "0"
+    },
     "devDependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {

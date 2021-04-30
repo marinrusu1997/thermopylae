@@ -1,12 +1,25 @@
-/**
- * Sums many numbers
- */
-function sum(...a: Array<number>): number {
-	return a.reduce((_sum, current) => _sum + current, 0);
+import type { JwtSessionManagerOptions, JwtPayload, JwtSignOptions } from '@thermopylae/lib.jwt-session';
+import { JwtSessionManager } from '@thermopylae/lib.jwt-session';
+import { HttpRequest, HttpResponse } from '@thermopylae/core.declarations';
+
+interface JwtUserSessionMiddlewareOptions {
+	jwt: JwtSessionManagerOptions;
 }
 
-function multiply(a: number, b: number): number {
-	return a + b;
+class JwtUserSessionMiddleware {
+	private readonly jwtSessionManager: JwtSessionManager;
+
+	public constructor(options: JwtUserSessionMiddlewareOptions) {
+		this.jwtSessionManager = new JwtSessionManager(options.jwt);
+	}
+
+	public get sessionManager(): JwtSessionManager {
+		return this.jwtSessionManager;
+	}
+
+	public async create(jwtPayload: JwtPayload, signOptions: JwtSignOptions, req: HttpRequest, res: HttpResponse): Promise<void> {
+		const sessionTokens = await this.jwtSessionManager.create(jwtPayload, signOptions, {});
+	}
 }
 
-export { sum, multiply };
+export { HttpJwtUserSession };

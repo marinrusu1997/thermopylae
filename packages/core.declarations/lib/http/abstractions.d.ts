@@ -14,7 +14,7 @@ type HttpHeaderValue = string | Array<string>;
  *
  * @template Body	Type of the body.
  */
-declare interface HttpRequest<Body> {
+declare interface HttpRequest<Body = unknown> {
 	/**
 	 * Return the remote address or the upstream addr (when behind web proxy).
 	 */
@@ -64,7 +64,7 @@ declare interface HttpRequest<Body> {
  *
  * @template Payload	Response payload.
  */
-declare interface HttpResponse<Payload> {
+declare interface HttpResponse<Payload = unknown> {
 	/**
 	 * Whether the request was sent.
 	 */
