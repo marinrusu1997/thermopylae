@@ -3,26 +3,21 @@ import { AuthRequest } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AuthenticationEntryPointEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
 import { EmailSender } from '../../side-channels';
-import { UserSessionsManager } from '../../managers/user-sessions-manager';
 import { logger } from '../../logger';
 
 class AuthenticatedStep implements AuthStep {
 	private readonly emailSender: EmailSender;
 
-	private readonly userSessionsManager: UserSessionsManager;
-
 	private readonly accessPointEntity: AuthenticationEntryPointEntity;
 
 	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
 
-	constructor(
+	public constructor(
 		emailSender: EmailSender,
-		userSessionsManager: UserSessionsManager,
 		accessPointEntity: AuthenticationEntryPointEntity,
 		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity
 	) {
 		this.emailSender = emailSender;
-		this.userSessionsManager = userSessionsManager;
 		this.accessPointEntity = accessPointEntity;
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 	}

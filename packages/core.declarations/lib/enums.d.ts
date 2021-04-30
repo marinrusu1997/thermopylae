@@ -1,0 +1,86 @@
+export const enum ErrorCodes {
+	BAD_INVARIANT = 'BAD_INVARIANT',
+	DUPLICATE = 'DUPLICATE',
+	EXISTS = 'EXISTS',
+	EXPIRED = 'EXPIRED',
+	FULL = 'FULL',
+	INVALID = 'INVALID',
+	MISCONFIGURATION = 'MISCONFIGURATION',
+	NOT_ALLOWED = 'NOT_ALLOWED',
+	NOT_FOUND = 'NOT_FOUND',
+	NOT_EQUAL = 'NOT_EQUAL',
+	NOT_AVAILABLE = 'NOT_AVAILABLE',
+	REQUIRED = 'REQUIRED',
+	UNKNOWN = 'UNKNOWN'
+}
+
+export const enum Library {
+	ASYNC = 'LIB_ASYNC',
+	AUTHENTICATION = 'LIB_AUTHENTICATION',
+	CACHE = 'LIB_CACHE',
+	COOKIE_SESSION = 'LIB_COOKIE_SESSION',
+	INDEXED_STORE = 'LIB_INDEXED_STORE',
+	COLLECTION = 'LIB_COLLECTION',
+	HEAP = 'LIB_HEAP',
+	GEO_IP = 'LIB_GEO_IP',
+	JWT_SESSION = 'LIB_JWT_SESSION',
+	LOGGER = 'LIB_LOGGER',
+	POOL = 'LIB_POOL',
+	SMS_CLIENT = 'LIB_SMS_CLIENT',
+	UNIT_TEST = 'LIB_UNIT_TEST',
+	UTILS = 'LIB_UTILS'
+}
+
+export const enum CoreModule {
+	JWT_SESSION = 'CORE_JWT_SESSION',
+	COOKIE_SESSION = 'CORE_COOKIE_SESSION'
+}
+
+export const enum Client {
+	SMS = 'SMS_CLIENT',
+	EMAIL = 'EMAIL_CLIENT',
+	REDIS = 'REDIS_CLIENT',
+	MYSQL = 'MYSQL_CLIENT'
+}
+
+export const enum AuthTokenType {
+	BASIC = 'BASIC',
+	OAUTH = 'OAUTH',
+	GOOGLE = 'GOOGLE',
+	FACEBOOK = 'FACEBOOK'
+}
+
+export const enum HttpMethod {
+	GET = 'GET',
+	HEAD = 'HEAD',
+	POST = 'POST',
+	PUT = 'PUT',
+	DELETE = 'DELETE',
+	CONNECT = 'CONNECT',
+	OPTIONS = 'OPTIONS',
+	TRACE = 'TRACE',
+	PATCH = 'PATCH'
+}
+
+export const enum StatusFlag {
+	ENABLED,
+	DISABLED,
+	IDLE
+}
+
+export const enum SortDirection {
+	ASCENDING,
+	DESCENDING
+}
+
+export const enum ComparisonResult {
+	GREATER = 1,
+	EQUALS = 0,
+	SMALLER = -1
+}
+
+export const enum ConcurrencyType {
+	SEQUENTIAL,
+	PARALLEL,
+	BATCH
+}

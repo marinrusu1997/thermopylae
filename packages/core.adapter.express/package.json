@@ -1,0 +1,66 @@
+{
+    "name": "@thermopylae/core.adapter.express",
+    "description": "Express adapter for Thermopylae framework.",
+    "keywords": [
+        "core",
+        "adapter",
+        "express"
+    ],
+    "version": "0.0.1",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "main": "dist/index.js",
+    "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "doc": "gulp doc",
+        "readme": "gulp readme",
+        "test": "gulp test",
+        "report": "gulp report",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "precommit": "npm run lint",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "dependencies": {
+        "device-detector-js": "2"
+    },
+    "devDependencies": {
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/cookie": "0",
+        "@types/cookie-parser": "1",
+        "@types/express": "4",
+        "@types/node-fetch": "2",
+        "body-parser": "1",
+        "cookie": "0",
+        "cookie-parser": "1",
+        "express": "4",
+        "node-fetch": "2"
+    },
+    "peerDependencies": {
+        "chai": "4",
+        "mocha": "8"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": ">= 16"
+    },
+    "license": "ISC",
+    "type": "commonjs"
+}

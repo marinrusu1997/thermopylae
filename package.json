@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
+    "packages/core.adapter.express",
+    "packages/core.adapter.fastify",
     "packages/core.declarations",
+    "packages/core.jwt-session",
     "packages/core.mysql",
     "packages/core.redis",
     "packages/lib.async",

@@ -1,7 +1,6 @@
 import { chrono } from '@thermopylae/lib.utils';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { AccountModel } from '../types/models';
-import { UserSessionsManager } from './user-sessions-manager';
 import { EmailSender } from '../side-channels';
 import { AccountEntity } from '../types/entities';
 import { ScheduleAccountEnabling } from '../types/schedulers';
@@ -19,24 +18,20 @@ class AccountStatusManager {
 
 	private readonly accountEntity: AccountEntity;
 
-	private readonly userSessionsManager: UserSessionsManager;
-
 	private readonly enableAccountScheduler: ScheduleAccountEnabling;
 
 	private readonly enableAccountAfterFailedAuthAttemptDelay: number;
 
-	constructor(
+	public constructor(
 		adminEmail: string,
 		enableAccountAfterFailedAuthAttemptDelayMinutes: number,
 		emailSender: EmailSender,
 		accountEntity: AccountEntity,
-		userSessionsManager: UserSessionsManager,
 		enableAccountScheduler: ScheduleAccountEnabling
 	) {
 		this.adminEmail = adminEmail;
 		this.emailSender = emailSender;
 		this.accountEntity = accountEntity;
-		this.userSessionsManager = userSessionsManager;
 		this.enableAccountScheduler = enableAccountScheduler;
 		this.enableAccountAfterFailedAuthAttemptDelay = enableAccountAfterFailedAuthAttemptDelayMinutes;
 	}
