@@ -35,7 +35,7 @@ app.post('/:pp1/:pp2', (req, res) => {
 		body: requestAdapter.body,
 		device: requestAdapter.device,
 		headers: {
-			Referer: requestAdapter.header('Referer')
+			referer: requestAdapter.header('referer')
 		},
 		cookies: {
 			sid: requestAdapter.cookie('sid'),
@@ -76,8 +76,8 @@ describe('Express http adapters spec', () => {
 			method: 'post',
 			body: JSON.stringify({ hello: 'world' }),
 			headers: {
-				'Content-Type': MimeType.JSON,
-				Cookie: [
+				'content-type': MimeType.JSON,
+				cookie: [
 					serialize('sid', '123', {
 						maxAge: 1000,
 						httpOnly: true,
@@ -92,9 +92,9 @@ describe('Express http adapters spec', () => {
 						sameSite: 'lax'
 					})
 				].join('; '),
-				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-				Referer: 'https://example.com/page?q=123',
-				'X-Forwarded-For': '192.168.5.5'
+				'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
+				referer: 'https://example.com/page?q=123',
+				'x-forwarded-for': '192.168.5.5'
 			} as Record<HttpRequestHeader, string>
 		});
 
@@ -120,7 +120,7 @@ describe('Express http adapters spec', () => {
 				version: ''
 			}
 		});
-		expect(request.headers).to.be.deep.eq({ Referer: 'https://example.com/page?q=123' });
+		expect(request.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
 		expect(request.cookies).to.be.deep.eq({
 			sid: '123',
 			pref: 'bike,car'

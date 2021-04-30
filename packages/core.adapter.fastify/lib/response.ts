@@ -1,22 +1,22 @@
 import type { HttpHeaderValue, HttpResponse, HttpResponseHeader, HttpStatusCode, MimeType, ObjMap } from '@thermopylae/core.declarations';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 
 /**
- * Adapter for express response instance.
+ * Adapter for fastify reply instance.
  *
  * @template Payload	Type of the response payload.
  */
-class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> {
-	private readonly res: Response;
+class FastifyResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> {
+	private readonly res: FastifyReply;
 
-	public constructor(res: Response) {
+	public constructor(res: FastifyReply) {
 		this.res = res;
 	}
 
 	/**
-	 * Get raw express response instance.
+	 * Get raw fastify response instance.
 	 */
-	public get raw(): Response {
+	public get raw(): FastifyReply {
 		return this.res;
 	}
 
@@ -24,7 +24,7 @@ class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> 
 	 * @inheritDoc
 	 */
 	public get sent(): boolean {
-		return this.res.headersSent;
+		return this.res.sent;
 	}
 
 	/**
@@ -39,7 +39,7 @@ class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> 
 	 * @inheritDoc
 	 */
 	public header(field: HttpResponseHeader | string, value: HttpHeaderValue): this {
-		this.res.append(field, value);
+		this.res.header(field, value);
 		return this;
 	}
 
@@ -59,4 +59,4 @@ class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> 
 	}
 }
 
-export { ExpressResponseAdapter };
+export { FastifyResponseAdapter };

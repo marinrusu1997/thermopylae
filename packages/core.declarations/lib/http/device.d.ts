@@ -5,7 +5,7 @@ import { Nullable } from '../mapped';
  *
  * @template    Request object type.
  */
-export interface DeviceDetector<Request> {
+export interface HttpDeviceDetector<Request> {
 	/**
 	 * Detect device from where HTTP request hsa been made.
 	 *

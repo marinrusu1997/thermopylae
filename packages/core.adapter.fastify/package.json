@@ -32,8 +32,17 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
+    "dependencies": {
+        "device-detector-js": "2"
+    },
     "devDependencies": {
-        "@thermopylae/module-builder": "0"
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
+        "cookie": "0",
+        "fastify": "3",
+        "fastify-cookie": "5",
+        "node-fetch": "2"
     },
     "peerDependencies": {
         "chai": "4",
@@ -47,5 +56,6 @@
     "engines": {
         "node": ">= 16"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "type": "commonjs"
 }
