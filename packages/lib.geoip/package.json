@@ -31,6 +31,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.utils": "0",
         "geoip-lite": "1",
@@ -38,8 +39,8 @@
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/module-builder": "0",
         "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
         "@types/geoip-lite": "1",
         "dotenv": "8"
     },

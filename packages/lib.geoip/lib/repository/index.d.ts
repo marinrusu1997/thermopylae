@@ -2,18 +2,28 @@
  * Represents location of the IP address.
  */
 declare interface IpLocation {
+	/**
+	 * Id of the repository from where location was fetched.
+	 */
+	readonly REPOSITORY_ID: string;
+
 	readonly countryCode: string | null;
 	readonly regionCode: string | null;
 	readonly city: string | null;
-	readonly timezone: string | null;
 	readonly latitude: number | null;
 	readonly longitude: number | null;
+	readonly timezone: string | null;
 }
 
 /**
  * Repository of IP address locations.
  */
 declare interface IpLocationsRepository {
+	/**
+	 * Repository id.
+	 */
+	readonly id: string;
+
 	/**
 	 * Whether repository is available to server lookup requests.
 	 */

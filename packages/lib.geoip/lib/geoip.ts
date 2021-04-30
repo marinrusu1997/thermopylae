@@ -1,5 +1,7 @@
+import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { IpLocation, IpLocationsRepository } from './repository';
 import { LoadBalancer } from './load-balancer';
+import { createException } from './error';
 
 /**
  * Geo IP locator which retrieves location of the IP address. <br/>
@@ -20,13 +22,21 @@ class GeoIpLocator {
 	/**
 	 * Retrieves location associated with an IP. <br/>
 	 * > Notice that location might differ when invoking this function with the same `ip` multiple times. <br/>
-	 * > This is caused by the way repositories are selected to retrieve location for that ip.
+	 * > This is caused by the way repositories are selected to retrieve location for that ip. <br/>
+	 * > If you need same location object at each invocation, you can explicitly define `repo` from where
+	 * > to fetch location. Notice that location has {@link IpLocation.REPOSITORY_ID} property which indicates
+	 * > from which repository it was retrieved.
 	 *
 	 * @param ip	Ip address.
+	 * @param repo	Id of the repository from where to fetch location.
 	 *
 	 * @returns		Ip location.
 	 */
-	public async locate(ip: string): Promise<IpLocation | null> {
+	public async locate(ip: string, repo?: string): Promise<IpLocation | null> {
+		if (repo != null) {
+			return this.getRepository(repo).lookup(ip);
+		}
+
 		let repository = null;
 		let location = null;
 
@@ -41,6 +51,15 @@ class GeoIpLocator {
 		}
 
 		return location;
+	}
+
+	private getRepository(id: string): IpLocationsRepository {
+		for (const repo of this.loadBalancer.repositories) {
+			if (repo.id === id) {
+				return repo;
+			}
+		}
+		throw createException(ErrorCodes.NOT_FOUND, `Repository with id ${id} not found.`);
 	}
 }
 

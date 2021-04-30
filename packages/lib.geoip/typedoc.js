@@ -1,4 +1,7 @@
 const typedoc = require('@thermopylae/module-builder').configs.typedoc;
+typedoc.externalPattern = [
+    'lib/error.ts'
+];
 typedoc.outline = [
     {
         "Repositories": {

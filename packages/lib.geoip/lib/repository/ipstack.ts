@@ -61,6 +61,13 @@ class IpstackRepository implements IpLocationsRepository {
 	/**
 	 * @inheritDoc
 	 */
+	public get id(): string {
+		return 'ipstack';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public get weight(): number {
 		return this.options.weight;
 	}
@@ -115,6 +122,7 @@ class IpstackRepository implements IpLocationsRepository {
 
 		logger.debug(`ipstack found location of the ${ip}`);
 		return {
+			REPOSITORY_ID: this.id,
 			countryCode: location.country_code,
 			regionCode: location.region_code,
 			city: location.city,

@@ -1,8 +1,8 @@
 import { before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
-import { config as dotEnvConfig } from 'dotenv';
 import type { ObjMap } from '@thermopylae/core.declarations';
+import { config as dotEnvConfig } from 'dotenv';
 import { GeoIpLiteRepository, GeoIpLocator, initLogger, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';
 import { IpRepositoryMock } from './mock/ip-repository';
 
@@ -101,6 +101,15 @@ describe('geoip spec', () => {
 		await GeoIpLiteRepository.refresh();
 		const end = new Date().getTime();
 		expect(end - begin).to.be.lte(400);
+	});
+
+	it('retrieves location from specified repository', async () => {
+		const geoip = new GeoIpLocator(repositories);
+		for (const repo of repositories) {
+			const first = (await geoip.locate('8.8.8.8', repo.id))!;
+			const second = await geoip.locate('8.8.8.8', first.REPOSITORY_ID);
+			expect(first).to.be.deep.eq(second);
+		}
 	});
 
 	it('returns null when no one repo can find location', async () => {

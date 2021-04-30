@@ -28,6 +28,13 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 	/**
 	 * @inheritDoc
 	 */
+	public get id(): string {
+		return 'geoip-lite';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public get weight(): number {
 		return this.w;
 	}
@@ -52,6 +59,7 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 
 		logger.debug(`geoip-lite found location of the ${ip}`);
 		return {
+			REPOSITORY_ID: this.id,
 			countryCode: geo.country,
 			regionCode: geo.region,
 			city: geo.city,

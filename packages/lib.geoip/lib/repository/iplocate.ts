@@ -42,6 +42,13 @@ class IpLocateRepository implements IpLocationsRepository {
 	/**
 	 * @inheritDoc
 	 */
+	public get id(): string {
+		return 'iplocate';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public get weight(): number {
 		return this.options.weight;
 	}
@@ -96,6 +103,7 @@ class IpLocateRepository implements IpLocationsRepository {
 		logger.debug(`iplocate found location of the ${ip}`);
 
 		return {
+			REPOSITORY_ID: this.id,
 			countryCode: location.country_code,
 			regionCode: null,
 			city: location.city,

@@ -16,6 +16,10 @@ class IpRepositoryMock implements IpLocationsRepository {
 		this.lookups = 0;
 	}
 
+	public get id(): string {
+		return `mock-${Math.random()}`;
+	}
+
 	public get available(): boolean {
 		return this.availability;
 	}

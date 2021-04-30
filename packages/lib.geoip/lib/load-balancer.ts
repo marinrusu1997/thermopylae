@@ -4,7 +4,7 @@ import type { IpLocationsRepository } from './repository';
  * @private
  */
 class LoadBalancer {
-	private readonly repositories: ReadonlyArray<IpLocationsRepository>;
+	public readonly repositories: ReadonlyArray<IpLocationsRepository>;
 
 	private readonly available: Array<IpLocationsRepository>;
 
