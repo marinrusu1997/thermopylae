@@ -1,12 +1,12 @@
 import { after, before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap } from '@thermopylae/core.declarations';
+import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
 import fetch from 'node-fetch';
 import { serialize } from 'cookie';
 import cookie from 'fastify-cookie';
 import fastify from 'fastify';
-import { FastifyRequestAdapter, FastifyResponseAdapter } from '../lib';
+import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '../lib';
 
 const PORT = 3572;
 
@@ -19,7 +19,8 @@ app.register(cookie);
 let request: {
 	ip: string;
 	body: ObjMap;
-	device: HttpDevice | null;
+	device: HttpDevice | undefined;
+	location: HTTPRequestLocation | undefined;
 	headers: Partial<Record<HttpRequestHeader, HttpHeaderValue | undefined>>;
 	cookies: ObjMap;
 	params: ObjMap;
@@ -28,10 +29,13 @@ let request: {
 
 app.post('/:pp1/:pp2', (req, res) => {
 	const requestAdapter = new FastifyRequestAdapter<ObjMap>(req);
+	requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
+
 	request = {
 		ip: requestAdapter.ip,
 		body: requestAdapter.body,
-		device: requestAdapter.device,
+		device: requestAdapter.device && requestAdapter.device, // force to get in from cached property
+		location: requestAdapter.location,
 		headers: {
 			referer: requestAdapter.header('referer')
 		},
@@ -69,9 +73,18 @@ describe(`Fastify adapter spec`, () => {
 	});
 
 	it('should send a request and receive a response', async () => {
+		const location: HTTPRequestLocation = {
+			countryCode: 'US',
+			regionCode: 'AZ',
+			city: 'Las Vegas',
+			latitude: 45.5,
+			longitude: 90.9,
+			timezone: 'Arizona/Las Vegas'
+		};
+
 		const response = await fetch(`http://localhost:${PORT}/par1/par2?q1=1&q2=q`, {
 			method: 'post',
-			body: JSON.stringify({ hello: 'world' }),
+			body: JSON.stringify(location),
 			headers: {
 				'content-type': MimeType.JSON,
 				cookie: [
@@ -96,7 +109,7 @@ describe(`Fastify adapter spec`, () => {
 		});
 
 		expect(request.ip).to.be.eq('192.168.5.5');
-		expect(request.body).to.be.deep.eq({ hello: 'world' });
+		expect(request.body).to.be.deep.eq(location);
 		expect(request.device).to.be.deep.eq({
 			bot: null,
 			client: {
@@ -117,6 +130,7 @@ describe(`Fastify adapter spec`, () => {
 				version: ''
 			}
 		});
+		expect(request.location).to.be.deep.eq(location);
 		expect(request.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
 		expect(request.cookies).to.be.deep.eq({
 			sid: '123',

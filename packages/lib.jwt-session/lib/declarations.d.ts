@@ -1,4 +1,5 @@
 import { DeviceType, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { DeepReadonly } from 'utility-types';
 
 /**
  * Payload of the JWT token. <br/>
@@ -69,40 +70,47 @@ declare interface IssuedJwtPayload {
 }
 
 /**
- * Represents context of the user session at it's creation/access.
+ * Represents minimal requirements for the {@link UserSessionOperationContext.device}.
  */
-interface UserSessionOperationContext {
+interface DeviceBase {
+	/**
+	 * Name of the device.
+	 */
+	name: string;
+	/**
+	 * Type of the device.
+	 */
+	type: DeviceType;
+}
+
+/**
+ * Represents context of the user session at it's creation/access.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
+ */
+interface UserSessionOperationContext<Device extends DeviceBase, Location> {
 	/**
 	 * Ip from where session was created/accessed.
 	 */
-	ip: string;
+	readonly ip: string;
 	/**
 	 * Device from where session was created/accessed.
 	 */
-	device: {
-		/**
-		 * Name of the device.
-		 */
-		name: string;
-		/**
-		 * Type of the device.
-		 */
-		type: DeviceType;
-		/**
-		 * Device description.
-		 */
-		description?: string;
-	};
+	readonly device: DeepReadonly<Device>;
 	/**
 	 * Location from where session was created/accessed.
 	 */
-	location?: string;
+	readonly location?: DeepReadonly<Location>;
 }
 
 /**
  * Represents user session metadata that is stored along the refresh token.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-interface UserSessionMetaData extends UserSessionOperationContext {
+interface UserSessionMetaData<Device extends DeviceBase, Location> extends UserSessionOperationContext<Device, Location> {
 	/**
 	 * When session was created.
 	 */
@@ -111,12 +119,15 @@ interface UserSessionMetaData extends UserSessionOperationContext {
 
 /**
  * Represents user session metadata that is queried by external to application clients.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-interface QueriedUserSessionMetaData extends UserSessionMetaData {
+interface QueriedUserSessionMetaData<Device extends DeviceBase, Location> extends UserSessionMetaData<Device, Location> {
 	/**
 	 * When session will expire.
 	 */
 	expiresAt: UnixTimestamp;
 }
 
-export { JwtPayload, IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData };
+export { JwtPayload, IssuedJwtPayload, DeviceBase, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData };

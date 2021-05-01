@@ -1,4 +1,4 @@
-import { CompareFunction, Undefinable } from '@thermopylae/core.declarations';
+import { Comparator, Undefinable } from '@thermopylae/core.declarations';
 
 /**
  * @private
@@ -16,11 +16,11 @@ interface HeapNode {
  * @private
  */
 class Heap<T extends HeapNode> {
-	private readonly comparator: CompareFunction<T>;
+	private readonly comparator: Comparator<T>;
 
 	private readonly nodes: Array<T>;
 
-	public constructor(comparator: CompareFunction<T>) {
+	public constructor(comparator: Comparator<T>) {
 		this.comparator = comparator;
 		this.nodes = [];
 	}

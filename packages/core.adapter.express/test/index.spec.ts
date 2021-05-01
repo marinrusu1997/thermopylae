@@ -1,6 +1,6 @@
 import { after, before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap } from '@thermopylae/core.declarations';
+import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, HTTPRequestLocation, ObjMap } from '@thermopylae/core.declarations';
 import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
 import type { Server } from 'http';
 import express from 'express';
@@ -8,7 +8,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import fetch from 'node-fetch';
 import { serialize } from 'cookie';
-import { ExpressRequestAdapter, ExpressResponseAdapter } from '../lib';
+import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '../lib';
 
 const app = express();
 app.set('trust proxy', true);
@@ -21,7 +21,8 @@ let server: Server;
 let request: {
 	ip: string;
 	body: ObjMap;
-	device: HttpDevice | null;
+	device: HttpDevice | undefined;
+	location: HTTPRequestLocation | undefined;
 	headers: Partial<Record<HttpRequestHeader, HttpHeaderValue | undefined>>;
 	cookies: ObjMap;
 	params: ObjMap;
@@ -30,10 +31,13 @@ let request: {
 
 app.post('/:pp1/:pp2', (req, res) => {
 	const requestAdapter = new ExpressRequestAdapter<ObjMap>(req);
+	requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
+
 	request = {
 		ip: requestAdapter.ip,
 		body: requestAdapter.body,
-		device: requestAdapter.device,
+		device: requestAdapter.device && requestAdapter.device, // force to get in from cached property
+		location: requestAdapter.location,
 		headers: {
 			referer: requestAdapter.header('referer')
 		},
@@ -72,9 +76,18 @@ describe('Express http adapters spec', () => {
 	});
 
 	it('should send a request and receive a response', async () => {
+		const location: HTTPRequestLocation = {
+			countryCode: 'US',
+			regionCode: 'AZ',
+			city: 'Las Vegas',
+			latitude: 45.5,
+			longitude: 90.9,
+			timezone: 'Arizona/Las Vegas'
+		};
+
 		const response = await fetch(`http://localhost:${port}/par1/par2?q1=1&q2=q`, {
 			method: 'post',
-			body: JSON.stringify({ hello: 'world' }),
+			body: JSON.stringify(location),
 			headers: {
 				'content-type': MimeType.JSON,
 				cookie: [
@@ -99,7 +112,7 @@ describe('Express http adapters spec', () => {
 		});
 
 		expect(request.ip).to.be.eq('192.168.5.5');
-		expect(request.body).to.be.deep.eq({ hello: 'world' });
+		expect(request.body).to.be.deep.eq(location);
 		expect(request.device).to.be.deep.eq({
 			bot: null,
 			client: {
@@ -120,6 +133,7 @@ describe('Express http adapters spec', () => {
 				version: ''
 			}
 		});
+		expect(request.location).to.be.deep.eq(location);
 		expect(request.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
 		expect(request.cookies).to.be.deep.eq({
 			sid: '123',

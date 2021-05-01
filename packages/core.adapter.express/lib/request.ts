@@ -1,25 +1,57 @@
 // eslint-disable-next-line max-classes-per-file
-import type { HttpRequest, HttpDeviceDetector, HttpDevice, HttpRequestHeader, ObjMap, HttpHeaderValue } from '@thermopylae/core.declarations';
+import type {
+	HttpRequest,
+	HttpDeviceDetector,
+	HttpDevice,
+	HttpRequestHeader,
+	ObjMap,
+	HttpHeaderValue,
+	HTTPRequestLocation
+} from '@thermopylae/core.declarations';
 import type { Request } from 'express';
 import type { DeviceDetectorResult } from 'device-detector-js';
 import DeviceDetectorJs from 'device-detector-js';
 
+const DEVICE_SYM = Symbol('HTTP_DEVICE_SYM');
+const LOCATION_SYM = Symbol('HTTP_LOCATION_SYM');
+
+/**
+ * Express request instance managed by {@link ExpressRequestAdapter}.
+ */
+interface AdaptedExpressRequest extends Request {
+	/**
+	 * Property under which *ExpressDeviceDetector* stores detected device. <br/>
+	 * Notice that if you pass an express request object to {@link ExpressRequestAdapter}
+	 * which already has this property with according device, *ExpressDeviceDetector* won't compute this property again.
+	 */
+	[DEVICE_SYM]?: DeviceDetectorResult;
+	/**
+	 * Property under which location of the request is stored. <br/>
+	 * *Important!* Clients of the {@link ExpressRequestAdapter} have to set this property accordingly
+	 * on express request object before passing it to adapter, as he won't compute it.
+	 */
+	[LOCATION_SYM]?: HTTPRequestLocation;
+}
+
 /**
  * @private
  */
-class ExpressDeviceDetector implements HttpDeviceDetector<Request> {
+class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest> {
 	private readonly detector: DeviceDetectorJs;
 
 	public constructor() {
 		this.detector = new DeviceDetectorJs();
 	}
 
-	public detect(req: Request): DeviceDetectorResult | null {
-		const userAgent = req.header('User-Agent');
-		if (typeof userAgent !== 'string') {
-			return null;
+	public detect(req: AdaptedExpressRequest): DeviceDetectorResult | undefined {
+		if (req[DEVICE_SYM] == null) {
+			const userAgent = req.header('user-agent');
+			if (typeof userAgent !== 'string') {
+				return undefined;
+			}
+			req[DEVICE_SYM] = this.detector.parse(userAgent);
 		}
-		return this.detector.parse(userAgent);
+		return req[DEVICE_SYM];
 	}
 }
 
@@ -34,18 +66,18 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	 * You can assign you own **HttpDeviceDetector** implementation. <br/>
 	 * Defaults to **ExpressDeviceDetector** which detects device based on *User-Agent* header.
 	 */
-	public static deviceDetector: HttpDeviceDetector<Request> = new ExpressDeviceDetector();
+	public static deviceDetector: HttpDeviceDetector<AdaptedExpressRequest> = new ExpressDeviceDetector();
 
-	private readonly req: Request;
+	private readonly req: AdaptedExpressRequest;
 
-	public constructor(req: Request) {
+	public constructor(req: AdaptedExpressRequest) {
 		this.req = req;
 	}
 
 	/**
 	 * Get raw express request instance.
 	 */
-	public get raw(): Request {
+	public get raw(): AdaptedExpressRequest {
 		return this.req;
 	}
 
@@ -66,8 +98,15 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
 	 * @inheritDoc
 	 */
-	public get device(): HttpDevice | null {
+	public get device(): HttpDevice | undefined {
 		return ExpressRequestAdapter.deviceDetector.detect(this.req);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public get location(): HTTPRequestLocation | undefined {
+		return this.req[LOCATION_SYM];
 	}
 
 	/**
@@ -99,4 +138,4 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	}
 }
 
-export { ExpressRequestAdapter };
+export { ExpressRequestAdapter, DEVICE_SYM, LOCATION_SYM, AdaptedExpressRequest };

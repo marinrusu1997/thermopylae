@@ -1,9 +1,8 @@
 import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import equals from 'fast-deep-equal';
 import safeUid from 'uid-safe';
 import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
-import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData } from './declarations';
+import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData, DeviceBase } from './declarations';
 
 // FIXME reference links
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
@@ -13,9 +12,6 @@ import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, Que
 //	https://medium.com/@ideneal/securing-authentication-in-a-spa-using-jwt-token-the-coolest-way-ab883bc372b6
 //	https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
 //	https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#logout_token_invalidation
-
-// @fixme lib.jwt-session manages JWT and refresh tokens
-// @fixme app.jwt.http manages jwt cookies and refresh over HTTPS
 
 /**
  * Refresh token that will be anchored to **access token**.
@@ -64,8 +60,11 @@ interface InvalidAccessTokensCache {
 
 /**
  * External persistent storage where refresh tokens are kept.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-interface RefreshTokensStorage {
+interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	/**
 	 * Insert refresh token.
 	 *
@@ -78,7 +77,7 @@ interface RefreshTokensStorage {
 	 * @param metaData			User session metadata.
 	 * @param ttl				TTL of the refresh token.
 	 */
-	insert(subject: string, refreshToken: string, metaData: UserSessionMetaData, ttl: Seconds): Promise<void>;
+	insert(subject: string, refreshToken: string, metaData: UserSessionMetaData<Device, Location>, ttl: Seconds): Promise<void>;
 
 	/**
 	 * Read user session associated with `refreshToken`.
@@ -88,7 +87,7 @@ interface RefreshTokensStorage {
 	 *
 	 * @returns		User session metadata.
 	 */
-	read(subject: string, refreshToken: string): Promise<UserSessionMetaData | undefined>;
+	read(subject: string, refreshToken: string): Promise<UserSessionMetaData<Device, Location> | undefined>;
 
 	/**
 	 * Read all of the **active** user sessions.
@@ -97,7 +96,7 @@ interface RefreshTokensStorage {
 	 *
 	 * @returns			Refresh tokens with the sessions metadata.
 	 */
-	readAll(subject: string): Promise<Array<UserSessionMetaData>>;
+	readAll(subject: string): Promise<Array<UserSessionMetaData<Device, Location>>>;
 
 	/**
 	 * Delete `refreshToken` from the storage.
@@ -117,7 +116,7 @@ interface RefreshTokensStorage {
 	deleteAll(subject: string): Promise<number>;
 }
 
-interface InvalidationStrategyOptions {
+interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	/**
 	 * Length of the refresh token. <br/>
 	 * Because base64 encoding is used underneath, this is not the string length.
@@ -136,24 +135,27 @@ interface InvalidationStrategyOptions {
 	/**
 	 * Storage where refresh tokens will be placed.
 	 */
-	refreshTokensStorage: RefreshTokensStorage;
+	refreshTokensStorage: RefreshTokensStorage<Device, Location>;
 }
 
 /**
  * Invalidation strategy for JWT Access Tokens.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-class InvalidationStrategy {
+class InvalidationStrategy<Device extends DeviceBase, Location> {
 	private static readonly ANCHOR_TO_REFRESH_TOKEN_LENGTH = 5;
 
 	private static readonly ALL_SESSIONS_WILDCARD = '*';
 
-	private readonly options: InvalidationStrategyOptions;
+	private readonly options: Readonly<InvalidationStrategyOptions<Device, Location>>;
 
 	/**
 	 * @param options		Options object. <br/>
 	 * 						It should not be modified after, as it will be used by strategy without being cloned.
 	 */
-	public constructor(options: InvalidationStrategyOptions) {
+	public constructor(options: InvalidationStrategyOptions<Device, Location>) {
 		if (options.refreshTokenLength < 15) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 15 characters. Given: ${options.refreshTokenLength}.`);
 		}
@@ -169,11 +171,11 @@ class InvalidationStrategy {
 	 *
 	 * @returns		Anchorable refresh token.
 	 */
-	public async generateRefreshToken(subject: string, context: UserSessionOperationContext): Promise<AnchorableRefreshToken> {
+	public async generateRefreshToken(subject: string, context: UserSessionOperationContext<Device, Location>): Promise<AnchorableRefreshToken> {
 		const refreshToken = await safeUid(this.options.refreshTokenLength);
-		(context as UserSessionMetaData).createdAt = InvalidationStrategy.currentTimestamp();
+		(context as UserSessionMetaData<Device, Location>).createdAt = InvalidationStrategy.currentTimestamp();
 
-		await this.options.refreshTokensStorage.insert(subject, refreshToken, context as UserSessionMetaData, this.options.refreshTokenTtl);
+		await this.options.refreshTokensStorage.insert(subject, refreshToken, context as UserSessionMetaData<Device, Location>, this.options.refreshTokenTtl);
 		return { token: refreshToken, anchor: refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH) };
 	}
 
@@ -183,7 +185,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token.
 	 */
-	public isAccessTokenStillValid(jwtAccessToken: Readonly<IssuedJwtPayload>): boolean {
+	public isAccessTokenStillValid(jwtAccessToken: IssuedJwtPayload): boolean {
 		if (this.options.invalidAccessTokensCache.has(`${jwtAccessToken.sub}@${jwtAccessToken.anc}`)) {
 			return false;
 		}
@@ -205,13 +207,13 @@ class InvalidationStrategy {
 	 *
 	 * @returns					Anchor to refresh token.
 	 */
-	public async refreshAccessSession(subject: string, refreshToken: string, context: DeepReadonly<UserSessionOperationContext>): Promise<string> {
+	public async refreshAccessSession(subject: string, refreshToken: string, context: UserSessionOperationContext<Device, Location>): Promise<string> {
 		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
 		if (!userSessionMetadata) {
 			throw createException(ErrorCodes.NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
 		}
 
-		if (!equals(context.device, userSessionMetadata.device)) {
+		if (context.device.type !== userSessionMetadata.device.type || context.device.name !== userSessionMetadata.device.name) {
 			throw createException(
 				ErrorCodes.NOT_EQUAL,
 				`Attempting to regenerate access token with refresh token '${refreshToken}' for subject '${subject}'` +
@@ -231,12 +233,12 @@ class InvalidationStrategy {
 	 *
 	 * @returns				Active user sessions.
 	 */
-	public async getActiveUserSessions(subject: string): Promise<Array<DeepReadonly<QueriedUserSessionMetaData>>> {
+	public async getActiveUserSessions(subject: string): Promise<ReadonlyArray<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
 		const activeSessions = await this.options.refreshTokensStorage.readAll(subject);
 		for (const session of activeSessions) {
-			(session as QueriedUserSessionMetaData).expiresAt = session.createdAt + this.options.refreshTokenTtl;
+			(session as QueriedUserSessionMetaData<Device, Location>).expiresAt = session.createdAt + this.options.refreshTokenTtl;
 		}
-		return activeSessions as Array<QueriedUserSessionMetaData>;
+		return activeSessions as Array<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>;
 	}
 
 	/**
@@ -245,7 +247,7 @@ class InvalidationStrategy {
 	 * @param jwtAccessToken	Access token.
 	 * @param refreshToken		Refresh token.
 	 */
-	public async invalidateSession(jwtAccessToken: Readonly<IssuedJwtPayload>, refreshToken: string): Promise<void> {
+	public async invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string): Promise<void> {
 		await this.options.refreshTokensStorage.delete(jwtAccessToken.sub, refreshToken);
 		this.invalidateAccessToken(jwtAccessToken);
 	}
@@ -257,7 +259,7 @@ class InvalidationStrategy {
 	 *
 	 * @returns		Number of invalidated sessions.
 	 */
-	public async invalidateAllSessions(jwtAccessToken: Readonly<IssuedJwtPayload>): Promise<number> {
+	public async invalidateAllSessions(jwtAccessToken: IssuedJwtPayload): Promise<number> {
 		const invalidatedSessions = await this.options.refreshTokensStorage.deleteAll(jwtAccessToken.sub);
 		this.invalidateAccessTokensFromAllSessions(jwtAccessToken);
 		return invalidatedSessions;
@@ -270,7 +272,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token that needs to be invalidated.
 	 */
-	public invalidateAccessToken(jwtAccessToken: Readonly<IssuedJwtPayload>): void {
+	public invalidateAccessToken(jwtAccessToken: IssuedJwtPayload): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${jwtAccessToken.anc}`;
 		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
 
@@ -284,7 +286,7 @@ class InvalidationStrategy {
 	 *
 	 * @param jwtAccessToken	Access token of the session from where invalidation is being made.
 	 */
-	public invalidateAccessTokensFromAllSessions(jwtAccessToken: Readonly<IssuedJwtPayload>): void {
+	public invalidateAccessTokensFromAllSessions(jwtAccessToken: IssuedJwtPayload): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
 		// all of the tokens issues before this timestamp becomes invalid ones
 		const invalidatedAt = InvalidationStrategy.currentTimestamp();

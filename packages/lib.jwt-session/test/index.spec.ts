@@ -1,13 +1,13 @@
 import { describe, it, before } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { setTimeout } from 'timers/promises';
-import { PublicPrivateKeys } from '@thermopylae/core.declarations';
+import { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { initLogger, IssuedJwtPayload, JwtManagerEvents, JwtSessionManager, JwtSessionManagerOptions } from '../lib';
 import { InvalidAccessTokensCacheAdapter } from './mocks/invalid-access-tokens-cache';
 import { RefreshTokensStorageAdapter } from './mocks/refresh-tokens-storage';
-import { UserSessionOperationContext } from '../lib/declarations';
+import { DeviceBase, UserSessionOperationContext } from '../lib/declarations';
 
 function jwtSessionManagerOpts(accessTokenTtl: number, refreshTokenTtl: number, secret: string | Buffer | PublicPrivateKeys): JwtSessionManagerOptions {
 	return {
@@ -32,13 +32,13 @@ function jwtSessionManagerOpts(accessTokenTtl: number, refreshTokenTtl: number, 
 	};
 }
 
-function sessionContext(): UserSessionOperationContext {
+function sessionContext(): UserSessionOperationContext<DeviceBase, string> {
 	return {
 		ip: '127.0.0.1',
 		location: 'Bucharest',
 		device: {
 			name: 'iPhone 11',
-			type: 'MOBILE'
+			type: 'smartphone'
 		}
 	};
 }
@@ -98,9 +98,9 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		const sessionTokens = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, sessionContext());
 
 		const differentContext = sessionContext();
-		differentContext.device = {
+		(differentContext as MutableSome<UserSessionOperationContext<DeviceBase, string>, 'device'>).device = {
 			name: 'Android',
-			type: 'MOBILE'
+			type: 'smartphone'
 		};
 		await expect(sessionManager.update(sessionTokens.refreshToken, { role: 'admin' }, { subject: 'uid1' }, differentContext)).to.eventually.be.rejectedWith(
 			/context that differs from user session metadata/
@@ -212,7 +212,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		const activeSessions = await sessionManager.readAll('uid1');
 		expect(activeSessions).to.be.ofSize(2);
 		expect(activeSessions[0].ip).to.be.eq('127.0.0.1');
-		expect(activeSessions[1].device.type).to.be.eq('MOBILE');
+		expect(activeSessions[1].device.type).to.be.eq('smartphone');
 
 		// invalidate all of them
 		const secondSessionPayload = await sessionManager.read(secondSession.accessToken);

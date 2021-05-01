@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
-import { CompareFunction } from '@thermopylae/core.declarations';
+import { Comparator } from '@thermopylae/core.declarations';
 import { array, number } from '@thermopylae/lib.utils';
 import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/data-structures/heap';
@@ -10,7 +10,7 @@ interface HeapDataNode extends HeapNode {
 	data: number;
 }
 
-const comparator: CompareFunction<HeapDataNode> = (first, second) => second.data - first.data;
+const comparator: Comparator<HeapDataNode> = (first, second) => second.data - first.data;
 
 function buildNode(data: number): HeapDataNode {
 	return { data, [HEAP_NODE_IDX_SYM]: -1 };

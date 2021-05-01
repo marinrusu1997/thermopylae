@@ -10,10 +10,12 @@ eslint.rules["import/no-unresolved"][1].ignore.push(
     './mapped',
     './utils',
     './device',
+    './location',
+    './request',
     './request-headers',
+    './response',
     './response-headers',
     './status-codes',
-    './abstractions',
     './mime'
 );
 

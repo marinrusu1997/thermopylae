@@ -2,7 +2,7 @@ import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableS
 import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
 import type { DeepReadonly } from 'utility-types';
-import { IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
+import { DeviceBase, IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
 import { createException } from './error';
 import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
 import { logger } from './logger';
@@ -33,7 +33,7 @@ type JwtVerifyOptions = Readonly<
 	Omit<RequireSome<VerifyOptions, 'algorithms' | 'audience' | 'issuer'>, 'complete' | 'ignoreExpiration' | 'ignoreNotBefore' | 'clockTimestamp'>
 >;
 
-interface JwtSessionManagerOptions {
+interface JwtSessionManagerOptions<Device extends DeviceBase = DeviceBase, Location = string> {
 	/**
 	 * Secret used for JWT signing and verify.
 	 */
@@ -43,7 +43,7 @@ interface JwtSessionManagerOptions {
 	 * **Note!** They should not be modified after,
 	 * as this object will be used by invalidation strategy without being cloned.
 	 */
-	readonly invalidationOptions: InvalidationStrategyOptions;
+	readonly invalidationOptions: InvalidationStrategyOptions<Device, Location>;
 	/**
 	 * Default sign options.
 	 */
@@ -77,17 +77,20 @@ type JwtManagerEventListener = (jwtAccessToken: IssuedJwtPayload) => void;
 
 /**
  * Stateless implementation of the user sessions using JWT as exchange mechanism.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-class JwtSessionManager extends EventEmitter {
-	private readonly config: Readonly<Required<JwtSessionManagerOptions>>;
+class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = string> extends EventEmitter {
+	private readonly config: JwtSessionManagerOptions<Device, Location>;
 
-	private readonly invalidationStrategy: InvalidationStrategy;
+	private readonly invalidationStrategy: InvalidationStrategy<Device, Location>;
 
 	/**
 	 * @param options		Options object. <br/>
 	 * 						It should not be modified after, as it will be used without being cloned.
 	 */
-	public constructor(options: JwtSessionManagerOptions) {
+	public constructor(options: JwtSessionManagerOptions<Device, Location>) {
 		super();
 		this.config = JwtSessionManager.fillWithDefaults(options);
 		this.invalidationStrategy = new InvalidationStrategy(options.invalidationOptions);
@@ -108,8 +111,8 @@ class JwtSessionManager extends EventEmitter {
 	public async create(
 		payload: JwtPayload,
 		signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>,
-		context: DeepReadonly<UserSessionOperationContext>
-	): Promise<Readonly<SessionTokens>> {
+		context: UserSessionOperationContext<Device, Location>
+	): Promise<SessionTokens> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
 		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject, context);
@@ -165,7 +168,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @param subject		Subject from the JWT (i.e. user/account id).
 	 */
-	public readAll(subject: string): Promise<Array<DeepReadonly<QueriedUserSessionMetaData>>> {
+	public readAll(subject: string): Promise<ReadonlyArray<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
 		return this.invalidationStrategy.getActiveUserSessions(subject);
 	}
 
@@ -188,7 +191,7 @@ class JwtSessionManager extends EventEmitter {
 		refreshToken: string,
 		payload: JwtPayload,
 		signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>,
-		context: DeepReadonly<UserSessionOperationContext>
+		context: UserSessionOperationContext<Device, Location>
 	): Promise<string> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
@@ -210,7 +213,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @emits {@link JwtManagerEvents.SESSION_INVALIDATED}.
 	 */
-	public async deleteOne(jwtPayload: Readonly<IssuedJwtPayload>, refreshToken: string): Promise<void> {
+	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
 		logger.info(`Deleted session with refresh token '${refreshToken}' of the subject '${jwtPayload.sub}'.`);
 		this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
@@ -226,7 +229,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @returns		Number of the deleted sessions.
 	 */
-	public async deleteAll(jwtPayload: Readonly<IssuedJwtPayload>): Promise<number> {
+	public async deleteAll(jwtPayload: IssuedJwtPayload): Promise<number> {
 		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
 		logger.warning(
 			`Deleted all sessions (${invalidateSessionsNo}) of the subject '${jwtPayload.sub}'. Deletion has been made from session with anchor '${jwtPayload.anc}'.`
@@ -249,7 +252,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @param jwtPayload	Access token to be invalidated.
 	 */
-	public restrictOne(jwtPayload: Readonly<IssuedJwtPayload>): void {
+	public restrictOne(jwtPayload: IssuedJwtPayload): void {
 		this.invalidationStrategy.invalidateAccessToken(jwtPayload);
 	}
 
@@ -268,7 +271,7 @@ class JwtSessionManager extends EventEmitter {
 	 *
 	 * @param jwtPayload	Access token of the session from where restrict operation is performed.
 	 */
-	public restrictAll(jwtPayload: Readonly<IssuedJwtPayload>): void {
+	public restrictAll(jwtPayload: IssuedJwtPayload): void {
 		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(jwtPayload);
 	}
 
@@ -302,10 +305,10 @@ class JwtSessionManager extends EventEmitter {
 		);
 	}
 
-	private static fillWithDefaults(options: JwtSessionManagerOptions): Readonly<JwtSessionManagerOptions> {
+	private static fillWithDefaults<D extends DeviceBase, L>(options: JwtSessionManagerOptions<D, L>): JwtSessionManagerOptions<D, L> {
 		// mutate payload directly and avoid unnecessary object creations
 		((options.signOptions as unknown) as SignOptions).mutatePayload = true;
-		return options as Readonly<Required<JwtSessionManagerOptions>>;
+		return options as JwtSessionManagerOptions<D, L>;
 	}
 }
 

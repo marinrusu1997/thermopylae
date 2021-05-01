@@ -33,7 +33,6 @@
     "dependencies": {
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
-        "fast-deep-equal": "3",
         "jsonwebtoken": "8",
         "uid-safe": "2"
     },
