@@ -41,7 +41,8 @@ app.post('/:pp1/:pp2', (req, res) => {
 		},
 		cookies: {
 			sid: requestAdapter.cookie('sid'),
-			pref: requestAdapter.cookie('pref')
+			pref: requestAdapter.cookie('pref'),
+			'not-existing': requestAdapter.cookie('not-existing')
 		},
 		params: {
 			pp1: requestAdapter.param('pp1'),
@@ -134,7 +135,8 @@ describe(`Fastify adapter spec`, () => {
 		expect(request.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
 		expect(request.cookies).to.be.deep.eq({
 			sid: '123',
-			pref: 'bike,car'
+			pref: 'bike,car',
+			'not-existing': undefined
 		});
 		expect(request.params).to.be.deep.eq({
 			pp1: 'par1',

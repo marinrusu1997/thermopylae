@@ -48,6 +48,7 @@ module.exports = {
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 		// base rule can report incorrect errors for TS code
 		"no-shadow": "off",
+		"no-nested-ternary": "warn",
 
 		"import/no-unresolved": [
 			"error",

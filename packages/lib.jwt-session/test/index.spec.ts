@@ -4,10 +4,9 @@ import { setTimeout } from 'timers/promises';
 import { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { initLogger, IssuedJwtPayload, JwtManagerEvents, JwtSessionManager, JwtSessionManagerOptions } from '../lib';
+import { initLogger, IssuedJwtPayload, JwtManagerEvent, JwtSessionManager, JwtSessionManagerOptions, DeviceBase, UserSessionOperationContext } from '../lib';
 import { InvalidAccessTokensCacheAdapter } from './mocks/invalid-access-tokens-cache';
 import { RefreshTokensStorageAdapter } from './mocks/refresh-tokens-storage';
-import { DeviceBase, UserSessionOperationContext } from '../lib/declarations';
 
 function jwtSessionManagerOpts(accessTokenTtl: number, refreshTokenTtl: number, secret: string | Buffer | PublicPrivateKeys): JwtSessionManagerOptions {
 	return {
@@ -35,11 +34,11 @@ function jwtSessionManagerOpts(accessTokenTtl: number, refreshTokenTtl: number, 
 function sessionContext(): UserSessionOperationContext<DeviceBase, string> {
 	return {
 		ip: '127.0.0.1',
-		location: 'Bucharest',
 		device: {
 			name: 'iPhone 11',
 			type: 'smartphone'
-		}
+		},
+		location: 'Bucharest'
 	};
 }
 
@@ -107,11 +106,34 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		);
 	});
 
+	it("doesn't verify devices if it wasn't provided at session creation or session update", async () => {
+		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
+
+		const firstSession = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Amsterdam' });
+		await expect(
+			sessionManager.update(
+				firstSession.refreshToken,
+				{ role: 'admin' },
+				{ subject: 'uid1' },
+				{ ip: '192.2.3.5', device: { name: 'Android', type: 'smartphone' }, location: 'Bucharest' }
+			)
+		).to.eventually.match(/^[a-zA-Z0-9\-_.]+$/);
+
+		const secondSession = await sessionManager.create(
+			{ role: 'admin' },
+			{ subject: 'uid1' },
+			{ ip: '185.9.6.3', device: { name: 'Android', type: 'smartphone' }, location: 'Amsterdam' }
+		);
+		await expect(
+			sessionManager.update(secondSession.refreshToken, { role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Bucharest' })
+		).to.eventually.match(/^[a-zA-Z0-9\-_.]+$/);
+	});
+
 	it('creates session with multiple access tokens and then invalidates them', async () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, Buffer.from('secret')));
 
 		let invalidatedSessionEventPayload: IssuedJwtPayload | undefined;
-		sessionManager.on(JwtManagerEvents.SESSION_INVALIDATED, (payload) => {
+		sessionManager.on(JwtManagerEvent.SESSION_INVALIDATED, (payload) => {
 			invalidatedSessionEventPayload = payload;
 		});
 
@@ -169,7 +191,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 1, 'secret'));
 
 		let invalidatedSessionEventPayload: IssuedJwtPayload | undefined;
-		sessionManager.on(JwtManagerEvents.SESSION_INVALIDATED, (payload) => {
+		sessionManager.on(JwtManagerEvent.SESSION_INVALIDATED, (payload) => {
 			invalidatedSessionEventPayload = payload;
 		});
 
@@ -195,7 +217,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
 		let invalidatedAllSessionsEventPayload: IssuedJwtPayload | undefined;
-		sessionManager.on(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, (payload) => {
+		sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (payload) => {
 			invalidatedAllSessionsEventPayload = payload;
 		});
 
@@ -212,7 +234,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		const activeSessions = await sessionManager.readAll('uid1');
 		expect(activeSessions).to.be.ofSize(2);
 		expect(activeSessions[0].ip).to.be.eq('127.0.0.1');
-		expect(activeSessions[1].device.type).to.be.eq('smartphone');
+		expect(activeSessions[1].device!.type).to.be.eq('smartphone');
 
 		// invalidate all of them
 		const secondSessionPayload = await sessionManager.read(secondSession.accessToken);
@@ -252,7 +274,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		// shared DB
 		node2Opts.invalidationOptions.refreshTokensStorage = node1Opts.invalidationOptions.refreshTokensStorage;
 		const node2 = new JwtSessionManager(node2Opts);
-		node2.on(JwtManagerEvents.SESSION_INVALIDATED, (accessTokenPayload) => {
+		node2.on(JwtManagerEvent.SESSION_INVALIDATED, (accessTokenPayload) => {
 			// simulate that accessTokenPayload was sent by event bus
 			node1.restrictOne(accessTokenPayload);
 		});
@@ -287,7 +309,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		// shared DB
 		node2Opts.invalidationOptions.refreshTokensStorage = node1Opts.invalidationOptions.refreshTokensStorage;
 		const node2 = new JwtSessionManager(node2Opts);
-		node2.on(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, (accessTokenPayload) => {
+		node2.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (accessTokenPayload) => {
 			// simulate that accessTokenPayload was sent by event bus
 			node1.restrictAll(accessTokenPayload);
 		});

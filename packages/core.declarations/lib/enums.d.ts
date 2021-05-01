@@ -1,5 +1,6 @@
 export const enum ErrorCodes {
 	BAD_INVARIANT = 'BAD_INVARIANT',
+	CHECK_FAILED = 'CHECK_FAILED',
 	DUPLICATE = 'DUPLICATE',
 	EXISTS = 'EXISTS',
 	EXPIRED = 'EXPIRED',
@@ -11,7 +12,8 @@ export const enum ErrorCodes {
 	NOT_EQUAL = 'NOT_EQUAL',
 	NOT_AVAILABLE = 'NOT_AVAILABLE',
 	REQUIRED = 'REQUIRED',
-	UNKNOWN = 'UNKNOWN'
+	UNKNOWN = 'UNKNOWN',
+	UNPROCESSABLE = 'UNPROCESSABLE'
 }
 
 export const enum Library {

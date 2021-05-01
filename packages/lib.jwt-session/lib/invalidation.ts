@@ -85,7 +85,7 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	 * @param subject			Subject refresh token belongs to.
 	 * @param refreshToken		Refresh token.
 	 *
-	 * @returns		User session metadata.
+	 * @returns		User session metadata or *undefined* if not found.
 	 */
 	read(subject: string, refreshToken: string): Promise<UserSessionMetaData<Device, Location> | undefined>;
 
@@ -94,7 +94,8 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	 *
 	 * @param subject		Subject user sessions are belonging to.
 	 *
-	 * @returns			Refresh tokens with the sessions metadata.
+	 * @returns			Refresh tokens with the sessions metadata. <br/>
+	 * 					When subject has no active sessions, returns an empty array.
 	 */
 	readAll(subject: string): Promise<Array<UserSessionMetaData<Device, Location>>>;
 
@@ -103,6 +104,9 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	 *
 	 * @param subject			Subject refresh token belongs to.
 	 * @param refreshToken		Refresh token.
+	 *
+	 * @throws	{Error}			When `subject` not found.
+	 * @throws	{Error}			When `refreshToken` not found.
 	 */
 	delete(subject: string, refreshToken: string): Promise<void>;
 
@@ -110,6 +114,8 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	 * Delete all refresh tokens that belong to `subject`.
 	 *
 	 * @param subject			Subject refresh tokens belonging to.
+	 *
+	 * @throws	{Error}			When `subject` not found.
 	 *
 	 * @returns		Number of deleted tokens.
 	 */
@@ -123,19 +129,19 @@ interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	 * For example, to create a token of length 24, you want a byte length of 18. <br/>
 	 * Value of this option should not be lower than 15.
 	 */
-	refreshTokenLength: number;
+	readonly refreshTokenLength: number;
 	/**
 	 * TTL if the refresh token.
 	 */
-	refreshTokenTtl: Seconds;
+	readonly refreshTokenTtl: Seconds;
 	/**
 	 * Cache where invalid access tokens will be stored.
 	 */
-	invalidAccessTokensCache: InvalidAccessTokensCache;
+	readonly invalidAccessTokensCache: InvalidAccessTokensCache;
 	/**
 	 * Storage where refresh tokens will be placed.
 	 */
-	refreshTokensStorage: RefreshTokensStorage<Device, Location>;
+	readonly refreshTokensStorage: RefreshTokensStorage<Device, Location>;
 }
 
 /**
@@ -149,7 +155,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 
 	private static readonly ALL_SESSIONS_WILDCARD = '*';
 
-	private readonly options: Readonly<InvalidationStrategyOptions<Device, Location>>;
+	private readonly options: InvalidationStrategyOptions<Device, Location>;
 
 	/**
 	 * @param options		Options object. <br/>
@@ -213,14 +219,16 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 			throw createException(ErrorCodes.NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
 		}
 
-		if (context.device.type !== userSessionMetadata.device.type || context.device.name !== userSessionMetadata.device.name) {
-			throw createException(
-				ErrorCodes.NOT_EQUAL,
-				`Attempting to regenerate access token with refresh token '${refreshToken}' for subject '${subject}'` +
-					`from context that differs from user session metadata. Refresh context: ${JSON.stringify(context)}. User session metadata: ${JSON.stringify(
-						userSessionMetadata
-					)}`
-			);
+		if (context.device && userSessionMetadata.device) {
+			if (context.device.type !== userSessionMetadata.device.type || context.device.name !== userSessionMetadata.device.name) {
+				throw createException(
+					ErrorCodes.NOT_EQUAL,
+					`Attempting to regenerate access token with refresh token '${refreshToken}' for subject '${subject}'` +
+						`from context that differs from user session metadata. Refresh context: ${JSON.stringify(
+							context
+						)}. User session metadata: ${JSON.stringify(userSessionMetadata)}`
+				);
+			}
 		}
 
 		return refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH);

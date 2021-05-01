@@ -68,6 +68,10 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	 */
 	public static deviceDetector: HttpDeviceDetector<AdaptedExpressRequest> = new ExpressDeviceDetector();
 
+	// @fixme we will need another detector in the app.module which will take client type from
+	// special header: X-Requested-By, and will set according client
+	// we will employ decorator patern, to add this new functionality
+
 	private readonly req: AdaptedExpressRequest;
 
 	public constructor(req: AdaptedExpressRequest) {

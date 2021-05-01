@@ -68,6 +68,10 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	 */
 	public static deviceDetector: HttpDeviceDetector<AdaptedFastifyRequest> = new FastifyDeviceDetector();
 
+	// @fixme we will need another detector in the app.module which will take client type from
+	// special header: X-Requested-By, and will set according client
+	// we will employ decorator patern, to add this new functionality
+
 	private readonly req: AdaptedFastifyRequest;
 
 	public constructor(req: AdaptedFastifyRequest) {

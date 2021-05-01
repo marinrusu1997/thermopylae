@@ -17,17 +17,31 @@ export interface HttpDeviceDetector<Request> {
 }
 
 /**
+ * Represents client of the device from where HTTP request has been made.
+ */
+export interface HttpDeviceClient {
+	type: ClientType;
+	name: string;
+	version: string;
+}
+
+/**
+ * Represents OS of the device from where HTTP request has been made.
+ */
+export interface HttpDeviceOs {
+	name: string;
+	version: string;
+	platform: 'ARM' | 'x64' | 'x86' | '';
+}
+
+/**
  * Device from where HTTP request hsa been made.
  */
 export interface HttpDevice {
 	/**
 	 * Client which made HTTP request.
 	 */
-	client: Nullable<{
-		type: string;
-		name: string;
-		version: string;
-	}>;
+	client: Nullable<HttpDeviceClient>;
 	/**
 	 * Device from where HTTP request has been made.
 	 */
@@ -39,11 +53,7 @@ export interface HttpDevice {
 	/**
 	 * Operating System of the device.
 	 */
-	os: Nullable<{
-		name: string;
-		version: string;
-		platform: 'ARM' | 'x64' | 'x86' | '';
-	}>;
+	os: Nullable<HttpDeviceOs>;
 	/**
 	 * Whether request has been made by bot.
 	 */
@@ -62,3 +72,17 @@ export interface HttpDevice {
  * Type of the device.
  */
 export type DeviceType = '' | 'desktop' | 'smartphone' | 'tablet' | 'television' | 'smart display' | 'camera' | 'car' | 'console' | 'portable media player';
+
+/**
+ * Type of the client.
+ */
+export type ClientType =
+	| ''
+	| 'browser'
+	| 'mobile app'
+	| 'feed reader'
+	| 'library'
+	| 'media player'
+	| 'personal information manager'
+	| 'external service'
+	| string;

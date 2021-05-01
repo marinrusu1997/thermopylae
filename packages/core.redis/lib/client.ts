@@ -1,21 +1,17 @@
 import { number } from '@thermopylae/lib.utils';
 import redis, { AggregateError, ClientOpts, RedisError, ReplyError } from 'redis';
 import { createNodeRedisClient, WrappedNodeRedisClient } from 'handy-redis';
+import type { RequireSome } from '@thermopylae/core.declarations';
 import { logger } from './logger';
 
-interface ConnectOptions {
-	/**
-	 * Options for the underlying redis client.
-	 */
-	client: ClientOpts;
-	/**
-	 * Whether to issue **MONITOR** command after client connected.
-	 */
-	monitor?: boolean;
-	/**
-	 * Whether to enable debug mode on the underlying redis client.
-	 */
-	debug?: boolean;
+// @fixme reimplement according to https://www.npmjs.com/package/redis
+
+type ConnectOptions = RequireSome<ClientOpts, 'connect_timeout' | 'max_attempts' | 'retry_max_delay'>;
+
+const enum ConnectionType {
+	REGULAR = 'REGULAR',
+	SUBSCRIBER = 'SUBSCRIBER',
+	PUBLISHER = 'PUBLISHER'
 }
 
 /**
@@ -26,99 +22,68 @@ interface ConnectOptions {
  * 	- logging
  */
 class RedisClient {
-	private redisClient: WrappedNodeRedisClient | null = null;
+	private readonly connections: Record<ConnectionType, WrappedNodeRedisClient> = {
+		[ConnectionType.REGULAR]: null!,
+		[ConnectionType.SUBSCRIBER]: null!,
+		[ConnectionType.PUBLISHER]: null!
+	};
 
-	private connectedAfterInitialization = false;
+	public get debug(): boolean {
+		return redis.debug_mode;
+	}
+
+	public set debug(value: boolean) {
+		redis.debug_mode = value;
+	}
 
 	/**
-	 * Get wrapped redis client.
+	 * Get regular redis client.
 	 */
-	public client(): WrappedNodeRedisClient {
-		return this.redisClient!;
+	public get client(): WrappedNodeRedisClient {
+		return this.connections[ConnectionType.REGULAR];
+	}
+
+	/**
+	 * Get subscriber redis client.
+	 */
+	public get subscriber(): WrappedNodeRedisClient {
+		return this.connections[ConnectionType.SUBSCRIBER];
+	}
+
+	/**
+	 * Get publisher redis client.
+	 */
+	public get publisher(): WrappedNodeRedisClient {
+		return this.connections[ConnectionType.PUBLISHER];
 	}
 
 	/**
 	 * Connect to Redis server.
 	 *
-	 * @param options	Connect options.
+	 * @param options	Client options.
 	 */
-	public connect(options: ConnectOptions): Promise<void> {
-		if (!this.redisClient) {
-			return new Promise((resolve, reject) => {
-				try {
-					options.client.retry_strategy = (retryOptions) => {
-						if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
-							return new Error(`Reconnecting... The server refused the connection. Cause: ${JSON.stringify(retryOptions.error)}.`);
-						}
-						if (retryOptions.total_retry_time > options.client.connect_timeout!) {
-							return new Error(`Reconnecting... Giving up. Total retry time: ${retryOptions.total_retry_time}. Retry time exhausted.`);
-						}
-						if (retryOptions.attempt > options.client.max_attempts!) {
-							return new Error(`Reconnecting... Maximum reconnect attempts of ${options.client.max_attempts!} have been reached.`);
-						}
+	public async connect(options: ConnectOptions): Promise<void> {
+		options.retry_strategy = (retryOptions) => {
+			if (retryOptions.error && retryOptions.error.code === 'ECONNREFUSED') {
+				return new Error(`Reconnecting... The server refused the connection. Cause: ${JSON.stringify(retryOptions.error)}.`);
+			}
+			if (retryOptions.total_retry_time > options.connect_timeout) {
+				return new Error(`Reconnecting... Giving up. Total retry time: ${retryOptions.total_retry_time}. Retry time exhausted.`);
+			}
+			if (retryOptions.attempt > options.max_attempts) {
+				return new Error(`Reconnecting... Maximum reconnect attempts of ${options.max_attempts} have been reached.`);
+			}
 
-						// retry after x milliseconds
-						return Math.min(number.randomInt(2 ** (retryOptions.attempt - 1), 2 ** retryOptions.attempt) * 1000, options.client.retry_max_delay!);
-					};
+			// retry after x milliseconds
+			return Math.min(number.randomInt(2 ** (retryOptions.attempt - 1), 2 ** retryOptions.attempt) * 1000, options.retry_max_delay);
+		};
 
-					logger.info(`Redis client connecting to ${options.client.host}:${options.client.port} ...`);
-					redis.debug_mode = options.debug || false;
-					this.redisClient = createNodeRedisClient(options.client);
-
-					this.redisClient.nodeRedis.on('ready', () => {
-						logger.debug('Connection established.');
-
-						if (options.monitor) {
-							this.redisClient!.nodeRedis.on('monitor', (timestamp: string, args: any[], replyStr: string) => {
-								logger.debug(
-									`Monitored: Raw reply: ${replyStr}. Args: ${JSON.stringify(args)}. Timestamp: ${new Date(Number(timestamp) * 1000)}.`
-								);
-							});
-
-							logger.debug('Entering monitor mode...');
-							this.redisClient!.nodeRedis.MONITOR((err) => {
-								if (err) {
-									return reject(err);
-								}
-								this.connectedAfterInitialization = true;
-								return resolve();
-							});
-						} else {
-							this.connectedAfterInitialization = true;
-							resolve();
-						}
-					});
-
-					this.redisClient.nodeRedis.on('error', (err) => {
-						if (!this.connectedAfterInitialization) {
-							return reject(err);
-						}
-
-						if (err.code === 'CONNECTION_BROKEN') {
-							throw err;
-						}
-
-						return RedisClient.logRedisError(err);
-					});
-
-					this.redisClient.nodeRedis.on('warning', (msg: string) => logger.warning(`Warning: ${msg}.`));
-
-					this.redisClient.nodeRedis.on('connect', () => logger.info('Stream is connecting...'));
-
-					this.redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
-						logger.info(`Reconnecting... Delay: ${reconnect.delay} ms. Attempt: ${reconnect.attempt}.`);
-						if (reconnect.error) {
-							RedisClient.logRedisError(reconnect.error);
-						}
-					});
-
-					this.redisClient.nodeRedis.on('end', () => logger.warning('Connection closed.'));
-				} catch (e) {
-					reject(e);
-				}
-			});
-		}
-		return Promise.resolve();
+		logger.info(`Establishing connections to ${options.host}:${options.port} ...`);
+		await Promise.all([
+			this.establishConnection(options, ConnectionType.REGULAR),
+			this.establishConnection(options, ConnectionType.SUBSCRIBER),
+			this.establishConnection(options, ConnectionType.PUBLISHER)
+		]);
 	}
 
 	/**
@@ -129,14 +94,61 @@ class RedisClient {
 	public async disconnect(graceful = true): Promise<void> {
 		if (graceful) {
 			logger.notice('Shutting down gracefully...');
-			await this.redisClient!.quit();
+			await Promise.all([
+				this.connections[ConnectionType.REGULAR].quit(),
+				this.connections[ConnectionType.SUBSCRIBER].quit(),
+				this.connections[ConnectionType.PUBLISHER].quit()
+			]);
 		} else {
 			logger.notice('Shutting down forcibly...');
-			await this.redisClient!.end(true);
+			this.connections[ConnectionType.REGULAR].end(true);
+			this.connections[ConnectionType.SUBSCRIBER].end(true);
+			this.connections[ConnectionType.PUBLISHER].end(true);
 		}
 	}
 
-	private static logRedisError(error: RedisError): void {
+	private async establishConnection(options: ConnectOptions, connectionType: ConnectionType): Promise<void> {
+		return new Promise((resolve, reject) => {
+			try {
+				let redisClient = createNodeRedisClient(options);
+				RedisClient.attachEventListeners(redisClient, connectionType);
+
+				redisClient.nodeRedis.on('ready', () => {
+					this.connections[connectionType] = redisClient;
+					redisClient = null!;
+
+					logger.debug(`${connectionType} connection established.`);
+					resolve(); // @fixme test what happens when can't connect
+				});
+			} catch (e) {
+				reject(e);
+			}
+		});
+	}
+
+	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType): void {
+		redisClient.nodeRedis.on('error', (err) => {
+			logger.error(`${connectionType} ${RedisClient.formatRedisError(err)}`);
+		});
+		redisClient.nodeRedis.on('warning', (msg) => {
+			logger.warning(`${connectionType} warning: ${msg}.`);
+		});
+
+		redisClient.nodeRedis.on('connect', () => {
+			logger.info(`${connectionType} stream is connecting...`);
+		});
+		redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error: RedisError }) => {
+			logger.debug(`${connectionType} reconnecting... Delay: ${reconnect.delay} ms. Attempt: ${reconnect.attempt}.`);
+			if (reconnect.error) {
+				logger.error(`${connectionType} ${RedisClient.formatRedisError(reconnect.error)}`);
+			}
+		});
+		redisClient.nodeRedis.on('end', () => {
+			logger.warning(`${connectionType} connection closed.`);
+		});
+	}
+
+	private static formatRedisError(error: RedisError): string {
 		// @ts-ignore
 		let errMsg = `Code: ${error.code}. Origin: ${error.origin}. `;
 		if (error instanceof ReplyError) {
@@ -145,10 +157,10 @@ class RedisClient {
 		}
 		if (error instanceof AggregateError) {
 			// @ts-ignore
-			errMsg += `Aggregated errors: ${JSON.stringify(error.errors)}. `;
+			errMsg += `Aggregated errors: ${JSON.stringify(error.errors)}.`;
 		}
-		logger.error(errMsg, error);
+		return errMsg;
 	}
 }
 
-export { RedisClient, ConnectOptions, ClientOpts };
+export { RedisClient, ConnectOptions };

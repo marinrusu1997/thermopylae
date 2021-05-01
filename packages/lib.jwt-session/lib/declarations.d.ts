@@ -29,7 +29,7 @@ declare interface IssuedJwtPayload {
 
 	/**
 	 * The "exp" (expiration time) claim identifies the expiration time on or after which the JWT must not be accepted for processing.
-	 * The value should be in NumericDate[10][11] format.
+	 * The value should be in NumericDate format.
 	 */
 	readonly exp: number;
 
@@ -95,11 +95,13 @@ interface UserSessionOperationContext<Device extends DeviceBase, Location> {
 	 */
 	readonly ip: string;
 	/**
-	 * Device from where session was created/accessed.
+	 * Device from where session was created/accessed. <br/>
+	 * Can be *undefined* if device is unknown.
 	 */
-	readonly device: DeepReadonly<Device>;
+	readonly device?: DeepReadonly<Device>;
 	/**
-	 * Location from where session was created/accessed.
+	 * Location from where session was created/accessed. <br/>
+	 * Can be *undefined* if location is unknown.
 	 */
 	readonly location?: DeepReadonly<Location>;
 }

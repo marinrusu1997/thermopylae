@@ -1,5 +1,5 @@
 import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
-import { VerifyOptions, SignOptions, sign, verify } from 'jsonwebtoken';
+import { VerifyOptions, SignOptions, sign, verify, TokenExpiredError, JsonWebTokenError, NotBeforeError } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
 import type { DeepReadonly } from 'utility-types';
 import { DeviceBase, IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
@@ -68,7 +68,7 @@ interface SessionTokens {
 	readonly refreshToken: string;
 }
 
-const enum JwtManagerEvents {
+const enum JwtManagerEvent {
 	SESSION_INVALIDATED = 'SESSION_INVALIDATED',
 	ALL_SESSIONS_INVALIDATED = 'ALL_SESSIONS_INVALIDATED'
 }
@@ -134,7 +134,9 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * 							Provided properties will override the default ones.
 	 *
 	 * @throws {TokenExpiredError}	When token is expired.
-	 * @throws {Exception}			When token was invalided.
+	 * @throws {JsonWebTokenError}	When token is invalid.
+	 * @throws {NotBeforeError}		When token is used before its activation timestamp.
+	 * @throws {Exception}			When token was invalided with error code {@link ErrorCodes.INVALID}.
 	 *
 	 * @returns		JWT access token payload.
 	 */
@@ -211,12 +213,12 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * @param jwtPayload		Payload of the access token.
 	 * @param refreshToken		Refresh token.
 	 *
-	 * @emits {@link JwtManagerEvents.SESSION_INVALIDATED}.
+	 * @emits {@link JwtManagerEvent.SESSION_INVALIDATED}.
 	 */
 	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
 		logger.info(`Deleted session with refresh token '${refreshToken}' of the subject '${jwtPayload.sub}'.`);
-		this.emit(JwtManagerEvents.SESSION_INVALIDATED, jwtPayload);
+		this.emit(JwtManagerEvent.SESSION_INVALIDATED, jwtPayload);
 	}
 
 	/**
@@ -225,7 +227,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * @param jwtPayload		Payload of the access token. <br/>
 	 * 							Access token belongs to session from where invalidation occurs.
 	 *
-	 * @emits {@link JwtManagerEvents.ALL_SESSIONS_INVALIDATED}
+	 * @emits {@link JwtManagerEvent.ALL_SESSIONS_INVALIDATED}
 	 *
 	 * @returns		Number of the deleted sessions.
 	 */
@@ -234,7 +236,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 		logger.warning(
 			`Deleted all sessions (${invalidateSessionsNo}) of the subject '${jwtPayload.sub}'. Deletion has been made from session with anchor '${jwtPayload.anc}'.`
 		);
-		this.emit(JwtManagerEvents.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
+		this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
 		return invalidateSessionsNo;
 	}
 
@@ -275,7 +277,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(jwtPayload);
 	}
 
-	public on(event: JwtManagerEvents, listener: JwtManagerEventListener): this {
+	public on(event: JwtManagerEvent, listener: JwtManagerEventListener): this {
 		super.on(event, listener);
 		return this;
 	}
@@ -308,6 +310,13 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	private static fillWithDefaults<D extends DeviceBase, L>(options: JwtSessionManagerOptions<D, L>): JwtSessionManagerOptions<D, L> {
 		// mutate payload directly and avoid unnecessary object creations
 		((options.signOptions as unknown) as SignOptions).mutatePayload = true;
+		if (typeof options.signOptions.expiresIn !== 'number') {
+			throw createException(
+				ErrorCodes.NOT_ALLOWED,
+				`Expiration from sign options can't have a type different than number. Given value: ${options.signOptions.expiresIn}`
+			);
+		}
+
 		return options as JwtSessionManagerOptions<D, L>;
 	}
 }
@@ -315,12 +324,12 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 export {
 	JwtSessionManager,
 	JwtSessionManagerOptions,
-	InvalidationStrategyOptions,
 	JwtSignOptions,
 	JwtVerifyOptions,
-	JwtPayload,
 	SessionTokens,
-	IssuedJwtPayload,
-	JwtManagerEvents,
-	JwtManagerEventListener
+	JwtManagerEvent,
+	JwtManagerEventListener,
+	TokenExpiredError,
+	NotBeforeError,
+	JsonWebTokenError
 };
