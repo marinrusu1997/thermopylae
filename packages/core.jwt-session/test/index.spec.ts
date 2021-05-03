@@ -1,10 +1,9 @@
-import { expect } from 'chai';
 import { describe, it } from 'mocha';
-import { multiply, sum } from '../lib';
+import { JwtUserSessionMiddleware } from '../lib';
+import './bootstrap';
 
-describe('test', () => {
-	it('add numbers', () => {
-		expect(sum(1, 2, 3)).equals(6);
-		expect(multiply(2, 2)).equals(4);
+describe(`${JwtUserSessionMiddleware.name} spec`, () => {
+	it('starts tests', () => {
+		return undefined;
 	});
 });

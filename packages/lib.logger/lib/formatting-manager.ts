@@ -172,12 +172,14 @@ class FormattingManager {
 		formatters.set(
 			DefaultFormatters.PRINTF,
 			printf((info) => {
-				const { emitter, code, data, level, stack, label, timestamp } = info;
+				const { emitter, code, origin, data, level, stack, label, timestamp } = info;
 				if (emitter && code) {
-					// eslint-disable-next-line no-param-reassign
 					info.message = `${info.message}; Emitter: ${emitter}; Code: ${code}; Data: ${JSON.stringify(data)}`;
 				}
-				return `${timestamp} (${process.pid}) [${label}] ${level}:${info.message || ''}${stack ? `\n${stack}` : ''}`;
+
+				return `${timestamp} (${process.pid}) [${label}] ${level}:${info.message || ''}${stack ? `\n${stack}` : ''}${
+					origin instanceof Error ? `\nOrigin: ${origin.stack}` : ''
+				}`;
 			})
 		);
 		formatters.set(DefaultFormatters.JSON, json({ space: 4 }));

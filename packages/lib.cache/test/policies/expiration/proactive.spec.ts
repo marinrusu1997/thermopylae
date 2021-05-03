@@ -28,7 +28,7 @@ generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
 function gcFactory(): GarbageCollector<any> {
 	const gc = Math.random() >= 0.5 ? new HeapGarbageCollector() : new BucketGarbageCollector();
-	// UnitTestLogger.info(`Using ${gc.constructor.name.magenta}`);
+	// logger.info(`Using ${gc.constructor.name.magenta}`);
 	return gc;
 }
 

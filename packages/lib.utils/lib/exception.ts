@@ -4,7 +4,7 @@ import { Library, ObjMap } from '@thermopylae/core.declarations';
 /**
  * Creates an `Exception` which is thrown by this library.
  *
- * @internal
+ * @private
  *
  * @param code		Error code.
  * @param message	Error message.

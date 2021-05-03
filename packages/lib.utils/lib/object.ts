@@ -154,7 +154,7 @@ function sort(obj: ObjMap, sortArray = true): ObjMap {
 /**
  * @param obj
  * @param sortArray
- * @internal
+ * @private
  */
 function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 	if (!obj) return obj; // do not sort null, false or undefined

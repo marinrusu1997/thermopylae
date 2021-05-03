@@ -1,18 +1,13 @@
 {
     "name": "@thermopylae/lib.unit-test",
-    "description": "Unit tests environment",
+    "description": "Unit tests environment.",
     "keywords": [
-        "thermopylae",
         "library"
     ],
-    "version": "0.0.1604217724",
+    "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
-    "exports": {
-        ".": "./dist/index.js",
-        "./dist/fixtures/person": "./dist/fixtures/person/index.js",
-        "./dist/logger": "./dist/logger.js"
-    },
+    "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -42,17 +37,21 @@
         "chai-asserttype": "1",
         "chai-date-string": "0",
         "deep-freeze": "0",
+        "dockerode": "3",
         "json-schema-typed": "7",
-        "mocker-data-generator": "2"
+        "mocker-data-generator": "2",
+        "portscanner": "2"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "@types/deep-freeze": "0"
+        "@types/deep-freeze": "0",
+        "@types/dockerode": "3",
+        "@types/portscanner": "2"
     },
     "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
+        "chai": "4",
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [
@@ -60,7 +59,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "license": "ISC",
     "type": "commonjs"

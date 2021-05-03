@@ -32,14 +32,16 @@
     },
     "dependencies": {
         "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.jwt-session": "0",
+        "@thermopylae/lib.cache": "0",
         "@thermopylae/core.redis": "0",
         "cookie": "0"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
-        "ts-essentials": "7"
+        "@thermopylae/lib.unit-test": "0"
     },
     "peerDependencies": {
         "chai": "4",
@@ -53,5 +55,6 @@
     "engines": {
         "node": ">= 16"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "type": "commonjs"
 }

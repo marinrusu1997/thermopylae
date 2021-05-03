@@ -1,5 +1,5 @@
 import { LoggerInstance, WinstonLogger } from '@thermopylae/lib.logger';
-import { Library } from '@thermopylae/core.declarations';
+import { CoreModule } from '@thermopylae/core.declarations';
 
 /**
  * @private
@@ -12,7 +12,7 @@ let logger: WinstonLogger;
  * This method should be called once, at the application start, before using library.
  */
 function initLogger(): void {
-	logger = LoggerInstance.for(Library.UNIT_TEST);
+	logger = LoggerInstance.for(CoreModule.JWT_SESSION);
 }
 
 export { logger, initLogger };

@@ -38,7 +38,7 @@ parsersRepo.set('text/html', (body) => body);
 /**
  * Extracts content type from `Content-Type` header.
  *
- * @internal
+ * @private
  *
  * @param contentTypeHeaderValue	Value of the `Content-Type` header.
  *
@@ -52,7 +52,7 @@ function extractContentType(contentTypeHeaderValue: string): string {
 /**
  * Parses the body of HTTP response.
  *
- * @internal
+ * @private
  *
  * @param body			HTTP response body.
  * @param contentType	Value of the `Content-Type` header.
@@ -75,7 +75,7 @@ function parseBody(body: string, contentType?: string): string | ObjMap {
 /**
  * Makes a HTTP/HTTPS request.
  *
- * @internal
+ * @private
  *
  * @param url			URL where request should be made.
  * @param requestImpl       NodeJs request object.
