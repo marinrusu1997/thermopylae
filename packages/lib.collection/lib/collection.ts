@@ -3,7 +3,7 @@ import { IndexedStore } from '@thermopylae/lib.indexed-store';
 import createSubject, { Subject, Subscribable } from 'rx-subject';
 import { JSONSchema } from 'json-schema-typed';
 import Ajv from 'ajv';
-// @ts-ignore
+// eslint-disable-next-line import/extensions
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
 import { createException, ErrorCodes } from './error';
 import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions, PK_INDEX_NAME } from './typings';
@@ -90,7 +90,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	private readonly originality: DocumentOriginality;
 
-	private readonly validator: Nullable<Ajv.Ajv>;
+	private readonly validator: Nullable<Ajv>;
 
 	private readonly retriever: Retriever<Document>;
 
@@ -452,10 +452,10 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	private static validateDocuments<DocumentType>(validator: Ajv.Ajv, documents: ReadonlyArray<DocumentType>): void | never {
+	private static validateDocuments<DocumentType>(validator: Ajv, documents: ReadonlyArray<DocumentType>): void | never {
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
-				AjvLocalizeEn(validator.errors);
+				AjvLocalizeEn(validator.errors as null); // dumb ajv typings
 				throw createException(ErrorCodes.INVALID, validator.errorsText(validator.errors, { separator: '\n' }), document);
 			}
 		}

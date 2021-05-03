@@ -42,8 +42,12 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
-        "@types/dotenv": "^8.2.0",
-        "dotenv": "^8.2.0"
+        "@thermopylae/core.adapter.fastify": "0",
+        "@types/dotenv": "8",
+        "dotenv": "8",
+        "fastify": "3",
+        "fastify-cookie": "5",
+        "node-fetch": "2"
     },
     "peerDependencies": {
         "chai": "4",

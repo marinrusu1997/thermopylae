@@ -1,9 +1,10 @@
 import { describe, it } from 'mocha';
+import { expect } from '@thermopylae/lib.unit-test';
 import { JwtUserSessionMiddleware } from '../lib';
-import './bootstrap';
+import { serverAddress } from './bootstrap';
 
 describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 	it('starts tests', () => {
-		return undefined;
+		expect(serverAddress).to.be.a('string');
 	});
 });

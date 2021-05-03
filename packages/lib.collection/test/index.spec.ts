@@ -2,8 +2,8 @@ import { Cloneable, Equals, ObjMap } from '@thermopylae/core.declarations';
 import { array, chrono, number, object, string } from '@thermopylae/lib.utils';
 import { IndexValue } from '@thermopylae/lib.indexed-store';
 import { Exception } from '@thermopylae/lib.exception';
-import { chai } from '@thermopylae/lib.unit-test';
 import {
+	chai,
 	Person,
 	Address,
 	Finance,
@@ -12,8 +12,8 @@ import {
 	IndexValueGenerators,
 	PersonJsonSchema,
 	getPersonRepositoryClone
-} from '@thermopylae/lib.unit-test/dist/fixtures/person';
-import { TimedExecutionResult } from '@thermopylae/lib.utils/dist/chrono';
+} from '@thermopylae/lib.unit-test';
+
 import { beforeEach, describe, it } from 'mocha';
 import { $enum } from 'ts-enum-util';
 // @ts-ignore
@@ -44,7 +44,6 @@ import {
 	SortDirection,
 	PK_INDEX_NAME
 } from '../lib';
-import { ErrorCodes } from '../lib/error';
 
 const { expect } = chai;
 
@@ -186,7 +185,7 @@ describe(`${Collection.name} spec`, () => {
 			delete person.birthYear;
 
 			const throwable = () => collection.insert(new PersonDocument(person));
-			expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.INVALID);
+			expect(throwable).to.throw(Exception).haveOwnProperty('message', 'data must have required property birthYear');
 		});
 
 		it('inserts documents and indexes them', () => {
@@ -252,7 +251,7 @@ describe(`${Collection.name} spec`, () => {
 				expect(suiteCollection.count).to.be.eq(docsNo);
 			});
 
-			function findSlowly(pk: NonNullable<IndexValue>): TimedExecutionResult<Array<PersonDocument>> {
+			function findSlowly(pk: NonNullable<IndexValue>): chrono.TimedExecutionResult<Array<PersonDocument>> {
 				const query: Query<PersonDocument> = {
 					$or: [{ [PK_INDEX_NAME]: pk }, { [PK_INDEX_NAME]: '' }] // it will never be an empty string
 				};

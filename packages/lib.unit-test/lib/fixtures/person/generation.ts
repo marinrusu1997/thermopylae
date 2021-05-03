@@ -16,7 +16,7 @@ const TransactionGenerationSchema = {
 };
 const PersonGenerationSchema = {
 	id: {
-		faker: 'random.uuid'
+		faker: 'datatype.uuid'
 	},
 	firstName: {
 		faker: 'name.firstName'

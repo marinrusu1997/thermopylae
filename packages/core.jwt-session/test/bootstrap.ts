@@ -3,8 +3,14 @@ import { bootRedisContainer, initLogger as initUnitTestLogger, logger, DockerCon
 import { RedisClientInstance, initLogger as initRedisClientLogger, RedisClientOptions, ConnectionType } from '@thermopylae/core.redis';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
+import { server } from './server';
 
+const SERVER_PORT = 7569;
+
+// eslint-disable-next-line import/no-mutable-exports
+let serverAddress: string;
 let redisContainer: DockerContainer;
+
 before(async function boot() {
 	this.timeout(120_000);
 
@@ -36,15 +42,20 @@ before(async function boot() {
 
 	await RedisClientInstance.client.flushall();
 	await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
+
+	serverAddress = await server.listen(SERVER_PORT);
+	logger.debug(`Fastify server listening on ${serverAddress}`);
 });
 
 after(async function testEnvCleaner(): Promise<void> {
 	this.timeout(10_000);
 
-	await RedisClientInstance.disconnect();
+	if (serverAddress) {
+		await server.close();
+		logger.debug('Fastify server closed');
+	}
 
 	const proceed = [undefined, 1, '1', true, 'true', 'yes', 'y'];
-
 	if (redisContainer) {
 		if (proceed.includes(process.env.STOP_REDIS_CONTAINER_AFTER_TESTS)) {
 			logger.info(`Stopping redis container with id ${redisContainer.id}`);
@@ -57,4 +68,8 @@ after(async function testEnvCleaner(): Promise<void> {
 	} else {
 		logger.debug(`Redis container was not created by 'before' hook. Therefore, cleanup is not needed.`);
 	}
+
+	await RedisClientInstance.disconnect();
 });
+
+export { serverAddress };

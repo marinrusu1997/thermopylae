@@ -7,7 +7,7 @@
         "lib": [
             "ESNext"
         ],
-        "allowJs": true,
+        "allowJs": false,
         "checkJs": false,
         "declaration": true,
         "rootDir": ".",

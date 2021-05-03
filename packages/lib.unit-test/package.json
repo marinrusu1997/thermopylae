@@ -30,7 +30,7 @@
     "dependencies": {
         "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.utils": "0",
-        "@types/chai-arrays": "1",
+        "@types/chai-arrays": "2",
         "@types/chai-as-promised": "7",
         "chai-arrays": "2",
         "chai-as-promised": "7",
