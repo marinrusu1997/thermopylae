@@ -1,4 +1,4 @@
-import { number, chrono } from '@thermopylae/lib.utils';
+import { number } from '@thermopylae/lib.utils';
 import type { Container, Port } from 'dockerode';
 import type { ConnectionDetails } from './index';
 import { serviceAvailability, getDockerodeInstance, pullMissingImage, retrievePreviouslyCreatedContainer } from './index';
@@ -22,7 +22,7 @@ function extractRedisServerPort(containerPort: Port): boolean {
 	return false;
 }
 
-async function bootRedisContainer(attempts = 15): Promise<[Container, ConnectionDetails]> {
+async function bootRedisContainer(): Promise<[Container, ConnectionDetails]> {
 	const containerInfos = await getDockerodeInstance().listContainers({
 		all: true
 	});
@@ -53,12 +53,10 @@ async function bootRedisContainer(attempts = 15): Promise<[Container, Connection
 
 		logger.debug(`Starting Redis container ${container.id}`);
 		await container.start();
-
-		await chrono.sleep(1000); // wait redis service to be prepared on container
 	}
 
 	logger.debug(`Awaiting redis service availability on ${CONNECTION_DETAILS.host}:${CONNECTION_DETAILS.port}`);
-	await serviceAvailability(CONNECTION_DETAILS.host, CONNECTION_DETAILS.port, attempts);
+	await serviceAvailability(CONNECTION_DETAILS.host, CONNECTION_DETAILS.port, 10);
 
 	Object.freeze(CONNECTION_DETAILS);
 	return [container, CONNECTION_DETAILS];

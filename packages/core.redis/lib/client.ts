@@ -116,7 +116,7 @@ class RedisClient {
 				Object.entries(this.connections)
 					.filter(([, connection]) => connection != null)
 					.map(([type, connection]) => {
-						logger.notice(`Shutting down gracefully ${type} connection.`);
+						logger.debug(`Shutting down gracefully ${type} connection.`);
 						return connection.quit();
 					})
 			);
@@ -125,7 +125,7 @@ class RedisClient {
 				if (connection == null) {
 					continue;
 				}
-				logger.notice(`Shutting down forcibly ${type} connection`);
+				logger.debug(`Shutting down forcibly ${type} connection`);
 				connection.end(true);
 			}
 		}
@@ -143,7 +143,7 @@ class RedisClient {
 					this.connections[connectionType] = redisClient;
 					redisClient = null!;
 
-					logger.debug(`${connectionType} connection established.`);
+					logger.debug(`${connectionType} connection is ready.`);
 					resolve();
 				});
 
@@ -166,7 +166,7 @@ class RedisClient {
 		});
 
 		redisClient.nodeRedis.on('connect', () => {
-			logger.info(`${connectionType} connection is up.`);
+			logger.debug(`${connectionType} connection is established.`);
 		});
 		redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error?: RedisError }) => {
 			logger.debug(

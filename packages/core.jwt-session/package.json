@@ -31,17 +31,19 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.logger": "0",
-        "@thermopylae/lib.jwt-session": "0",
-        "@thermopylae/lib.cache": "0",
         "@thermopylae/core.redis": "0",
+        "@thermopylae/lib.cache": "0",
+        "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.jwt-session": "0",
+        "@thermopylae/lib.logger": "0",
         "cookie": "0"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
-        "@thermopylae/lib.unit-test": "0"
+        "@types/dotenv": "^8.2.0",
+        "dotenv": "^8.2.0"
     },
     "peerDependencies": {
         "chai": "4",

@@ -1,8 +1,8 @@
 import { chrono } from '@thermopylae/lib.utils';
 import Dockerode, { Container, ContainerInfo, Image, Port } from 'dockerode';
-import { checkPortStatus, Status } from 'portscanner';
+// @ts-ignore
+import { Host } from 'netmap';
 import { IncomingMessage } from 'http';
-import type { Seconds } from '@thermopylae/core.declarations';
 import { logger } from '../logger';
 
 type ServicePortExtractor = (port: Port) => boolean;
@@ -88,22 +88,18 @@ function readIncomingMessage(stream: IncomingMessage): Promise<void> {
 }
 
 async function serviceAvailability(host: string, port: number, attempts: number): Promise<void> {
-	while ((await serviceAvailability.getStatus(host, port, 10_000)) !== 'open' && attempts--) {
+	while ((await serviceAvailability.getStatus(host, port)) !== 'open' && attempts--) {
 		logger.debug(`Service availability on ${host}:${port} remaining attempts ${attempts}.`);
+		await chrono.sleep(1000);
 	}
 	if (attempts <= 0) {
 		throw new Error(`Service at ${host}:${port} is not available.`);
 	}
 }
-serviceAvailability.getStatus = async function (host: string, port: number, timeout?: Seconds): Promise<Status> {
-	return new Promise<Status>((resolve, reject) => {
-		checkPortStatus(port, host, { timeout }, (error, status) => {
-			if (error) {
-				return reject(error);
-			}
-			return resolve(status);
-		});
-	});
+serviceAvailability.getStatus = async function (host: string, port: number): Promise<'open' | 'closed'> {
+	const nmapHost = new Host(host);
+	const [portInfo] = await nmapHost.scanPorts([port]);
+	return portInfo && portInfo.open ? 'open' : 'closed';
 };
 
 export { getDockerodeInstance, retrievePreviouslyCreatedContainer, pullMissingImage, serviceAvailability };
