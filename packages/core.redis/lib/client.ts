@@ -41,6 +41,12 @@ class RedisClient {
 		[ConnectionType.PUBLISHER]: null!
 	};
 
+	private readonly queuedEventListeners: Record<ConnectionType, Array<[string, (...args: any[]) => void]>> = {
+		[ConnectionType.REGULAR]: [],
+		[ConnectionType.SUBSCRIBER]: [],
+		[ConnectionType.PUBLISHER]: []
+	};
+
 	private options!: Readonly<Record<ConnectionType, RedisClientOptions>>;
 
 	public get db(): string | number {
@@ -76,6 +82,38 @@ class RedisClient {
 		return this.connections[ConnectionType.PUBLISHER];
 	}
 
+	public on(connectionType: ConnectionType, event: 'message' | 'message_buffer', listener: (channel: string, message: string) => void): this;
+
+	public on(
+		connectionType: ConnectionType,
+		event: 'pmessage' | 'pmessage_buffer',
+		listener: (pattern: string, channel: string, message: string) => void
+	): this;
+
+	public on(connectionType: ConnectionType, event: 'subscribe' | 'unsubscribe', listener: (channel: string, count: number) => void): this;
+
+	public on(connectionType: ConnectionType, event: 'psubscribe' | 'punsubscribe', listener: (pattern: string, count: number) => void): this;
+
+	/**
+	 * Attach `listener` for `event` on `connectionType`. <br/>
+	 * This method is made because application modules tend to register listeners before connections are established.
+	 * Connection is made from the client constructor, meaning that on listeners registering clients are not created yet.
+	 * Therefore, listeners are queued before connections are established, and then registered.
+	 * In case connection is established already, they will be registered on it and skip the queueing phase.
+	 *
+	 * @param connectionType	Connection on which `listener` needs to be registered.
+	 * @param event				Event name.
+	 * @param listener			Event listener.
+	 */
+	public on(connectionType: ConnectionType, event: string, listener: (...args: any[]) => void): this {
+		if (this.connections[connectionType] != null) {
+			this.connections[connectionType].nodeRedis.on(event, listener);
+		} else {
+			this.queuedEventListeners[connectionType].push([event, listener]);
+		}
+		return this;
+	}
+
 	/**
 	 * Connect to Redis server.
 	 *
@@ -92,6 +130,15 @@ class RedisClient {
 					return this.establishConnection(options, connectionType);
 				})
 			);
+
+			for (const [connectionType, queuedEvents] of Object.entries(this.queuedEventListeners)) {
+				if (queuedEvents.length !== 0) {
+					throw new Error(
+						`Redis connections were established, but there are ${queuedEvents.length} queued event listeners for ${connectionType} connection that weren't registered.`
+					); // automatic connection quit for those that were established
+				}
+			}
+
 			this.options = connections as Readonly<Required<Record<ConnectionType, RedisClientOptions>>>;
 		} catch (e) {
 			// close connections that were successfully established
@@ -140,11 +187,29 @@ class RedisClient {
 				RedisClient.attachEventListeners(redisClient, connectionType);
 
 				redisClient.nodeRedis.on('ready', () => {
-					this.connections[connectionType] = redisClient;
-					redisClient = null!;
+					try {
+						logger.debug(`${connectionType} connection is ready.`);
 
-					logger.debug(`${connectionType} connection is ready.`);
-					resolve();
+						if (this.queuedEventListeners[connectionType].length) {
+							logger.debug(
+								`${connectionType} connection has ${this.queuedEventListeners[connectionType].length} queued event listener. Registering them.`
+							);
+
+							for (const [event, listener] of this.queuedEventListeners[connectionType]) {
+								redisClient.nodeRedis.on(event, listener);
+							}
+
+							this.queuedEventListeners[connectionType].length = 0;
+							delete this.queuedEventListeners[connectionType];
+						}
+
+						this.connections[connectionType] = redisClient;
+						redisClient = null!;
+
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
 				});
 
 				redisClient.nodeRedis.on('error', (err) => {

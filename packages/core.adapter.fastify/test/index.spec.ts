@@ -6,7 +6,7 @@ import fetch from 'node-fetch';
 import { serialize } from 'cookie';
 import cookie from 'fastify-cookie';
 import fastify from 'fastify';
-import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '../lib';
+import { FastifyResponseAdapter, LOCATION_SYM, FastifyRequestAdapter } from '../lib';
 
 const PORT = 3572;
 
@@ -28,7 +28,7 @@ let request: {
 };
 
 app.post('/:pp1/:pp2', (req, res) => {
-	const requestAdapter = new FastifyRequestAdapter<ObjMap>(req);
+	const requestAdapter = new FastifyRequestAdapter(req);
 	requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
 
 	request = {

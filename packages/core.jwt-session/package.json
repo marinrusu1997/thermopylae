@@ -39,11 +39,12 @@
         "cookie": "0"
     },
     "devDependencies": {
+        "@thermopylae/core.adapter.fastify": "0",
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
-        "@thermopylae/core.adapter.fastify": "0",
         "@types/dotenv": "8",
+        "@types/node-fetch": "2",
         "dotenv": "8",
         "fastify": "3",
         "fastify-cookie": "5",

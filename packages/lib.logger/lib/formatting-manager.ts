@@ -1,6 +1,9 @@
-import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+import { Client, CoreModule, ErrorCodes, Library, Nullable } from '@thermopylae/core.declarations';
 import { Format } from 'logform';
 import { format } from 'winston';
+// eslint-disable-next-line import/extensions
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
+import chalk from 'chalk';
 import { createException } from './error';
 
 const enum OutputFormat {
@@ -15,6 +18,8 @@ const enum DefaultFormatters {
 	ERRORS = 'errors',
 	SPLAT = 'splat',
 	COLORIZE = 'colorize',
+	LABEL = 'LABEL',
+	LEVEL = 'LEVEL',
 	PRINTF = 'printf',
 	JSON = 'json',
 	PRETTY_PRINT = 'prettyPrint'
@@ -29,6 +34,10 @@ type Formatter = DefaultFormatters | string;
 class FormattingManager {
 	private readonly formatters: Map<Formatter, Format>;
 
+	private readonly formattedLabels: Record<string, string>;
+
+	private readonly formattedLevels: Record<keyof SyslogConfigSetLevels, keyof SyslogConfigSetLevels | string>;
+
 	private recipe!: Nullable<Array<Formatter>>;
 
 	/**
@@ -36,7 +45,11 @@ class FormattingManager {
 	 */
 	public constructor() {
 		this.formatters = new Map();
-		FormattingManager.defineFormatters(this.formatters);
+		this.defineFormatters();
+
+		this.formattedLabels = {};
+		this.formattedLevels = {};
+
 		this.setDefaultRecipe(OutputFormat.PRINTF);
 	}
 
@@ -87,6 +100,11 @@ class FormattingManager {
 		const order = [DefaultFormatters.TIMESTAMP, DefaultFormatters.ERRORS, DefaultFormatters.SPLAT, DefaultFormatters.ALIGN];
 
 		if (colorize) {
+			FormattingManager.defineFormattedLabels(this.formattedLabels);
+			FormattingManager.defineFormattedLevels(this.formattedLevels);
+
+			order.push(DefaultFormatters.LABEL);
+			order.push(DefaultFormatters.LEVEL);
 			order.push(DefaultFormatters.COLORIZE);
 		}
 
@@ -137,23 +155,19 @@ class FormattingManager {
 
 	/**
 	 * Adds predefined formatters to formatters map.
-	 *
-	 * @private
-	 *
-	 * @param formatters  Internal formatters map.
 	 */
-	private static defineFormatters(formatters: Map<Formatter, Format>): void {
+	private defineFormatters(): void {
 		const { align, errors, splat, colorize, printf, json, prettyPrint } = format;
-		formatters.set(
+		this.formatters.set(
 			DefaultFormatters.TIMESTAMP,
 			format.timestamp({
 				format: 'YYYY-MM-DD HH:mm:ss:SSS'
 			})
 		);
-		formatters.set(DefaultFormatters.ALIGN, align());
-		formatters.set(DefaultFormatters.ERRORS, errors({ stack: true }));
-		formatters.set(DefaultFormatters.SPLAT, splat());
-		formatters.set(
+		this.formatters.set(DefaultFormatters.ALIGN, align());
+		this.formatters.set(DefaultFormatters.ERRORS, errors({ stack: true }));
+		this.formatters.set(DefaultFormatters.SPLAT, splat());
+		this.formatters.set(
 			DefaultFormatters.COLORIZE,
 			colorize({
 				level: true,
@@ -169,7 +183,21 @@ class FormattingManager {
 				}
 			})
 		);
-		formatters.set(
+		this.formatters.set(DefaultFormatters.LABEL, {
+			transform: (info) => {
+				if (info.label && this.formattedLabels[info.label]) {
+					info.label = this.formattedLabels[info.label];
+				}
+				return info;
+			}
+		});
+		this.formatters.set(DefaultFormatters.LEVEL, {
+			transform: (info) => {
+				info.level = this.formattedLevels[info.level] as string;
+				return info;
+			}
+		});
+		this.formatters.set(
 			DefaultFormatters.PRINTF,
 			printf((info) => {
 				const { emitter, code, origin, data, level, stack, label, timestamp } = info;
@@ -182,8 +210,43 @@ class FormattingManager {
 				}`;
 			})
 		);
-		formatters.set(DefaultFormatters.JSON, json({ space: 4 }));
-		formatters.set(DefaultFormatters.PRETTY_PRINT, prettyPrint({ depth: 3 }));
+		this.formatters.set(DefaultFormatters.JSON, json({ space: 4 }));
+		this.formatters.set(DefaultFormatters.PRETTY_PRINT, prettyPrint({ depth: 3 }));
+	}
+
+	private static defineFormattedLevels(levels: Record<keyof SyslogConfigSetLevels, keyof SyslogConfigSetLevels | string>): void {
+		levels.debug = 'debug';
+		levels.info = 'info';
+		levels.notice = 'info';
+		levels.warning = chalk.underline('warning');
+		levels.error = chalk.bold('error');
+		levels.crit = chalk.underline(chalk.bold('crit'));
+		levels.alert = chalk.underline(chalk.bold('alert'));
+		levels.emerg = chalk.underline(chalk.bold('emerg'));
+	}
+
+	private static defineFormattedLabels(formattedLabels: Record<string, string>): void {
+		formattedLabels[Library.ASYNC] = chalk.italic(chalk.bgKeyword('silver')(Library.ASYNC));
+		formattedLabels[Library.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('gray')(Library.AUTHENTICATION));
+		formattedLabels[Library.CACHE] = chalk.italic(chalk.bgKeyword('white')(Library.CACHE));
+		formattedLabels[Library.COOKIE_SESSION] = chalk.italic(chalk.bgKeyword('maroon')(Library.COOKIE_SESSION));
+		formattedLabels[Library.INDEXED_STORE] = chalk.italic(chalk.bgKeyword('red')(Library.INDEXED_STORE));
+		formattedLabels[Library.COLLECTION] = chalk.italic(chalk.bgKeyword('purple')(Library.COLLECTION));
+		formattedLabels[Library.HEAP] = chalk.italic(chalk.bgKeyword('fuchsia')(Library.HEAP));
+		formattedLabels[Library.GEO_IP] = chalk.italic(chalk.bgKeyword('lime')(Library.GEO_IP));
+		formattedLabels[Library.JWT_SESSION] = chalk.italic(chalk.bgKeyword('green')(Library.JWT_SESSION));
+		formattedLabels[Library.POOL] = chalk.italic(chalk.bgKeyword('olive')(Library.POOL));
+		formattedLabels[Library.SMS_CLIENT] = chalk.italic(chalk.bgKeyword('navy')(Library.SMS_CLIENT));
+		formattedLabels[Library.UNIT_TEST] = chalk.italic(chalk.bgKeyword('blue')(Library.UNIT_TEST));
+		formattedLabels[Library.UTILS] = chalk.italic(chalk.bgKeyword('orange')(Library.UTILS));
+
+		formattedLabels[CoreModule.JWT_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_SESSION));
+		formattedLabels[CoreModule.COOKIE_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_SESSION));
+
+		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('silver')(Client.MYSQL));
+		formattedLabels[Client.SMS] = chalk.italic(chalk.bgKeyword('maroon')(Client.SMS));
+		formattedLabels[Client.REDIS] = chalk.italic(chalk.bgKeyword('gray')(Client.REDIS));
+		formattedLabels[Client.EMAIL] = chalk.italic(chalk.bgKeyword('purple')(Client.EMAIL));
 	}
 }
 

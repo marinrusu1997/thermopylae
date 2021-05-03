@@ -46,6 +46,10 @@ import { GenerateChallengeStep } from './authentication/steps/generate-challenge
 import { AccountStatusManager } from './managers/account-status-manager';
 import { logger } from './logger';
 
+// @fixme implement something like password confirmation, like when deleting repo on github,
+//	it requires from user his password, validate it, and then perform action,
+//	notice that on further actions of same kind, password is no longer needed (i think client stores some token from backend)
+
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
 

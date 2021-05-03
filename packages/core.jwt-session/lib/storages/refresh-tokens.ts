@@ -1,7 +1,7 @@
 import type { RefreshTokensStorage, UserSessionMetaData } from '@thermopylae/lib.jwt-session';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
-import { RedisClientInstance } from '@thermopylae/core.redis';
 import { ErrorCodes } from '@thermopylae/core.declarations';
+import { ConnectionType, RedisClientInstance } from '@thermopylae/core.redis';
 import type { JwtSessionDevice } from '../typings';
 import { createException } from '../error';
 import { logger } from '../logger';
@@ -27,7 +27,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 	public constructor(options: RefreshTokensRedisStorageOptions) {
 		this.options = options;
 
-		RedisClientInstance.subscriber.nodeRedis.on('message', (channel: string, message: string) => {
+		RedisClientInstance.on(ConnectionType.SUBSCRIBER, 'message', (channel, message) => {
 			if (!channel.startsWith('__keyspace@')) {
 				return;
 			}

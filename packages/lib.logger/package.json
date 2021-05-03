@@ -32,6 +32,7 @@
     "dependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
+        "chalk": "4",
         "winston": "3",
         "winston-daily-rotate-file": "4",
         "winston-graylog2": "2"
@@ -40,12 +41,13 @@
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
+        "@types/chalk": "2",
         "moment": "2"
     },
     "peerDependencies": {
-        "mocha": "8",
         "chai": "4",
         "logform": "2",
+        "mocha": "8",
         "winston-transport": "4"
     },
     "lint-staged": {
