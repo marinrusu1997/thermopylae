@@ -82,7 +82,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key ${refreshTokenKey}`);
 		}
 
-		logger.info(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);
+		logger.debug(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);
 
 		await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:${refreshTokenKey} del expired evicted`);
 	}

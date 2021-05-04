@@ -1,10 +1,13 @@
 import { FastifyRequestAdapter, FastifyResponseAdapter } from '@thermopylae/core.adapter.fastify';
 import cookie from 'fastify-cookie';
-import fastify from 'fastify';
+import fastify, { FastifyInstance } from 'fastify';
+import { HttpVerb } from '@thermopylae/core.declarations';
 import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, RefreshTokensRedisStorage } from '../lib';
 
 const server = fastify({
-	logger: false,
+	logger: {
+		level: 'error'
+	},
 	trustProxy: true
 });
 server.register(cookie);
@@ -63,22 +66,50 @@ const options: JwtUserSessionMiddlewareOptions = {
 
 const middleware = new JwtUserSessionMiddleware(options);
 
-server.post('/login', async (req, res) => {
+type EndpointOperation = 'login' | 'get_resource' | 'get_active_sessions' | 'renew_session' | 'logout' | 'logout_from_all_sessions';
+const routes: Readonly<Record<EndpointOperation, { path: string; method: HttpVerb & keyof FastifyInstance }>> = {
+	login: {
+		path: '/login',
+		method: 'post'
+	},
+	get_resource: {
+		path: '/resource',
+		method: 'get'
+	},
+	get_active_sessions: {
+		path: '/sessions',
+		method: 'get'
+	},
+	renew_session: {
+		path: '/session',
+		method: 'put'
+	},
+	logout: {
+		path: '/session',
+		method: 'delete'
+	},
+	logout_from_all_sessions: {
+		path: '/sessions',
+		method: 'delete'
+	}
+};
+
+server[routes.login.method](routes.login.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
 	await middleware.create(request, response, { role: 'user' }, { subject: 'uid1' });
 
-	response.send();
+	response.status(201).send();
 });
-server.get('/resource', async (req, res) => {
+server[routes.get_resource.method](routes.get_resource.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
 	const jwtPayload = await middleware.verify(request, response);
-	response.send({ rest: 'resource', role: jwtPayload.role });
+	response.status(200).send({ rest: 'resource', role: jwtPayload.role });
 });
-server.get('/sessions', async (req, res) => {
+server[routes.get_active_sessions.method](routes.get_active_sessions.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
@@ -86,23 +117,23 @@ server.get('/sessions', async (req, res) => {
 	const activeSessions = await middleware.sessionManager.readAll(jwtPayload.sub);
 	response.send(activeSessions);
 });
-server.put('/session', async (req, res) => {
+server[routes.renew_session.method](routes.renew_session.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
 	await middleware.refresh(request, response, { role: 'user' }, { subject: request.query('uid')! });
 	response.send();
 });
-server.delete('/session', async (req, res) => {
+server[routes.logout.method](routes.logout.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
 	const jwtPayload = await middleware.verify(request, response);
 	await middleware.delete(request, response, jwtPayload);
 
-	response.send();
+	response.status(200).send();
 });
-server.delete('/sessions', async (req, res) => {
+server[routes.logout_from_all_sessions.method](routes.logout_from_all_sessions.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
@@ -112,4 +143,4 @@ server.delete('/sessions', async (req, res) => {
 	response.send({ sessions: deletedSessions });
 });
 
-export { server };
+export { server, options, routes };

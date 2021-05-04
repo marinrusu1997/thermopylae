@@ -16,7 +16,8 @@ eslint.rules["import/no-unresolved"][1].ignore.push(
     './response',
     './response-headers',
     './status-codes',
-    './mime'
+    './mime',
+    './verb'
 );
 
 module.exports = eslint;

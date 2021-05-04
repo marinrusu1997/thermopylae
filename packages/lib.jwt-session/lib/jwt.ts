@@ -5,7 +5,6 @@ import type { DeepReadonly } from 'utility-types';
 import { DeviceBase, IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
 import { createException } from './error';
 import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
-import { logger } from './logger';
 
 /**
  * Payload of the JWT that will be actually signed.
@@ -118,10 +117,6 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 		const anchorableRefreshToken = await this.invalidationStrategy.generateRefreshToken(signOptions.subject, context);
 		const accessToken = await this.issueJWT(payload, anchorableRefreshToken.anchor, signOptions);
 
-		logger.info(
-			`Created new session for subject '${signOptions.subject}' with anchor '${anchorableRefreshToken.anchor}' and context: ${JSON.stringify(context)}.`
-		);
-
 		return { accessToken, refreshToken: anchorableRefreshToken.token };
 	}
 
@@ -200,10 +195,6 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, context);
 		const accessToken = await this.issueJWT(payload, anchorToRefreshToken, signOptions);
 
-		logger.info(
-			`Refreshed access token for subject '${signOptions.subject}' on session with anchor '${anchorToRefreshToken}'. Context: ${JSON.stringify(context)}`
-		);
-
 		return accessToken;
 	}
 
@@ -217,7 +208,6 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 */
 	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
-		logger.info(`Deleted session with refresh token '${refreshToken}' of the subject '${jwtPayload.sub}'.`);
 		this.emit(JwtManagerEvent.SESSION_INVALIDATED, jwtPayload);
 	}
 
@@ -233,9 +223,6 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 */
 	public async deleteAll(jwtPayload: IssuedJwtPayload): Promise<number> {
 		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
-		logger.warning(
-			`Deleted all sessions (${invalidateSessionsNo}) of the subject '${jwtPayload.sub}'. Deletion has been made from session with anchor '${jwtPayload.anc}'.`
-		);
 		this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
 		return invalidateSessionsNo;
 	}

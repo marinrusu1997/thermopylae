@@ -1,10 +1,17 @@
-import { describe, it, before } from 'mocha';
+import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { setTimeout } from 'timers/promises';
 import { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
-import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { initLogger, IssuedJwtPayload, JwtManagerEvent, JwtSessionManager, JwtSessionManagerOptions, DeviceBase, UserSessionOperationContext } from '../lib';
+import {
+	IssuedJwtPayload,
+	JwtManagerEvent,
+	JwtSessionManager,
+	JwtSessionManagerOptions,
+	DeviceBase,
+	UserSessionOperationContext,
+	InvalidationStrategyOptions
+} from '../lib';
 import { InvalidAccessTokensCacheAdapter } from './mocks/invalid-access-tokens-cache';
 import { RefreshTokensStorageAdapter } from './mocks/refresh-tokens-storage';
 
@@ -43,12 +50,6 @@ function sessionContext(): UserSessionOperationContext<DeviceBase, string> {
 }
 
 describe(`${JwtSessionManager.name} spec`, () => {
-	before(() => {
-		LoggerInstance.console.createTransport({ level: 'info' });
-		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, true);
-		initLogger();
-	});
-
 	it('creates sessions and renews them', async () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
@@ -272,7 +273,8 @@ describe(`${JwtSessionManager.name} spec`, () => {
 
 		const node2Opts = jwtSessionManagerOpts(1, 2, 'secret');
 		// shared DB
-		node2Opts.invalidationOptions.refreshTokensStorage = node1Opts.invalidationOptions.refreshTokensStorage;
+		(node2Opts.invalidationOptions as MutableSome<InvalidationStrategyOptions<any, any>, 'refreshTokensStorage'>).refreshTokensStorage =
+			node1Opts.invalidationOptions.refreshTokensStorage;
 		const node2 = new JwtSessionManager(node2Opts);
 		node2.on(JwtManagerEvent.SESSION_INVALIDATED, (accessTokenPayload) => {
 			// simulate that accessTokenPayload was sent by event bus
@@ -307,7 +309,8 @@ describe(`${JwtSessionManager.name} spec`, () => {
 
 		const node2Opts = jwtSessionManagerOpts(1, 2, 'secret');
 		// shared DB
-		node2Opts.invalidationOptions.refreshTokensStorage = node1Opts.invalidationOptions.refreshTokensStorage;
+		(node2Opts.invalidationOptions as MutableSome<InvalidationStrategyOptions<any, any>, 'refreshTokensStorage'>).refreshTokensStorage =
+			node1Opts.invalidationOptions.refreshTokensStorage;
 		const node2 = new JwtSessionManager(node2Opts);
 		node2.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (accessTokenPayload) => {
 			// simulate that accessTokenPayload was sent by event bus

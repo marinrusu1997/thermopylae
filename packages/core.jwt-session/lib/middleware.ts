@@ -29,7 +29,7 @@ import { createException } from './error';
 /**
  * Extract access token from *Authorization* header.
  */
-type AccessTokenExtractor = (authorization: string) => string;
+type AccessTokenExtractor = (authorization: string | null | undefined) => string;
 
 interface JwtUserSessionMiddlewareOptions {
 	/**
@@ -261,7 +261,11 @@ class JwtUserSessionMiddleware {
 		};
 	}
 
-	private static extractAccessToken(authorization: string): string {
+	private static extractAccessToken(authorization: string | undefined | null): string {
+		if (typeof authorization !== 'string') {
+			throw createException(ErrorCodes.NOT_FOUND, `Authorization header value not present.`);
+		}
+
 		const [scheme, token] = authorization.split(' ') as [Undefinable<string>, Undefinable<string>];
 		if (scheme !== 'Bearer') {
 			throw createException(ErrorCodes.UNPROCESSABLE, `Can't handle authorization scheme ${scheme}. Given authorization: ${authorization}`);

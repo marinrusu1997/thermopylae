@@ -1,10 +1,11 @@
-import { after, before } from 'mocha';
+import { after, before, beforeEach } from 'mocha';
 import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/lib.unit-test';
 import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
 import { Client, Library } from '@thermopylae/core.declarations';
 import { server } from './server';
+import { initLogger as initCoreJwtSessionLogger } from '../lib/logger';
 
 const SERVER_PORT = 7569;
 
@@ -32,6 +33,7 @@ before(async function boot() {
 
 	initUnitTestLogger();
 	initRedisClientLogger();
+	initCoreJwtSessionLogger();
 
 	let connectDetails: ConnectionDetails;
 	[redisContainer, connectDetails] = await bootRedisContainer();
@@ -48,11 +50,14 @@ before(async function boot() {
 		[ConnectionType.SUBSCRIBER]: redisClientOptions
 	});
 
-	await RedisClientInstance.client.flushall();
 	await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
 
 	serverAddress = await server.listen(SERVER_PORT);
 	logger.debug(`Fastify server listening on ${serverAddress}`);
+});
+
+beforeEach(async () => {
+	await RedisClientInstance.client.flushall();
 });
 
 after(async function testEnvCleaner(): Promise<void> {

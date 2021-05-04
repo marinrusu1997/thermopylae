@@ -31,6 +31,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/core.redis": "0",
         "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.exception": "0",
@@ -40,9 +41,9 @@
     },
     "devDependencies": {
         "@thermopylae/core.adapter.fastify": "0",
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@types/cookie": "0",
         "@types/dotenv": "8",
         "@types/node-fetch": "2",
         "dotenv": "8",
