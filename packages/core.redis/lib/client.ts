@@ -181,7 +181,7 @@ class RedisClient {
 	private async establishConnection(options: RedisClientOptions, connectionType: ConnectionType): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
-				logger.info(`Establishing ${connectionType} connection to ${RedisClient.redisUrl(options)}.`);
+				logger.debug(`Establishing ${connectionType} connection to ${RedisClient.redisUrl(options)}.`);
 
 				let redisClient = createNodeRedisClient(options);
 				RedisClient.attachEventListeners(redisClient, connectionType);
@@ -231,7 +231,7 @@ class RedisClient {
 		});
 
 		redisClient.nodeRedis.on('connect', () => {
-			logger.debug(`${connectionType} connection is established.`);
+			logger.info(`${connectionType} connection established.`);
 		});
 		redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error?: RedisError }) => {
 			logger.debug(

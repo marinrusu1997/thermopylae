@@ -1,7 +1,7 @@
 import { FastifyRequestAdapter, FastifyResponseAdapter } from '@thermopylae/core.adapter.fastify';
 import cookie from 'fastify-cookie';
 import fastify from 'fastify';
-import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, RefreshTokensRedisStorage } from '../lib';
+import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, RefreshTokensRedisStorage } from '../lib';
 
 const server = fastify({
 	logger: false,
@@ -9,7 +9,7 @@ const server = fastify({
 });
 server.register(cookie);
 
-const middleware = new JwtUserSessionMiddleware({
+const options: JwtUserSessionMiddlewareOptions = {
 	jwt: {
 		secret: 'secret',
 		signOptions: {
@@ -59,7 +59,9 @@ const middleware = new JwtUserSessionMiddleware({
 		},
 		persistent: true
 	}
-});
+};
+
+const middleware = new JwtUserSessionMiddleware(options);
 
 server.post('/login', async (req, res) => {
 	const request = new FastifyRequestAdapter(req);

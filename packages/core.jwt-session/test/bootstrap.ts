@@ -1,8 +1,9 @@
 import { after, before } from 'mocha';
-import { bootRedisContainer, initLogger as initUnitTestLogger, logger, DockerContainer, ConnectionDetails } from '@thermopylae/lib.unit-test';
-import { RedisClientInstance, initLogger as initRedisClientLogger, RedisClientOptions, ConnectionType } from '@thermopylae/core.redis';
-import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
+import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/lib.unit-test';
+import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
+import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
+import { Client, Library } from '@thermopylae/core.declarations';
 import { server } from './server';
 
 const SERVER_PORT = 7569;
@@ -19,7 +20,14 @@ before(async function boot() {
 		throw dotEnv.error;
 	}
 
-	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, true);
+	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+		colorize: true,
+		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
+		ignoredLabels: new Set([Library.UNIT_TEST]),
+		levelForLabel: {
+			[Client.REDIS]: 'info'
+		}
+	});
 	LoggerInstance.console.createTransport({ level: process.env.LOG_LEVEL || 'debug' });
 
 	initUnitTestLogger();
