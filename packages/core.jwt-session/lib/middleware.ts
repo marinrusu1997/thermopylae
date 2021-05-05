@@ -6,7 +6,7 @@ import type {
 	UserSessionOperationContext,
 	IssuedJwtPayload
 } from '@thermopylae/lib.jwt-session';
-import { JwtSessionManager, TokenExpiredError } from '@thermopylae/lib.jwt-session';
+import { JsonWebTokenError, JwtSessionManager, TokenExpiredError } from '@thermopylae/lib.jwt-session';
 import type {
 	ClientType,
 	HttpHeaderValue,
@@ -31,6 +31,52 @@ import { createException } from './error';
  */
 type AccessTokenExtractor = (authorization: string | null | undefined) => string;
 
+interface UserSessionCookiesOptions {
+	readonly name: {
+		readonly signature: string;
+		readonly payload: string;
+		readonly refresh: string;
+	};
+	readonly path: {
+		readonly access?: string;
+		/**
+		 * Very restrictive only to refresh operation!!!
+		 */
+		readonly refresh: string;
+	};
+	readonly sameSite?: true | false | 'lax' | 'strict' | 'none';
+	readonly domain?: string;
+	readonly persistent: boolean;
+}
+
+interface UserSessionOptions {
+	/**
+	 *
+	 */
+	readonly cookies: UserSessionCookiesOptions;
+	readonly headers: {
+		/**
+		 * Lowercase!!! // @fixme test it
+		 */
+		readonly access: HttpResponseHeader | string;
+		/**
+		 * Lowercase!!! // @fixme test it
+		 */
+		readonly refresh: HttpResponseHeader | string;
+	};
+	/**
+	 * Either: https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-2-921fce24e1b5
+	 * Or: https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
+	 */
+	readonly csrfHeader?: {
+		/**
+		 * Lowercase!!! // @fixme test it
+		 */
+		readonly name: HttpRequestHeader | string;
+		readonly value: HttpHeaderValue | string;
+	};
+}
+
 interface JwtUserSessionMiddlewareOptions {
 	/**
 	 * Options for {@link JwtSessionManager}.
@@ -39,49 +85,7 @@ interface JwtUserSessionMiddlewareOptions {
 	/**
 	 * User session options.
 	 */
-	readonly session: {
-		/**
-		 *
-		 */
-		readonly cookies: {
-			readonly name: {
-				readonly signature: string;
-				readonly payload: string;
-				readonly refresh: string;
-			};
-			readonly path: {
-				readonly access?: string;
-				/**
-				 * Very restrictive only to refresh operation!!!
-				 */
-				readonly refresh: string;
-			};
-			readonly sameSite?: true | false | 'lax' | 'strict' | 'none';
-			readonly domain?: string;
-		};
-		readonly headers: {
-			/**
-			 * Lowercase!!! // @fixme test it
-			 */
-			readonly access: HttpResponseHeader | string;
-			/**
-			 * Lowercase!!! // @fixme test it
-			 */
-			readonly refresh: HttpResponseHeader | string;
-		};
-		readonly persistent: boolean;
-		/**
-		 * Either: https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-2-921fce24e1b5
-		 * Or: https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
-		 */
-		readonly csrfHeader?: {
-			/**
-			 * Lowercase!!! // @fixme test it
-			 */
-			readonly name: HttpRequestHeader | string;
-			readonly value: HttpHeaderValue | string;
-		};
-	};
+	readonly session: UserSessionOptions;
 	readonly accessTokenExtractor?: AccessTokenExtractor;
 }
 
@@ -127,7 +131,8 @@ class JwtUserSessionMiddleware {
 			}
 		} catch (e) {
 			// ensure session is not left dangling
-			await this.jwtSessionManager.deleteOne(await this.jwtSessionManager.read(session.accessToken), session.refreshToken);
+			const accessTokenPayload = await this.jwtSessionManager.read(session.accessToken);
+			await this.jwtSessionManager.deleteOne(accessTokenPayload, session.refreshToken);
 			throw e;
 		}
 	}
@@ -145,7 +150,7 @@ class JwtUserSessionMiddleware {
 			if (payloadCookie != null) {
 				const csrf = req.header(this.options.session.csrfHeader!.name);
 				if (csrf !== this.options.session.csrfHeader!.value) {
-					throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value ${csrf} differs from the expected one.`);
+					throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
 				}
 
 				accessToken = `${payloadCookie}.${signatureCookie}`;
@@ -157,7 +162,7 @@ class JwtUserSessionMiddleware {
 		try {
 			return await this.jwtSessionManager.read(accessToken, verifyOptions);
 		} catch (e) {
-			if (e instanceof TokenExpiredError || (e instanceof Exception && e.code === ErrorCodes.INVALID)) {
+			if (e instanceof TokenExpiredError || e instanceof JsonWebTokenError || (e instanceof Exception && e.code === ErrorCodes.INVALID)) {
 				if (signatureCookie != null) {
 					res.header('set-cookie', serialize(this.options.session.cookies.name.signature, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
 				}
@@ -214,7 +219,7 @@ class JwtUserSessionMiddleware {
 
 	private setAccessTokenInResponseForBrowser(token: string, expiresIn: number | undefined, res: HttpResponse): void {
 		const [header, payload, signature] = token.split('.');
-		const accessTokenCookiesMaxAge = this.options.session.persistent
+		const accessTokenCookiesMaxAge = this.options.session.cookies.persistent
 			? typeof expiresIn === 'number'
 				? expiresIn
 				: (this.options.jwt.signOptions.expiresIn as number)
@@ -268,10 +273,10 @@ class JwtUserSessionMiddleware {
 
 		const [scheme, token] = authorization.split(' ') as [Undefinable<string>, Undefinable<string>];
 		if (scheme !== 'Bearer') {
-			throw createException(ErrorCodes.UNPROCESSABLE, `Can't handle authorization scheme ${scheme}. Given authorization: ${authorization}`);
+			throw createException(ErrorCodes.UNPROCESSABLE, `Authorization scheme needs to be 'Bearer'. Authorization header value: ${authorization}`);
 		}
 		if (typeof token !== 'string') {
-			throw createException(ErrorCodes.NOT_FOUND, `Can't extract access token. Given authorization ${authorization}`);
+			throw createException(ErrorCodes.NOT_FOUND, `Can't extract access token. Authorization header value ${authorization}`);
 		}
 		return token;
 	}
@@ -311,4 +316,4 @@ function isLowerCase(str: string): boolean {
 	return str.toLowerCase() === str;
 }
 
-export { JwtUserSessionMiddleware, AccessTokenExtractor, JwtUserSessionMiddlewareOptions };
+export { JwtUserSessionMiddleware, AccessTokenExtractor, JwtUserSessionMiddlewareOptions, UserSessionOptions, UserSessionCookiesOptions };

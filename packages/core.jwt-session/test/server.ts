@@ -1,7 +1,8 @@
-import { FastifyRequestAdapter, FastifyResponseAdapter } from '@thermopylae/core.adapter.fastify';
+import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '@thermopylae/core.adapter.fastify';
 import cookie from 'fastify-cookie';
 import fastify, { FastifyInstance } from 'fastify';
-import { HttpVerb } from '@thermopylae/core.declarations';
+import { HttpStatusCode, HttpVerb } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/lib.unit-test';
 import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, RefreshTokensRedisStorage } from '../lib';
 
 const server = fastify({
@@ -19,7 +20,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 			algorithm: 'HS384',
 			issuer: 'auth-server.com',
 			audience: ['auth-server.com', 'rest-server.com'],
-			expiresIn: 3
+			expiresIn: 2
 		},
 		verifyOptions: {
 			algorithms: ['HS384'],
@@ -35,7 +36,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 					sessions: 'reftoks',
 					refreshToken: 'reftok'
 				},
-				concurrentSessions: 3
+				concurrentSessions: 2
 			})
 		}
 	},
@@ -50,7 +51,8 @@ const options: JwtUserSessionMiddlewareOptions = {
 				access: '/api',
 				refresh: '/session'
 			},
-			sameSite: 'strict'
+			sameSite: 'strict',
+			persistent: true
 		},
 		headers: {
 			access: 'x-access-token',
@@ -59,8 +61,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 		csrfHeader: {
 			name: 'x-requested-with',
 			value: 'XmlHttpRequest'
-		},
-		persistent: true
+		}
 	}
 };
 
@@ -98,16 +99,34 @@ server[routes.login.method](routes.login.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	await middleware.create(request, response, { role: 'user' }, { subject: 'uid1' });
+	// @ts-ignore
+	req[LOCATION_SYM] = {
+		countryCode: 'RO',
+		regionCode: 'B',
+		city: 'Bucharest',
+		latitude: 15.6,
+		longitude: 18.6,
+		timezone: 'Bucharest +2'
+	};
 
-	response.status(201).send();
+	try {
+		await middleware.create(request, response, { role: 'user' }, { subject: 'uid1' });
+		response.status(HttpStatusCode.Created).send();
+	} catch (e) {
+		response.status(HttpStatusCode.BadRequest).send({ message: e.message });
+	}
 });
 server[routes.get_resource.method](routes.get_resource.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	const jwtPayload = await middleware.verify(request, response);
-	response.status(200).send({ rest: 'resource', role: jwtPayload.role });
+	try {
+		const jwtPayload = await middleware.verify(request, response);
+		response.status(HttpStatusCode.Ok).send({ rest: 'resource', role: jwtPayload.role });
+	} catch (e) {
+		logger.error(`${routes.get_resource.path}`, e);
+		response.status(HttpStatusCode.Forbidden).send({ message: e.message });
+	}
 });
 server[routes.get_active_sessions.method](routes.get_active_sessions.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
@@ -131,7 +150,7 @@ server[routes.logout.method](routes.logout.path, async (req, res) => {
 	const jwtPayload = await middleware.verify(request, response);
 	await middleware.delete(request, response, jwtPayload);
 
-	response.status(200).send();
+	response.status(HttpStatusCode.Ok).send();
 });
 server[routes.logout_from_all_sessions.method](routes.logout_from_all_sessions.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);

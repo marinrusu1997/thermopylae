@@ -280,5 +280,109 @@ export enum HttpRequestHeaderEnum {
 	/**
 	 * A general warning about possible problems with the entity body.
 	 */
-	WARNING = 'warning'
+	WARNING = 'warning',
+
+	/**
+	 * Tells a server which (presumably in the middle of a HTTP -> HTTPS migration) hosts mixed content
+	 * that the client would prefer redirection to HTTPS
+	 * and can handle Content-Security-Policy: upgrade-insecure-requests/
+	 * Must not be used with HTTP/2.
+	 */
+	UPGRADE_INSECURE_REQUESTS = 'upgrade-insecure-requests',
+
+	/**
+	 * Mainly used to identify Ajax requests (most JavaScript frameworks send this field with value of XMLHttpRequest);
+	 * also identifies Android apps using WebView.
+	 */
+	X_REQUESTED_WITH = 'x-requested-with',
+
+	/**
+	 * Requests a web application to disable their tracking of a user.
+	 * This is Mozilla's version of the X-Do-Not-Track header field (since Firefox 4.0 Beta 11).
+	 * Safari and IE9 also have support for this field.[23] On March 7, 2011, a draft proposal was submitted to IETF.
+	 * The W3C Tracking Protection Working Group is producing a specification.
+	 */
+	DNT = 'dnt',
+
+	/**
+	 * A de facto standard for identifying the originating IP address of a client connecting to a web server
+	 * through an HTTP proxy or load balancer. Superseded by Forwarded header.
+	 */
+	X_FORWARDED_FOR = 'x-forwarded-for',
+
+	/**
+	 * A de facto standard for identifying the original host requested by the client in the Host HTTP request header,
+	 * since the host name and/or port of the reverse proxy (load balancer) may differ
+	 * from the origin server handling the request. Superseded by Forwarded header.
+	 */
+	X_FORWARDED_HOST = 'x-forwarded-host',
+
+	/**
+	 * A de facto standard for identifying the originating protocol of an HTTP request,
+	 * since a reverse proxy (or a load balancer) may communicate with a web server using HTTP
+	 * even if the request to the reverse proxy is HTTPS. An alternative form of the header (X-ProxyUser-Ip)
+	 * is used by Google clients talking to Google servers. Superseded by Forwarded header.
+	 */
+	X_FORWARDED_PROTO = 'x-forwarded-proto',
+
+	/**
+	 * Non-standard header field used by Microsoft applications and load-balancers
+	 */
+	FRONT_END_HTTPS = 'front-end-https',
+
+	/**
+	 * Requests a web application to override the method specified in the request (typically POST)
+	 * with the method given in the header field (typically PUT or DELETE).
+	 * This can be used when a user agent or firewall prevents PUT or DELETE methods from
+	 * being sent directly (note that this is either a bug in the software component, which ought to be fixed,
+	 * or an intentional configuration, in which case bypassing it may be the wrong thing to do).
+	 */
+	X_HTTP_METHOD_OVERRIDE = 'x-http-method-override',
+
+	/**
+	 * Allows easier parsing of the MakeModel/Firmware that is usually found in the User-Agent String of AT&T Devices
+	 */
+	X_ATT_DEVICE_ID = 'x-att-deviceid',
+
+	/**
+	 * Links to an XML file on the Internet with a full description and details about the device currently connecting.
+	 * In the example to the right is an XML file for an AT&T Samsung Galaxy S2.
+	 */
+	X_WAP_PROFILE = 'x-wap-profile',
+
+	/**
+	 * Implemented as a misunderstanding of the HTTP specifications.
+	 * Common because of mistakes in implementations of early HTTP versions.
+	 * Has exactly the same functionality as standard Connection field.
+	 * Must not be used with HTTP/2.
+	 */
+	PROXY_CONNECTION = 'proxy-connection',
+
+	/**
+	 * Server-side deep packet insertion of a unique ID identifying customers of Verizon Wireless;
+	 * also known as "perma-cookie" or "supercookie"
+	 */
+	X_UIDH = 'x-uidh',
+
+	/**
+	 * Used to prevent cross-site request forgery. Alternative header names are: X-CSRFToken[38] and X-XSRF-TOKEN
+	 */
+	X_CSRF_TOKEN = 'x-csrf-token',
+
+	/**
+	 * Correlates HTTP requests between a client and server.
+	 */
+	X_REQUEST_ID = 'x-request-id',
+
+	/**
+	 * Correlates HTTP requests between a client and server.
+	 */
+	X_CORRELATION_ID = 'x-correlation-id',
+
+	/**
+	 * The Save-Data client hint request header available in Chrome, Opera, and Yandex
+	 * browsers lets developers deliver lighter, faster applications to users who opt-in to data saving mode
+	 * in their browser.
+	 */
+	SAVE_DATA = 'save-data'
 }

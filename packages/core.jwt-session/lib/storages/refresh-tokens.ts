@@ -65,7 +65,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			if (activeSessions >= this.options.concurrentSessions) {
 				throw createException(
 					ErrorCodes.OVERFLOW,
-					`Concurrent user sessions limit reached for subject ${subject}, as he has ${activeSessions} active sessions.`
+					`Concurrent user sessions limit reached for subject '${subject}', as he has ${activeSessions} active sessions.`
 				);
 			}
 		}
@@ -79,7 +79,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			.lpush(activeSessionsKey, refreshToken)
 			.exec();
 		if (wasSet !== 'OK') {
-			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key ${refreshTokenKey}`);
+			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key '${refreshTokenKey}'.`);
 		}
 
 		logger.debug(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);

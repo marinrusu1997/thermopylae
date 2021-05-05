@@ -89,7 +89,7 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	 * @inheritDoc
 	 */
 	public get ip(): string {
-		return this.req.ips ? this.req.ips[1] : this.req.ip;
+		return this.req.ip;
 	}
 
 	/**
