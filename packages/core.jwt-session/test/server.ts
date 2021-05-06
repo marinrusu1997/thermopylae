@@ -28,7 +28,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 			audience: 'rest-server.com'
 		},
 		invalidationOptions: {
-			refreshTokenTtl: 5,
+			refreshTokenTtl: 3,
 			refreshTokenLength: 18,
 			invalidAccessTokensCache: new InvalidAccessTokensMemCache(),
 			refreshTokensStorage: new RefreshTokensRedisStorage({
@@ -132,8 +132,8 @@ server[routes.get_active_sessions.method](routes.get_active_sessions.path, async
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	const jwtPayload = await middleware.verify(request, response);
-	const activeSessions = await middleware.sessionManager.readAll(jwtPayload.sub);
+	const subject = request.query('uid') ? request.query('uid')! : (await middleware.verify(request, response)).sub;
+	const activeSessions = await middleware.sessionManager.readAll(subject);
 	response.send(activeSessions);
 });
 server[routes.renew_session.method](routes.renew_session.path, async (req, res) => {

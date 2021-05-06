@@ -26,7 +26,7 @@ before(async function boot() {
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		ignoredLabels: new Set([Library.UNIT_TEST]),
 		levelForLabel: {
-			[Client.REDIS]: 'info'
+			[Client.REDIS]: 'debug'
 		}
 	});
 	LoggerInstance.console.createTransport({ level: process.env.LOG_LEVEL || 'debug' });

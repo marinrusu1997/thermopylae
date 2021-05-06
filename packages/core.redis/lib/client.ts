@@ -1,10 +1,12 @@
-import { number, error } from '@thermopylae/lib.utils';
+import { error, number } from '@thermopylae/lib.utils';
 import type { RequireSome } from '@thermopylae/core.declarations';
-import redis, { AggregateError } from 'redis';
+import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { ClientOpts, RedisError, RetryStrategy } from 'redis';
-import { createNodeRedisClient } from 'handy-redis';
+import redis, { AggregateError } from 'redis';
 import type { WrappedNodeRedisClient } from 'handy-redis';
+import { createNodeRedisClient } from 'handy-redis';
 import { logger } from './logger';
+import { createException } from './error';
 
 type RequireHostPortClientOptions = RequireSome<ClientOpts, 'host' | 'port'>;
 type RequirePathClientOptions = RequireSome<ClientOpts, 'path'>;
@@ -117,14 +119,22 @@ class RedisClient {
 	/**
 	 * Connect to Redis server.
 	 *
-	 * @param connections	Which connections needs to be opened.
+	 * @param connections	Which connections needs to be opened. <br/>
+	 * 						At least {@link ConnectionType.REGULAR} connection needs to be specified.
 	 */
 	public async connect(connections: Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>): Promise<void> {
+		if (connections[ConnectionType.REGULAR] == null) {
+			throw createException(ErrorCodes.REQUIRED, `Options for ${ConnectionType.REGULAR} connection are required.`);
+		}
+
 		try {
 			await Promise.all(
 				(Object.entries(connections) as [ConnectionType, RedisClientOptions][]).map(([connectionType, options]) => {
 					if (options.retry_strategy == null) {
 						options.retry_strategy = RedisClient.createRetryStrategy(connectionType, options);
+					}
+					if (options.db == null) {
+						options.db = 0;
 					}
 
 					return this.establishConnection(options, connectionType);
@@ -188,7 +198,7 @@ class RedisClient {
 
 				redisClient.nodeRedis.on('ready', () => {
 					try {
-						logger.debug(`${connectionType} connection is ready.`);
+						logger.debug(`${connectionType} connection is ready. Connection id: ${redisClient.nodeRedis.connection_id}.`);
 
 						if (this.queuedEventListeners[connectionType].length) {
 							logger.debug(
@@ -226,10 +236,24 @@ class RedisClient {
 	}
 
 	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType): void {
+		if (connectionType === ConnectionType.SUBSCRIBER) {
+			redisClient.nodeRedis.on('subscribe', (channel, count) => {
+				logger.debug(`${connectionType} connection subscribed to channel '${channel}' and now it has ${count} active subscriptions.`);
+			});
+			redisClient.nodeRedis.on('psubscribe', (pattern, count) => {
+				logger.debug(`${connectionType} connection subscribed to pattern '${pattern}' and now it has ${count} active subscriptions.`);
+			});
+			redisClient.nodeRedis.on('unsubscribe', (channel, count) => {
+				logger.debug(`${connectionType} connection unsubscribed from channel '${channel}' and now it has ${count} active subscriptions.`);
+			});
+			redisClient.nodeRedis.on('punsubscribe', (pattern, count) => {
+				logger.debug(`${connectionType} connection unsubscribed from pattern '${pattern}' and now it has ${count} active subscriptions.`);
+			});
+		}
+
 		redisClient.nodeRedis.on('warning', (msg) => {
 			logger.warning(`${connectionType} connection warning: ${msg}.`);
 		});
-
 		redisClient.nodeRedis.on('connect', () => {
 			logger.info(`${connectionType} connection established.`);
 		});

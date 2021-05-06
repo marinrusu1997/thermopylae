@@ -310,8 +310,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				})
 				.join(';');
 
-			/* GET RESOURCE */
-			// invalidate token
+			/* INVALIDATE TOKEN */
 			const logoutResp = await fetch(`${serverAddress}${routes.logout.path}`, {
 				method: routes.logout.method,
 				headers: {
@@ -321,6 +320,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(logoutResp.status).to.be.eq(200);
 
+			/* READ RESOURCE */
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}`, {
 				method: routes.get_resource.method,
 				headers: {
@@ -348,11 +348,45 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					expect(parsedCookie.Expires).to.be.eq('Thu, 01 Jan 1970 00:00:00 GMT');
 				}
 			});
+
+			/* READ ACTIVE SESSIONS AS ADMIN */
+			const activeSessionsAdminResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}?uid=uid1`, {
+				method: routes.get_active_sessions.method
+			});
+			const activeSessionsBody = await activeSessionsAdminResp.json();
+
+			expect(activeSessionsBody).to.be.ofSize(0);
 		});
 	});
 
-	describe('multiple sessions spec', () => {
-		it.only('limits number of concurrent sessions', async () => {
+	describe('logouts spec', () => {
+		it('removes active session from list when it expires', async () => {
+			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method
+			});
+			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
+
+			/* READ ACTIVE SESSIONS AS ADMIN */
+			const activeSessionsAdminResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}?uid=uid1`, {
+				method: routes.get_active_sessions.method
+			});
+			const activeSessionsBody = await activeSessionsAdminResp.json();
+
+			expect(activeSessionsBody).to.be.ofSize(1);
+			expect(activeSessionsBody[0].ip).to.be.eq('127.0.0.1');
+
+			/* W8 expiration */
+			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100);
+
+			/* READ ACTIVE SESSIONS AGAIN */
+			const activeSessionsAdminSecondResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}?uid=uid1`, {
+				method: routes.get_active_sessions.method
+			});
+			const activeSessionsSecondBody = await activeSessionsAdminSecondResp.json();
+			expect(activeSessionsSecondBody).to.be.ofSize(0);
+		}).timeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 1000);
+
+		it('limits number of concurrent sessions; reads all sessions; deletes all sessions', async () => {
 			/* AUTHENTICATE */
 			// first session
 			const firstAuthResp = await fetch(`${serverAddress}${routes.login.path}`, {
@@ -382,18 +416,99 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			expect(thirdAuthRespErr.message).to.be.eq("Concurrent user sessions limit reached for subject 'uid1', as he has 2 active sessions.");
 
 			/* READ ACTIVE SESSIONS */
-			const accessToken = firstAuthResp.headers.get(options.session.headers.access)!;
-			// const refreshToken = firstAuthResp.headers.get(options.session.headers.refresh)!;
+			const firstAccessToken = firstAuthResp.headers.get(options.session.headers.access)!;
 
 			const activeSessionsResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}`, {
 				method: routes.get_active_sessions.method,
 				headers: {
-					[AUTHORIZATION]: `Bearer ${accessToken}`
+					[AUTHORIZATION]: `Bearer ${firstAccessToken}`
 				}
 			});
 			const activeSessions = await activeSessionsResp.json();
 
-			console.log(activeSessions);
+			expect(activeSessions).to.be.ofSize(2);
+
+			expect(activeSessions[0].ip).to.be.eq('127.0.0.1');
+			expect(activeSessions[0].device).to.be.deep.eq({
+				name: ' ',
+				type: 'desktop',
+				client: { type: 'browser', name: 'Chrome', version: '89.0', engine: 'Blink', engineVersion: '' },
+				os: { name: 'GNU/Linux', version: '', platform: 'x64' }
+			});
+			expect(activeSessions[0].location).to.be.deep.eq({
+				countryCode: 'RO',
+				regionCode: 'B',
+				city: 'Bucharest',
+				latitude: 15.6,
+				longitude: 18.6,
+				timezone: 'Bucharest +2'
+			});
+			expect(activeSessions[0].expiresAt).to.be.greaterThan(activeSessions[0].createdAt);
+
+			expect(activeSessions[1].ip).to.be.eq('203.0.113.195');
+			expect(activeSessions[1].device).to.be.eq(undefined);
+			expect(activeSessions[1].location).to.be.deep.eq({
+				countryCode: 'RO',
+				regionCode: 'B',
+				city: 'Bucharest',
+				latitude: 15.6,
+				longitude: 18.6,
+				timezone: 'Bucharest +2'
+			});
+			expect(activeSessions[1].expiresAt).to.be.greaterThan(activeSessions[1].createdAt);
+
+			/* DELETE ACTIVE SESSIONS */
+			const logoutAllResponse = await fetch(`${serverAddress}${routes.logout_from_all_sessions.path}`, {
+				method: routes.logout_from_all_sessions.method,
+				headers: {
+					[AUTHORIZATION]: `Bearer ${firstAccessToken}`,
+					[options.session.headers.refresh]: firstAuthResp.headers.get(options.session.headers.refresh)!
+				}
+			});
+			const logoutResponse = await logoutAllResponse.json();
+			expect(logoutResponse).to.be.deep.eq({ sessions: 2 });
+
+			/* Ensure access tokens are no longer valid */
+			// first
+			const firstResourceResp = await fetch(`${serverAddress}${routes.get_resource.path}`, {
+				method: routes.get_resource.method,
+				headers: {
+					[AUTHORIZATION]: `Bearer ${firstAccessToken}`,
+					[options.session.headers.refresh]: firstAuthResp.headers.get(options.session.headers.refresh)!
+				}
+			});
+			const firstValidationError = await firstResourceResp.json();
+
+			expect(firstResourceResp.status).to.be.eq(HttpStatusCode.Forbidden);
+			expect(firstValidationError.message).to.match(/Token '.+' was forcibly invalidated\./);
+
+			// second
+			const secondSessionCookie = secondAuthResp.headers
+				.raw()
+				[SET_COOKIE].map((header) => {
+					const accessTokenCookie = Object.entries(parse(header))[0];
+					return `${accessTokenCookie[0]}=${accessTokenCookie[1]}`;
+				})
+				.join(';');
+
+			const secondResourceResp = await fetch(`${serverAddress}${routes.get_resource.path}`, {
+				method: routes.get_resource.method,
+				headers: {
+					[COOKIE]: secondSessionCookie,
+					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+				}
+			});
+			const secondValidationError = await secondResourceResp.json();
+
+			expect(secondResourceResp.status).to.be.eq(HttpStatusCode.Forbidden);
+			expect(secondValidationError.message).to.match(/Token '.+' was forcibly invalidated\./);
+
+			/* READ ACTIVE SESSIONS AS ADMIN */
+			const activeSessionsAdminResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}?uid=uid1`, {
+				method: routes.get_active_sessions.method
+			});
+			const activeSessionsBody = await activeSessionsAdminResp.json();
+			expect(activeSessionsBody).to.be.ofSize(0);
 		});
 	});
 });

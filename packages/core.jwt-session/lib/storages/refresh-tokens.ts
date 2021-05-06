@@ -28,14 +28,18 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 		this.options = options;
 
 		RedisClientInstance.on(ConnectionType.SUBSCRIBER, 'message', (channel, message) => {
-			if (!channel.startsWith('__keyspace@')) {
+			if (!channel.startsWith('__keyspace@') || !(message === 'del' || message === 'expired' || message === 'evicted')) {
 				return;
 			}
 
-			const [prefix, subject, refreshToken] = message.split(':');
+			const [, prefix, subject, refreshToken] = channel.split(':');
 			if (prefix !== this.options.keyPrefix.refreshToken) {
 				return;
 			}
+
+			RedisClientInstance.subscriber.unsubscribe(channel).catch((e) => {
+				logger.error(`Failed to unsubscribe from '${channel}' channel.`, e);
+			});
 
 			RedisClientInstance.client
 				.lrem(this.activeSessionsKey(subject), 1, refreshToken)
@@ -84,7 +88,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 
 		logger.debug(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);
 
-		await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:${refreshTokenKey} del expired evicted`);
+		await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:${refreshTokenKey}`);
 	}
 
 	public async read(subject: string, refreshToken: string): Promise<UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation> | undefined> {
@@ -94,6 +98,11 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 
 	public async readAll(subject: string): Promise<UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>[]> {
 		const activeSessionKeys = await RedisClientInstance.client.lrange(this.activeSessionsKey(subject), 0, -1);
+		if (activeSessionKeys.length === 0) {
+			// mget command bellow expects at least one key, therefore we early return
+			return (activeSessionKeys as unknown) as UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>[];
+		}
+
 		for (let i = 0; i < activeSessionKeys.length; i++) {
 			activeSessionKeys[i] = this.refreshTokenKey(subject, activeSessionKeys[i]);
 		}
@@ -128,6 +137,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			activeSessionKeys[i] = this.refreshTokenKey(subject, activeSessionKeys[i]);
 		}
 
+		// auto remove from active sessions list via emitted 'del' event via PubSub
 		const deletedSessionsNo = await RedisClientInstance.client.del(...activeSessionKeys);
 		if (deletedSessionsNo !== activeSessionKeys.length) {
 			logger.warning(
