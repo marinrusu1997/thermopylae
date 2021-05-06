@@ -2,7 +2,7 @@ import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declaratio
 import safeUid from 'uid-safe';
 import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
-import { IssuedJwtPayload, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData, DeviceBase } from './declarations';
+import { DeviceBase, IssuedJwtPayload, QueriedUserSessionMetaData, UserSessionMetaData, UserSessionOperationContext } from './declarations';
 
 // FIXME reference links
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
@@ -92,12 +92,12 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	/**
 	 * Read all of the **active** user sessions.
 	 *
-	 * @param subject		Subject user sessions are belonging to.
+	 * @param subject	Subject user sessions are belonging to.
 	 *
 	 * @returns			Refresh tokens with the sessions metadata. <br/>
 	 * 					When subject has no active sessions, returns an empty array.
 	 */
-	readAll(subject: string): Promise<Array<UserSessionMetaData<Device, Location>>>;
+	readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<Device, Location>>>;
 
 	/**
 	 * Delete `refreshToken` from the storage.
@@ -239,38 +239,35 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 *
 	 * @param subject		Subject sessions of which need to be retrieved.
 	 *
-	 * @returns				Active user sessions.
+	 * @returns				Active user sessions with their refresh tokens.
 	 */
-	public async getActiveUserSessions(subject: string): Promise<ReadonlyArray<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
+	public async getActiveUserSessions(subject: string): Promise<ReadonlyMap<string, DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
 		const activeSessions = await this.options.refreshTokensStorage.readAll(subject);
-		for (const session of activeSessions) {
+		for (const session of activeSessions.values()) {
 			(session as QueriedUserSessionMetaData<Device, Location>).expiresAt = session.createdAt + this.options.refreshTokenTtl;
 		}
-		return activeSessions as Array<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>;
+		return activeSessions as ReadonlyMap<string, DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>;
 	}
 
 	/**
-	 * Invalidate user session associated with JWT Access Token.
+	 * Invalidate user session associated with refresh token.
 	 *
-	 * @param jwtAccessToken	Access token.
+	 * @param subject			Subject of the session.
 	 * @param refreshToken		Refresh token.
 	 */
-	public async invalidateSession(jwtAccessToken: IssuedJwtPayload, refreshToken: string): Promise<void> {
-		await this.options.refreshTokensStorage.delete(jwtAccessToken.sub, refreshToken);
-		this.invalidateAccessToken(jwtAccessToken);
+	public invalidateSession(subject: string, refreshToken: string): Promise<void> {
+		return this.options.refreshTokensStorage.delete(subject, refreshToken);
 	}
 
 	/**
 	 * Invalidate all user sessions.
 	 *
-	 * @param jwtAccessToken	Access token of the session from where invalidation operation is made.
+	 * @param subject	Subject.
 	 *
 	 * @returns		Number of invalidated sessions.
 	 */
-	public async invalidateAllSessions(jwtAccessToken: IssuedJwtPayload): Promise<number> {
-		const invalidatedSessions = await this.options.refreshTokensStorage.deleteAll(jwtAccessToken.sub);
-		this.invalidateAccessTokensFromAllSessions(jwtAccessToken);
-		return invalidatedSessions;
+	public invalidateAllSessions(subject: string): Promise<number> {
+		return this.options.refreshTokensStorage.deleteAll(subject);
 	}
 
 	/**
@@ -292,16 +289,17 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 * **Notice** that associated user sessions won't be invalidated,
 	 * meaning that the user can obtain another access tokens from them by using their refresh tokens.
 	 *
-	 * @param jwtAccessToken	Access token of the session from where invalidation is being made.
+	 * @param subject				Subject.
+	 * @param jwtAccessTokenTtl		Ttl of the issued before access tokens to `subject`;
 	 */
-	public invalidateAccessTokensFromAllSessions(jwtAccessToken: IssuedJwtPayload): void {
-		const invalidationKey = `${jwtAccessToken.sub}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
+	public invalidateAccessTokensFromAllSessions(subject: string, jwtAccessTokenTtl: Seconds): void {
+		const invalidationKey = `${subject}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
 		// all of the tokens issues before this timestamp becomes invalid ones
 		const invalidatedAt = InvalidationStrategy.currentTimestamp();
-		// those issued nearly invalidation timestamp will have a ttl less than or equal to this one (assuming access tokens for one subject will have same ttl across all sessions)
-		const invalidationTtl = jwtAccessToken.exp - jwtAccessToken.iat;
+		// those issued nearly invalidation timestamp will have a ttl less than or equal to this one
+		// (assuming access tokens for one subject will have same ttl across all sessions)
 
-		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, invalidationTtl);
+		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, jwtAccessTokenTtl);
 	}
 
 	private static currentTimestamp(): UnixTimestamp {

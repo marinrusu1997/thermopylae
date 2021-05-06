@@ -22,6 +22,11 @@ interface RefreshTokensRedisStorageOptions {
 }
 
 class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice, HTTPRequestLocation> {
+	private static readonly NO_ACTIVE_SESSIONS: ReadonlyMap<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>> = new Map<
+		string,
+		UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>
+	>();
+
 	private readonly options: RefreshTokensRedisStorageOptions;
 
 	public constructor(options: RefreshTokensRedisStorageOptions) {
@@ -96,32 +101,34 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 		return session ? JSON.parse(session) : undefined;
 	}
 
-	public async readAll(subject: string): Promise<UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>[]> {
-		const activeSessionKeys = await RedisClientInstance.client.lrange(this.activeSessionsKey(subject), 0, -1);
-		if (activeSessionKeys.length === 0) {
+	public async readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>>> {
+		const refreshTokens = await RedisClientInstance.client.lrange(this.activeSessionsKey(subject), 0, -1);
+		if (refreshTokens.length === 0) {
 			// mget command bellow expects at least one key, therefore we early return
-			return (activeSessionKeys as unknown) as UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>[];
+			return RefreshTokensRedisStorage.NO_ACTIVE_SESSIONS;
 		}
 
-		for (let i = 0; i < activeSessionKeys.length; i++) {
-			activeSessionKeys[i] = this.refreshTokenKey(subject, activeSessionKeys[i]);
+		const refreshTokenKeys = new Array<string>(refreshTokens.length);
+		for (let i = 0; i < refreshTokens.length; i++) {
+			refreshTokenKeys[i] = this.refreshTokenKey(subject, refreshTokens[i]);
 		}
 
-		const activeSessions = (await RedisClientInstance.client.mget(...activeSessionKeys)) as (
+		const activeSessions = (await RedisClientInstance.client.mget(...refreshTokenKeys)) as (
 			| UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>
 			| string
 			| null
 		)[];
 
-		for (let i = activeSessions.length - 1; i >= 0; i--) {
+		const refreshTokenToActiveSessions = new Map<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>>();
+
+		for (let i = 0; i < activeSessions.length; i++) {
 			if (activeSessions[i] == null) {
-				activeSessions.splice(i, 1);
 				continue;
 			}
-			activeSessions[i] = JSON.parse(activeSessions[i] as string);
+			refreshTokenToActiveSessions.set(refreshTokens[i], JSON.parse(activeSessions[i] as string));
 		}
 
-		return activeSessions as UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>[];
+		return refreshTokenToActiveSessions;
 	}
 
 	public async delete(subject: string, refreshToken: string): Promise<void> {
@@ -133,6 +140,10 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 
 	public async deleteAll(subject: string): Promise<number> {
 		const activeSessionKeys = await RedisClientInstance.client.lrange(this.activeSessionsKey(subject), 0, -1);
+		if (activeSessionKeys.length === 0) {
+			return 0;
+		}
+
 		for (let i = 0; i < activeSessionKeys.length; i++) {
 			activeSessionKeys[i] = this.refreshTokenKey(subject, activeSessionKeys[i]);
 		}

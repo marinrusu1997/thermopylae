@@ -4,5 +4,5 @@ const RedisClientInstance = new RedisClient();
 
 export { RedisClientInstance };
 export { ConnectionType } from './client';
-export type { RedisClientOptions } from './client';
+export type { RedisClientOptions, DebuggableEventType } from './client';
 export { initLogger } from './logger';

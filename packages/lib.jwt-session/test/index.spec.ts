@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { setTimeout } from 'timers/promises';
-import { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
+import type { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import {
 	IssuedJwtPayload,
@@ -154,7 +154,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		await expect(sessionManager.read(thirdAccessToken)).to.eventually.have.property('role', 'user');
 
 		// destroy session
-		await sessionManager.deleteOne(firstJwtPayload, userSession.refreshToken);
+		await sessionManager.deleteOne(firstJwtPayload.sub, userSession.refreshToken, firstJwtPayload);
 		expect(invalidatedSessionEventPayload).to.be.deep.eq(firstJwtPayload);
 
 		/*
@@ -205,7 +205,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 			/^Refresh token '.{20}' for subject uid1 doesn't exist\.$/
 		);
 
-		await sessionManager.deleteOne(accessTokenPayload, userSession.refreshToken);
+		await sessionManager.deleteOne(accessTokenPayload.sub, userSession.refreshToken, accessTokenPayload);
 		expect(invalidatedSessionEventPayload).to.be.deep.eq(accessTokenPayload);
 
 		await expect(sessionManager.read(userSession.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
@@ -217,9 +217,11 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	it('invalidates all of the user sessions', async () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
-		let invalidatedAllSessionsEventPayload: IssuedJwtPayload | undefined;
-		sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (payload) => {
-			invalidatedAllSessionsEventPayload = payload;
+		let invalidatedAllSessionsSubject: string | undefined;
+		let invalidatedAllSessionsAccessTokenTtl: number | undefined;
+		sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (subject, accessTokenTtl) => {
+			invalidatedAllSessionsSubject = subject;
+			invalidatedAllSessionsAccessTokenTtl = accessTokenTtl;
 		});
 
 		const firstSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
@@ -232,15 +234,16 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		await expect(sessionManager.read(secondSession.accessToken)).to.eventually.have.property('role', 'user');
 
 		// read all of them, ensure they existing
-		const activeSessions = await sessionManager.readAll('uid1');
+		const activeSessions = Array.from((await sessionManager.readAll('uid1')).values());
 		expect(activeSessions).to.be.ofSize(2);
 		expect(activeSessions[0].ip).to.be.eq('127.0.0.1');
 		expect(activeSessions[1].device!.type).to.be.eq('smartphone');
 
 		// invalidate all of them
 		const secondSessionPayload = await sessionManager.read(secondSession.accessToken);
-		await expect(sessionManager.deleteAll(secondSessionPayload)).to.eventually.be.eq(2);
-		expect(invalidatedAllSessionsEventPayload).to.be.deep.eq(secondSessionPayload);
+		await expect(sessionManager.deleteAll(secondSessionPayload.sub, secondSessionPayload)).to.eventually.be.eq(2);
+		expect(invalidatedAllSessionsSubject).to.be.deep.eq(secondSessionPayload.sub);
+		expect(invalidatedAllSessionsAccessTokenTtl).to.be.deep.eq(secondSessionPayload.exp - secondSessionPayload.iat);
 
 		await expect(sessionManager.read(firstSession.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
 		await expect(sessionManager.update(firstSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext())).to.eventually.be.rejectedWith(
@@ -286,7 +289,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		await expect(node2.read(userSession.accessToken)).to.eventually.have.property('sub', 'uid1');
 
 		const accessTokenPayload = await node1.read(userSession.accessToken);
-		await node2.deleteOne(accessTokenPayload, userSession.refreshToken);
+		await node2.deleteOne(accessTokenPayload.sub, userSession.refreshToken, accessTokenPayload);
 
 		await expect(node1.read(userSession.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
 		await expect(node2.read(userSession.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
@@ -312,9 +315,9 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		(node2Opts.invalidationOptions as MutableSome<InvalidationStrategyOptions<any, any>, 'refreshTokensStorage'>).refreshTokensStorage =
 			node1Opts.invalidationOptions.refreshTokensStorage;
 		const node2 = new JwtSessionManager(node2Opts);
-		node2.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (accessTokenPayload) => {
+		node2.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (subject, accessTokenTtl) => {
 			// simulate that accessTokenPayload was sent by event bus
-			node1.restrictAll(accessTokenPayload);
+			node1.restrictAll(subject, accessTokenTtl);
 		});
 
 		// create sessions
@@ -323,7 +326,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 
 		// invalidate them
 		const node1SessionPayload = await node1.read(node1Session.accessToken);
-		await expect(node2.deleteAll(node1SessionPayload)).to.eventually.be.eq(2);
+		await expect(node2.deleteAll(node1SessionPayload.sub, node1SessionPayload)).to.eventually.be.eq(2);
 
 		// access tokens are no longer valid
 		await expect(node1.read(node2Session.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);

@@ -134,7 +134,7 @@ server[routes.get_active_sessions.method](routes.get_active_sessions.path, async
 
 	const subject = request.query('uid') ? request.query('uid')! : (await middleware.verify(request, response)).sub;
 	const activeSessions = await middleware.sessionManager.readAll(subject);
-	response.send(activeSessions);
+	response.send(Object.fromEntries(activeSessions));
 });
 server[routes.renew_session.method](routes.renew_session.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
@@ -147,8 +147,12 @@ server[routes.logout.method](routes.logout.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	const jwtPayload = await middleware.verify(request, response);
-	await middleware.delete(request, response, jwtPayload);
+	if (request.query('uid')) {
+		await middleware.delete(request, response, request.query('uid')!, undefined, false);
+	} else {
+		const jwtPayload = await middleware.verify(request, response);
+		await middleware.delete(request, response, jwtPayload.sub, jwtPayload);
+	}
 
 	response.status(HttpStatusCode.Ok).send();
 });
@@ -156,10 +160,14 @@ server[routes.logout_from_all_sessions.method](routes.logout_from_all_sessions.p
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	const jwtPayload = await middleware.verify(request, response);
-	const deletedSessions = await middleware.sessionManager.deleteAll(jwtPayload);
+	if (request.query('uid')) {
+		response.send({ sessions: await middleware.sessionManager.deleteAll(request.query('uid')!) });
+	} else {
+		const jwtPayload = await middleware.verify(request, response);
+		const deletedSessions = await middleware.sessionManager.deleteAll(jwtPayload.sub, jwtPayload);
 
-	response.send({ sessions: deletedSessions });
+		response.send({ sessions: deletedSessions });
+	}
 });
 
-export { server, options, routes };
+export { server, middleware, options, routes };

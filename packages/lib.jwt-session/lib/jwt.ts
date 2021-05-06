@@ -1,4 +1,4 @@
-import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome } from '@thermopylae/core.declarations';
+import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome, Seconds } from '@thermopylae/core.declarations';
 import { VerifyOptions, SignOptions, sign, verify, TokenExpiredError, JsonWebTokenError, NotBeforeError } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
 import type { DeepReadonly } from 'utility-types';
@@ -71,8 +71,6 @@ const enum JwtManagerEvent {
 	SESSION_INVALIDATED = 'SESSION_INVALIDATED',
 	ALL_SESSIONS_INVALIDATED = 'ALL_SESSIONS_INVALIDATED'
 }
-
-type JwtManagerEventListener = (jwtAccessToken: IssuedJwtPayload) => void;
 
 /**
  * Stateless implementation of the user sessions using JWT as exchange mechanism.
@@ -165,7 +163,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 *
 	 * @param subject		Subject from the JWT (i.e. user/account id).
 	 */
-	public readAll(subject: string): Promise<ReadonlyArray<DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
+	public readAll(subject: string): Promise<ReadonlyMap<string, DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
 		return this.invalidationStrategy.getActiveUserSessions(subject);
 	}
 
@@ -199,31 +197,54 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	}
 
 	/**
-	 * Delete one user session associated with JWT access token.
+	 * Delete one user session associated with refresh token.
 	 *
-	 * @param jwtPayload		Payload of the access token.
+	 * @param subject			Subject (i.e. user/account).
 	 * @param refreshToken		Refresh token.
+	 * @param jwtPayload		Payload of the access token. <br/>
+	 * 							When provided will also invalidate this access token. <br/>
+	 * 							Parameter is optional, so that admins that may not have access token can invalidate user session.
 	 *
 	 * @emits {@link JwtManagerEvent.SESSION_INVALIDATED}.
 	 */
-	public async deleteOne(jwtPayload: IssuedJwtPayload, refreshToken: string): Promise<void> {
-		await this.invalidationStrategy.invalidateSession(jwtPayload, refreshToken);
-		this.emit(JwtManagerEvent.SESSION_INVALIDATED, jwtPayload);
+	public async deleteOne(subject: string, refreshToken: string, jwtPayload?: IssuedJwtPayload): Promise<void> {
+		await this.invalidationStrategy.invalidateSession(subject, refreshToken);
+		if (jwtPayload) {
+			this.invalidationStrategy.invalidateAccessToken(jwtPayload);
+			this.emit(JwtManagerEvent.SESSION_INVALIDATED, jwtPayload);
+		}
 	}
 
 	/**
 	 * Deletes all of the user sessions.
 	 *
+	 * @param subject			Subject (i.e. user/account id).
 	 * @param jwtPayload		Payload of the access token. <br/>
-	 * 							Access token belongs to session from where invalidation occurs.
+	 * 							Access token belongs to session from where invalidation occurs. <br/>
+	 * 							Parameter is optional, so that an admin can invalidate all user sessions without having his access token. <br/>
+	 * 							Notice that in case `jwtPayload` is not provided, access token ttl will be taken from default {@link JwtSessionManagerOptions.signOptions.expiresIn},
+	 * 							in order to invalidate all issued before access tokens.
 	 *
 	 * @emits {@link JwtManagerEvent.ALL_SESSIONS_INVALIDATED}
 	 *
 	 * @returns		Number of the deleted sessions.
 	 */
-	public async deleteAll(jwtPayload: IssuedJwtPayload): Promise<number> {
-		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(jwtPayload);
-		this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, jwtPayload); // at leas one session was invalidated
+	public async deleteAll(subject: string, jwtPayload?: IssuedJwtPayload): Promise<number> {
+		const invalidateSessionsNo = await this.invalidationStrategy.invalidateAllSessions(subject);
+
+		// we do it no matter if sessions were invalidated or no (i.e. it might return 0),
+		// in order to support scenario when access token was issued before refresh token was about to expire,
+		// then refresh token expired, and when we try to delete all it will return 0,
+		// but that access token might still be used, therefore we have to call invalidate access tokens from all sessions
+
+		// @fixme add test case for scenario above case
+		const accessTokenTtl = jwtPayload ? jwtPayload.exp - jwtPayload.iat : (this.config.signOptions.expiresIn as number);
+		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(subject, accessTokenTtl);
+
+		if (invalidateSessionsNo) {
+			this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, subject, accessTokenTtl);
+		}
+
 		return invalidateSessionsNo;
 	}
 
@@ -258,13 +279,18 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * Other notes upon receiving notification, will restrict access to deleted user sessions
 	 * (i.e. they will update their local caches with invalidated access tokens).
 	 *
-	 * @param jwtPayload	Access token of the session from where restrict operation is performed.
+	 * @param subject			Subject.
+	 * @param accessTokenTtl	Ttl of the access token.
 	 */
-	public restrictAll(jwtPayload: IssuedJwtPayload): void {
-		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(jwtPayload);
+	public restrictAll(subject: string, accessTokenTtl: Seconds): void {
+		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(subject, accessTokenTtl);
 	}
 
-	public on(event: JwtManagerEvent, listener: JwtManagerEventListener): this {
+	public on(event: JwtManagerEvent.SESSION_INVALIDATED, listener: (jwtAccessToken: IssuedJwtPayload) => void): this;
+
+	public on(event: JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener: (subject: string, accessTokenTtl: Seconds) => void): this;
+
+	public on(event: string, listener: (...args: any[]) => void): this {
 		super.on(event, listener);
 		return this;
 	}
@@ -315,7 +341,6 @@ export {
 	JwtVerifyOptions,
 	SessionTokens,
 	JwtManagerEvent,
-	JwtManagerEventListener,
 	TokenExpiredError,
 	NotBeforeError,
 	JsonWebTokenError

@@ -5,7 +5,6 @@ export {
 	JwtVerifyOptions,
 	SessionTokens,
 	JwtManagerEvent,
-	JwtManagerEventListener,
 	JsonWebTokenError,
 	TokenExpiredError,
 	NotBeforeError

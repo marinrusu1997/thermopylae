@@ -132,12 +132,12 @@ class JwtUserSessionMiddleware {
 		} catch (e) {
 			// ensure session is not left dangling
 			const accessTokenPayload = await this.jwtSessionManager.read(session.accessToken);
-			await this.jwtSessionManager.deleteOne(accessTokenPayload, session.refreshToken);
+			await this.jwtSessionManager.deleteOne(accessTokenPayload.sub, session.refreshToken, accessTokenPayload);
 			throw e;
 		}
 	}
 
-	public async verify(req: HttpRequest, res: HttpResponse, verifyOptions?: JwtVerifyOptions): Promise<IssuedJwtPayload> {
+	public async verify(req: HttpRequest, res: HttpResponse, verifyOptions?: JwtVerifyOptions, unsetSessionCookies = true): Promise<IssuedJwtPayload> {
 		let accessToken: string;
 
 		let payloadCookie: string | undefined;
@@ -162,7 +162,10 @@ class JwtUserSessionMiddleware {
 		try {
 			return await this.jwtSessionManager.read(accessToken, verifyOptions);
 		} catch (e) {
-			if (e instanceof TokenExpiredError || e instanceof JsonWebTokenError || (e instanceof Exception && e.code === ErrorCodes.INVALID)) {
+			if (
+				unsetSessionCookies &&
+				(e instanceof TokenExpiredError || e instanceof JsonWebTokenError || (e instanceof Exception && e.code === ErrorCodes.INVALID))
+			) {
 				if (signatureCookie != null) {
 					res.header('set-cookie', serialize(this.options.session.cookies.name.signature, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
 				}
@@ -192,11 +195,11 @@ class JwtUserSessionMiddleware {
 		}
 	}
 
-	public async delete(req: HttpRequest, res: HttpResponse, payload: IssuedJwtPayload): Promise<void> {
+	public async delete(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<void> {
 		const [refreshToken, clientType] = this.getRefreshTokenFromRequest(req);
-		await this.jwtSessionManager.deleteOne(payload, refreshToken);
+		await this.jwtSessionManager.deleteOne(subject, refreshToken, payload);
 
-		if (clientType === 'browser') {
+		if (unsetSessionCookies && clientType === 'browser' && payload) {
 			res.header('set-cookie', serialize(this.options.session.cookies.name.refresh, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
 			res.header('set-cookie', serialize(this.options.session.cookies.name.signature, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
 			if (this.options.session.csrfHeader) {

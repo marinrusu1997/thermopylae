@@ -26,7 +26,7 @@ before(async function boot() {
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		ignoredLabels: new Set([Library.UNIT_TEST]),
 		levelForLabel: {
-			[Client.REDIS]: 'debug'
+			[Client.REDIS]: 'info'
 		}
 	});
 	LoggerInstance.console.createTransport({ level: process.env.LOG_LEVEL || 'debug' });
@@ -42,7 +42,8 @@ before(async function boot() {
 		...connectDetails,
 		connect_timeout: 10_000,
 		max_attempts: 10,
-		retry_max_delay: 5_000
+		retry_max_delay: 5_000,
+		attachDebugListeners: new Set(['end', 'reconnecting'])
 	};
 
 	await RedisClientInstance.connect({
@@ -82,7 +83,7 @@ after(async function testEnvCleaner(): Promise<void> {
 		logger.debug(`Redis container was not created by 'before' hook. Therefore, cleanup is not needed.`);
 	}
 
-	await RedisClientInstance.disconnect();
+	await RedisClientInstance.disconnect(false);
 });
 
 export { serverAddress };

@@ -1,6 +1,6 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { PolicyBasedCache, AbsoluteExpirationPolicyArgumentsBundle, EsMapCacheBackend, ProactiveExpirationPolicy } from '@thermopylae/lib.cache';
-import { InvalidAccessTokensCache } from '../../lib/invalidation';
+import type { InvalidAccessTokensCache } from '../../lib';
 
 class InvalidAccessTokensCacheAdapter implements InvalidAccessTokensCache {
 	private readonly cache: PolicyBasedCache<string, UnixTimestamp | null, AbsoluteExpirationPolicyArgumentsBundle>;

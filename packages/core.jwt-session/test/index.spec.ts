@@ -1,12 +1,13 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode, MutableSome } from '@thermopylae/core.declarations';
-import { parse } from 'cookie';
+import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode, MutableSome, Seconds } from '@thermopylae/core.declarations';
+import { parse, serialize } from 'cookie';
 import fetch from 'node-fetch';
 import { setTimeout } from 'timers/promises';
+import { IssuedJwtPayload, JwtManagerEvent } from '@thermopylae/lib.jwt-session';
 import { JwtUserSessionMiddleware } from '../lib';
 import { serverAddress } from './bootstrap';
-import { options, routes } from './server';
+import { middleware, options, routes } from './server';
 import { UserSessionCookiesOptions, UserSessionOptions } from '../lib/middleware';
 
 const { AUTHORIZATION, USER_AGENT, COOKIE, X_FORWARDED_FOR } = HttpRequestHeaderEnum;
@@ -355,12 +356,87 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			});
 			const activeSessionsBody = await activeSessionsAdminResp.json();
 
-			expect(activeSessionsBody).to.be.ofSize(0);
+			expect(Object.keys(activeSessionsBody)).to.be.ofSize(0);
 		});
 	});
 
 	describe('logouts spec', () => {
+		it('logouts from non-existing session', async () => {
+			let eventArgs: IssuedJwtPayload | undefined;
+			function listener(jwtPayload: IssuedJwtPayload): void {
+				eventArgs = jwtPayload;
+			}
+
+			middleware.sessionManager.on(JwtManagerEvent.SESSION_INVALIDATED, listener);
+
+			try {
+				const logoutResponse = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
+					method: routes.logout.method,
+					headers: {
+						[COOKIE]: serialize(options.session.cookies.name.refresh, 'invalid-refresh-token')
+					}
+				});
+
+				expect(logoutResponse.status).to.be.eq(HttpStatusCode.Ok);
+				expect(logoutResponse.headers.get(SET_COOKIE)).to.be.eq(null);
+
+				expect(eventArgs).to.be.eq(undefined); // no event emitted
+			} finally {
+				middleware.sessionManager.off(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener);
+			}
+		});
+
+		it('logouts from all sessions (user have no sessions, logout performed by admin)', async () => {
+			let eventArgs: [string, Seconds] | undefined;
+			function listener(subject: string, accessTokenTtl: Seconds): void {
+				eventArgs = [subject, accessTokenTtl];
+			}
+
+			middleware.sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener);
+
+			try {
+				const logoutAllResponse = await fetch(`${serverAddress}${routes.logout_from_all_sessions.path}?uid=uid1`, {
+					method: routes.logout_from_all_sessions.method
+				});
+				const logoutResponse = await logoutAllResponse.json();
+				expect(logoutResponse).to.be.deep.eq({ sessions: 0 });
+
+				expect(eventArgs).to.be.eq(undefined); // no event emitted
+			} finally {
+				middleware.sessionManager.off(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener);
+			}
+		});
+
+		it('logouts from all sessions (user has 1 session, logout performed by admin)', async () => {
+			/* CREATE SESSION */
+			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method
+			});
+			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
+
+			/* DELETE ALL SESSION */
+			let eventArgs: [string, Seconds] | undefined;
+			function listener(subject: string, accessTokenTtl: Seconds): void {
+				eventArgs = [subject, accessTokenTtl];
+			}
+
+			middleware.sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener);
+
+			try {
+				const logoutAllResponse = await fetch(`${serverAddress}${routes.logout_from_all_sessions.path}?uid=uid1`, {
+					method: routes.logout_from_all_sessions.method
+				});
+				const logoutResponse = await logoutAllResponse.json();
+				expect(logoutResponse).to.be.deep.eq({ sessions: 1 });
+
+				expect(eventArgs).to.be.equalTo(['uid1', options.jwt.signOptions.expiresIn]); // event emitted
+			} finally {
+				middleware.sessionManager.off(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, listener);
+			}
+		});
+
 		it('removes active session from list when it expires', async () => {
+			/* CREATE SESSION */
 			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
 				method: routes.login.method
 			});
@@ -372,8 +448,10 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			});
 			const activeSessionsBody = await activeSessionsAdminResp.json();
 
-			expect(activeSessionsBody).to.be.ofSize(1);
-			expect(activeSessionsBody[0].ip).to.be.eq('127.0.0.1');
+			expect(Object.keys(activeSessionsBody)).to.be.ofSize(1);
+
+			const refreshToken = authResp.headers.get(options.session.headers.refresh)!;
+			expect(activeSessionsBody[refreshToken].ip).to.be.eq('127.0.0.1');
 
 			/* W8 expiration */
 			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100);
@@ -383,7 +461,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_active_sessions.method
 			});
 			const activeSessionsSecondBody = await activeSessionsAdminSecondResp.json();
-			expect(activeSessionsSecondBody).to.be.ofSize(0);
+			expect(Object.keys(activeSessionsSecondBody)).to.be.ofSize(0);
 		}).timeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 1000);
 
 		it('limits number of concurrent sessions; reads all sessions; deletes all sessions', async () => {
@@ -417,6 +495,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 
 			/* READ ACTIVE SESSIONS */
 			const firstAccessToken = firstAuthResp.headers.get(options.session.headers.access)!;
+			const firstRefreshToken = firstAuthResp.headers.get(options.session.headers.refresh)!;
 
 			const activeSessionsResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}`, {
 				method: routes.get_active_sessions.method,
@@ -426,16 +505,27 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			});
 			const activeSessions = await activeSessionsResp.json();
 
-			expect(activeSessions).to.be.ofSize(2);
+			expect(Object.keys(activeSessions)).to.be.ofSize(2);
 
-			expect(activeSessions[0].ip).to.be.eq('127.0.0.1');
-			expect(activeSessions[0].device).to.be.deep.eq({
+			const [, secondRefreshToken] = secondAuthResp.headers
+				.raw()
+				[SET_COOKIE].map((header) => {
+					const parsedCookie = parse(header);
+					const cookieName = Object.keys(parsedCookie)[0];
+					return [cookieName, parsedCookie[cookieName]];
+				})
+				.find(([name]) => {
+					return name === options.session.cookies.name.refresh;
+				})!;
+
+			expect(activeSessions[secondRefreshToken].ip).to.be.eq('127.0.0.1');
+			expect(activeSessions[secondRefreshToken].device).to.be.deep.eq({
 				name: ' ',
 				type: 'desktop',
 				client: { type: 'browser', name: 'Chrome', version: '89.0', engine: 'Blink', engineVersion: '' },
 				os: { name: 'GNU/Linux', version: '', platform: 'x64' }
 			});
-			expect(activeSessions[0].location).to.be.deep.eq({
+			expect(activeSessions[secondRefreshToken].location).to.be.deep.eq({
 				countryCode: 'RO',
 				regionCode: 'B',
 				city: 'Bucharest',
@@ -443,11 +533,11 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				longitude: 18.6,
 				timezone: 'Bucharest +2'
 			});
-			expect(activeSessions[0].expiresAt).to.be.greaterThan(activeSessions[0].createdAt);
+			expect(activeSessions[secondRefreshToken].expiresAt).to.be.greaterThan(activeSessions[secondRefreshToken].createdAt);
 
-			expect(activeSessions[1].ip).to.be.eq('203.0.113.195');
-			expect(activeSessions[1].device).to.be.eq(undefined);
-			expect(activeSessions[1].location).to.be.deep.eq({
+			expect(activeSessions[firstRefreshToken].ip).to.be.eq('203.0.113.195');
+			expect(activeSessions[firstRefreshToken].device).to.be.eq(undefined);
+			expect(activeSessions[firstRefreshToken].location).to.be.deep.eq({
 				countryCode: 'RO',
 				regionCode: 'B',
 				city: 'Bucharest',
@@ -455,14 +545,14 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				longitude: 18.6,
 				timezone: 'Bucharest +2'
 			});
-			expect(activeSessions[1].expiresAt).to.be.greaterThan(activeSessions[1].createdAt);
+			expect(activeSessions[firstRefreshToken].expiresAt).to.be.greaterThan(activeSessions[firstRefreshToken].createdAt);
 
-			/* DELETE ACTIVE SESSIONS */
+			/* DELETE ALL ACTIVE SESSIONS */
 			const logoutAllResponse = await fetch(`${serverAddress}${routes.logout_from_all_sessions.path}`, {
 				method: routes.logout_from_all_sessions.method,
 				headers: {
 					[AUTHORIZATION]: `Bearer ${firstAccessToken}`,
-					[options.session.headers.refresh]: firstAuthResp.headers.get(options.session.headers.refresh)!
+					[options.session.headers.refresh]: firstRefreshToken
 				}
 			});
 			const logoutResponse = await logoutAllResponse.json();
@@ -508,7 +598,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_active_sessions.method
 			});
 			const activeSessionsBody = await activeSessionsAdminResp.json();
-			expect(activeSessionsBody).to.be.ofSize(0);
+			expect(Object.keys(activeSessionsBody)).to.be.ofSize(0);
 		});
 	});
 });

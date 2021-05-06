@@ -6,9 +6,8 @@ import {
 	ProactiveExpirationPolicy,
 	CacheEvent
 } from '@thermopylae/lib.cache';
-import { Seconds } from '@thermopylae/core.declarations';
-import { RefreshTokensStorage } from '../../lib/invalidation';
-import { DeviceBase, UserSessionMetaData } from '../../lib/declarations';
+import type { Seconds } from '@thermopylae/core.declarations';
+import type { RefreshTokensStorage, DeviceBase, UserSessionMetaData } from '../../lib';
 
 class RefreshTokensStorageAdapter implements RefreshTokensStorage<DeviceBase, string> {
 	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;
@@ -49,19 +48,19 @@ class RefreshTokensStorageAdapter implements RefreshTokensStorage<DeviceBase, st
 		return this.cache.get(`${subject}@${refreshToken}`);
 	}
 
-	public async readAll(subject: string): Promise<Array<UserSessionMetaData<DeviceBase, string>>> {
+	public async readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<DeviceBase, string>>> {
+		const refreshTokenToSession = new Map();
+
 		const sessions = this.userSessions.get(subject);
 		if (sessions == null) {
-			return [];
+			return refreshTokenToSession;
 		}
 
-		const sessionsMetaData = new Array<UserSessionMetaData<DeviceBase, string>>(sessions.size);
-		let i = 0;
 		for (const refreshToken of sessions) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-plusplus
-			sessionsMetaData[i++] = this.cache.get(`${subject}@${refreshToken}`)!;
+			refreshTokenToSession.set(refreshToken, this.cache.get(`${subject}@${refreshToken}`)!);
 		}
-		return sessionsMetaData;
+
+		return refreshTokenToSession;
 	}
 
 	public async delete(subject: string, refreshToken: string): Promise<void> {

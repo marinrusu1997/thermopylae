@@ -19,7 +19,11 @@ type RequiredClientOptions = RequireSome<
 >;
 type OmittedClientOptions = Omit<ClientOpts, 'no_ready_check' | 'disable_resubscribing' | 'rename_commands' | 'prefix'>;
 
-type RedisClientOptions = ConnectionOptions | RequiredClientOptions | OmittedClientOptions;
+type DebuggableEventType = 'subscribe' | 'psubscribe' | 'unsubscribe' | 'punsubscribe' | 'connect' | 'reconnecting' | 'end';
+
+type RedisClientOptions = (ConnectionOptions | RequiredClientOptions | OmittedClientOptions) & {
+	attachDebugListeners?: boolean | Set<DebuggableEventType>;
+};
 
 const enum ConnectionType {
 	REGULAR = 'REGULAR',
@@ -170,19 +174,16 @@ class RedisClient {
 	public async disconnect(graceful = true): Promise<void> {
 		if (graceful) {
 			await Promise.all(
-				Object.entries(this.connections)
-					.filter(([, connection]) => connection != null)
-					.map(([type, connection]) => {
-						logger.debug(`Shutting down gracefully ${type} connection.`);
-						return connection.quit();
-					})
+				Object.values(this.connections)
+					.filter((connection) => connection != null)
+					.map((connection) => connection.quit())
 			);
 		} else {
 			for (const [type, connection] of Object.entries(this.connections)) {
 				if (connection == null) {
 					continue;
 				}
-				logger.debug(`Shutting down forcibly ${type} connection`);
+				logger.warning(`Forcefully closing ${type} connection.`);
 				connection.end(true);
 			}
 		}
@@ -194,7 +195,7 @@ class RedisClient {
 				logger.debug(`Establishing ${connectionType} connection to ${RedisClient.redisUrl(options)}.`);
 
 				let redisClient = createNodeRedisClient(options);
-				RedisClient.attachEventListeners(redisClient, connectionType);
+				RedisClient.attachEventListeners(redisClient, connectionType, options);
 
 				redisClient.nodeRedis.on('ready', () => {
 					try {
@@ -229,47 +230,71 @@ class RedisClient {
 
 					logger.error(`${connectionType} connection:\n${RedisClient.formatRedisError(err)}`);
 				});
+
+				redisClient.nodeRedis.on('warning', (msg) => {
+					logger.warning(`${connectionType} connection warning: ${msg}.`);
+				});
 			} catch (e) {
 				reject(e);
 			}
 		});
 	}
 
-	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType): void {
+	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType, options: RedisClientOptions): void {
+		if (!options.attachDebugListeners) {
+			return;
+		}
+
 		if (connectionType === ConnectionType.SUBSCRIBER) {
-			redisClient.nodeRedis.on('subscribe', (channel, count) => {
-				logger.debug(`${connectionType} connection subscribed to channel '${channel}' and now it has ${count} active subscriptions.`);
-			});
-			redisClient.nodeRedis.on('psubscribe', (pattern, count) => {
-				logger.debug(`${connectionType} connection subscribed to pattern '${pattern}' and now it has ${count} active subscriptions.`);
-			});
-			redisClient.nodeRedis.on('unsubscribe', (channel, count) => {
-				logger.debug(`${connectionType} connection unsubscribed from channel '${channel}' and now it has ${count} active subscriptions.`);
-			});
-			redisClient.nodeRedis.on('punsubscribe', (pattern, count) => {
-				logger.debug(`${connectionType} connection unsubscribed from pattern '${pattern}' and now it has ${count} active subscriptions.`);
+			if (options.attachDebugListeners === true || options.attachDebugListeners.has('subscribe')) {
+				redisClient.nodeRedis.on('subscribe', (channel, count) => {
+					logger.debug(`${connectionType} connection subscribed to channel '${channel}' and now it has ${count} active subscriptions.`);
+				});
+			}
+
+			if (options.attachDebugListeners === true || options.attachDebugListeners.has('psubscribe')) {
+				redisClient.nodeRedis.on('psubscribe', (pattern, count) => {
+					logger.debug(`${connectionType} connection subscribed to pattern '${pattern}' and now it has ${count} active subscriptions.`);
+				});
+			}
+
+			if (options.attachDebugListeners === true || options.attachDebugListeners.has('unsubscribe')) {
+				redisClient.nodeRedis.on('unsubscribe', (channel, count) => {
+					logger.debug(`${connectionType} connection unsubscribed from channel '${channel}' and now it has ${count} active subscriptions.`);
+				});
+			}
+
+			if (options.attachDebugListeners === true || options.attachDebugListeners.has('punsubscribe')) {
+				redisClient.nodeRedis.on('punsubscribe', (pattern, count) => {
+					logger.debug(`${connectionType} connection unsubscribed from pattern '${pattern}' and now it has ${count} active subscriptions.`);
+				});
+			}
+		}
+
+		if (options.attachDebugListeners === true || options.attachDebugListeners.has('connect')) {
+			redisClient.nodeRedis.on('connect', () => {
+				logger.debug(`${connectionType} connection established.`);
 			});
 		}
 
-		redisClient.nodeRedis.on('warning', (msg) => {
-			logger.warning(`${connectionType} connection warning: ${msg}.`);
-		});
-		redisClient.nodeRedis.on('connect', () => {
-			logger.info(`${connectionType} connection established.`);
-		});
-		redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error?: RedisError }) => {
-			logger.debug(
-				`${connectionType} connection is reconnecting.${RedisClient.isNumber(reconnect.delay) ? ` Delay: ${reconnect.delay} ms.` : ''} Attempt: ${
-					reconnect.attempt
-				}.`
-			);
-			if (reconnect.error) {
-				logger.error(`${connectionType} connection reconnect error:\n${RedisClient.formatRedisError(reconnect.error)}`);
-			}
-		});
-		redisClient.nodeRedis.on('end', () => {
-			logger.notice(`${connectionType} connection closed.`);
-		});
+		if (options.attachDebugListeners === true || options.attachDebugListeners.has('reconnecting')) {
+			redisClient.nodeRedis.on('reconnecting', (reconnect: { delay: number; attempt: number; error?: RedisError }) => {
+				logger.debug(
+					`${connectionType} connection is reconnecting.${RedisClient.isNumber(reconnect.delay) ? ` Delay: ${reconnect.delay} ms.` : ''} Attempt: ${
+						reconnect.attempt
+					}.`
+				);
+				if (reconnect.error) {
+					logger.error(`${connectionType} connection reconnect error:\n${RedisClient.formatRedisError(reconnect.error)}`);
+				}
+			});
+		}
+
+		if (options.attachDebugListeners === true || options.attachDebugListeners.has('end')) {
+			redisClient.nodeRedis.on('end', () => {
+				logger.notice(`${connectionType} connection closed.`);
+			});
+		}
 	}
 
 	private static redisUrl(options: RedisClientOptions): string {
@@ -336,4 +361,4 @@ class RedisClient {
 	}
 }
 
-export { RedisClient, RedisClientOptions, ConnectionType };
+export { RedisClient, RedisClientOptions, ConnectionType, DebuggableEventType };
