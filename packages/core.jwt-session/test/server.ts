@@ -141,7 +141,7 @@ server[routes.renew_session.method](routes.renew_session.path, async (req, res) 
 	const response = new FastifyResponseAdapter(res);
 
 	await middleware.refresh(request, response, { role: 'user' }, { subject: request.query('uid')! });
-	response.send();
+	response.status(HttpStatusCode.Ok).send();
 });
 server[routes.logout.method](routes.logout.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);

@@ -3,7 +3,7 @@ import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as i
 import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
-import { Client, Library } from '@thermopylae/core.declarations';
+import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
 import { server } from './server';
 import { initLogger as initCoreJwtSessionLogger } from '../lib/logger';
 
@@ -24,9 +24,10 @@ before(async function boot() {
 	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
-		ignoredLabels: new Set([Library.UNIT_TEST]),
 		levelForLabel: {
-			[Client.REDIS]: 'info'
+			[Client.REDIS]: 'info',
+			[CoreModule.JWT_SESSION]: 'info',
+			[Library.UNIT_TEST]: 'error'
 		}
 	});
 	LoggerInstance.console.createTransport({ level: process.env.LOG_LEVEL || 'debug' });

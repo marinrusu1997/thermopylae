@@ -190,7 +190,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	): Promise<string> {
 		signOptions = { ...this.config.signOptions, ...signOptions };
 
-		const anchorToRefreshToken = await this.invalidationStrategy.refreshAccessSession(signOptions.subject, refreshToken, context);
+		const anchorToRefreshToken = await this.invalidationStrategy.refreshSessionAccessToken(signOptions.subject, refreshToken, context);
 		const accessToken = await this.issueJWT(payload, anchorToRefreshToken, signOptions);
 
 		return accessToken;
@@ -237,13 +237,11 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 		// then refresh token expired, and when we try to delete all it will return 0,
 		// but that access token might still be used, therefore we have to call invalidate access tokens from all sessions
 
-		// @fixme add test case for scenario above case
 		const accessTokenTtl = jwtPayload ? jwtPayload.exp - jwtPayload.iat : (this.config.signOptions.expiresIn as number);
 		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(subject, accessTokenTtl);
 
-		if (invalidateSessionsNo) {
-			this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, subject, accessTokenTtl);
-		}
+		// if we invalidated our access tokens, others need to do the same
+		this.emit(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, subject, accessTokenTtl);
 
 		return invalidateSessionsNo;
 	}

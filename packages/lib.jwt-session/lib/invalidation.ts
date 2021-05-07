@@ -1,4 +1,4 @@
-import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { ErrorCodes, MutableSome, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import safeUid from 'uid-safe';
 import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
@@ -122,6 +122,17 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	deleteAll(subject: string): Promise<number>;
 }
 
+/**
+ * Hook called on refresh token renewal. <br/>
+ * In case some anomalies are detected between renewal context and session metadata,
+ * an exception should be thrown to stop renewal operation.
+ */
+type RefreshAccessTokenHook<Device extends DeviceBase, Location> = (
+	subject: string,
+	context: UserSessionOperationContext<Device, Location>,
+	sessionMetaData: Readonly<UserSessionMetaData<Device, Location>>
+) => void;
+
 interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	/**
 	 * Length of the refresh token. <br/>
@@ -142,6 +153,12 @@ interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	 * Storage where refresh tokens will be placed.
 	 */
 	readonly refreshTokensStorage: RefreshTokensStorage<Device, Location>;
+	/**
+	 * Refresh access token hook. <br/>
+	 * Defaults to hook which ensures that in case device is present in both context and session metadata,
+	 * their *name* and *type* needs to be equal.
+	 */
+	readonly refreshAccessTokenHook?: RefreshAccessTokenHook<Device, Location>;
 }
 
 /**
@@ -155,7 +172,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 
 	private static readonly ALL_SESSIONS_WILDCARD = '*';
 
-	private readonly options: InvalidationStrategyOptions<Device, Location>;
+	private readonly options: Required<InvalidationStrategyOptions<Device, Location>>;
 
 	/**
 	 * @param options		Options object. <br/>
@@ -165,7 +182,13 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 		if (options.refreshTokenLength < 15) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 15 characters. Given: ${options.refreshTokenLength}.`);
 		}
-		this.options = options;
+
+		if (options.refreshAccessTokenHook == null) {
+			(options as MutableSome<InvalidationStrategyOptions<Device, Location>, 'refreshAccessTokenHook'>).refreshAccessTokenHook =
+				InvalidationStrategy.refreshAccessTokenHook;
+		}
+
+		this.options = options as Required<InvalidationStrategyOptions<Device, Location>>;
 	}
 
 	/**
@@ -213,23 +236,13 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 *
 	 * @returns					Anchor to refresh token.
 	 */
-	public async refreshAccessSession(subject: string, refreshToken: string, context: UserSessionOperationContext<Device, Location>): Promise<string> {
+	public async refreshSessionAccessToken(subject: string, refreshToken: string, context: UserSessionOperationContext<Device, Location>): Promise<string> {
 		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
 		if (!userSessionMetadata) {
 			throw createException(ErrorCodes.NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
 		}
 
-		if (context.device && userSessionMetadata.device) {
-			if (context.device.type !== userSessionMetadata.device.type || context.device.name !== userSessionMetadata.device.name) {
-				throw createException(
-					ErrorCodes.NOT_EQUAL,
-					`Attempting to regenerate access token with refresh token '${refreshToken}' for subject '${subject}'` +
-						`from context that differs from user session metadata. Refresh context: ${JSON.stringify(
-							context
-						)}. User session metadata: ${JSON.stringify(userSessionMetadata)}`
-				);
-			}
-		}
+		this.options.refreshAccessTokenHook(subject, context, userSessionMetadata);
 
 		return refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH);
 	}
@@ -302,9 +315,27 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 		this.options.invalidAccessTokensCache.upset(invalidationKey, invalidatedAt, jwtAccessTokenTtl);
 	}
 
+	private static refreshAccessTokenHook<Dev extends DeviceBase, Loc>(
+		subject: string,
+		context: UserSessionOperationContext<Dev, Loc>,
+		sessionMetaData: Readonly<UserSessionMetaData<Dev, Loc>>
+	): void {
+		if (context.device && sessionMetaData.device) {
+			if (context.device.type !== sessionMetaData.device.type || context.device.name !== sessionMetaData.device.name) {
+				throw createException(
+					ErrorCodes.NOT_EQUAL,
+					`Attempting to regenerate access token for subject '${subject}'` +
+						`from context that differs from user session metadata. Refresh token context: ${JSON.stringify(
+							context
+						)}. User session metadata: ${JSON.stringify(sessionMetaData)}`
+				);
+			}
+		}
+	}
+
 	private static currentTimestamp(): UnixTimestamp {
 		return Math.floor(new Date().getTime() / 1000);
 	}
 }
 
-export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken, InvalidAccessTokensCache, RefreshTokensStorage };
+export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken, InvalidAccessTokensCache, RefreshTokensStorage, RefreshAccessTokenHook };

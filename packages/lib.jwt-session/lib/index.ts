@@ -10,4 +10,4 @@ export {
 	NotBeforeError
 } from './jwt';
 export { JwtPayload, IssuedJwtPayload, DeviceBase, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData } from './declarations';
-export { InvalidationStrategyOptions, InvalidAccessTokensCache, RefreshTokensStorage } from './invalidation';
+export { InvalidationStrategyOptions, InvalidAccessTokensCache, RefreshTokensStorage, RefreshAccessTokenHook } from './invalidation';

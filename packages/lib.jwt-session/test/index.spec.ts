@@ -270,6 +270,53 @@ describe(`${JwtSessionManager.name} spec`, () => {
 		await expect(sessionManager.read(secondSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 	}).timeout(3000);
 
+	it('invalidates all of the user sessions along with access tokens issued right before refresh token expiration', async () => {
+		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(3, 2, 'secret'));
+
+		let invalidatedAllSessionsSubject: string | undefined;
+		let invalidatedAllSessionsAccessTokenTtl: number | undefined;
+		sessionManager.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (subject, accessTokenTtl) => {
+			invalidatedAllSessionsSubject = subject;
+			invalidatedAllSessionsAccessTokenTtl = accessTokenTtl;
+		});
+
+		// create session
+		const session = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
+
+		// issue access token right before refresh token expires
+		await setTimeout(1000);
+		const renewedAccessToken = await sessionManager.update(session.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext());
+
+		// w8 for session expiration
+		await setTimeout(1100);
+
+		// invalidate sessions
+		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(0);
+		expect(invalidatedAllSessionsSubject).to.be.eq('uid1');
+		expect(invalidatedAllSessionsAccessTokenTtl).to.be.eq(3);
+
+		try {
+			await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
+		} catch (e) {
+			// might interfere conversion from milliseconds to seconds
+			await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
+		}
+
+		await expect(sessionManager.read(renewedAccessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
+
+		// try to open another user session later
+		await setTimeout(1000);
+
+		const secondSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
+		await expect(sessionManager.read(secondSession.accessToken)).to.eventually.have.property('sub', 'uid1');
+		await expect(sessionManager.update(secondSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext())).to.eventually.be.a('string');
+
+		await setTimeout(1000);
+		await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
+		await setTimeout(2000);
+		await expect(sessionManager.read(renewedAccessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
+	}).timeout(6500);
+
 	it('invalidates session in cluster mode', async () => {
 		const node1Opts = jwtSessionManagerOpts(1, 2, 'secret');
 		const node1 = new JwtSessionManager(node1Opts);
