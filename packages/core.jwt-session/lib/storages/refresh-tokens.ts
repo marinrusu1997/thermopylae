@@ -46,18 +46,9 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 				logger.error(`Failed to unsubscribe from '${channel}' channel.`, e);
 			});
 
-			RedisClientInstance.client
-				.lrem(this.activeSessionsKey(subject), 1, refreshToken)
-				.then((count) => {
-					if (count !== 1) {
-						logger.warning(
-							`Failed to remove '${refreshToken}' from the list of active sessions of the subject '${subject}'. Received delete count: ${count}.`
-						);
-					}
-				})
-				.catch((e) => {
-					logger.error(`Failed to remove '${refreshToken}' from the list of active sessions of the subject '${subject}'.`, e);
-				});
+			RedisClientInstance.client.lrem(this.activeSessionsKey(subject), 1, refreshToken).catch((e) => {
+				logger.error(`Failed to remove '${refreshToken}' from the list of active sessions of the subject '${subject}'.`, e);
+			});
 		});
 	}
 

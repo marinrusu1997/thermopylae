@@ -4,8 +4,9 @@ import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstanc
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
 import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
-import { server } from './server';
+import { options, server } from './server';
 import { initLogger as initCoreJwtSessionLogger } from '../lib/logger';
+import { InvalidAccessTokensMemCache } from '../lib';
 
 const SERVER_PORT = 7569;
 
@@ -59,7 +60,8 @@ before(async function boot() {
 });
 
 beforeEach(async () => {
-	await RedisClientInstance.client.flushall();
+	await RedisClientInstance.client.flushall(); // flush storage
+	(options.jwt.invalidationOptions.invalidAccessTokensCache as InvalidAccessTokensMemCache).clear(); // flush cache
 });
 
 after(async function testEnvCleaner(): Promise<void> {

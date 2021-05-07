@@ -1,14 +1,16 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode, MutableSome, Seconds } from '@thermopylae/core.declarations';
+import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode } from '@thermopylae/core.declarations';
+import type { MutableSome, Seconds } from '@thermopylae/core.declarations';
 import { parse, serialize } from 'cookie';
 import fetch from 'node-fetch';
 import { setTimeout } from 'timers/promises';
-import { IssuedJwtPayload, JwtManagerEvent } from '@thermopylae/lib.jwt-session';
+import { JwtManagerEvent } from '@thermopylae/lib.jwt-session';
+import type { IssuedJwtPayload } from '@thermopylae/lib.jwt-session';
 import { JwtUserSessionMiddleware } from '../lib';
 import { serverAddress } from './bootstrap';
 import { middleware, options, routes } from './server';
-import { UserSessionCookiesOptions, UserSessionOptions } from '../lib/middleware';
+import type { UserSessionCookiesOptions, UserSessionOptions } from '../lib/middleware';
 
 const { AUTHORIZATION, USER_AGENT, COOKIE, X_FORWARDED_FOR } = HttpRequestHeaderEnum;
 const { SET_COOKIE } = HttpResponseHeaderEnum;
@@ -736,8 +738,40 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			expect(resource).to.be.deep.eq({ rest: 'resource', role: 'user' });
 		});
 
-		it('fails to renew access token if refresh token is expired', async () => {});
+		it('fails to renew access token if refresh token is expired', async () => {
+			/* CREATE SESSION */
+			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method
+			});
+			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
 
-		it('fails to renew access token if refresh token is not given', async () => {});
+			const refreshToken = authResp.headers.get(options.session.headers.refresh) as string;
+
+			/* W8 for refresh token expiration */
+			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100);
+
+			/* RENEW SESSION */
+			const renewResp = await fetch(`${serverAddress}${routes.renew_session.path}?uid=uid1`, {
+				method: routes.renew_session.method,
+				headers: {
+					[options.session.headers.refresh]: refreshToken
+				}
+			});
+			expect(renewResp.status).to.be.eq(HttpStatusCode.NotFound);
+		}).timeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 500);
+
+		it('fails to renew access token if refresh token is not given', async () => {
+			/* CREATE SESSION */
+			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method
+			});
+			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
+
+			/* RENEW SESSION */
+			const renewResp = await fetch(`${serverAddress}${routes.renew_session.path}?uid=uid1`, {
+				method: routes.renew_session.method
+			});
+			expect(renewResp.status).to.be.eq(HttpStatusCode.NotFound);
+		});
 	});
 });

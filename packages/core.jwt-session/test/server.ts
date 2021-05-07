@@ -124,7 +124,7 @@ server[routes.get_resource.method](routes.get_resource.path, async (req, res) =>
 		const jwtPayload = await middleware.verify(request, response);
 		response.status(HttpStatusCode.Ok).send({ rest: 'resource', role: jwtPayload.role });
 	} catch (e) {
-		logger.error(`${routes.get_resource.path}`, e);
+		logger.warning(`${routes.get_resource.path}`, e);
 		response.status(HttpStatusCode.Forbidden).send({ message: e.message });
 	}
 });
@@ -140,8 +140,13 @@ server[routes.renew_session.method](routes.renew_session.path, async (req, res) 
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	await middleware.refresh(request, response, { role: 'user' }, { subject: request.query('uid')! });
-	response.status(HttpStatusCode.Ok).send();
+	try {
+		await middleware.refresh(request, response, { role: 'user' }, { subject: request.query('uid')! });
+		response.status(HttpStatusCode.Ok).send();
+	} catch (e) {
+		logger.warning(`${routes.renew_session.path}`, e);
+		response.status(HttpStatusCode.NotFound).send();
+	}
 });
 server[routes.logout.method](routes.logout.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);

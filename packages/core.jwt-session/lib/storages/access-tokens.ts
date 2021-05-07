@@ -1,11 +1,6 @@
+import { PolicyBasedCache, EntryPoolCacheBackend, ProactiveExpirationPolicy, HeapGarbageCollector } from '@thermopylae/lib.cache';
 import type { InvalidAccessTokensCache } from '@thermopylae/lib.jwt-session';
-import {
-	PolicyBasedCache,
-	EntryPoolCacheBackend,
-	ProactiveExpirationPolicy,
-	HeapGarbageCollector,
-	AbsoluteExpirationPolicyArgumentsBundle
-} from '@thermopylae/lib.cache';
+import type { AbsoluteExpirationPolicyArgumentsBundle } from '@thermopylae/lib.cache';
 import type { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 
 class InvalidAccessTokensMemCache<CacheArgsBundle extends AbsoluteExpirationPolicyArgumentsBundle = AbsoluteExpirationPolicyArgumentsBundle>
@@ -33,6 +28,10 @@ class InvalidAccessTokensMemCache<CacheArgsBundle extends AbsoluteExpirationPoli
 
 	public has(accessToken: string): boolean {
 		return this.cache.has(accessToken);
+	}
+
+	public clear(): void {
+		this.cache.clear();
 	}
 }
 

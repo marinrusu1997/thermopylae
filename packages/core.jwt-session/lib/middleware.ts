@@ -22,7 +22,8 @@ import type {
 } from '@thermopylae/core.declarations';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
-import { CookieSerializeOptions, serialize } from 'cookie';
+import { serialize } from 'cookie';
+import type { CookieSerializeOptions } from 'cookie';
 import type { JwtSessionDevice } from './typings';
 import { createException } from './error';
 
