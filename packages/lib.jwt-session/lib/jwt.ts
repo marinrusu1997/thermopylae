@@ -179,6 +179,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * @throws {Exception}		When:
 	 * 								- refresh token is not valid.
 	 * 								- update is performed from a device different than the one from where session was created
+	 * 								  (in case default {@link InvalidationStrategyOptions.refreshAccessTokenHook} is used).
 	 *
 	 * @returns		JWT access token.
 	 */
@@ -205,7 +206,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * 							When provided will also invalidate this access token. <br/>
 	 * 							Parameter is optional, so that admins that may not have access token can invalidate user session.
 	 *
-	 * @emits {@link JwtManagerEvent.SESSION_INVALIDATED}.
+	 * @emits {@link JwtManagerEvent.SESSION_INVALIDATED} When `jwtPayload` parameter is given. If you use multiple {@link JwtSessionManager} instances, you are strongly advised to call {@link JwtSessionManager.restrictOne} on other instances when this event is emitted.
 	 */
 	public async deleteOne(subject: string, refreshToken: string, jwtPayload?: IssuedJwtPayload): Promise<void> {
 		await this.invalidationStrategy.invalidateSession(subject, refreshToken);
@@ -225,7 +226,7 @@ class JwtSessionManager<Device extends DeviceBase = DeviceBase, Location = strin
 	 * 							Notice that in case `jwtPayload` is not provided, access token ttl will be taken from default {@link JwtSessionManagerOptions.signOptions.expiresIn},
 	 * 							in order to invalidate all issued before access tokens.
 	 *
-	 * @emits {@link JwtManagerEvent.ALL_SESSIONS_INVALIDATED}
+	 * @emits {@link JwtManagerEvent.ALL_SESSIONS_INVALIDATED}	No matter whether 0 or multiple sessions are invalidated. If you use multiple {@link JwtSessionManager} instances, you are strongly advised to call {@link JwtSessionManager.restrictAll} on other instances when this event is emitted.
 	 *
 	 * @returns		Number of the deleted sessions.
 	 */

@@ -566,25 +566,27 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				})!;
 
 			expect(activeSessions[secondRefreshToken].ip).to.be.eq('127.0.0.1');
-			expect(activeSessions[secondRefreshToken].device).to.be.deep.eq({
-				name: ' ',
-				type: 'desktop',
-				client: { type: 'browser', name: 'Chrome', version: '89.0' },
-				os: { name: 'GNU/Linux', version: '', platform: 'x64' }
+			expect(activeSessions[secondRefreshToken].device.name).to.be.eq(' ');
+			expect(activeSessions[secondRefreshToken].device.type).to.be.eq('desktop');
+			expect(activeSessions[secondRefreshToken].device.client.type).to.be.eq('browser');
+			expect(activeSessions[secondRefreshToken].device.client.name).to.be.eq('Chrome');
+			expect(activeSessions[secondRefreshToken].device.client.version).to.be.eq('89.0');
+			expect(activeSessions[secondRefreshToken].device.os).to.be.deep.eq({
+				name: 'GNU/Linux',
+				version: '',
+				platform: 'x64'
 			});
 			expect(activeSessions[secondRefreshToken].location).to.be.deep.eq(null);
 			expect(activeSessions[secondRefreshToken].expiresAt).to.be.greaterThan(activeSessions[secondRefreshToken].createdAt);
 
 			expect(activeSessions[firstRefreshToken].ip).to.be.eq('203.0.113.195');
 			expect(activeSessions[firstRefreshToken].device).to.be.eq(null);
-			expect(activeSessions[firstRefreshToken].location).to.be.deep.eq({
-				countryCode: 'RO',
-				regionCode: null,
-				city: 'Bucharest',
-				latitude: 15.600000381469727, // floating point precision issues
-				longitude: null,
-				timezone: null
-			});
+			expect(activeSessions[firstRefreshToken].location.countryCode).to.be.eq('RO');
+			expect(activeSessions[firstRefreshToken].location.regionCode).to.be.eq(null);
+			expect(activeSessions[firstRefreshToken].location.city).to.be.eq('Bucharest');
+			expect(Math.trunc(activeSessions[firstRefreshToken].location.latitude)).to.be.eq(15); // floating point precision issues
+			expect(activeSessions[firstRefreshToken].location.longitude).to.be.eq(null);
+			expect(activeSessions[firstRefreshToken].location.timezone).to.be.eq(null);
 			expect(activeSessions[firstRefreshToken].expiresAt).to.be.greaterThan(activeSessions[firstRefreshToken].createdAt);
 
 			/* DELETE ALL ACTIVE SESSIONS */

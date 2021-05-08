@@ -3,7 +3,13 @@ import cookie from 'fastify-cookie';
 import fastify, { FastifyInstance } from 'fastify';
 import { HttpStatusCode, HttpVerb } from '@thermopylae/core.declarations';
 import { logger } from '@thermopylae/lib.unit-test';
-import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, RefreshTokensRedisStorage } from '../lib';
+import {
+	InvalidAccessTokensMemCache,
+	JwtUserSessionMiddleware,
+	JwtUserSessionMiddlewareOptions,
+	RefreshTokensRedisStorage,
+	RefreshTokensRedisStorageOptions
+} from '../lib';
 
 const server = fastify({
 	logger: {
@@ -12,6 +18,15 @@ const server = fastify({
 	trustProxy: true
 });
 server.register(cookie);
+
+const refreshTokenStorageOptions: RefreshTokensRedisStorageOptions = Object.seal({
+	keyPrefix: {
+		sessions: 'reftoks',
+		refreshToken: 'reftok'
+	},
+	concurrentSessions: 2,
+	serializer: RefreshTokensRedisStorage.SERIALIZERS.AVRO
+});
 
 const options: JwtUserSessionMiddlewareOptions = {
 	jwt: {
@@ -31,13 +46,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 			refreshTokenTtl: 3,
 			refreshTokenLength: 18,
 			invalidAccessTokensCache: new InvalidAccessTokensMemCache(),
-			refreshTokensStorage: new RefreshTokensRedisStorage({
-				keyPrefix: {
-					sessions: 'reftoks',
-					refreshToken: 'reftok'
-				},
-				concurrentSessions: 2
-			})
+			refreshTokensStorage: new RefreshTokensRedisStorage(refreshTokenStorageOptions)
 		}
 	},
 	session: {
@@ -177,4 +186,4 @@ server[routes.logout_from_all_sessions.method](routes.logout_from_all_sessions.p
 	}
 });
 
-export { server, middleware, options, routes };
+export { server, middleware, options, refreshTokenStorageOptions, routes };

@@ -39,19 +39,22 @@
         "@thermopylae/lib.logger": "0",
         "avsc": "5",
         "cookie": "0",
-        "fast-json-stringify": "^2.7.3"
+        "fast-json-stringify": "2"
     },
     "devDependencies": {
         "@thermopylae/core.adapter.fastify": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@types/benchmark": "2",
         "@types/cookie": "0",
         "@types/dotenv": "8",
         "@types/node-fetch": "2",
+        "benchmark": "2",
         "dotenv": "8",
         "fastify": "3",
         "fastify-cookie": "5",
-        "node-fetch": "2"
+        "node-fetch": "2",
+        "pick-random": "3"
     },
     "peerDependencies": {
         "chai": "4",

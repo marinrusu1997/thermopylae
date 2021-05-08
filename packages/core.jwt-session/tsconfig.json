@@ -5,7 +5,8 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
-            "ESNext"
+            "ESNext",
+            "DOM"
         ],
         "allowJs": false,
         "checkJs": false,

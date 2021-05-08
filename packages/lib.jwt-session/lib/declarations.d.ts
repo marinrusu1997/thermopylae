@@ -96,12 +96,12 @@ interface UserSessionOperationContext<Device extends DeviceBase, Location> {
 	readonly ip: string;
 	/**
 	 * Device from where session was created/accessed. <br/>
-	 * Can be *undefined* if device is unknown.
+	 * Can be *undefined* or *null* if device is unknown.
 	 */
 	readonly device?: Nullable<DeepReadonly<Device>>;
 	/**
 	 * Location from where session was created/accessed. <br/>
-	 * Can be *undefined* if location is unknown.
+	 * Can be *undefined* or *null* if location is unknown.
 	 */
 	readonly location?: Nullable<DeepReadonly<Location>>;
 }

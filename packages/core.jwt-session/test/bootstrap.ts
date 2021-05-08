@@ -2,11 +2,12 @@ import { after, before, beforeEach } from 'mocha';
 import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/lib.unit-test';
 import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
+import { Client, CoreModule, Library, MutableSome } from '@thermopylae/core.declarations';
 import { config as dotEnvConfig } from 'dotenv';
-import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
-import { options, server } from './server';
+import pickRandom from 'pick-random';
+import { options, refreshTokenStorageOptions, server } from './server';
 import { initLogger as initCoreJwtSessionLogger } from '../lib/logger';
-import { InvalidAccessTokensMemCache } from '../lib';
+import { InvalidAccessTokensMemCache, RefreshTokensRedisStorage, RefreshTokensRedisStorageOptions } from '../lib';
 
 const SERVER_PORT = 7569;
 
@@ -61,12 +62,17 @@ before(async function boot() {
 	serverAddress = await server.listen(SERVER_PORT);
 	logger.debug(`Fastify server listening on ${serverAddress}`);
 
-	logger.crit('Refresh token storage has an AVRO schema to user session metadata, which needs to be updated from time to time.');
+	logger.crit('Refresh token storage has serialization schemas to user session metadata, which needs to be updated from time to time.');
 });
 
 beforeEach(async () => {
 	await RedisClientInstance.client.flushall(); // flush storage
 	(options.jwt.invalidationOptions.invalidAccessTokensCache as InvalidAccessTokensMemCache).clear(); // flush cache
+
+	[(refreshTokenStorageOptions as MutableSome<RefreshTokensRedisStorageOptions, 'serializer'>).serializer] = pickRandom(
+		Object.values(RefreshTokensRedisStorage.SERIALIZERS),
+		{ count: 1 }
+	);
 });
 
 after(async function testEnvCleaner(): Promise<void> {

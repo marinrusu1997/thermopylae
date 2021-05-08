@@ -4,7 +4,7 @@ import type { DeepReadonly } from 'utility-types';
 import { createException } from './error';
 import { DeviceBase, IssuedJwtPayload, QueriedUserSessionMetaData, UserSessionMetaData, UserSessionOperationContext } from './declarations';
 
-// FIXME reference links
+// Reference Links:
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-2-921fce24e1b5
 //	https://security.stackexchange.com/questions/223134/how-to-invalidate-jwt-tokens-without-a-database-lookup-with-each-request-to-the
@@ -123,9 +123,14 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 }
 
 /**
- * Hook called on refresh token renewal. <br/>
- * In case some anomalies are detected between renewal context and session metadata,
- * an exception should be thrown to stop renewal operation.
+ * Hook called on refresh token renewal.
+ *
+ * @param subject			Subject.
+ * @param context			Refresh access token operation context.
+ * @param sessionMetaData	Session meta-data that was retrieved from storage.
+ *
+ * @throws 	In case some anomalies are detected between renewal context and session metadata,
+ * 			an exception should be thrown to stop renewal operation.
  */
 type RefreshAccessTokenHook<Device extends DeviceBase, Location> = (
 	subject: string,
@@ -224,7 +229,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	}
 
 	/**
-	 * Refreshes access token session.
+	 * Refreshes access token to user session.
 	 *
 	 * @param subject			Subject whose session needs to be refreshed.
 	 * @param refreshToken		Refresh token of the subject.
@@ -232,7 +237,8 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 *
 	 * @throws {Exception}		When:
 	 * 								- refresh token doesn't exist.
-	 * 								- device from refresh context differs from user session metadata device.
+	 * 								- device from refresh context differs from user session metadata device
+	 * 								  (in case default {@link InvalidationStrategyOptions.refreshAccessTokenHook} is used).
 	 *
 	 * @returns					Anchor to refresh token.
 	 */
