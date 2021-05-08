@@ -57,11 +57,11 @@ interface UserSessionOptions {
 	readonly cookies: UserSessionCookiesOptions;
 	readonly headers: {
 		/**
-		 * Lowercase!!! // @fixme test it
+		 * Lowercase!!!
 		 */
 		readonly access: HttpResponseHeader | string;
 		/**
-		 * Lowercase!!! // @fixme test it
+		 * Lowercase!!!
 		 */
 		readonly refresh: HttpResponseHeader | string;
 	};
@@ -71,7 +71,7 @@ interface UserSessionOptions {
 	 */
 	readonly csrfHeader?: {
 		/**
-		 * Lowercase!!! // @fixme test it
+		 * Lowercase!!!
 		 */
 		readonly name: HttpRequestHeader | string;
 		readonly value: HttpHeaderValue | string;
@@ -262,15 +262,17 @@ class JwtUserSessionMiddleware {
 					? {
 							name: `${req.device.device.brand} ${req.device.device.model}`,
 							type: req.device.device.type,
-							client: req.device.client || undefined,
-							os: req.device.os || undefined
+							client: req.device.client,
+							os: req.device.os
 					  }
-					: undefined,
-			location: req.location
+					: null,
+			location: req.location || null
 		};
 	}
 
 	private static extractAccessToken(authorization: string | undefined | null): string {
+		// it's mandatory to handle missing header, invalid scheme, missing token
+
 		if (typeof authorization !== 'string') {
 			throw createException(ErrorCodes.NOT_FOUND, `Authorization header value not present.`);
 		}
@@ -286,6 +288,8 @@ class JwtUserSessionMiddleware {
 	}
 
 	private static fillWithDefaults(options: JwtUserSessionMiddlewareOptions): RequireSome<JwtUserSessionMiddlewareOptions, 'accessTokenExtractor'> {
+		// it's mandatory for them to be in lower case
+
 		if (!isLowerCase(options.session.cookies.name.signature)) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Signature cookie name needs to be lower case. Given: ${options.session.cookies.name.signature}`);
 		}

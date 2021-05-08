@@ -1,10 +1,13 @@
 import type { RefreshTokensStorage, UserSessionMetaData } from '@thermopylae/lib.jwt-session';
-import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
+import type { HTTPRequestLocation, MutableSome } from '@thermopylae/core.declarations';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { ConnectionType, RedisClientInstance } from '@thermopylae/core.redis';
-import type { JwtSessionDevice } from '../typings';
-import { createException } from '../error';
-import { logger } from '../logger';
+import type { JwtSessionDevice, UserSessionMetaDataSerializer } from '../../typings';
+import { createException } from '../../error';
+import { logger } from '../../logger';
+import { JSON_SERIALIZER } from './json-serializer';
+import { FAST_JSON_SERIALIZER } from './fast-json-serializer';
+import { AVRO_SERIALIZER } from './avro-serializer';
 
 interface RefreshTokensRedisStorageOptions {
 	readonly keyPrefix: {
@@ -12,25 +15,30 @@ interface RefreshTokensRedisStorageOptions {
 		refreshToken: string;
 	};
 	readonly concurrentSessions?: number;
-	// @fixme use `detect_buffer` and avsc as default, also separate config for redis clients
-	// https://www.npmjs.com/package/avsc
-	// https://github.com/fastify/fast-json-stringify
-	readonly serializer?: {
-		serialize(session: UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>): Buffer;
-		deserialize(buffer: Buffer): UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>;
-	};
+	readonly serializer?: UserSessionMetaDataSerializer;
 }
 
 class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice, HTTPRequestLocation> {
+	private static readonly REDIS_OK_BUFFER_RESPONSE = Buffer.from('OK');
+
 	private static readonly NO_ACTIVE_SESSIONS: ReadonlyMap<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>> = new Map<
 		string,
 		UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>
 	>();
 
-	private readonly options: RefreshTokensRedisStorageOptions;
+	private readonly options: Required<RefreshTokensRedisStorageOptions>;
+
+	public static readonly SERIALIZERS: Readonly<Record<'AVRO' | 'FAST-JSON' | 'JSON', UserSessionMetaDataSerializer>> = Object.freeze({
+		AVRO: AVRO_SERIALIZER,
+		'FAST-JSON': FAST_JSON_SERIALIZER,
+		JSON: JSON_SERIALIZER
+	});
 
 	public constructor(options: RefreshTokensRedisStorageOptions) {
-		this.options = options;
+		if (options.serializer == null) {
+			(options as MutableSome<RefreshTokensRedisStorageOptions, 'serializer'>).serializer = RefreshTokensRedisStorage.SERIALIZERS.AVRO;
+		}
+		this.options = options as Required<RefreshTokensRedisStorageOptions>;
 
 		RedisClientInstance.on(ConnectionType.SUBSCRIBER, 'message', (channel, message) => {
 			if (!channel.startsWith('__keyspace@') || !(message === 'del' || message === 'expired' || message === 'evicted')) {
@@ -71,14 +79,14 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 		}
 
 		const refreshTokenKey = this.refreshTokenKey(subject, refreshToken);
-		const metaDataString = JSON.stringify(metaData);
 
-		const [wasSet, activeSessions] = await RedisClientInstance.client
+		const [wasSet, activeSessions] = ((await RedisClientInstance.client
 			.multi()
-			.set(refreshTokenKey, metaDataString, ['EX', ttl], 'NX')
+			.set(refreshTokenKey, (this.options.serializer.serialize(metaData) as unknown) as string, ['EX', ttl], 'NX')
 			.lpush(activeSessionsKey, refreshToken)
-			.exec();
-		if (wasSet !== 'OK') {
+			.exec()) as unknown) as [Buffer, number];
+
+		if (!wasSet.equals(RefreshTokensRedisStorage.REDIS_OK_BUFFER_RESPONSE)) {
 			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key '${refreshTokenKey}'.`);
 		}
 
@@ -88,8 +96,10 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 	}
 
 	public async read(subject: string, refreshToken: string): Promise<UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation> | undefined> {
-		const session = await RedisClientInstance.client.get(this.refreshTokenKey(subject, refreshToken));
-		return session ? JSON.parse(session) : undefined;
+		const sessionBuffer = ((await RedisClientInstance.client.get(
+			(this.refreshTokenKeyBuffer(subject, refreshToken) as unknown) as string
+		)) as unknown) as Buffer;
+		return sessionBuffer ? this.options.serializer.deserialize(sessionBuffer) : undefined;
 	}
 
 	public async readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>>> {
@@ -99,16 +109,12 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			return RefreshTokensRedisStorage.NO_ACTIVE_SESSIONS;
 		}
 
-		const refreshTokenKeys = new Array<string>(refreshTokens.length);
+		const refreshTokenKeysBuffers = new Array<Buffer>(refreshTokens.length);
 		for (let i = 0; i < refreshTokens.length; i++) {
-			refreshTokenKeys[i] = this.refreshTokenKey(subject, refreshTokens[i]);
+			refreshTokenKeysBuffers[i] = this.refreshTokenKeyBuffer(subject, refreshTokens[i]);
 		}
 
-		const activeSessions = (await RedisClientInstance.client.mget(...refreshTokenKeys)) as (
-			| UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>
-			| string
-			| null
-		)[];
+		const activeSessions = (await RedisClientInstance.client.mget(...((refreshTokenKeysBuffers as unknown) as string[]))) as (Buffer | null)[];
 
 		const refreshTokenToActiveSessions = new Map<string, UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>>();
 
@@ -116,7 +122,7 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 			if (activeSessions[i] == null) {
 				continue;
 			}
-			refreshTokenToActiveSessions.set(refreshTokens[i], JSON.parse(activeSessions[i] as string));
+			refreshTokenToActiveSessions.set(refreshTokens[i], this.options.serializer.deserialize(activeSessions[i]!));
 		}
 
 		return refreshTokenToActiveSessions;
@@ -156,6 +162,16 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 
 	private refreshTokenKey(subject: string, refreshToken: string): string {
 		return `${this.options.keyPrefix.refreshToken}:${subject}:${refreshToken}`;
+	}
+
+	private refreshTokenKeyBuffer(subject: string, refreshToken: string): Buffer {
+		const buffer = Buffer.allocUnsafe(this.options.keyPrefix.refreshToken.length + subject.length + refreshToken.length + 2);
+		buffer.write(this.options.keyPrefix.refreshToken, 0, this.options.keyPrefix.refreshToken.length);
+		buffer.write(':', this.options.keyPrefix.refreshToken.length, 1);
+		buffer.write(subject, this.options.keyPrefix.refreshToken.length + 1, subject.length);
+		buffer.write(':', this.options.keyPrefix.refreshToken.length + 1 + subject.length, 1);
+		buffer.write(refreshToken, this.options.keyPrefix.refreshToken.length + subject.length + 2, refreshToken.length);
+		return buffer;
 	}
 }
 

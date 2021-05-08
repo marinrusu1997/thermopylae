@@ -49,7 +49,10 @@ before(async function boot() {
 	};
 
 	await RedisClientInstance.connect({
-		[ConnectionType.REGULAR]: redisClientOptions,
+		[ConnectionType.REGULAR]: {
+			...redisClientOptions,
+			detect_buffers: true
+		},
 		[ConnectionType.SUBSCRIBER]: redisClientOptions
 	});
 
@@ -57,6 +60,8 @@ before(async function boot() {
 
 	serverAddress = await server.listen(SERVER_PORT);
 	logger.debug(`Fastify server listening on ${serverAddress}`);
+
+	logger.crit('Refresh token storage has an AVRO schema to user session metadata, which needs to be updated from time to time.');
 });
 
 beforeEach(async () => {

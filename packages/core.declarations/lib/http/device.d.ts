@@ -76,13 +76,4 @@ export type DeviceType = '' | 'desktop' | 'smartphone' | 'tablet' | 'television'
 /**
  * Type of the client.
  */
-export type ClientType =
-	| ''
-	| 'browser'
-	| 'mobile app'
-	| 'feed reader'
-	| 'library'
-	| 'media player'
-	| 'personal information manager'
-	| 'external service'
-	| string;
+export type ClientType = '' | 'browser' | 'mobile app' | 'feed reader' | 'library' | 'media player' | 'personal information manager' | 'external service';

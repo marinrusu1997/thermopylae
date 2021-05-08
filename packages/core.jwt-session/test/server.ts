@@ -99,15 +99,17 @@ server[routes.login.method](routes.login.path, async (req, res) => {
 	const request = new FastifyRequestAdapter(req);
 	const response = new FastifyResponseAdapter(res);
 
-	// @ts-ignore
-	req[LOCATION_SYM] = {
-		countryCode: 'RO',
-		regionCode: 'B',
-		city: 'Bucharest',
-		latitude: 15.6,
-		longitude: 18.6,
-		timezone: 'Bucharest +2'
-	};
+	if (request.query('location') === '1') {
+		// @ts-ignore
+		req[LOCATION_SYM] = {
+			countryCode: 'RO',
+			regionCode: null,
+			city: 'Bucharest',
+			latitude: 15.6,
+			longitude: null,
+			timezone: null
+		};
+	}
 
 	try {
 		await middleware.create(request, response, { role: 'user' }, { subject: 'uid1' });

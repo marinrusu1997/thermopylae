@@ -37,7 +37,9 @@
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.jwt-session": "0",
         "@thermopylae/lib.logger": "0",
-        "cookie": "0"
+        "avsc": "5",
+        "cookie": "0",
+        "fast-json-stringify": "^2.7.3"
     },
     "devDependencies": {
         "@thermopylae/core.adapter.fastify": "0",

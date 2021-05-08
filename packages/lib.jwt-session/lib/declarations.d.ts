@@ -1,4 +1,4 @@
-import { DeviceType, UnixTimestamp } from '@thermopylae/core.declarations';
+import { DeviceType, Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { DeepReadonly } from 'utility-types';
 
 /**
@@ -98,12 +98,12 @@ interface UserSessionOperationContext<Device extends DeviceBase, Location> {
 	 * Device from where session was created/accessed. <br/>
 	 * Can be *undefined* if device is unknown.
 	 */
-	readonly device?: DeepReadonly<Device>;
+	readonly device?: Nullable<DeepReadonly<Device>>;
 	/**
 	 * Location from where session was created/accessed. <br/>
 	 * Can be *undefined* if location is unknown.
 	 */
-	readonly location?: DeepReadonly<Location>;
+	readonly location?: Nullable<DeepReadonly<Location>>;
 }
 
 /**

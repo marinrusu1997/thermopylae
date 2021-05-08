@@ -110,7 +110,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	it("doesn't verify devices if it wasn't provided at session creation or session update", async () => {
 		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
-		const firstSession = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Amsterdam' });
+		const firstSession = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Amsterdam', device: null });
 		await expect(
 			sessionManager.update(
 				firstSession.refreshToken,
@@ -126,7 +126,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 			{ ip: '185.9.6.3', device: { name: 'Android', type: 'smartphone' }, location: 'Amsterdam' }
 		);
 		await expect(
-			sessionManager.update(secondSession.refreshToken, { role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Bucharest' })
+			sessionManager.update(secondSession.refreshToken, { role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Bucharest', device: null })
 		).to.eventually.match(/^[a-zA-Z0-9\-_.]+$/);
 	});
 

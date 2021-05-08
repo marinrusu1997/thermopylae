@@ -1,10 +1,16 @@
-import type { HttpDeviceClient, HttpDeviceOs } from '@thermopylae/core.declarations';
+import type { HttpDeviceClient, HttpDeviceOs, Nullable, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { DeviceBase } from '@thermopylae/lib.jwt-session/lib';
+import type { UserSessionMetaData } from '@thermopylae/lib.jwt-session';
 
 /**
  * Device associated with the JWT user session.
  */
 export interface JwtSessionDevice extends DeviceBase {
-	readonly client?: HttpDeviceClient;
-	readonly os?: HttpDeviceOs;
+	readonly client: Nullable<HttpDeviceClient>;
+	readonly os: Nullable<HttpDeviceOs>;
+}
+
+export interface UserSessionMetaDataSerializer {
+	serialize(session: UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>): Buffer;
+	deserialize(buffer: Buffer): UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>;
 }

@@ -15,9 +15,6 @@ import type { UserSessionCookiesOptions, UserSessionOptions } from '../lib/middl
 const { AUTHORIZATION, USER_AGENT, COOKIE, X_FORWARDED_FOR } = HttpRequestHeaderEnum;
 const { SET_COOKIE } = HttpResponseHeaderEnum;
 
-// @fixme test scenario when no cookie, no headers, to not crash like a retard
-// @fixme manual testing from browser
-
 describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 	describe('session lifetime spec', () => {
 		it('authenticates, requests a resource and logs out (mobile device)', async () => {
@@ -517,7 +514,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 		it('limits number of concurrent sessions; reads all sessions; deletes all sessions', async () => {
 			/* AUTHENTICATE */
 			// first session
-			const firstAuthResp = await fetch(`${serverAddress}${routes.login.path}`, {
+			const firstAuthResp = await fetch(`${serverAddress}${routes.login.path}?location=1`, {
 				method: routes.login.method,
 				headers: {
 					[X_FORWARDED_FOR]: '203.0.113.195, 70.41.3.18, 150.172.238.178'
@@ -572,28 +569,21 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			expect(activeSessions[secondRefreshToken].device).to.be.deep.eq({
 				name: ' ',
 				type: 'desktop',
-				client: { type: 'browser', name: 'Chrome', version: '89.0', engine: 'Blink', engineVersion: '' },
+				client: { type: 'browser', name: 'Chrome', version: '89.0' },
 				os: { name: 'GNU/Linux', version: '', platform: 'x64' }
 			});
-			expect(activeSessions[secondRefreshToken].location).to.be.deep.eq({
-				countryCode: 'RO',
-				regionCode: 'B',
-				city: 'Bucharest',
-				latitude: 15.6,
-				longitude: 18.6,
-				timezone: 'Bucharest +2'
-			});
+			expect(activeSessions[secondRefreshToken].location).to.be.deep.eq(null);
 			expect(activeSessions[secondRefreshToken].expiresAt).to.be.greaterThan(activeSessions[secondRefreshToken].createdAt);
 
 			expect(activeSessions[firstRefreshToken].ip).to.be.eq('203.0.113.195');
-			expect(activeSessions[firstRefreshToken].device).to.be.eq(undefined);
+			expect(activeSessions[firstRefreshToken].device).to.be.eq(null);
 			expect(activeSessions[firstRefreshToken].location).to.be.deep.eq({
 				countryCode: 'RO',
-				regionCode: 'B',
+				regionCode: null,
 				city: 'Bucharest',
-				latitude: 15.6,
-				longitude: 18.6,
-				timezone: 'Bucharest +2'
+				latitude: 15.600000381469727, // floating point precision issues
+				longitude: null,
+				timezone: null
 			});
 			expect(activeSessions[firstRefreshToken].expiresAt).to.be.greaterThan(activeSessions[firstRefreshToken].createdAt);
 
