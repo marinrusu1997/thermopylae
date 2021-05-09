@@ -1,21 +1,19 @@
 import { describe, it, before } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect, logger, initLogger } from '@thermopylae/lib.unit-test';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import { parse } from 'cookie';
 import { setTimeout } from 'timers/promises';
-import { CookieSessionManager, CookieSessionManagerOptions, initLogger, SessionOperationContext } from '../lib';
+import { CookieSessionManager, CookieSessionManagerOptions, DeviceBase, UserSessionOperationContext } from '../lib';
 import { StorageMock } from './storage-mock';
 
-function buildContext(): SessionOperationContext {
+function buildContext(): UserSessionOperationContext<DeviceBase, string> {
 	return {
 		ip: '127.0.0.1',
-		'user-agent': 'Chrome 80',
-		referer: 'https://www.my-site.com',
-		location: 'Bucharest',
 		device: {
 			name: 'iPhone 11',
 			type: 'MOBILE'
-		}
+		},
+		location: 'Bucharest'
 	};
 }
 
@@ -30,16 +28,23 @@ function escapeStringRegexp(str: string): string {
 describe(`${CookieSessionManager.name} spec`, () => {
 	before(() => {
 		LoggerInstance.console.createTransport({ level: 'info' });
-		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, true);
+		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, { colorize: true });
 		initLogger();
 	});
 
 	it(`creates new session which expires after a given ttl`, async () => {
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 1
+				maxAge: 1,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
-			storage: new StorageMock()
+			storage: new StorageMock(),
+			logger
 		});
 
 		const sessionCookie = await sessionManager.create('uid1', buildContext());
@@ -57,16 +62,23 @@ describe(`${CookieSessionManager.name} spec`, () => {
 
 	it('denies access to session from device different than the one used at session creation', async () => {
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 1
+				maxAge: 1,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
-			storage: new StorageMock()
+			storage: new StorageMock(),
+			logger
 		});
 
 		const sessionCookie = await sessionManager.create('uid1', buildContext());
 		const sessionId = parse(sessionCookie)[sessionManager.sessionCookieName];
 
-		const otherDeviceContext: SessionOperationContext = {
+		const otherDeviceContext: UserSessionOperationContext<DeviceBase, string> = {
 			...buildContext(),
 			device: {
 				name: 'Android',
@@ -84,15 +96,22 @@ describe(`${CookieSessionManager.name} spec`, () => {
 
 	it('removes session after being idle', async () => {
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 10
+				maxAge: 10,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
 			timeouts: {
 				idle: 2,
 				renewal: 5,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage: new StorageMock()
+			storage: new StorageMock(),
+			logger
 		});
 
 		const sessionCookie = await sessionManager.create('uid1', buildContext());
@@ -114,14 +133,21 @@ describe(`${CookieSessionManager.name} spec`, () => {
 
 	it('renews session only once from same NodeJS process', async () => {
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 10
+				maxAge: 10,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
 			timeouts: {
 				renewal: 1,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage: new StorageMock()
+			storage: new StorageMock(),
+			logger
 		});
 		const context = buildContext();
 
@@ -158,19 +184,29 @@ describe(`${CookieSessionManager.name} spec`, () => {
 	it('renews session only once from multiple NodeJS processes', async () => {
 		const storage = new StorageMock();
 		const context = buildContext();
-		const options: CookieSessionManagerOptions = {
-			cookie: {
-				maxAge: 10
-			},
-			timeouts: {
-				renewal: 1,
-				oldSessionAvailabilityTimeoutAfterRenewal: 1
-			},
-			storage
-		};
 
-		const process1 = new CookieSessionManager(options);
-		const process2 = new CookieSessionManager(options);
+		function createOptions(): CookieSessionManagerOptions<DeviceBase, string> {
+			return {
+				idLength: 18,
+				cookie: {
+					maxAge: 10,
+					secure: true,
+					httpOnly: true,
+					sameSite: 'strict',
+					name: 'sid',
+					path: '/'
+				},
+				timeouts: {
+					renewal: 1,
+					oldSessionAvailabilityTimeoutAfterRenewal: 1
+				},
+				storage,
+				logger
+			};
+		}
+
+		const process1 = new CookieSessionManager(createOptions());
+		const process2 = new CookieSessionManager(createOptions());
 
 		const sessionCookie = await process1.create('uid1', context);
 		const sessionId = parse(sessionCookie)[process1.sessionCookieName];
@@ -208,14 +244,21 @@ describe(`${CookieSessionManager.name} spec`, () => {
 	it('deletes explicitly user session that was recently renewed', async () => {
 		const storage = new StorageMock();
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 10
+				maxAge: 10,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
 			timeouts: {
 				renewal: 1,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage
+			storage,
+			logger
 		});
 		const context = buildContext();
 
@@ -234,23 +277,30 @@ describe(`${CookieSessionManager.name} spec`, () => {
 	it('deletes all user sessions', async () => {
 		const storage = new StorageMock();
 		const sessionManager = new CookieSessionManager({
+			idLength: 18,
 			cookie: {
-				maxAge: 10
+				maxAge: 10,
+				secure: true,
+				httpOnly: true,
+				sameSite: 'strict',
+				name: 'sid',
+				path: '/'
 			},
 			timeouts: {
 				renewal: 1,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage
+			storage,
+			logger
 		});
 
 		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.9' });
 		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.10' });
 
 		const sessions = await sessionManager.readAll('uid1');
-		expect(sessions).to.be.ofSize(2);
-		expect(sessions[0].ip).to.be.eq('192.168.5.9');
-		expect(sessions[1].ip).to.be.eq('192.168.5.10');
+		expect(sessions.size).to.be.eq(2);
+
+		expect(Array.from(sessions.values()).map((session) => session.ip)).to.be.equalTo(['192.168.5.9', '192.168.5.10']);
 
 		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(2);
 		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(0);

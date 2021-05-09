@@ -31,17 +31,16 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.logger": "0",
         "cookie": "0",
-        "fast-deep-equal": "3",
         "uid-safe": "2"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.cache": "0",
-        "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/lib.logger": "0",
+        "@thermopylae/lib.cache": "0",
         "@types/cookie": "0",
         "@types/uid-safe": "2",
         "utility-types": "3"

@@ -71,9 +71,29 @@ export interface HttpDevice {
 /**
  * Type of the device.
  */
-export type DeviceType = '' | 'desktop' | 'smartphone' | 'tablet' | 'television' | 'smart display' | 'camera' | 'car' | 'console' | 'portable media player';
+export type DeviceType =
+	| ''
+	| 'desktop'
+	| 'smartphone'
+	| 'tablet'
+	| 'television'
+	| 'smart display'
+	| 'camera'
+	| 'car'
+	| 'console'
+	| 'portable media player'
+	| string;
 
 /**
  * Type of the client.
  */
-export type ClientType = '' | 'browser' | 'mobile app' | 'feed reader' | 'library' | 'media player' | 'personal information manager' | 'external service';
+export type ClientType =
+	| ''
+	| 'browser'
+	| 'mobile app'
+	| 'feed reader'
+	| 'library'
+	| 'media player'
+	| 'personal information manager'
+	| 'external service'
+	| string;

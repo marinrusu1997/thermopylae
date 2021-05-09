@@ -1,4 +1,5 @@
-import { DeviceType, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { DeviceType, UnixTimestamp, Nullable } from '@thermopylae/core.declarations';
+import type { DeepReadonly } from 'utility-types';
 
 /**
  * Session id type alias.
@@ -6,9 +7,9 @@ import { DeviceType, UnixTimestamp } from '@thermopylae/core.declarations';
 type SessionId = string;
 
 /**
- * Device from where session was created/accessed.
+ * Represents minimal requirements for the {@link UserSessionOperationContext.device}.
  */
-declare interface SessionDevice {
+interface DeviceBase {
 	/**
 	 * Name of the device.
 	 */
@@ -17,54 +18,43 @@ declare interface SessionDevice {
 	 * Type of the device.
 	 */
 	readonly type: DeviceType;
-	/**
-	 * Device description.
-	 */
-	readonly description?: string;
 }
 
 /**
- * Represents context of the session manipulation operation.
+ * Represents context of the user session at it's creation/access.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-declare interface SessionOperationContext {
+interface UserSessionOperationContext<Device extends DeviceBase, Location> {
 	/**
 	 * Ip from where session was created/accessed.
 	 */
 	readonly ip: string;
 	/**
-	 * Device from where session was created/accessed.
+	 * Device from where session was created/accessed. <br/>
+	 * Can be *undefined* or *null* if device is unknown.
 	 */
-	readonly device: SessionDevice;
+	readonly device?: Nullable<DeepReadonly<Device>>;
 	/**
-	 * Value of the *User-Agent* header.
+	 * Location from where session was created/accessed. <br/>
+	 * Can be *undefined* or *null* if location is unknown.
 	 */
-	readonly ['user-agent']: string;
-	/**
-	 * Value of the *Referer* header.
-	 */
-	readonly referer?: string;
-	/**
-	 * Location from where session was created/accessed.
-	 */
-	readonly location?: string;
+	readonly location?: Nullable<DeepReadonly<Location>>;
 }
 
 /**
- * Represents session metadata that are being stored in external storage.
+ * Represents user session metadata that is stored along the refresh token.
+ *
+ * @template Device		Type of the device.
+ * @template Location	Type of the location.
  */
-declare interface SessionMetaData {
+interface UserSessionMetaData<Device extends DeviceBase, Location> extends UserSessionOperationContext<Device, Location> {
 	/**
 	 * Subject this session belongs to.
 	 */
 	readonly subject: string;
-	/**
-	 * IP from where session was created.
-	 */
-	readonly ip: string;
-	/**
-	 * Device from where session was created.
-	 */
-	readonly device: SessionDevice;
+
 	/**
 	 * When session was created.
 	 */
@@ -78,4 +68,4 @@ declare interface SessionMetaData {
 	accessedAt: UnixTimestamp;
 }
 
-export { SessionId, SessionOperationContext, SessionMetaData, SessionDevice };
+export { SessionId, UserSessionOperationContext, UserSessionMetaData, DeviceBase };

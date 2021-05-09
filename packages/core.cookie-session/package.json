@@ -1,6 +1,6 @@
 {
-    "name": "@thermopylae/core.jwt-session",
-    "description": "JWT user session for HTTP interface.",
+    "name": "@thermopylae/core.cookie-session",
+    "description": "Cookie user session for HTTP interface.",
     "keywords": [
         "core"
     ],
@@ -34,27 +34,12 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
-        "@thermopylae/lib.jwt-session": "0",
-        "@thermopylae/lib.cache": "0",
-        "@thermopylae/core.redis": "0",
-        "avsc": "5",
-        "cookie": "0",
-        "fast-json-stringify": "2"
+        "@thermopylae/lib.cookie-session": "0"
     },
     "devDependencies": {
         "@thermopylae/module-builder": "0",
         "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/core.adapter.fastify": "0",
-        "@types/benchmark": "2",
-        "@types/cookie": "0",
-        "@types/dotenv": "8",
-        "@types/node-fetch": "2",
-        "benchmark": "2",
-        "dotenv": "8",
-        "fastify": "3",
-        "fastify-cookie": "5",
-        "node-fetch": "2",
-        "pick-random": "3"
+        "@thermopylae/core.adapter.express": "0"
     },
     "peerDependencies": {
         "chai": "4",

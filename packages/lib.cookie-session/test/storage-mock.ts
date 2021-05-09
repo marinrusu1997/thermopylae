@@ -7,18 +7,18 @@ import {
 	ProactiveExpirationPolicy,
 	CacheEvent
 } from '@thermopylae/lib.cache';
-import { SessionId, SessionMetaData, SessionsStorage } from '../lib';
+import type { SessionId, UserSessionMetaData, SessionsStorage, DeviceBase } from '../lib';
 
-class StorageMock implements SessionsStorage {
-	private readonly cache: PolicyBasedCache<string, SessionMetaData, AbsoluteExpirationPolicyArgumentsBundle>;
+class StorageMock implements SessionsStorage<DeviceBase, string> {
+	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;
 
 	private readonly userSessions: Map<string, Set<string>>;
 
 	public readonly invocations: Map<keyof StorageMock, number>;
 
 	public constructor() {
-		const backend = new EsMapCacheBackend<string, SessionMetaData>();
-		const policies = [new ProactiveExpirationPolicy<string, SessionMetaData>(new BucketGarbageCollector())];
+		const backend = new EsMapCacheBackend<string, UserSessionMetaData<DeviceBase, string>>();
+		const policies = [new ProactiveExpirationPolicy<string, UserSessionMetaData<DeviceBase, string>>(new BucketGarbageCollector())];
 		this.cache = new PolicyBasedCache(backend, policies);
 
 		this.userSessions = new Map<string, Set<string>>();
@@ -42,7 +42,7 @@ class StorageMock implements SessionsStorage {
 		]);
 	}
 
-	public async insert(sessionId: SessionId, metaData: SessionMetaData, ttl: Seconds): Promise<void> {
+	public async insert(sessionId: SessionId, metaData: UserSessionMetaData<DeviceBase, string>, ttl: Seconds): Promise<void> {
 		let sessions = this.userSessions.get(metaData.subject);
 		if (sessions == null) {
 			sessions = new Set<string>();
@@ -53,26 +53,24 @@ class StorageMock implements SessionsStorage {
 		this.cache.set(sessionId, metaData, { expiresAfter: ttl });
 	}
 
-	public async read(sessionId: SessionId): Promise<SessionMetaData | undefined> {
+	public async read(sessionId: SessionId): Promise<UserSessionMetaData<DeviceBase, string> | undefined> {
 		return this.cache.get(sessionId);
 	}
 
-	public async readAll(subject: string): Promise<Array<Readonly<SessionMetaData>>> {
+	public async readAll(subject: string): Promise<ReadonlyMap<SessionId, Readonly<UserSessionMetaData<DeviceBase, string>>>> {
 		const sessions = this.userSessions.get(subject);
 		if (sessions == null) {
-			return [];
+			return new Map();
 		}
 
-		const sessionsMetaData = new Array<SessionMetaData>(sessions.size);
-		let i = 0;
+		const sessionsMetaData = new Map<SessionId, UserSessionMetaData<DeviceBase, string>>();
 		for (const sessionId of sessions) {
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion, no-plusplus
-			sessionsMetaData[i++] = this.cache.get(sessionId)!;
+			sessionsMetaData.set(sessionId, this.cache.get(sessionId)!);
 		}
 		return sessionsMetaData;
 	}
 
-	public async update(sessionId: SessionId, metaData: Partial<SessionMetaData>): Promise<void> {
+	public async update(sessionId: SessionId, metaData: Partial<UserSessionMetaData<DeviceBase, string>>): Promise<void> {
 		const session = this.cache.get(sessionId);
 		if (session == null) {
 			throw new Error(`Session ${sessionId} not found.`);
@@ -80,9 +78,9 @@ class StorageMock implements SessionsStorage {
 		session.accessedAt = metaData.accessedAt!;
 	}
 
-	public async delete(sessionId: SessionId): Promise<boolean> {
+	public async delete(sessionId: SessionId): Promise<void> {
 		this.invocations.set('delete', this.invocations.get('delete')! + 1);
-		return this.cache.del(sessionId);
+		this.cache.del(sessionId);
 	}
 
 	public async deleteAll(subject: string): Promise<number> {

@@ -1,8 +1,9 @@
-import { ErrorCodes, MutableSome, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import safeUid from 'uid-safe';
+import { ErrorCodes } from '@thermopylae/core.declarations';
+import type { MutableSome, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { DeepReadonly } from 'utility-types';
+import safeUid from 'uid-safe';
 import { createException } from './error';
-import { DeviceBase, IssuedJwtPayload, QueriedUserSessionMetaData, UserSessionMetaData, UserSessionOperationContext } from './declarations';
+import type { DeviceBase, IssuedJwtPayload, QueriedUserSessionMetaData, UserSessionMetaData, UserSessionOperationContext } from './declarations';
 
 // Reference Links:
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
@@ -95,7 +96,7 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
 	 * @param subject	Subject user sessions are belonging to.
 	 *
 	 * @returns			Refresh tokens with the sessions metadata. <br/>
-	 * 					When subject has no active sessions, returns an empty array.
+	 * 					When subject has no active sessions, returns an empty map.
 	 */
 	readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<Device, Location>>>;
 
@@ -127,7 +128,7 @@ interface RefreshTokensStorage<Device extends DeviceBase, Location> {
  *
  * @param subject			Subject.
  * @param context			Refresh access token operation context.
- * @param sessionMetaData	Session meta-data that was retrieved from storage.
+ * @param sessionMetaData	Session metadata that was retrieved from storage.
  *
  * @throws 	In case some anomalies are detected between renewal context and session metadata,
  * 			an exception should be thrown to stop renewal operation.
@@ -207,7 +208,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 */
 	public async generateRefreshToken(subject: string, context: UserSessionOperationContext<Device, Location>): Promise<AnchorableRefreshToken> {
 		const refreshToken = await safeUid(this.options.refreshTokenLength);
-		(context as UserSessionMetaData<Device, Location>).createdAt = InvalidationStrategy.currentTimestamp();
+		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'createdAt'>).createdAt = InvalidationStrategy.currentTimestamp();
 
 		await this.options.refreshTokensStorage.insert(subject, refreshToken, context as UserSessionMetaData<Device, Location>, this.options.refreshTokenTtl);
 		return { token: refreshToken, anchor: refreshToken.slice(0, InvalidationStrategy.ANCHOR_TO_REFRESH_TOKEN_LENGTH) };
@@ -263,7 +264,8 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	public async getActiveUserSessions(subject: string): Promise<ReadonlyMap<string, DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>> {
 		const activeSessions = await this.options.refreshTokensStorage.readAll(subject);
 		for (const session of activeSessions.values()) {
-			(session as QueriedUserSessionMetaData<Device, Location>).expiresAt = session.createdAt + this.options.refreshTokenTtl;
+			((session as unknown) as MutableSome<QueriedUserSessionMetaData<Device, Location>, 'expiresAt'>).expiresAt =
+				session.createdAt + this.options.refreshTokenTtl;
 		}
 		return activeSessions as ReadonlyMap<string, DeepReadonly<QueriedUserSessionMetaData<Device, Location>>>;
 	}

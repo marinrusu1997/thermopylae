@@ -1,4 +1,5 @@
-export { CookieSessionManager, CookieSessionManagerOptions } from './manager';
-export { SessionId, SessionOperationContext, SessionDevice, SessionMetaData } from './session';
+export { CookieSessionManager } from './manager';
 export { SessionsStorage, CommitType } from './storage';
-export { initLogger } from './logger';
+
+export type { CookieSessionManagerOptions } from './manager';
+export type { SessionId, UserSessionOperationContext, DeviceBase, UserSessionMetaData } from './session';

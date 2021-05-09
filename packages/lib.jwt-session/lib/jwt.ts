@@ -1,10 +1,13 @@
-import { PublicPrivateKeys, ErrorCodes, RequireSome, RequireAtLeastOne, MutableSome, Seconds } from '@thermopylae/core.declarations';
-import { VerifyOptions, SignOptions, sign, verify, TokenExpiredError, JsonWebTokenError, NotBeforeError } from 'jsonwebtoken';
-import { EventEmitter } from 'events';
+import { ErrorCodes } from '@thermopylae/core.declarations';
+import type { PublicPrivateKeys, RequireSome, RequireAtLeastOne, MutableSome, Seconds } from '@thermopylae/core.declarations';
+import { sign, verify, TokenExpiredError, JsonWebTokenError, NotBeforeError } from 'jsonwebtoken';
+import type { VerifyOptions, SignOptions } from 'jsonwebtoken';
 import type { DeepReadonly } from 'utility-types';
-import { DeviceBase, IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
+import { EventEmitter } from 'events';
+import type { DeviceBase, IssuedJwtPayload, JwtPayload, QueriedUserSessionMetaData, UserSessionOperationContext } from './declarations';
 import { createException } from './error';
-import { InvalidationStrategy, InvalidationStrategyOptions } from './invalidation';
+import { InvalidationStrategy } from './invalidation';
+import type { InvalidationStrategyOptions } from './invalidation';
 
 /**
  * Payload of the JWT that will be actually signed.

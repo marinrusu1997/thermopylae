@@ -1,4 +1,4 @@
-import { DeviceType, Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { DeviceType, Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { DeepReadonly } from 'utility-types';
 
 /**
@@ -76,11 +76,11 @@ interface DeviceBase {
 	/**
 	 * Name of the device.
 	 */
-	name: string;
+	readonly name: string;
 	/**
 	 * Type of the device.
 	 */
-	type: DeviceType;
+	readonly type: DeviceType;
 }
 
 /**
@@ -116,7 +116,7 @@ interface UserSessionMetaData<Device extends DeviceBase, Location> extends UserS
 	/**
 	 * When session was created.
 	 */
-	createdAt: UnixTimestamp;
+	readonly createdAt: UnixTimestamp;
 }
 
 /**
@@ -129,7 +129,7 @@ interface QueriedUserSessionMetaData<Device extends DeviceBase, Location> extend
 	/**
 	 * When session will expire.
 	 */
-	expiresAt: UnixTimestamp;
+	readonly expiresAt: UnixTimestamp;
 }
 
 export { JwtPayload, IssuedJwtPayload, DeviceBase, UserSessionOperationContext, UserSessionMetaData, QueriedUserSessionMetaData };
