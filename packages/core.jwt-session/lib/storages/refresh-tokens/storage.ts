@@ -10,14 +10,45 @@ import { FAST_JSON_SERIALIZER } from './fast-json-serializer';
 import { AVRO_SERIALIZER } from './avro-serializer';
 
 interface RefreshTokensRedisStorageOptions {
+	/**
+	 * Prefixes used for keys stored in Redis.
+	 */
 	readonly keyPrefix: {
+		/**
+		 * Key prefix used for storing a list of refresh tokens belonging to a concrete subject. <br/>
+		 * **Notice** that refresh tokens represent the user sessions and act as their ids,
+		 * therefore we have a list of user session ids.
+		 */
 		sessions: string;
+		/**
+		 * Key prefix used for storing refresh token as key and session metadata as value.
+		 */
 		refreshToken: string;
 	};
+	/**
+	 * Maximum number of concurrent sessions that a user can have. <br/>
+	 * Creating a new session above this threshold will result in an error. <br/>
+	 * When left *undefined*, user can have an unlimited number of sessions.
+	 */
 	readonly concurrentSessions?: number;
+	/**
+	 * Serializer used for session metadata serialization. <br/>
+	 * Defaults to {@link RefreshTokensRedisStorage.SERIALIZERS.AVRO}.
+	 */
 	readonly serializer?: UserSessionMetaDataSerializer;
 }
 
+/**
+ * Refresh tokens storage backed by [Redis](https://redis.io/). <br/>
+ * This implementation uses *core.redis* as client and imposes the following requirements to him: <br/>
+ * 	- {@link ConnectionType.SUBSCRIBER} connection needs to be established and available.
+ * 		This is needed for receiving of key space notification events about refresh token keys deletion, expiration or eviction,
+ * 		in order to remove them from list of active user sessions. <br/>
+ * 	- {@link ConnectionType.REGULAR} connection needs to have **detect_buffers** option enabled, because it stores and reads
+ * 		serialized user session metadata as {@link Buffer} instances. <br/>
+ * 	- {@link RedisClientInstance.db} property should always return a valid db index.
+ * 		It is recommended to not change db after {@link ConnectionType.REGULAR} connection was established.
+ */
 class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice, HTTPRequestLocation> {
 	private static readonly REDIS_OK_BUFFER_RESPONSE = Buffer.from('OK');
 
@@ -28,9 +59,23 @@ class RefreshTokensRedisStorage implements RefreshTokensStorage<JwtSessionDevice
 
 	private readonly options: Required<RefreshTokensRedisStorageOptions>;
 
+	/**
+	 * Predefined serializers.
+	 */
 	public static readonly SERIALIZERS: Readonly<Record<'AVRO' | 'FAST-JSON' | 'JSON', UserSessionMetaDataSerializer>> = Object.freeze({
+		/**
+		 * Serializer which uses [AVRO format](https://avro.apache.org/docs/current/spec.html). <br/>
+		 * Under the hood uses [avsc](https://www.npmjs.com/package/avsc) npm package.
+		 */
 		AVRO: AVRO_SERIALIZER,
+		/**
+		 * Serializer which uses under the hood
+		 * [fast-json-stringify](https://www.npmjs.com/package/fast-json-stringify) npm package.
+		 */
 		'FAST-JSON': FAST_JSON_SERIALIZER,
+		/**
+		 * Serializer which uses native {@link JSON} serialization.
+		 */
 		JSON: JSON_SERIALIZER
 	});
 

@@ -3,6 +3,9 @@ import type { UserSessionMetaData } from '@thermopylae/lib.jwt-session';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { JwtSessionDevice, UserSessionMetaDataSerializer } from '../../typings';
 
+/**
+ * @private
+ */
 const AVRO_SCHEMA = Type.forSchema(
 	{
 		type: 'record',
@@ -77,6 +80,9 @@ const AVRO_SCHEMA = Type.forSchema(
 	{ omitRecordMethods: true }
 );
 
+/**
+ * @private
+ */
 const AVRO_SERIALIZER: Readonly<UserSessionMetaDataSerializer> = Object.freeze({
 	serialize(session: UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>): Buffer {
 		return AVRO_SCHEMA.toBuffer(session);

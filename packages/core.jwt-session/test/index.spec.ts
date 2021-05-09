@@ -51,10 +51,10 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 		});
 
 		it('authenticates, requests a resource and logs out (browser device & cookies)  (no persistent session cookie)', async () => {
-			const { persistent } = options.session.cookies;
+			const { persistentAccessToken } = options.session.cookies;
 
 			try {
-				(options.session.cookies as MutableSome<UserSessionCookiesOptions, 'persistent'>).persistent = false;
+				(options.session.cookies as MutableSome<UserSessionCookiesOptions, 'persistentAccessToken'>).persistentAccessToken = false;
 
 				/* AUTHENTICATE */
 				const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
@@ -105,7 +105,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				});
 				expect(logoutResp.status).to.be.eq(200);
 			} finally {
-				(options.session.cookies as MutableSome<UserSessionCookiesOptions, 'persistent'>).persistent = persistent;
+				(options.session.cookies as MutableSome<UserSessionCookiesOptions, 'persistentAccessToken'>).persistentAccessToken = persistentAccessToken;
 			}
 		});
 

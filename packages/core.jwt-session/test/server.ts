@@ -61,7 +61,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 				refresh: '/session'
 			},
 			sameSite: 'strict',
-			persistent: true
+			persistentAccessToken: true
 		},
 		headers: {
 			access: 'x-access-token',

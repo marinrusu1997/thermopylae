@@ -10,6 +10,9 @@ export interface JwtSessionDevice extends DeviceBase {
 	readonly os: Nullable<HttpDeviceOs>;
 }
 
+/**
+ * {@link UserSessionMetaData} serializer used by {@link RefreshTokensRedisStorage}.
+ */
 export interface UserSessionMetaDataSerializer {
 	serialize(session: UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>): Buffer;
 	deserialize(buffer: Buffer): UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>;

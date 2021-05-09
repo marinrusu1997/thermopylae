@@ -3,6 +3,9 @@ import type { UserSessionMetaData } from '@thermopylae/lib.jwt-session';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { JwtSessionDevice, UserSessionMetaDataSerializer } from '../../typings';
 
+/**
+ * @private
+ */
 const FAST_JSON_SCHEMA = fastJSON(
 	{
 		title: 'User Session Meta Data Schema',
@@ -75,6 +78,9 @@ const FAST_JSON_SCHEMA = fastJSON(
 	}
 );
 
+/**
+ * @private
+ */
 const FAST_JSON_SERIALIZER: Readonly<UserSessionMetaDataSerializer> = Object.freeze({
 	serialize(session: UserSessionMetaData<JwtSessionDevice, HTTPRequestLocation>): Buffer {
 		return Buffer.from(FAST_JSON_SCHEMA(session));
