@@ -7,6 +7,8 @@ import type { WrappedNodeRedisClient } from 'handy-redis';
 import { createNodeRedisClient } from 'handy-redis';
 import { logger } from './logger';
 import { createException } from './error';
+import { addJsonModuleCommands } from './modules/json';
+import type { JsonModuleCommands } from './modules/json';
 
 type RequireHostPortClientOptions = RequireSome<ClientOpts, 'host' | 'port'>;
 type RequirePathClientOptions = RequireSome<ClientOpts, 'path'>;
@@ -22,13 +24,23 @@ type OmittedClientOptions = Omit<ClientOpts, 'no_ready_check' | 'disable_resubsc
 type DebuggableEventType = 'subscribe' | 'psubscribe' | 'unsubscribe' | 'punsubscribe' | 'connect' | 'reconnecting' | 'end';
 
 type RedisClientOptions = (ConnectionOptions | RequiredClientOptions | OmittedClientOptions) & {
-	attachDebugListeners?: boolean | Set<DebuggableEventType>;
+	readonly attachDebugListeners?: boolean | Set<DebuggableEventType>;
 };
 
 const enum ConnectionType {
 	REGULAR = 'REGULAR',
 	SUBSCRIBER = 'SUBSCRIBER',
 	PUBLISHER = 'PUBLISHER'
+}
+
+const enum RedisModule {
+	JSON
+}
+
+interface NodeRedisClient extends WrappedNodeRedisClient, JsonModuleCommands {}
+
+interface ConnectOptions {
+	readonly modules?: Set<RedisModule>;
 }
 
 /**
@@ -41,7 +53,11 @@ const enum ConnectionType {
 class RedisClient {
 	private static readonly EXCLUDE_PROPS_FROM_FORMATTED_REDIS_ERR: ReadonlyArray<keyof AggregateError | string> = ['stack', 'errors'];
 
-	private readonly connections: Record<ConnectionType, WrappedNodeRedisClient> = {
+	private static readonly REDIS_MODULE_INITIALIZERS: Record<RedisModule, () => void> = {
+		[RedisModule.JSON]: addJsonModuleCommands
+	};
+
+	private readonly connections: Record<ConnectionType, NodeRedisClient> = {
 		[ConnectionType.REGULAR]: null!,
 		[ConnectionType.SUBSCRIBER]: null!,
 		[ConnectionType.PUBLISHER]: null!
@@ -70,21 +86,21 @@ class RedisClient {
 	/**
 	 * Get regular redis client.
 	 */
-	public get client(): WrappedNodeRedisClient {
+	public get client(): NodeRedisClient {
 		return this.connections[ConnectionType.REGULAR];
 	}
 
 	/**
 	 * Get subscriber redis client.
 	 */
-	public get subscriber(): WrappedNodeRedisClient {
+	public get subscriber(): NodeRedisClient {
 		return this.connections[ConnectionType.SUBSCRIBER];
 	}
 
 	/**
 	 * Get publisher redis client.
 	 */
-	public get publisher(): WrappedNodeRedisClient {
+	public get publisher(): NodeRedisClient {
 		return this.connections[ConnectionType.PUBLISHER];
 	}
 
@@ -125,23 +141,32 @@ class RedisClient {
 	 *
 	 * @param connections	Which connections needs to be opened. <br/>
 	 * 						At least {@link ConnectionType.REGULAR} connection needs to be specified.
+	 * @param options		Connection options. These options are available for all established connections.
 	 */
-	public async connect(connections: Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>): Promise<void> {
+	public async connect(connections: Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>, options?: ConnectOptions): Promise<void> {
 		if (connections[ConnectionType.REGULAR] == null) {
 			throw createException(ErrorCodes.REQUIRED, `Options for ${ConnectionType.REGULAR} connection are required.`);
 		}
 
+		if (options) {
+			if (options.modules) {
+				for (const module of options.modules) {
+					RedisClient.REDIS_MODULE_INITIALIZERS[module]();
+				}
+			}
+		}
+
 		try {
 			await Promise.all(
-				(Object.entries(connections) as [ConnectionType, RedisClientOptions][]).map(([connectionType, options]) => {
-					if (options.retry_strategy == null) {
-						options.retry_strategy = RedisClient.createRetryStrategy(connectionType, options);
+				(Object.entries(connections) as [ConnectionType, RedisClientOptions][]).map(([connectionType, connectionOptions]) => {
+					if (connectionOptions.retry_strategy == null) {
+						connectionOptions.retry_strategy = RedisClient.createRetryStrategy(connectionType, connectionOptions);
 					}
-					if (options.db == null) {
-						options.db = 0;
+					if (connectionOptions.db == null) {
+						connectionOptions.db = 0;
 					}
 
-					return this.establishConnection(options, connectionType);
+					return this.establishConnection(connectionOptions, connectionType);
 				})
 			);
 
@@ -214,7 +239,7 @@ class RedisClient {
 							delete this.queuedEventListeners[connectionType];
 						}
 
-						this.connections[connectionType] = redisClient;
+						this.connections[connectionType] = redisClient as NodeRedisClient;
 						redisClient = null!;
 
 						resolve();
@@ -361,4 +386,4 @@ class RedisClient {
 	}
 }
 
-export { RedisClient, RedisClientOptions, ConnectionType, DebuggableEventType };
+export { RedisClient, NodeRedisClient, RedisClientOptions, RedisModule, ConnectOptions, ConnectionType, DebuggableEventType };
