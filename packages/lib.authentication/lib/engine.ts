@@ -50,6 +50,14 @@ import { logger } from './logger';
 //	it requires from user his password, validate it, and then perform action,
 //	notice that on further actions of same kind, password is no longer needed (i think client stores some token from backend)
 
+// @fixme minimize as much as possible number of interactions between app and DB/Redis
+
+// @fixme add support for google otp generator from mobile device
+
+// @fixme add suport for forcefull change of password once in 3 months
+
+// @fixme add suport to detect that new password is not identic (or almost identic) with old one
+
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
 

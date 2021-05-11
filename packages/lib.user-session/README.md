@@ -1,4 +1,4 @@
-<h1 align="center">@thermopylae/lib.cookie-session</h1>
+<h1 align="center">@thermopylae/lib.user-session</h1>
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
@@ -18,7 +18,7 @@
 ## Install
 
 ```sh
-npm install @thermopylae/lib.cookie-session
+npm install @thermopylae/lib.user-session
 ```
 
 ## Run tests

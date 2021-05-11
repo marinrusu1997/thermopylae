@@ -6,7 +6,7 @@ import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import {
 	IssuedJwtPayload,
 	JwtManagerEvent,
-	JwtSessionManager,
+	JwtUserSessionManager,
 	JwtSessionManagerOptions,
 	DeviceBase,
 	UserSessionOperationContext,
@@ -49,9 +49,9 @@ function sessionContext(): UserSessionOperationContext<DeviceBase, string> {
 	};
 }
 
-describe(`${JwtSessionManager.name} spec`, () => {
+describe(`${JwtUserSessionManager.name} spec`, () => {
 	it('creates sessions and renews them', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
 		const sessionTokens = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, sessionContext());
 		expect(sessionTokens.accessToken.split('.').length).to.be.eq(3); // header, payload, signature
@@ -94,7 +94,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	}).timeout(3500);
 
 	it('fails to renew session from device that differs from the one session was created', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 		const sessionTokens = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, sessionContext());
 
 		const differentContext = sessionContext();
@@ -108,7 +108,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	});
 
 	it("doesn't verify devices if it wasn't provided at session creation or session update", async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
 		const firstSession = await sessionManager.create({ role: 'admin' }, { subject: 'uid1' }, { ip: '127.0.0.1', location: 'Amsterdam', device: null });
 		await expect(
@@ -131,7 +131,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	});
 
 	it('creates session with multiple access tokens and then invalidates them', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, Buffer.from('secret')));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 3, Buffer.from('secret')));
 
 		let invalidatedSessionEventPayload: IssuedJwtPayload | undefined;
 		sessionManager.on(JwtManagerEvent.SESSION_INVALIDATED, (payload) => {
@@ -189,7 +189,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	});
 
 	it('invalidates access tokens that have a lifetime longer than refresh token', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 1, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 1, 'secret'));
 
 		let invalidatedSessionEventPayload: IssuedJwtPayload | undefined;
 		sessionManager.on(JwtManagerEvent.SESSION_INVALIDATED, (payload) => {
@@ -215,7 +215,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	}).timeout(2500);
 
 	it('invalidates all of the user sessions', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(2, 3, 'secret'));
 
 		let invalidatedAllSessionsSubject: string | undefined;
 		let invalidatedAllSessionsAccessTokenTtl: number | undefined;
@@ -271,7 +271,7 @@ describe(`${JwtSessionManager.name} spec`, () => {
 	}).timeout(3000);
 
 	it('invalidates all of the user sessions along with access tokens issued right before refresh token expiration', async () => {
-		const sessionManager = new JwtSessionManager(jwtSessionManagerOpts(3, 2, 'secret'));
+		const sessionManager = new JwtUserSessionManager(jwtSessionManagerOpts(3, 2, 'secret'));
 
 		let invalidatedAllSessionsSubject: string | undefined;
 		let invalidatedAllSessionsAccessTokenTtl: number | undefined;
@@ -319,13 +319,13 @@ describe(`${JwtSessionManager.name} spec`, () => {
 
 	it('invalidates session in cluster mode', async () => {
 		const node1Opts = jwtSessionManagerOpts(1, 2, 'secret');
-		const node1 = new JwtSessionManager(node1Opts);
+		const node1 = new JwtUserSessionManager(node1Opts);
 
 		const node2Opts = jwtSessionManagerOpts(1, 2, 'secret');
 		// shared DB
 		(node2Opts.invalidationOptions as MutableSome<InvalidationStrategyOptions<any, any>, 'refreshTokensStorage'>).refreshTokensStorage =
 			node1Opts.invalidationOptions.refreshTokensStorage;
-		const node2 = new JwtSessionManager(node2Opts);
+		const node2 = new JwtUserSessionManager(node2Opts);
 		node2.on(JwtManagerEvent.SESSION_INVALIDATED, (accessTokenPayload) => {
 			// simulate that accessTokenPayload was sent by event bus
 			node1.restrictOne(accessTokenPayload);
@@ -355,13 +355,13 @@ describe(`${JwtSessionManager.name} spec`, () => {
 
 	it('invalidates all sessions in cluster mode', async () => {
 		const node1Opts = jwtSessionManagerOpts(1, 2, 'secret');
-		const node1 = new JwtSessionManager(node1Opts);
+		const node1 = new JwtUserSessionManager(node1Opts);
 
 		const node2Opts = jwtSessionManagerOpts(1, 2, 'secret');
 		// shared DB
 		(node2Opts.invalidationOptions as MutableSome<InvalidationStrategyOptions<any, any>, 'refreshTokensStorage'>).refreshTokensStorage =
 			node1Opts.invalidationOptions.refreshTokensStorage;
-		const node2 = new JwtSessionManager(node2Opts);
+		const node2 = new JwtUserSessionManager(node2Opts);
 		node2.on(JwtManagerEvent.ALL_SESSIONS_INVALIDATED, (subject, accessTokenTtl) => {
 			// simulate that accessTokenPayload was sent by event bus
 			node1.restrictAll(subject, accessTokenTtl);

@@ -19,11 +19,11 @@ interface RefreshTokensRedisStorageOptions {
 		 * **Notice** that refresh tokens represent the user sessions and act as their ids,
 		 * therefore we have a list of user session ids.
 		 */
-		sessions: string;
+		readonly sessions: string;
 		/**
 		 * Key prefix used for storing refresh token as key and session metadata as value.
 		 */
-		refreshToken: string;
+		readonly refreshToken: string;
 	};
 	/**
 	 * Maximum number of concurrent sessions that a user can have. <br/>

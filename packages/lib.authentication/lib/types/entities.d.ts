@@ -2,6 +2,9 @@ import { AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel, A
 import { OnGoingAuthenticationSession, FailedAuthenticationAttemptSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
 export interface AccountEntity {
+	/**
+	 * @fixme should fail if already exists
+	 */
 	create(account: AccountModel): Promise<string>;
 	read(username: string): Promise<AccountModel | null>;
 	readById(id: string): Promise<AccountModel | null>;

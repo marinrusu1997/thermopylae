@@ -51,11 +51,6 @@ interface UserSessionOperationContext<Device extends DeviceBase, Location> {
  */
 interface UserSessionMetaData<Device extends DeviceBase, Location> extends UserSessionOperationContext<Device, Location> {
 	/**
-	 * Subject this session belongs to.
-	 */
-	readonly subject: string;
-
-	/**
 	 * When session was created.
 	 */
 	readonly createdAt: UnixTimestamp;

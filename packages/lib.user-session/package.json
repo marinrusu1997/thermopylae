@@ -1,5 +1,5 @@
 {
-    "name": "@thermopylae/lib.cookie-session",
+    "name": "@thermopylae/lib.user-session",
     "description": "Stateful implementation of the user session.",
     "keywords": [
         "library"
@@ -33,15 +33,13 @@
     "dependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "cookie": "0",
         "uid-safe": "2"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.cache": "0",
-        "@types/cookie": "0",
+        "@thermopylae/lib.logger": "0",
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
         "@types/uid-safe": "2",
         "utility-types": "3"
     },

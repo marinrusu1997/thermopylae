@@ -1,19 +1,19 @@
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { Seconds, UnixTimestamp, MutableSome } from '@thermopylae/core.declarations';
 import type { WinstonLogger } from '@thermopylae/lib.logger';
-import type { DeepReadonly, DeepRequired } from 'utility-types';
-import { serialize } from 'cookie';
+import type { DeepRequired } from 'utility-types';
 import safeUid from 'uid-safe';
 import { createHash } from 'crypto';
 import { createException } from './error';
 import { CommitType } from './storage';
 import type { DeviceBase, SessionId, UserSessionMetaData, UserSessionOperationContext } from './session';
-import type { SessionsStorage } from './storage';
+import type { UserSessionsStorage } from './storage';
 
 /**
  * Hook called on user session read.
  *
- * @param subject			Session id.
+ * @param subject			Subject.
+ * @param sessionId			Session id.
  * @param context			Read user session operation context.
  * @param sessionMetaData	Session metadata that was retrieved from storage.
  *
@@ -21,12 +21,13 @@ import type { SessionsStorage } from './storage';
  * 			an exception should be thrown to stop read operation and mark session access as invalid.
  */
 type ReadUserSessionHook<Device extends DeviceBase, Location> = (
+	subject: string,
 	sessionId: SessionId,
 	context: UserSessionOperationContext<Device, Location>,
 	sessionMetaData: Readonly<UserSessionMetaData<Device, Location>>
 ) => void;
 
-interface CookieSessionManagerOptions<Device extends DeviceBase, Location> {
+interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	/**
 	 * Length of the generated session id. <br/>
 	 * Because base64 encoding is used underneath, this is not the string length.
@@ -35,49 +36,21 @@ interface CookieSessionManagerOptions<Device extends DeviceBase, Location> {
 	 */
 	readonly idLength: number;
 	/**
-	 * Session id cookie options.
+	 * Time To Live of the user session (in seconds).
 	 */
-	readonly cookie: {
-		/**
-		 * Lowercase name of the cookie where session id will be stored. <br/>
-		 * Notice that this name should be unpredictable one (e.g. not 'sid', 'id' etc). <br/>
-		 * Also, cookie name should not begin with *__Host-* or *__Secure-* prefixes, as they will be added automatically by this library.
-		 */
-		name: string;
-		/**
-		 * [Secure](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies) attribute. <br/>
-		 * **Recommended** value is *true*.
-		 */
-		readonly secure: boolean;
-		/**
-		 * Cookie and session ttl.
-		 */
-		readonly maxAge: Seconds;
-		/**
-		 * [HttpOnly](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies) attribute. <br/>
-		 * **Recommended** value is *true*.
-		 */
-		readonly httpOnly: boolean;
-		/**
-		 * [Domain](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_where_cookies_are_sent) attribute. <br/>
-		 * **Recommended** value is to be left *undefined*.
-		 */
-		readonly domain?: string;
-		/**
-		 * [Path](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_where_cookies_are_sent) attribute. <br/>
-		 */
-		readonly path: string;
-		/**
-		 * [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite) attribute. <br/>
-		 * Set value to *false* if you don't want to set this attribute.
-		 * **Recommended** value is *strict*.
-		 */
-		readonly sameSite: 'lax' | 'strict' | 'none' | boolean;
-	};
+	readonly sessionTtl: Seconds;
+	/**
+	 * Storage where users sessions are stored.
+	 */
+	readonly storage: UserSessionsStorage<Device, Location>;
+	/**
+	 * Logger to inform about critical events detected by the library.
+	 */
+	readonly logger: WinstonLogger;
 	/**
 	 * User session lifetime timeouts.
 	 */
-	timeouts?: {
+	readonly timeouts?: {
 		/**
 		 * This timeout defines the amount of time in seconds a session will remain active
 		 * in case there is no activity in the session, closing and invalidating the session
@@ -100,26 +73,18 @@ interface CookieSessionManagerOptions<Device extends DeviceBase, Location> {
 		 * This timeout starts counting from renew session operation, and on elapse will delete the old session. <br/>
 		 * Usually you will want to keep this timeout as small as possible to give a chance to requests that
 		 * were issued before renew operation to finish successfully, and then invalidate old session.
-		 * If {@link CookieSessionManagerOptions.timeouts.renewal} option is not set, this option is ignored. <br/>
-		 * **Required** when {@link CookieSessionManagerOptions.timeouts.renewal} option is set.
+		 * If {@link UserSessionManagerOptions.timeouts.renewal} option is not set, this option is ignored. <br/>
+		 * **Required** when {@link UserSessionManagerOptions.timeouts.renewal} option is set.
 		 * **Recommended** value is *5*.
 		 */
 		readonly oldSessionAvailabilityTimeoutAfterRenewal?: Seconds;
 	};
 	/**
-	 * Storage where users sessions are stored.
-	 */
-	storage: SessionsStorage<Device, Location>;
-	/**
 	 * Read user session hook. <br/>
 	 * Defaults to hook which ensures that in case device is present in both context and session metadata,
 	 * their *name* and *type* needs to be equal.
 	 */
-	readUserSessionHook?: ReadUserSessionHook<Device, Location>;
-	/**
-	 * Logger to inform about critical events detected by the library.
-	 */
-	logger: WinstonLogger;
+	readonly readUserSessionHook?: ReadUserSessionHook<Device, Location>;
 }
 
 /**
@@ -128,18 +93,18 @@ interface CookieSessionManagerOptions<Device extends DeviceBase, Location> {
 const RENEWED_SESSION_FLAG = -1;
 
 /**
- * Stateful implementation of the user sessions using cookies as exchange mechanism. <br/>
+ * Stateful implementation of the user sessions. <br/>
  * Session data is stored in external storage and client receives only it's id. <br/>
  * Sessions are implemented in a such way, so that they can be used in cluster or single-node infrastructures.
  *
  * @template Device		Type of the device.
  * @template Location	Type of the location.
  */
-class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = string> {
+class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = string> {
 	/**
 	 * Manager options.
 	 */
-	private readonly options: DeepRequired<DeepReadonly<CookieSessionManagerOptions<Device, Location>>>;
+	private readonly options: DeepRequired<UserSessionManagerOptions<Device, Location>>;
 
 	/**
 	 * Sessions that were renewed and are about to expire very soon. <br/>
@@ -152,54 +117,43 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 	 * @param options		Options object. <br/>
 	 * 						It should not be modified after, as it will be used without being cloned.
 	 */
-	public constructor(options: CookieSessionManagerOptions<Device, Location>) {
-		this.options = CookieSessionManager.fillWithDefaults(options);
+	public constructor(options: UserSessionManagerOptions<Device, Location>) {
+		this.options = UserSessionManager.fillWithDefaults(options);
 		this.renewedSessions = new Map();
 	}
 
 	/**
-	 * Name of the cookie where session id will be stored.
-	 */
-	public get sessionCookieName(): string {
-		return this.options.cookie.name;
-	}
-
-	/**
-	 * Create new user session for `subject`. <br/>
-	 * Independently of the cache policy defined by the web application,
-	 * if caching web application contents is allowed, the session IDs must never be cached,
-	 * so it is highly recommended to use the **Cache-Control: no-cache="Set-Cookie, Set-Cookie2"** directive,
-	 * to allow web clients to cache everything except the session ID.
+	 * Create new user session for `subject`.
 	 *
 	 * @param subject		Subject the session will belong to.
 	 * @param context		Operation context.
+	 * @param sessionTtl	Session ttl. Takes precedence over the default one.
 	 *
-	 * @returns		Serialized cookie with user session id.
+	 * @returns				User session id.
 	 */
-	public async create(subject: string, context: UserSessionOperationContext<Device, Location>): Promise<string> {
-		const currentTimestamp = CookieSessionManager.currentTimestamp();
-
+	public async create(subject: string, context: UserSessionOperationContext<Device, Location>, sessionTtl?: Seconds): Promise<string> {
 		const sessionId = await safeUid(this.options.idLength);
 
-		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'subject'>).subject = subject;
+		const currentTimestamp = UserSessionManager.currentTimestamp();
 		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'createdAt'>).createdAt = currentTimestamp;
 		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'accessedAt'>).accessedAt = currentTimestamp;
 
-		await this.options.storage.insert(sessionId, context as UserSessionMetaData<Device, Location>, this.options.cookie.maxAge);
+		await this.options.storage.insert(subject, sessionId, context as UserSessionMetaData<Device, Location>, sessionTtl || this.options.sessionTtl);
 
-		return serialize(this.options.cookie.name, sessionId, this.options.cookie);
+		return sessionId;
 	}
 
 	/**
 	 * Read user session from external storage. <br/>
 	 * When idle functionality is activated, this method might delete user session and throw an error to notify about this,
-	 * if it was idle for more than {@link CookieSessionManagerOptions.timeouts.idle} seconds. <br/>
-	 * When renew functionality is activated, this method might create a new user session, and return it as the second part of the tuple.
-	 * In case renewed session cookie is returned, it needs to be sent to application clients via 'Set-Cookie' header to replace the old session cookie.
-	 * The old session will still be available for {@link CookieSessionManagerOptions.timeouts.oldSessionAvailabilityTimeoutAfterRenewal} seconds,
+	 * if it was idle for more than {@link UserSessionManagerOptions.timeouts.idle} seconds. <br/>
+	 * When renew functionality is activated, this method might create a new user session, and return it's id as the second part of the tuple.
+	 * In case renewed session id is returned, it needs to be sent to application clients via 'Set-Cookie' header to replace the old session cookie.
+	 * The old session will still be available for {@link UserSessionManagerOptions.timeouts.oldSessionAvailabilityTimeoutAfterRenewal} seconds,
 	 * so that older requests might complete successfully and client has time to refresh session id on it's side.
 	 *
-	 * @param sessionId		Session id taken from cookie.
+	 * @param subject		Subject.
+	 * @param sessionId		Session id.
 	 * @param context		Operation context.
 	 *
 	 * @throws {Exception}	With the following error codes:
@@ -209,46 +163,43 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 	 *
 	 * @returns		A tuple with the following parts:
 	 * 				- session metadata
-	 * 				- serialized cookie with the renewed session id (if renewal took place)
+	 * 				- renewed session id (if renewal took place)
 	 */
 	public async read(
+		subject: string,
 		sessionId: SessionId,
 		context: UserSessionOperationContext<Device, Location>
 	): Promise<[Readonly<UserSessionMetaData<Device, Location>>, string | null]> {
-		const sessionMetaData = await this.options.storage.read(sessionId);
+		const sessionMetaData = await this.options.storage.read(subject, sessionId);
 		if (sessionMetaData == null) {
-			throw createException(
-				ErrorCodes.NOT_FOUND,
-				`Session '${CookieSessionManager.hash(sessionId)}' doesn't exist. Context: ${JSON.stringify(context)}.`
-			);
+			throw createException(ErrorCodes.NOT_FOUND, `Session '${UserSessionManager.hash(sessionId)}' doesn't exist. Context: ${JSON.stringify(context)}.`);
 		}
 
-		this.options.readUserSessionHook(sessionId, context, sessionMetaData);
+		this.options.readUserSessionHook(subject, sessionId, context, sessionMetaData);
 
-		const currentTimestamp = CookieSessionManager.currentTimestamp();
+		const currentTimestamp = UserSessionManager.currentTimestamp();
 
 		if (this.options.timeouts.renewal) {
 			const sessionAge = currentTimestamp - sessionMetaData.createdAt;
 			if (sessionAge >= this.options.timeouts.renewal) {
-				const renewedSessionCookie = await this.renew(sessionId, sessionMetaData, context);
-				return [sessionMetaData, renewedSessionCookie];
+				return [sessionMetaData, await this.renew(subject, sessionId, sessionMetaData, context)];
 			}
 		}
 
 		if (this.options.timeouts.idle) {
 			const timeSinceLastAccess = currentTimestamp - sessionMetaData.accessedAt;
 			if (timeSinceLastAccess >= this.options.timeouts.idle) {
-				await this.options.storage.delete(sessionId);
+				await this.options.storage.delete(subject, sessionId);
 				throw createException(
 					ErrorCodes.EXPIRED,
-					`Session '${CookieSessionManager.hash(
+					`Session '${UserSessionManager.hash(
 						sessionId
 					)}' it's expired, because it was idle for ${timeSinceLastAccess} seconds. Context: ${JSON.stringify(context)}.`
 				);
 			}
 		}
 
-		await this.options.storage.update(sessionId, { accessedAt: currentTimestamp }, CommitType.DEBOUNCED);
+		await this.options.storage.updateAccessedAt(subject, sessionId, currentTimestamp, CommitType.DEBOUNCED);
 		return [sessionMetaData, null];
 	}
 
@@ -269,30 +220,30 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 	 * 	1. scheduling deletion of the old session in a very short amount of time
 	 * 	2. creating a new user session
 	 *
+	 * @param subject				Subject.
 	 * @param sessionId				Id of the session to be renewed.
 	 * @param sessionMetaData		Metadata of that session.
 	 * @param context				Operation context.
 	 *
-	 * @returns		Serialized cookie with the new user session id. <br/>
+	 * @returns		The new user session id. <br/>
 	 * 				When renew can't be performed, a log message is printed and *null* is returned.
 	 */
 	public async renew(
+		subject: string,
 		sessionId: SessionId,
 		sessionMetaData: UserSessionMetaData<Device, Location>,
 		context: UserSessionOperationContext<Device, Location>
 	): Promise<string | null> {
 		if (this.renewedSessions.has(sessionId)) {
 			this.options.logger.warning(
-				`Can't renew session '${CookieSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
+				`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
 			);
 			return null;
 		}
 
 		if (sessionMetaData.accessedAt === RENEWED_SESSION_FLAG) {
 			this.options.logger.warning(
-				`Can't renew session '${CookieSessionManager.hash(
-					sessionId
-				)}', because it was renewed already. Renew has been made from another NodeJS process.`
+				`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from another NodeJS process.`
 			);
 			return null;
 		}
@@ -300,7 +251,7 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 		// notify others first, so that they do not try to renew it too
 		try {
 			this.renewedSessions.set(sessionId, null!);
-			await this.options.storage.update(sessionId, { accessedAt: RENEWED_SESSION_FLAG }, CommitType.IMMEDIATE);
+			await this.options.storage.updateAccessedAt(subject, sessionId, RENEWED_SESSION_FLAG, CommitType.IMMEDIATE);
 		} catch (e) {
 			this.renewedSessions.delete(sessionId);
 			throw e;
@@ -311,30 +262,31 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 			sessionId,
 			setTimeout(
 				() =>
-					this.delete(sessionId).catch((e) =>
-						this.options.logger.error(`Failed to delete renewed session '${CookieSessionManager.hash(sessionId)}'.`, e)
+					this.delete(subject, sessionId).catch((e) =>
+						this.options.logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e)
 					),
 				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal * 1000
 			)
 		);
 
 		// create new session
-		return this.create(sessionMetaData.subject, context);
+		return this.create(subject, context);
 	}
 
 	/**
 	 * Delete user session.
 	 *
+	 * @param subject		Subject.
 	 * @param sessionId		Id of the user session.
 	 */
-	public async delete(sessionId: SessionId): Promise<void> {
+	public async delete(subject: string, sessionId: SessionId): Promise<void> {
 		const deleteOfRenewedSessionTimeout = this.renewedSessions.get(sessionId);
 		if (deleteOfRenewedSessionTimeout != null) {
 			clearTimeout(deleteOfRenewedSessionTimeout);
 			this.renewedSessions.delete(sessionId);
 		}
 
-		await this.options.storage.delete(sessionId);
+		await this.options.storage.delete(subject, sessionId);
 	}
 
 	/**
@@ -362,44 +314,26 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 	}
 
 	private static fillWithDefaults<Dev extends DeviceBase, Loc>(
-		options: CookieSessionManagerOptions<Dev, Loc>
-	): DeepRequired<CookieSessionManagerOptions<Dev, Loc>> {
+		options: UserSessionManagerOptions<Dev, Loc>
+	): DeepRequired<UserSessionManagerOptions<Dev, Loc>> {
 		if (options.idLength < 15) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Session id length can't be lower than 15 characters. Given: ${options.idLength}.`);
 		}
 
-		if (options.cookie.name.startsWith('__Host-')) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Session cookie name is not allowed to start with '__Host-'. Given: ${options.cookie.name}.`);
-		}
-		if (options.cookie.name.startsWith('__Secure-')) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Session cookie name is not allowed to start with '__Secure-'. Given: ${options.cookie.name}.`);
-		}
-		if (!isLowerCase(options.cookie.name)) {
-			throw createException(ErrorCodes.INVALID, `Cookie name should be lowercase. Given: ${options.cookie.name}.`);
-		}
-
-		if (options.cookie.secure) {
-			if (options.cookie.domain == null && options.cookie.path === '/') {
-				options.cookie.name = `__Host-${options.cookie.name}`;
-			} else {
-				options.cookie.name = `__Secure-${options.cookie.name}`;
-			}
-		}
-
 		if (options.timeouts == null) {
-			options.timeouts = {};
+			(options as MutableSome<UserSessionManagerOptions<Dev, Loc>, 'timeouts'>).timeouts = {};
 		} else {
 			// if idle session feature is enabled
 			if (options.timeouts.idle != null) {
-				if (options.timeouts.idle <= 0 || options.timeouts.idle >= options.cookie.maxAge) {
-					throw createException(ErrorCodes.INVALID, `Idle timeout needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.idle}`);
+				if (options.timeouts.idle <= 0 || options.timeouts.idle >= options.sessionTtl) {
+					throw createException(ErrorCodes.INVALID, `Idle timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.idle}`);
 				}
 			}
 
 			// if session renewal feature is enabled
 			if (options.timeouts.renewal != null) {
-				if (options.timeouts.renewal <= 0 || options.timeouts.renewal >= options.cookie.maxAge) {
-					throw createException(ErrorCodes.INVALID, `Renew timeout needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.renewal}`);
+				if (options.timeouts.renewal <= 0 || options.timeouts.renewal >= options.sessionTtl) {
+					throw createException(ErrorCodes.INVALID, `Renew timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.renewal}`);
 				}
 
 				if (options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal == null) {
@@ -411,24 +345,25 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 
 				if (
 					options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal <= 0 ||
-					options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal >= options.cookie.maxAge
+					options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal >= options.sessionTtl
 				) {
 					throw createException(
 						ErrorCodes.INVALID,
-						`'timeouts.oldSessionAvailabilityTimeoutAfterRenewal' needs to be >0 && <${options.cookie.maxAge}. Given ${options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal}.`
+						`'timeouts.oldSessionAvailabilityTimeoutAfterRenewal' needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal}.`
 					);
 				}
 			}
 		}
 
 		if (options.readUserSessionHook == null) {
-			options.readUserSessionHook = CookieSessionManager.readUserSessionHook;
+			(options as MutableSome<UserSessionManagerOptions<Dev, Loc>, 'readUserSessionHook'>).readUserSessionHook = UserSessionManager.readUserSessionHook;
 		}
 
-		return options as DeepRequired<CookieSessionManagerOptions<Dev, Loc>>;
+		return options as DeepRequired<UserSessionManagerOptions<Dev, Loc>>;
 	}
 
 	private static readUserSessionHook<Dev extends DeviceBase, Loc>(
+		subject: string,
 		sessionId: SessionId,
 		context: UserSessionOperationContext<Dev, Loc>,
 		sessionMetaData: Readonly<UserSessionMetaData<Dev, Loc>>
@@ -437,9 +372,9 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 			if (context.device.type !== sessionMetaData.device.type || context.device.name !== sessionMetaData.device.name) {
 				throw createException(
 					ErrorCodes.NOT_ALLOWED,
-					`Attempting to access session '${CookieSessionManager.hash(sessionId)}' of the subject '${
-						sessionMetaData.subject
-					}' from a device which differs from the one session was created. Context: ${JSON.stringify(context)}.`
+					`Attempting to access session '${UserSessionManager.hash(
+						sessionId
+					)}' of the subject '${subject}' from a device which differs from the one session was created. Context: ${JSON.stringify(context)}.`
 				);
 			}
 		}
@@ -450,8 +385,4 @@ class CookieSessionManager<Device extends DeviceBase = DeviceBase, Location = st
 	}
 }
 
-function isLowerCase(str: string): boolean {
-	return str.toLowerCase() === str;
-}
-
-export { CookieSessionManager, CookieSessionManagerOptions, RENEWED_SESSION_FLAG };
+export { UserSessionManager, UserSessionManagerOptions, RENEWED_SESSION_FLAG };

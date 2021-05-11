@@ -5,6 +5,8 @@ import type { ClientOpts, RedisError, RetryStrategy } from 'redis';
 import redis, { AggregateError } from 'redis';
 import type { WrappedNodeRedisClient } from 'handy-redis';
 import { createNodeRedisClient } from 'handy-redis';
+// eslint-disable-next-line import/extensions
+import type { WrappedNodeRedisMulti } from 'handy-redis/dist/node_redis/multi';
 import { logger } from './logger';
 import { createException } from './error';
 import { addJsonModuleCommands } from './modules/json';
@@ -37,7 +39,17 @@ const enum RedisModule {
 	JSON
 }
 
-interface NodeRedisClient extends WrappedNodeRedisClient, JsonModuleCommands {}
+interface NodeRedisClientMulti<Results extends unknown[] = []>
+	extends WrappedNodeRedisMulti<Results>,
+		JsonModuleCommands<{
+			type: 'node_redis_multi';
+			results: Results;
+		}> {}
+
+interface NodeRedisClient extends WrappedNodeRedisClient, JsonModuleCommands {
+	multi(): NodeRedisClientMulti;
+	batch(): NodeRedisClientMulti;
+}
 
 interface ConnectOptions {
 	readonly modules?: Set<RedisModule>;
@@ -386,4 +398,4 @@ class RedisClient {
 	}
 }
 
-export { RedisClient, NodeRedisClient, RedisClientOptions, RedisModule, ConnectOptions, ConnectionType, DebuggableEventType };
+export { RedisClient, NodeRedisClient, NodeRedisClientMulti, RedisClientOptions, RedisModule, ConnectOptions, ConnectionType, DebuggableEventType };

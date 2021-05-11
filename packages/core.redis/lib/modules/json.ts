@@ -32,8 +32,7 @@ interface JsonModuleCommands<
 	}
 > {
 	/**
-	 * Delete a value. <br/>
-	 * Non-existing keys and paths are ignored. Deleting an object's root is equivalent to deleting the key from Redis.
+	 * [Documentation](https://oss.redislabs.com/redisjson/commands/#jsondel).
 	 *
 	 * @param key		Key under which JSON value is stored.
 	 * @param path		Path in the JSON object. <br/>

@@ -34,7 +34,8 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
-        "@thermopylae/lib.cookie-session": "0"
+        "@thermopylae/lib.cookie-session": "0",
+        "@thermopylae/core.redis": "0"
     },
     "devDependencies": {
         "@thermopylae/module-builder": "0",

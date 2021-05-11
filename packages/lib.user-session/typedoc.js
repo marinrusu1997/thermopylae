@@ -12,7 +12,7 @@ typedoc.outline = [
 ];
 typedoc.links = [{
     "label": "Bitbucket",
-    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/lib.cookie-session/"
+    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/lib.user-session/"
 }]
 
 module.exports = typedoc;

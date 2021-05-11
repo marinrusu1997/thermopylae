@@ -1,4 +1,4 @@
-import { Seconds } from '@thermopylae/core.declarations';
+import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import {
 	PolicyBasedCache,
 	AbsoluteExpirationPolicyArgumentsBundle,
@@ -7,9 +7,9 @@ import {
 	ProactiveExpirationPolicy,
 	CacheEvent
 } from '@thermopylae/lib.cache';
-import type { SessionId, UserSessionMetaData, SessionsStorage, DeviceBase } from '../lib';
+import type { SessionId, UserSessionMetaData, UserSessionsStorage, DeviceBase } from '../lib';
 
-class StorageMock implements SessionsStorage<DeviceBase, string> {
+class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;
 
 	private readonly userSessions: Map<string, Set<string>>;
@@ -23,12 +23,14 @@ class StorageMock implements SessionsStorage<DeviceBase, string> {
 
 		this.userSessions = new Map<string, Set<string>>();
 
-		this.cache.on(CacheEvent.DELETE, (sessionId, metaData) => {
-			const sessions = this.userSessions.get(metaData.subject)!;
+		this.cache.on(CacheEvent.DELETE, (sessionIdKey) => {
+			const [subject, sessionId] = StorageMock.decodeSessionIdKey(sessionIdKey);
+
+			const sessions = this.userSessions.get(subject)!;
 
 			sessions.delete(sessionId);
 			if (sessions.size === 0) {
-				this.userSessions.delete(metaData.subject);
+				this.userSessions.delete(subject);
 			}
 		});
 
@@ -36,25 +38,25 @@ class StorageMock implements SessionsStorage<DeviceBase, string> {
 			['insert', 0],
 			['read', 0],
 			['readAll', 0],
-			['update', 0],
+			['updateAccessedAt', 0],
 			['delete', 0],
 			['deleteAll', 0]
 		]);
 	}
 
-	public async insert(sessionId: SessionId, metaData: UserSessionMetaData<DeviceBase, string>, ttl: Seconds): Promise<void> {
-		let sessions = this.userSessions.get(metaData.subject);
+	public async insert(subject: string, sessionId: SessionId, metaData: UserSessionMetaData<DeviceBase, string>, ttl: Seconds): Promise<void> {
+		let sessions = this.userSessions.get(subject);
 		if (sessions == null) {
 			sessions = new Set<string>();
-			this.userSessions.set(metaData.subject, sessions);
+			this.userSessions.set(subject, sessions);
 		}
 
 		sessions.add(sessionId);
-		this.cache.set(sessionId, metaData, { expiresAfter: ttl });
+		this.cache.set(StorageMock.sessionIdKey(subject, sessionId), metaData, { expiresAfter: ttl });
 	}
 
-	public async read(sessionId: SessionId): Promise<UserSessionMetaData<DeviceBase, string> | undefined> {
-		return this.cache.get(sessionId);
+	public async read(subject: string, sessionId: SessionId): Promise<UserSessionMetaData<DeviceBase, string> | undefined> {
+		return this.cache.get(StorageMock.sessionIdKey(subject, sessionId));
 	}
 
 	public async readAll(subject: string): Promise<ReadonlyMap<SessionId, Readonly<UserSessionMetaData<DeviceBase, string>>>> {
@@ -65,32 +67,40 @@ class StorageMock implements SessionsStorage<DeviceBase, string> {
 
 		const sessionsMetaData = new Map<SessionId, UserSessionMetaData<DeviceBase, string>>();
 		for (const sessionId of sessions) {
-			sessionsMetaData.set(sessionId, this.cache.get(sessionId)!);
+			sessionsMetaData.set(sessionId, this.cache.get(StorageMock.sessionIdKey(subject, sessionId))!);
 		}
 		return sessionsMetaData;
 	}
 
-	public async update(sessionId: SessionId, metaData: Partial<UserSessionMetaData<DeviceBase, string>>): Promise<void> {
-		const session = this.cache.get(sessionId);
+	public async updateAccessedAt(subject: string, sessionId: SessionId, accessedAt: UnixTimestamp): Promise<void> {
+		const session = this.cache.get(StorageMock.sessionIdKey(subject, sessionId));
 		if (session == null) {
 			throw new Error(`Session ${sessionId} not found.`);
 		}
-		session.accessedAt = metaData.accessedAt!;
+		session.accessedAt = accessedAt;
 	}
 
-	public async delete(sessionId: SessionId): Promise<void> {
+	public async delete(subject: string, sessionId: SessionId): Promise<void> {
 		this.invocations.set('delete', this.invocations.get('delete')! + 1);
-		this.cache.del(sessionId);
+		this.cache.del(StorageMock.sessionIdKey(subject, sessionId));
 	}
 
 	public async deleteAll(subject: string): Promise<number> {
 		const sessions = Array.from(this.userSessions.get(subject) || new Set<string>());
 
-		for (const session of sessions) {
-			this.cache.del(session);
+		for (const sessionId of sessions) {
+			this.cache.del(StorageMock.sessionIdKey(subject, sessionId));
 		}
 
 		return sessions.length;
+	}
+
+	private static sessionIdKey(subject: string, sessionId: SessionId): string {
+		return `${subject}:${sessionId}`;
+	}
+
+	private static decodeSessionIdKey(sessionIdKey: string): [string, SessionId] {
+		return sessionIdKey.split(':') as [string, SessionId];
 	}
 }
 

@@ -1,4 +1,4 @@
-import type { Seconds } from '@thermopylae/core.declarations';
+import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { SessionId, UserSessionMetaData, DeviceBase } from './session';
 
 /**
@@ -21,27 +21,29 @@ declare const enum CommitType {
  * @template Device		Type of the device.
  * @template Location	Type of the location.
  */
-declare interface SessionsStorage<Device extends DeviceBase, Location> {
+declare interface UserSessionsStorage<Device extends DeviceBase, Location> {
 	/**
 	 * Insert user session in the storage. <br/>
 	 * In case RDBMS storage is used, it's recommended so that `sessionId` is stored in some hashed form.
 	 *
+	 * @param subject		Subject.
 	 * @param sessionId		Id of the session.
 	 * @param metaData		Session meta data.
 	 * @param ttl			Session ttl in seconds.
 	 */
-	insert(sessionId: SessionId, metaData: UserSessionMetaData<Device, Location>, ttl: Seconds): Promise<void>;
+	insert(subject: string, sessionId: SessionId, metaData: UserSessionMetaData<Device, Location>, ttl: Seconds): Promise<void>;
 
 	/**
 	 * Read session meta data from storage. <br/>
 	 *
+	 * @param subject		Subject.
 	 * @param sessionId		Id of the session. <br/>
 	 * 						Storage should treat `sessionId` as untrusted and
 	 * 						perform SQLi and XSS validations before query meta data.
 	 *
-	 * @returns		Session meta data or *undefined* if not found.
+	 * @returns				Session meta data or *undefined* if not found.
 	 */
-	read(sessionId: SessionId): Promise<UserSessionMetaData<Device, Location> | undefined>;
+	read(subject: string, sessionId: SessionId): Promise<UserSessionMetaData<Device, Location> | undefined>;
 
 	/**
 	 * Read all active sessions of the `subject`.
@@ -61,31 +63,33 @@ declare interface SessionsStorage<Device extends DeviceBase, Location> {
 	 * When `commitType` hsa {@link CommitType.IMMEDIATE} value, this function should
 	 * apply update immediately, and then return; any exceptions that might occur should be thrown to caller.
 	 *
+	 * @param subject		Subject.
 	 * @param sessionId		Id of the session. <br/>
 	 * 						Storage should treat `sessionId` as untrusted and
 	 * 						perform SQLi and XSS validations before updating meta data.
-	 * @param metaData		Session meta data.
+	 * @param accessedAt	Updated value of the {@link UserSessionMetaData.accessedAt} field.
 	 * @param commitType	Commit type.
 	 */
-	update(sessionId: SessionId, metaData: Partial<UserSessionMetaData<Device, Location>>, commitType: CommitType): Promise<void>;
+	updateAccessedAt(subject: string, sessionId: SessionId, accessedAt: UnixTimestamp, commitType: CommitType): Promise<void>;
 
 	/**
 	 * Deletes user session.
 	 *
+	 * @param subject		Subject.
 	 * @param sessionId		Id of the session. <br/>
 	 * 						Storage should treat `sessionId` as untrusted and
 	 * 						perform SQLi and XSS validations before deleting meta data.
 	 */
-	delete(sessionId: SessionId): Promise<void>;
+	delete(subject: string, sessionId: SessionId): Promise<void>;
 
 	/**
 	 * Deletes all sessions of the `subject`.
 	 *
-	 * @param subject		Subject.
+	 * @param subject	Subject.
 	 *
-	 * @returns		Number of deleted sessions.
+	 * @returns			Number of deleted sessions.
 	 */
 	deleteAll(subject: string): Promise<number>;
 }
 
-export { SessionsStorage, CommitType };
+export { UserSessionsStorage, CommitType };
