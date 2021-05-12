@@ -55,7 +55,7 @@ module.exports = {
 			{
 				"commonjs": true,
 				"ignore": [
-					'^@thermopylae/core\.declarations$'
+					'^@thermopylae/lib\.user-session\.commons$'
 				]
 			}
 		],

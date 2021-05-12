@@ -1,8 +1,8 @@
 {
-    "name": "@thermopylae/lib.user-session",
-    "description": "Stateful implementation of the user session.",
+    "name": "@thermopylae/core.jwt-user-session",
+    "description": "JWT user session for HTTP interface.",
     "keywords": [
-        "library"
+        "core"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
@@ -33,15 +33,29 @@
     "dependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "uid-safe": "2"
+        "@thermopylae/lib.logger": "0",
+        "@thermopylae/lib.jwt-user-session": "0",
+        "@thermopylae/lib.cache": "0",
+        "@thermopylae/core.redis": "0",
+        "avsc": "5",
+        "cookie": "0",
+        "fast-json-stringify": "2"
     },
     "devDependencies": {
-        "@thermopylae/lib.cache": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/module-builder": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.user-session.commons": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/uid-safe": "2"
+        "@thermopylae/core.adapter.fastify": "0",
+        "@types/benchmark": "2",
+        "@types/cookie": "0",
+        "@types/dotenv": "8",
+        "@types/node-fetch": "2",
+        "benchmark": "2",
+        "dotenv": "8",
+        "fastify": "3",
+        "fastify-cookie": "5",
+        "node-fetch": "2",
+        "pick-random": "3"
     },
     "peerDependencies": {
         "chai": "4",

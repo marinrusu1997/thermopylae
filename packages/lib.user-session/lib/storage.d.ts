@@ -1,5 +1,6 @@
-import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import type { SessionId, UserSessionMetaData, DeviceBase } from './session';
+import type { UnixTimestamp } from '@thermopylae/core.declarations';
+import type { DeviceBase, SessionId, Subject, UserSessionStorage as BaseUserSessionStorage } from '@thermopylae/lib.user-session.commons';
+import type { UserSessionMetaData } from './session';
 
 /**
  * Type of the commit in the session storage.
@@ -21,40 +22,8 @@ declare const enum CommitType {
  * @template Device		Type of the device.
  * @template Location	Type of the location.
  */
-declare interface UserSessionsStorage<Device extends DeviceBase, Location> {
-	/**
-	 * Insert user session in the storage. <br/>
-	 * In case RDBMS storage is used, it's recommended so that `sessionId` is stored in some hashed form.
-	 *
-	 * @param subject		Subject.
-	 * @param sessionId		Id of the session.
-	 * @param metaData		Session meta data.
-	 * @param ttl			Session ttl in seconds.
-	 */
-	insert(subject: string, sessionId: SessionId, metaData: UserSessionMetaData<Device, Location>, ttl: Seconds): Promise<void>;
-
-	/**
-	 * Read session meta data from storage. <br/>
-	 *
-	 * @param subject		Subject.
-	 * @param sessionId		Id of the session. <br/>
-	 * 						Storage should treat `sessionId` as untrusted and
-	 * 						perform SQLi and XSS validations before query meta data.
-	 *
-	 * @returns				Session meta data or *undefined* if not found.
-	 */
-	read(subject: string, sessionId: SessionId): Promise<UserSessionMetaData<Device, Location> | undefined>;
-
-	/**
-	 * Read all active sessions of the `subject`.
-	 *
-	 * @param subject	Subject sessions of which need to be retrieved.
-	 *
-	 * @returns			Session id with the session metadata. <br/>
-	 * 					When subject has no active sessions, returns an empty map.
-	 */
-	readAll(subject: string): Promise<ReadonlyMap<SessionId, Readonly<UserSessionMetaData<Device, Location>>>>;
-
+declare interface UserSessionsStorage<Device extends DeviceBase, Location>
+	extends BaseUserSessionStorage<Device, Location, UserSessionMetaData<Device, Location>> {
 	/**
 	 * Update meta data of user session. Do not confuse it with *replace* operation. <br/>
 	 * Only particular fields are updated, and update should be performed atomically. <br/>
@@ -70,26 +39,7 @@ declare interface UserSessionsStorage<Device extends DeviceBase, Location> {
 	 * @param accessedAt	Updated value of the {@link UserSessionMetaData.accessedAt} field.
 	 * @param commitType	Commit type.
 	 */
-	updateAccessedAt(subject: string, sessionId: SessionId, accessedAt: UnixTimestamp, commitType: CommitType): Promise<void>;
-
-	/**
-	 * Deletes user session.
-	 *
-	 * @param subject		Subject.
-	 * @param sessionId		Id of the session. <br/>
-	 * 						Storage should treat `sessionId` as untrusted and
-	 * 						perform SQLi and XSS validations before deleting meta data.
-	 */
-	delete(subject: string, sessionId: SessionId): Promise<void>;
-
-	/**
-	 * Deletes all sessions of the `subject`.
-	 *
-	 * @param subject	Subject.
-	 *
-	 * @returns			Number of deleted sessions.
-	 */
-	deleteAll(subject: string): Promise<number>;
+	updateAccessedAt(subject: Subject, sessionId: SessionId, accessedAt: UnixTimestamp, commitType: CommitType): Promise<void>;
 }
 
 export { UserSessionsStorage, CommitType };

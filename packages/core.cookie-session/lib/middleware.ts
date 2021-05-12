@@ -47,7 +47,7 @@ interface CookieUserSessionMiddlewareOptions {
 }
 
 /**
- * @fixme take into account these ones when creating new session, same applies to core.jwt-session,
+ * @fixme take into account these ones when creating new session, same applies to core.jwt-user-session,
  * maybe move it in common ancestor package.
  *
  * Independently of the cache policy defined by the web application,

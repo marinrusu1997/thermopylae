@@ -1,8 +1,9 @@
 {
-    "name": "@thermopylae/lib.user-session",
-    "description": "Stateful implementation of the user session.",
+    "name": "@thermopylae/lib.user-session.commons",
+    "description": "Common declarations for user session implementations.",
     "keywords": [
-        "library"
+        "library",
+        "commons"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
@@ -32,19 +33,12 @@
     },
     "dependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.exception": "0",
-        "uid-safe": "2"
+        "utility-types": "3"
     },
     "devDependencies": {
-        "@thermopylae/lib.cache": "0",
-        "@thermopylae/lib.logger": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/lib.user-session.commons": "0",
-        "@thermopylae/module-builder": "0",
-        "@types/uid-safe": "2"
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
-        "chai": "4",
         "mocha": "8"
     },
     "lint-staged": {

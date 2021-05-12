@@ -6,7 +6,7 @@
     "packages/core.adapter.express",
     "packages/core.adapter.fastify",
     "packages/core.declarations",
-    "packages/core.jwt-session",
+    "packages/core.jwt-user-session",
     "packages/core.mysql",
     "packages/core.redis",
     "packages/lib.async",
@@ -19,12 +19,13 @@
     "packages/lib.geoip",
     "packages/lib.heap",
     "packages/lib.indexed-store",
-    "packages/lib.jwt-session",
+    "packages/lib.jwt-user-session",
     "packages/lib.logger",
     "packages/lib.pool",
     "packages/lib.sms",
     "packages/lib.unit-test",
     "packages/lib.user-session",
+    "packages/lib.user-session.commons",
     "packages/lib.utils",
     "packages/module-builder"
   ]

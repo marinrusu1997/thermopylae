@@ -26,7 +26,7 @@ export const enum Library {
 	COLLECTION = 'LIB_COLLECTION',
 	HEAP = 'LIB_HEAP',
 	GEO_IP = 'LIB_GEO_IP',
-	JWT_SESSION = 'LIB_JWT_SESSION',
+	JWT_USER_SESSION = 'LIB_JWT_USER_SESSION',
 	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
 	SMS_CLIENT = 'LIB_SMS_CLIENT',
@@ -36,8 +36,8 @@ export const enum Library {
 }
 
 export const enum CoreModule {
-	JWT_SESSION = 'CORE_JWT_SESSION',
-	COOKIE_SESSION = 'CORE_COOKIE_SESSION'
+	JWT_USER_SESSION = 'CORE_JWT_SESSION',
+	COOKIE_USER_SESSION = 'CORE_COOKIE_SESSION'
 }
 
 export const enum Client {

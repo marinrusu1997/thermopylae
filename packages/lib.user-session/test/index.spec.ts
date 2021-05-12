@@ -1,8 +1,9 @@
 import { describe, it, before } from 'mocha';
 import { expect, logger, initLogger } from '@thermopylae/lib.unit-test';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
+import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { setTimeout } from 'timers/promises';
-import { UserSessionManager, UserSessionManagerOptions, DeviceBase, UserSessionOperationContext } from '../lib';
+import { UserSessionManager, UserSessionManagerOptions } from '../lib';
 import { StorageMock } from './storage-mock';
 
 function buildContext(): UserSessionOperationContext<DeviceBase, string> {
@@ -39,11 +40,14 @@ describe(`${UserSessionManager.name} spec`, () => {
 			logger
 		});
 
+		const currentTimestamp = UserSessionManager.currentTimestamp();
 		const sessionId = await sessionManager.create('uid1', buildContext());
 		expect(sessionId).to.be.of.length(24);
 
 		const [session] = await sessionManager.read('uid1', sessionId, buildContext());
 		expect(session.ip).to.be.eq('127.0.0.1');
+		expect(session.expiresAt).to.be.greaterThan(currentTimestamp);
+		expect(session.expiresAt).to.be.lessThan(currentTimestamp + 3); // rounding to 3
 
 		await setTimeout(1100);
 		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
@@ -234,13 +238,18 @@ describe(`${UserSessionManager.name} spec`, () => {
 			logger
 		});
 
-		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.9' });
-		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.10' });
+		const currentTimestamp = UserSessionManager.currentTimestamp();
+		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.9' }, 2);
+		await sessionManager.create('uid1', { ...buildContext(), ip: '192.168.5.10' }, 2);
 
 		const sessions = await sessionManager.readAll('uid1');
 		expect(sessions.size).to.be.eq(2);
 
-		expect(Array.from(sessions.values()).map((session) => session.ip)).to.be.equalTo(['192.168.5.9', '192.168.5.10']);
+		for (const session of sessions.values()) {
+			expect(session.expiresAt).to.be.greaterThan(currentTimestamp);
+			expect(session.expiresAt).to.be.lessThan(currentTimestamp + 4); // rounding to 4
+			expect(session.ip).to.be.oneOf(['192.168.5.9', '192.168.5.10']);
+		}
 
 		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(2);
 		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(0);

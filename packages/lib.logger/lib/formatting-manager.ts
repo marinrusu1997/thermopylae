@@ -348,19 +348,19 @@ class FormattingManager {
 		formattedLabels[Library.ASYNC] = chalk.italic(chalk.bgKeyword('silver')(Library.ASYNC));
 		formattedLabels[Library.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('gray')(Library.AUTHENTICATION));
 		formattedLabels[Library.CACHE] = chalk.italic(chalk.bgKeyword('white')(Library.CACHE));
-		formattedLabels[Library.COOKIE_SESSION] = chalk.italic(chalk.bgKeyword('maroon')(Library.COOKIE_SESSION));
+		formattedLabels[Library.USER_SESSION] = chalk.italic(chalk.bgKeyword('maroon')(Library.USER_SESSION));
 		formattedLabels[Library.INDEXED_STORE] = chalk.italic(chalk.bgKeyword('red')(Library.INDEXED_STORE));
 		formattedLabels[Library.COLLECTION] = chalk.italic(chalk.bgKeyword('purple')(Library.COLLECTION));
 		formattedLabels[Library.HEAP] = chalk.italic(chalk.bgKeyword('fuchsia')(Library.HEAP));
 		formattedLabels[Library.GEO_IP] = chalk.italic(chalk.bgKeyword('lime')(Library.GEO_IP));
-		formattedLabels[Library.JWT_SESSION] = chalk.italic(chalk.bgKeyword('green')(Library.JWT_SESSION));
+		formattedLabels[Library.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('green')(Library.JWT_USER_SESSION));
 		formattedLabels[Library.POOL] = chalk.italic(chalk.bgKeyword('olive')(Library.POOL));
 		formattedLabels[Library.SMS_CLIENT] = chalk.italic(chalk.bgKeyword('navy')(Library.SMS_CLIENT));
 		formattedLabels[Library.UNIT_TEST] = chalk.italic(chalk.bgKeyword('blue')(Library.UNIT_TEST));
 		formattedLabels[Library.UTILS] = chalk.italic(chalk.bgKeyword('orange')(Library.UTILS));
 
-		formattedLabels[CoreModule.JWT_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_SESSION));
-		formattedLabels[CoreModule.COOKIE_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_SESSION));
+		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
+		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_USER_SESSION));
 
 		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('silver')(Client.MYSQL));
 		formattedLabels[Client.SMS] = chalk.italic(chalk.bgKeyword('maroon')(Client.SMS));

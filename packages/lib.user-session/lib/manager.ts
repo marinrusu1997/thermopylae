@@ -1,31 +1,13 @@
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { Seconds, UnixTimestamp, MutableSome } from '@thermopylae/core.declarations';
+import type { Subject, SessionId, DeviceBase, UserSessionOperationContext, ReadUserSessionHook } from '@thermopylae/lib.user-session.commons';
 import type { WinstonLogger } from '@thermopylae/lib.logger';
-import type { DeepRequired } from 'utility-types';
 import safeUid from 'uid-safe';
 import { createHash } from 'crypto';
 import { createException } from './error';
 import { CommitType } from './storage';
-import type { DeviceBase, SessionId, UserSessionMetaData, UserSessionOperationContext } from './session';
+import type { UserSessionMetaData } from './session';
 import type { UserSessionsStorage } from './storage';
-
-/**
- * Hook called on user session read.
- *
- * @param subject			Subject.
- * @param sessionId			Session id.
- * @param context			Read user session operation context.
- * @param sessionMetaData	Session metadata that was retrieved from storage.
- *
- * @throws 	In case some anomalies are detected between read context and session metadata,
- * 			an exception should be thrown to stop read operation and mark session access as invalid.
- */
-type ReadUserSessionHook<Device extends DeviceBase, Location> = (
-	subject: string,
-	sessionId: SessionId,
-	context: UserSessionOperationContext<Device, Location>,
-	sessionMetaData: Readonly<UserSessionMetaData<Device, Location>>
-) => void;
 
 interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	/**
@@ -84,11 +66,13 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	 * Defaults to hook which ensures that in case device is present in both context and session metadata,
 	 * their *name* and *type* needs to be equal.
 	 */
-	readonly readUserSessionHook?: ReadUserSessionHook<Device, Location>;
+	readonly readUserSessionHook?: ReadUserSessionHook<Device, Location, UserSessionMetaData<Device, Location>>;
 }
 
 /**
  * Mark session as being renewed.
+ *
+ * @private
  */
 const RENEWED_SESSION_FLAG = -1;
 
@@ -104,7 +88,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	/**
 	 * Manager options.
 	 */
-	private readonly options: DeepRequired<UserSessionManagerOptions<Device, Location>>;
+	private readonly options: Required<UserSessionManagerOptions<Device, Location>>;
 
 	/**
 	 * Sessions that were renewed and are about to expire very soon. <br/>
@@ -131,14 +115,18 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 *
 	 * @returns				User session id.
 	 */
-	public async create(subject: string, context: UserSessionOperationContext<Device, Location>, sessionTtl?: Seconds): Promise<string> {
+	public async create(subject: Subject, context: UserSessionOperationContext<Device, Location>, sessionTtl?: Seconds): Promise<SessionId> {
 		const sessionId = await safeUid(this.options.idLength);
+		if (!sessionTtl) {
+			sessionTtl = this.options.sessionTtl;
+		}
 
 		const currentTimestamp = UserSessionManager.currentTimestamp();
-		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'createdAt'>).createdAt = currentTimestamp;
-		((context as unknown) as MutableSome<UserSessionMetaData<Device, Location>, 'accessedAt'>).accessedAt = currentTimestamp;
+		(context as unknown as MutableSome<UserSessionMetaData<Device, Location>, 'createdAt'>).createdAt = currentTimestamp;
+		(context as unknown as MutableSome<UserSessionMetaData<Device, Location>, 'accessedAt'>).accessedAt = currentTimestamp;
+		(context as unknown as MutableSome<UserSessionMetaData<Device, Location>, 'expiresAt'>).expiresAt = currentTimestamp + sessionTtl;
 
-		await this.options.storage.insert(subject, sessionId, context as UserSessionMetaData<Device, Location>, sessionTtl || this.options.sessionTtl);
+		await this.options.storage.insert(subject, sessionId, context as UserSessionMetaData<Device, Location>, sessionTtl);
 
 		return sessionId;
 	}
@@ -166,7 +154,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * 				- renewed session id (if renewal took place)
 	 */
 	public async read(
-		subject: string,
+		subject: Subject,
 		sessionId: SessionId,
 		context: UserSessionOperationContext<Device, Location>
 	): Promise<[Readonly<UserSessionMetaData<Device, Location>>, string | null]> {
@@ -210,7 +198,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 *
 	 * @returns		Active sessions of the subject.
 	 */
-	public readAll(subject: string): Promise<ReadonlyMap<SessionId, Readonly<UserSessionMetaData<Device, Location>>>> {
+	public readAll(subject: Subject): Promise<ReadonlyMap<SessionId, Readonly<UserSessionMetaData<Device, Location>>>> {
 		return this.options.storage.readAll(subject);
 	}
 
@@ -229,7 +217,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * 				When renew can't be performed, a log message is printed and *null* is returned.
 	 */
 	public async renew(
-		subject: string,
+		subject: Subject,
 		sessionId: SessionId,
 		sessionMetaData: UserSessionMetaData<Device, Location>,
 		context: UserSessionOperationContext<Device, Location>
@@ -265,7 +253,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 					this.delete(subject, sessionId).catch((e) =>
 						this.options.logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e)
 					),
-				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal * 1000
+				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal! * 1000
 			)
 		);
 
@@ -279,7 +267,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * @param subject		Subject.
 	 * @param sessionId		Id of the user session.
 	 */
-	public async delete(subject: string, sessionId: SessionId): Promise<void> {
+	public async delete(subject: Subject, sessionId: SessionId): Promise<void> {
 		const deleteOfRenewedSessionTimeout = this.renewedSessions.get(sessionId);
 		if (deleteOfRenewedSessionTimeout != null) {
 			clearTimeout(deleteOfRenewedSessionTimeout);
@@ -296,7 +284,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 *
 	 * @returns		Number of deleted sessions.
 	 */
-	public deleteAll(subject: string): Promise<number> {
+	public deleteAll(subject: Subject): Promise<number> {
 		return this.options.storage.deleteAll(subject);
 	}
 
@@ -313,9 +301,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		return createHash('sha1').update(sessionId).digest('base64');
 	}
 
-	private static fillWithDefaults<Dev extends DeviceBase, Loc>(
-		options: UserSessionManagerOptions<Dev, Loc>
-	): DeepRequired<UserSessionManagerOptions<Dev, Loc>> {
+	private static fillWithDefaults<Dev extends DeviceBase, Loc>(options: UserSessionManagerOptions<Dev, Loc>): Required<UserSessionManagerOptions<Dev, Loc>> {
 		if (options.idLength < 15) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Session id length can't be lower than 15 characters. Given: ${options.idLength}.`);
 		}
@@ -359,11 +345,15 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			(options as MutableSome<UserSessionManagerOptions<Dev, Loc>, 'readUserSessionHook'>).readUserSessionHook = UserSessionManager.readUserSessionHook;
 		}
 
-		return options as DeepRequired<UserSessionManagerOptions<Dev, Loc>>;
+		return options as Required<UserSessionManagerOptions<Dev, Loc>>;
+	}
+
+	public static currentTimestamp(): UnixTimestamp {
+		return Math.floor(new Date().getTime() / 1000);
 	}
 
 	private static readUserSessionHook<Dev extends DeviceBase, Loc>(
-		subject: string,
+		subject: Subject,
 		sessionId: SessionId,
 		context: UserSessionOperationContext<Dev, Loc>,
 		sessionMetaData: Readonly<UserSessionMetaData<Dev, Loc>>
@@ -378,10 +368,6 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 				);
 			}
 		}
-	}
-
-	private static currentTimestamp(): UnixTimestamp {
-		return Math.floor(new Date().getTime() / 1000);
 	}
 }
 

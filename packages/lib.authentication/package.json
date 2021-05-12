@@ -42,7 +42,7 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.email": "0",
-        "@thermopylae/lib.jwt-session": "0",
+        "@thermopylae/lib.jwt-user-session": "0",
         "@thermopylae/lib.sms": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",

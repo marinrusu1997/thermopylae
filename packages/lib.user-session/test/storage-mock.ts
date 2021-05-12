@@ -7,7 +7,8 @@ import {
 	ProactiveExpirationPolicy,
 	CacheEvent
 } from '@thermopylae/lib.cache';
-import type { SessionId, UserSessionMetaData, UserSessionsStorage, DeviceBase } from '../lib';
+import type { SessionId, DeviceBase } from '@thermopylae/lib.user-session.commons';
+import type { UserSessionMetaData, UserSessionsStorage } from '../lib';
 
 class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;
