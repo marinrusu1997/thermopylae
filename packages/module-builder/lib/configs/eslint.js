@@ -34,6 +34,7 @@ module.exports = {
 		"class-methods-use-this": "warn",
 		"for-direction": "warn",
 		"consistent-return": "warn",
+		"dot-notation": "off",
 
 		"no-console": "error",
 		"no-param-reassign": "off",

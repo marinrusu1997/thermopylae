@@ -13,7 +13,7 @@ let logger: WinstonLogger;
  * This method should be called once, at the application start, before using library.
  */
 function initLogger(): void {
-	logger = LoggerInstance.for(CoreModule.COOKIE_SESSION);
+	logger = LoggerInstance.for(CoreModule.COOKIE_USER_SESSION);
 }
 
 export { logger, initLogger };

@@ -359,6 +359,7 @@ class FormattingManager {
 		formattedLabels[Library.UNIT_TEST] = chalk.italic(chalk.bgKeyword('blue')(Library.UNIT_TEST));
 		formattedLabels[Library.UTILS] = chalk.italic(chalk.bgKeyword('orange')(Library.UTILS));
 
+		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('olive')(CoreModule.USER_SESSION_COMMONS));
 		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
 		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_USER_SESSION));
 

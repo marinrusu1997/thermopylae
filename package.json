@@ -5,10 +5,12 @@
   "workspaces": [
     "packages/core.adapter.express",
     "packages/core.adapter.fastify",
+    "packages/core.cookie-session",
     "packages/core.declarations",
-    "packages/core.jwt-user-session",
+    "packages/core.jwt-session",
     "packages/core.mysql",
     "packages/core.redis",
+    "packages/core.user-session.commons",
     "packages/lib.async",
     "packages/lib.authentication",
     "packages/lib.cache",

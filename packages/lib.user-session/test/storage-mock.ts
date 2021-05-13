@@ -1,4 +1,4 @@
-import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { Seconds } from '@thermopylae/core.declarations';
 import {
 	PolicyBasedCache,
 	AbsoluteExpirationPolicyArgumentsBundle,
@@ -73,12 +73,9 @@ class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 		return sessionsMetaData;
 	}
 
-	public async updateAccessedAt(subject: string, sessionId: SessionId, accessedAt: UnixTimestamp): Promise<void> {
-		const session = this.cache.get(StorageMock.sessionIdKey(subject, sessionId));
-		if (session == null) {
-			throw new Error(`Session ${sessionId} not found.`);
-		}
-		session.accessedAt = accessedAt;
+	public async updateAccessedAt(subject: string, sessionId: SessionId, metaData: UserSessionMetaData<DeviceBase, string>): Promise<void> {
+		this.invocations.set('updateAccessedAt', this.invocations.get('updateAccessedAt')! + 1);
+		this.cache.set(StorageMock.sessionIdKey(subject, sessionId), metaData);
 	}
 
 	public async delete(subject: string, sessionId: SessionId): Promise<void> {

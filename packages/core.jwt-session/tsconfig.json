@@ -1,0 +1,19 @@
+{
+    "extends": "../../node_modules/@thermopylae/module-builder/lib/configs/tsconfig.json",
+    "compilerOptions": {
+        "rootDir": ".",
+        "tsBuildInfoFile": "build/tsbuildinfo",
+        "outDir": "dist",
+        "baseUrl": "../../node_modules",
+        "paths": {
+            "@thermopylae/core.user-session.commons/*": [
+                "./@thermopylae/core.user-session.commons/dist/*"
+            ]
+        },
+        "module": "commonjs"
+    },
+    "include": [
+        "lib/**/*.ts",
+        "test/**/*.ts"
+    ]
+}

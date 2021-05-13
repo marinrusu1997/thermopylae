@@ -58,6 +58,8 @@ import { logger } from './logger';
 
 // @fixme add suport to detect that new password is not identic (or almost identic) with old one
 
+// @fixme please review this https://www.youtube.com/watch?v=5rjjCZmbB6c before refactoring
+
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
 

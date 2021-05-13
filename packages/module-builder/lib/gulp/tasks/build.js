@@ -24,8 +24,6 @@ function stageTsConfig(done) {
     }
 
     config.compilerOptions.rootDir = 'lib';
-    config.compilerOptions.target = 'esnext';
-    config.compilerOptions.module = 'commonjs';
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
   });

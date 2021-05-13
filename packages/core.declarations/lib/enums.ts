@@ -36,6 +36,7 @@ export const enum Library {
 }
 
 export const enum CoreModule {
+	USER_SESSION_COMMONS = 'CORE_USER_SESSION',
 	JWT_USER_SESSION = 'CORE_JWT_SESSION',
 	COOKIE_USER_SESSION = 'CORE_COOKIE_SESSION'
 }

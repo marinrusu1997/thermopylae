@@ -187,7 +187,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			}
 		}
 
-		await this.options.storage.updateAccessedAt(subject, sessionId, currentTimestamp, CommitType.DEBOUNCED);
+		await this.options.storage.updateAccessedAt(subject, sessionId, { ...sessionMetaData, accessedAt: currentTimestamp }, CommitType.DEBOUNCED);
 		return [sessionMetaData, null];
 	}
 
@@ -239,7 +239,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		// notify others first, so that they do not try to renew it too
 		try {
 			this.renewedSessions.set(sessionId, null!);
-			await this.options.storage.updateAccessedAt(subject, sessionId, RENEWED_SESSION_FLAG, CommitType.IMMEDIATE);
+			await this.options.storage.updateAccessedAt(subject, sessionId, { ...sessionMetaData, accessedAt: RENEWED_SESSION_FLAG }, CommitType.IMMEDIATE);
 		} catch (e) {
 			this.renewedSessions.delete(sessionId);
 			throw e;

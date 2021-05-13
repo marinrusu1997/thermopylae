@@ -82,6 +82,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 	});
 
 	it('removes session after being idle', async () => {
+		const storage = new StorageMock();
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
 			sessionTtl: 10,
@@ -90,7 +91,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				renewal: 5,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage: new StorageMock(),
+			storage,
 			logger
 		});
 
@@ -98,11 +99,12 @@ describe(`${UserSessionManager.name} spec`, () => {
 
 		const [session] = await sessionManager.read('uid1', sessionId, buildContext());
 		expect(session.location).to.be.eq('Bucharest');
-		const accessedAtSnapshot = session.accessedAt;
 
 		await setTimeout(1000);
-		await sessionManager.read('uid1', sessionId, buildContext());
-		expect(session.accessedAt).to.not.be.eq(accessedAtSnapshot);
+		const [updateSession] = await sessionManager.read('uid1', sessionId, buildContext());
+		expect(updateSession.accessedAt).to.be.eq(session.accessedAt); // because it returns the accessedAt from last read
+		expect((await storage.read('uid1', sessionId))!.accessedAt).to.not.be.eq(session.accessedAt);
+		expect((await storage.read('uid1', sessionId))!.accessedAt).to.not.be.eq(updateSession.accessedAt);
 
 		await setTimeout(2100);
 		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
@@ -111,6 +113,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 	}).timeout(3500);
 
 	it('renews session only once from same NodeJS process', async () => {
+		const storage = new StorageMock();
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
 			sessionTtl: 10,
@@ -118,21 +121,24 @@ describe(`${UserSessionManager.name} spec`, () => {
 				renewal: 1,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage: new StorageMock(),
+			storage,
 			logger
 		});
 		const context = buildContext();
 
 		const sessionId = await sessionManager.create('uid1', context);
 		const [session] = await sessionManager.read('uid1', sessionId, context);
+		expect(storage.invocations.get('updateAccessedAt')).to.be.eq(1);
 
 		await setTimeout(1000);
 		const [[session1, renewSessionId1], [session2, renewSessionId2]] = await Promise.all([
 			sessionManager.read('uid1', sessionId, context),
 			sessionManager.read('uid1', sessionId, context)
 		]);
-		expect(session1).to.be.deep.equal(session);
-		expect(session2).to.be.deep.equal(session);
+		expect(storage.invocations.get('updateAccessedAt')).to.be.eq(2);
+
+		expect(session1.accessedAt).to.be.equal(session.accessedAt);
+		expect(session2.accessedAt).to.be.equal(session.accessedAt);
 
 		const renewedSessionId = (renewSessionId1 || renewSessionId2)!;
 		const [renewedSession] = await sessionManager.read('uid1', renewedSessionId, context);
