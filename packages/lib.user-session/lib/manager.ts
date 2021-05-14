@@ -5,7 +5,6 @@ import type { WinstonLogger } from '@thermopylae/lib.logger';
 import safeUid from 'uid-safe';
 import { createHash } from 'crypto';
 import { createException } from './error';
-import { CommitType } from './storage';
 import type { UserSessionMetaData } from './session';
 import type { UserSessionsStorage } from './storage';
 
@@ -170,6 +169,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		if (this.options.timeouts.renewal) {
 			const sessionAge = currentTimestamp - sessionMetaData.createdAt;
 			if (sessionAge >= this.options.timeouts.renewal) {
+				// renew will update `accessedAt` field for `sessionMetaData` object with the `RENEWED_SESSION_FLAG` constant
 				return [sessionMetaData, await this.renew(subject, sessionId, sessionMetaData, context)];
 			}
 		}
@@ -187,7 +187,9 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			}
 		}
 
-		await this.options.storage.updateAccessedAt(subject, sessionId, { ...sessionMetaData, accessedAt: currentTimestamp }, CommitType.DEBOUNCED);
+		sessionMetaData.accessedAt = currentTimestamp;
+		await this.options.storage.updateAccessedAt(subject, sessionId, sessionMetaData);
+
 		return [sessionMetaData, null];
 	}
 
@@ -239,7 +241,9 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		// notify others first, so that they do not try to renew it too
 		try {
 			this.renewedSessions.set(sessionId, null!);
-			await this.options.storage.updateAccessedAt(subject, sessionId, { ...sessionMetaData, accessedAt: RENEWED_SESSION_FLAG }, CommitType.IMMEDIATE);
+
+			sessionMetaData.accessedAt = RENEWED_SESSION_FLAG;
+			await this.options.storage.updateAccessedAt(subject, sessionId, sessionMetaData);
 		} catch (e) {
 			this.renewedSessions.delete(sessionId);
 			throw e;
@@ -289,15 +293,14 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	}
 
 	/**
-	 * Hashes session id.
-	 *
-	 * @private		Used for test purposes.
+	 * Hashes session id. <br/>
+	 * Useful for logging purposes.
 	 *
 	 * @param sessionId		Session id.
 	 *
 	 * @returns				Hashed session id.
 	 */
-	public static hash(sessionId: string): string {
+	public static hash(sessionId: SessionId): string {
 		return createHash('sha1').update(sessionId).digest('base64');
 	}
 

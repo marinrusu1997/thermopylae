@@ -1,7 +1,7 @@
 import type { JwtPayload, JwtUserSessionManagerOptions, JwtSignOptions, JwtVerifyOptions, IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
 import { JsonWebTokenError, JwtUserSessionManager, TokenExpiredError } from '@thermopylae/lib.jwt-user-session';
 import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
-import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
+import type { UserSessionDevice, AuthorizationTokenExtractor } from '@thermopylae/core.user-session.commons';
 import type {
 	ClientType,
 	HttpHeaderValue,
@@ -19,13 +19,6 @@ import { Exception } from '@thermopylae/lib.exception';
 import { serialize } from 'cookie';
 import type { CookieSerializeOptions } from 'cookie';
 import { createException } from './error';
-
-/**
- * Extract access token from *Authorization* header.
- *
- * @throws {Error|Exception}	When inconsistencies are detected.
- */
-type AccessTokenExtractor = (authorization: string | null | undefined) => string;
 
 interface UserSessionCookiesOptions {
 	/**
@@ -154,7 +147,7 @@ interface UserSessionOptions {
 	 * requests that deliver access and refresh tokens to client
 	 * (i.e. {@link JwtUserSessionMiddleware.create} and {@link JwtUserSessionMiddleware.renew} operations).
 	 */
-	'cache-control': boolean;
+	readonly 'cache-control': boolean;
 }
 
 interface JwtUserSessionMiddlewareOptions {
@@ -170,7 +163,7 @@ interface JwtUserSessionMiddlewareOptions {
 	 * Function which extracts Access Token from *Authorization* header. <br/>
 	 * **Defaults** to extractor which expects *Authorization* header with value in the format: `Bearer ${token}`.
 	 */
-	readonly accessTokenExtractor?: AccessTokenExtractor;
+	readonly accessTokenExtractor?: AuthorizationTokenExtractor;
 }
 
 /**
@@ -436,4 +429,4 @@ class JwtUserSessionMiddleware {
 	}
 }
 
-export { JwtUserSessionMiddleware, AccessTokenExtractor, JwtUserSessionMiddlewareOptions, UserSessionOptions, UserSessionCookiesOptions };
+export { JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, UserSessionOptions, UserSessionCookiesOptions };

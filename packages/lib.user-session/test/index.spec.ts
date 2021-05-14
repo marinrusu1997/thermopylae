@@ -82,7 +82,6 @@ describe(`${UserSessionManager.name} spec`, () => {
 	});
 
 	it('removes session after being idle', async () => {
-		const storage = new StorageMock();
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
 			sessionTtl: 10,
@@ -91,7 +90,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				renewal: 5,
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
-			storage,
+			storage: new StorageMock(),
 			logger
 		});
 
@@ -99,12 +98,11 @@ describe(`${UserSessionManager.name} spec`, () => {
 
 		const [session] = await sessionManager.read('uid1', sessionId, buildContext());
 		expect(session.location).to.be.eq('Bucharest');
+		const accessedAtSnapshot = session.accessedAt;
 
 		await setTimeout(1000);
-		const [updateSession] = await sessionManager.read('uid1', sessionId, buildContext());
-		expect(updateSession.accessedAt).to.be.eq(session.accessedAt); // because it returns the accessedAt from last read
-		expect((await storage.read('uid1', sessionId))!.accessedAt).to.not.be.eq(session.accessedAt);
-		expect((await storage.read('uid1', sessionId))!.accessedAt).to.not.be.eq(updateSession.accessedAt);
+		await sessionManager.read('uid1', sessionId, buildContext());
+		expect(session.accessedAt).to.not.be.eq(accessedAtSnapshot);
 
 		await setTimeout(2100);
 		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
@@ -135,6 +133,8 @@ describe(`${UserSessionManager.name} spec`, () => {
 			sessionManager.read('uid1', sessionId, context),
 			sessionManager.read('uid1', sessionId, context)
 		]);
+		// it updated accessed at only for first read op, the second saw that renew has been made already
+		// and didn't reached updateAccessedAt operation
 		expect(storage.invocations.get('updateAccessedAt')).to.be.eq(2);
 
 		expect(session1.accessedAt).to.be.equal(session.accessedAt);

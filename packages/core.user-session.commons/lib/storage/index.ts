@@ -51,8 +51,6 @@ class UserSessionRedisStorage<
 	MetaData extends UserSessionMetaData<UserSessionDevice, HTTPRequestLocation> = UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
 > implements UserSessionStorage<UserSessionDevice, HTTPRequestLocation, MetaData>
 {
-	private static readonly REDIS_OK_BUFFER_RESPONSE = Buffer.from('OK');
-
 	private static readonly NO_ACTIVE_SESSIONS: ReadonlyMap<SessionId, any> = new Map();
 
 	protected readonly options: Required<UserSessionRedisStorageOptions<MetaData>>;
@@ -101,7 +99,7 @@ class UserSessionRedisStorage<
 			.lpush(activeSessionsKey, sessionId)
 			.exec()) as unknown as [Buffer, number];
 
-		if (!wasSet.equals(UserSessionRedisStorage.REDIS_OK_BUFFER_RESPONSE)) {
+		if (wasSet == null) {
 			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key '${sessionIdKey}'.`);
 		}
 

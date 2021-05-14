@@ -3,4 +3,4 @@ export { UserSessionUtils } from './utils';
 export { initLogger } from './logger';
 
 export type { UserSessionRedisStorageOptions } from './storage';
-export type { UserSessionDevice, UserSessionMetaDataSerializer, ExceptionFactory } from './typings';
+export type { UserSessionDevice, UserSessionMetaDataSerializer, ExceptionFactory, AuthorizationTokenExtractor } from './typings';
