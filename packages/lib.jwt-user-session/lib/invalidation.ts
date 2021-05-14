@@ -42,7 +42,8 @@ interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	 * Length of the refresh token. <br/>
 	 * Because base64 encoding is used underneath, this is not the string length.
 	 * For example, to create a token of length 24, you want a byte length of 18. <br/>
-	 * Value of this option should not be lower than 15.
+	 * Value of this option should not be lower than 15. <br/>
+	 * > **Important!** To prevent brute forcing [create long enough session id's](https://security.stackexchange.com/questions/81519/session-hijacking-through-sessionid-brute-forcing-possible).
 	 */
 	readonly refreshTokenLength: number;
 	/**

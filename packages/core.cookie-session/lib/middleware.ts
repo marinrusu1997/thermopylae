@@ -1,21 +1,26 @@
-import { UserSessionManager } from '@thermopylae/lib.user-session';
-import type { UserSessionManagerOptions } from '@thermopylae/lib.user-session';
 import type {
-	Seconds,
 	HttpResponseHeader,
 	HttpRequestHeader,
 	HttpHeaderValue,
 	HTTPRequestLocation,
+	HttpRequest,
+	HttpResponse,
+	Seconds,
 	RequireSome,
-	MutableSome
+	MutableSome,
+	Undefinable
 } from '@thermopylae/core.declarations';
+import type { SessionId, Subject } from '@thermopylae/lib.user-session.commons';
+import type { UserSessionManagerOptions, UserSessionMetaData } from '@thermopylae/lib.user-session';
 import type { UserSessionDevice, AuthorizationTokenExtractor } from '@thermopylae/core.user-session.commons';
+import type { CookieSerializeOptions } from 'cookie';
+import { UserSessionManager } from '@thermopylae/lib.user-session';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
+import { Exception } from '@thermopylae/lib.exception';
+import { serialize } from 'cookie';
+import { ClientType } from '@thermopylae/core.declarations/lib';
 import { createException } from './error';
-
-// @fixme add brute fore policy, also for jwt-session
-// @fixme to prevent brute forcing create long enough session id's https://security.stackexchange.com/questions/81519/session-hijacking-through-sessionid-brute-forcing-possible
 
 interface UserSessionCookiesOptions {
 	/**
@@ -24,20 +29,6 @@ interface UserSessionCookiesOptions {
 	 * Also, cookie name should not begin with *__Host-* or *__Secure-* prefixes, as they will be added automatically.
 	 */
 	name: string;
-	/**
-	 * [Secure](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies) attribute. <br/>
-	 * **Recommended** value is *true*.
-	 */
-	readonly secure: boolean;
-	/**
-	 * Cookie and session ttl.
-	 */
-	readonly maxAge: Seconds;
-	/**
-	 * [HttpOnly](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#restrict_access_to_cookies) attribute. <br/>
-	 * **Recommended** value is *true*.
-	 */
-	readonly httpOnly: boolean;
 	/**
 	 * [Domain](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_where_cookies_are_sent) attribute. <br/>
 	 * **Recommended** value is to be left *undefined*.
@@ -124,20 +115,38 @@ interface CookieUserSessionMiddlewareOptions {
 }
 
 /**
- * Independently of the cache policy defined by the web application,
- * if caching web application contents is allowed, the session IDs must never be cached,
- * so it is highly recommended to use the **Cache-Control: no-cache="Set-Cookie, Set-Cookie2"** directive,
- * to allow web clients to cache everything except the session ID.
+ * Cookie User Session middleware which uses *lib.user-session* for session management and HTTP protocol as transport of session id. <br/>
+ * Notice that all function members that operate on HTTP response, will set/unset only it's headers,
+ * while other parts, like status code, payload etc are left untouched.
+ * Also it doesn't send response back to clients, this is the caller job to call `send` on response. <br/>
+ * Caller should also handle all of the exceptions (own and of other libraries) thrown by the methods of this class.
  */
-
 class CookieUserSessionMiddleware {
 	private readonly options: RequireSome<CookieUserSessionMiddlewareOptions, 'sessionIdExtractor'>;
 
 	private readonly sessionManager: UserSessionManager<UserSessionDevice, HTTPRequestLocation>;
 
+	private readonly cookieSerializeOptions: CookieSerializeOptions;
+
+	private readonly invalidateSessionCookieHeaderValue: string;
+
 	public constructor(options: CookieUserSessionMiddlewareOptions) {
 		this.options = CookieUserSessionMiddleware.fillWithDefaults(options);
 		this.sessionManager = new UserSessionManager<UserSessionDevice, HTTPRequestLocation>(this.options.sessionManager);
+
+		this.cookieSerializeOptions = {
+			secure: true,
+			httpOnly: true,
+			sameSite: this.options.session.cookie.sameSite,
+			path: this.options.session.cookie.path,
+			domain: this.options.session.cookie.domain,
+			maxAge: undefined
+		};
+
+		// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
+		this.invalidateSessionCookieHeaderValue = serialize(this.options.session.cookie.name, '', {
+			expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
+		});
 	}
 
 	/**
@@ -147,7 +156,149 @@ class CookieUserSessionMiddleware {
 		return this.sessionManager;
 	}
 
-	public static fillWithDefaults(options: CookieUserSessionMiddlewareOptions): RequireSome<CookieUserSessionMiddlewareOptions, 'sessionIdExtractor'> {
+	/**
+	 * Create user session. <br/>
+	 * After session creation, sets session id in the response
+	 * cookies and/or headers, depending on the device from where request was sent.
+	 *
+	 * @param req			Incoming HTTP request.
+	 * @param res			Outgoing HTTP response.
+	 * @param subject		Subject.
+	 * @param sessionTtl	Explicit session ttl, has priority over default one.
+	 */
+	public async create(req: HttpRequest, res: HttpResponse, subject: Subject, sessionTtl?: Seconds): Promise<void> {
+		const context = UserSessionUtils.buildUserSessionContext(req);
+		const sessionId = await this.sessionManager.create(subject, context, sessionTtl);
+
+		try {
+			this.setSessionIdInResponseHeader(req.device && req.device.client && req.device.client.type, res, sessionId, sessionTtl);
+		} catch (e) {
+			// ensure session is not left dangling
+			await this.sessionManager.delete(subject, sessionId);
+			throw e;
+		}
+	}
+
+	/**
+	 * Verify user session. <br/>
+	 * Session id will be extracted from request according to {@link UserSessionOptions}.
+	 *
+	 * @param req						Incoming HTTP request.
+	 * @param res						Outgoing HTTP response.
+	 * @param subject					Subject.
+	 * @param unsetSessionCookie		Whether to unset session cookie in the `res` in case it is not found/expired. <br/>
+	 * 									This is valid only for requests made from browser devices. <br/>
+	 * 									More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 */
+	public async verify(
+		req: HttpRequest,
+		res: HttpResponse,
+		subject: Subject,
+		unsetSessionCookie = true
+	): Promise<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>> {
+		// outside of try-catch, cuz it throws if not found, or csrf validation issues
+		const [sessionId, clientType] = this.extractSessionId(req, subject);
+
+		try {
+			const [metaData, renewedSessionId] = await this.sessionManager.read(subject, sessionId, UserSessionUtils.buildUserSessionContext(req));
+
+			if (renewedSessionId != null) {
+				// @fixme very important that response is sent to client with renewed session id at least
+				this.setSessionIdInResponseHeader(clientType, res, renewedSessionId, metaData.expiresAt - metaData.createdAt);
+			}
+
+			return metaData;
+		} catch (e) {
+			if (
+				unsetSessionCookie &&
+				clientType === 'browser' &&
+				e instanceof Exception &&
+				(e.code === ErrorCodes.NOT_FOUND || e.code === ErrorCodes.EXPIRED)
+			) {
+				res.header('set-cookie', this.invalidateSessionCookieHeaderValue);
+			}
+			throw e;
+		}
+	}
+
+	/**
+	 * Renew user session, by deleting the old one and creating a new one.
+	 *
+	 * @param req				Incoming HTTP request.
+	 * @param res				Outgoing HTTP response.
+	 * @param subject			Subject.
+	 * @param metaData			User session metadata.
+	 */
+	public async renew(
+		req: HttpRequest,
+		res: HttpResponse,
+		subject: Subject,
+		metaData: UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
+	): Promise<void> {
+		const [sessionId, clientType] = this.extractSessionId(req, subject);
+		const renewedSessionId = await this.sessionManager.renew(subject, sessionId, metaData, UserSessionUtils.buildUserSessionContext(req));
+
+		if (renewedSessionId != null) {
+			this.setSessionIdInResponseHeader(clientType, res, renewedSessionId, metaData.expiresAt - metaData.createdAt);
+		}
+	}
+
+	/**
+	 * Delete user session. <br/>
+	 * Refresh Token will be extracted from request according to {@link UserSessionOptions}.
+	 *
+	 * @param req					Incoming HTTP request.
+	 * @param res					Outgoing HTTP response.
+	 * @param subject				Subject which has the session that needs to be deleted.
+	 * @param unsetSessionCookie	Whether to unset session cookie in the `res` after session deletion. <br/>
+	 * 								This is valid only for requests made from browser devices. <br/>
+	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 */
+	public async delete(req: HttpRequest, res: HttpResponse, subject: string, unsetSessionCookie = true): Promise<void> {
+		const [sessionId, clientType] = this.extractSessionId(req, subject);
+		await this.sessionManager.delete(subject, sessionId);
+
+		if (unsetSessionCookie && clientType === 'browser') {
+			res.header('set-cookie', this.invalidateSessionCookieHeaderValue);
+		}
+	}
+
+	private extractSessionId(req: HttpRequest, subject: Subject): [SessionId, ClientType | null] {
+		let sessionId: Undefinable<SessionId>;
+
+		if ((sessionId = req.cookie(this.options.session.cookie.name)) == null) {
+			if ((sessionId = this.options.sessionIdExtractor(req.header('authorization') as string)) == null) {
+				throw createException(ErrorCodes.NOT_FOUND, `Session id of the subject '${subject}' not found in the incoming HTTP request.`);
+			} else {
+				return [sessionId, null];
+			}
+		} else {
+			const csrf = req.header(this.options.session.csrf.name);
+			if (csrf !== this.options.session.csrf.value) {
+				throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
+			}
+
+			return [sessionId, 'browser'];
+		}
+	}
+
+	private setSessionIdInResponseHeader(clientType: ClientType | null | undefined, res: HttpResponse, sessionId: SessionId, sessionTtl?: Seconds): void {
+		if (clientType === 'browser') {
+			// @fixme test with multiple SIMULTANEOUS create and other operations, and if it works,
+			//  make the same improvement approach with core.jwt-session access token cookie options (i.e. create them in the constructor)
+
+			this.cookieSerializeOptions.maxAge = this.options.session.cookie.persistent ? sessionTtl || this.options.sessionManager.sessionTtl : undefined;
+			res.header('set-cookie', serialize(this.options.session.cookie.name, sessionId, this.cookieSerializeOptions));
+
+			if (this.options.session['cache-control']) {
+				res.header('cache-control', 'no-cache="set-cookie, set-cookie2"');
+			}
+		} else {
+			res.header(this.options.session.header, sessionId);
+		}
+	}
+
+	private static fillWithDefaults(options: CookieUserSessionMiddlewareOptions): RequireSome<CookieUserSessionMiddlewareOptions, 'sessionIdExtractor'> {
 		if (options.session.cookie.name.startsWith('__Host-')) {
 			throw createException(ErrorCodes.NOT_ALLOWED, `Session cookie name is not allowed to start with '__Host-'. Given: ${options.session.cookie.name}.`);
 		}
@@ -161,12 +312,10 @@ class CookieUserSessionMiddleware {
 			throw createException(ErrorCodes.INVALID, `Cookie name should be lowercase. Given: ${options.session.cookie.name}.`);
 		}
 
-		if (options.session.cookie.secure) {
-			if (options.session.cookie.domain == null && options.session.cookie.path === '/') {
-				options.session.cookie.name = `__Host-${options.session.cookie.name}`;
-			} else {
-				options.session.cookie.name = `__Secure-${options.session.cookie.name}`;
-			}
+		if (options.session.cookie.domain == null && options.session.cookie.path === '/') {
+			options.session.cookie.name = `__Host-${options.session.cookie.name}`;
+		} else {
+			options.session.cookie.name = `__Secure-${options.session.cookie.name}`;
 		}
 
 		if (!isLowerCase(options.session.header)) {

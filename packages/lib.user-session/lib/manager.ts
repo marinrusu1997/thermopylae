@@ -13,7 +13,8 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	 * Length of the generated session id. <br/>
 	 * Because base64 encoding is used underneath, this is not the string length.
 	 * For example, to create a token of length 24, you want a byte length of 18. <br/>
-	 * Value of this option should not be lower than 15.
+	 * Value of this option should not be lower than 15. <br/>
+	 * > **Important!** To prevent brute forcing [create long enough session id's](https://security.stackexchange.com/questions/81519/session-hijacking-through-sessionid-brute-forcing-possible).
 	 */
 	readonly idLength: number;
 	/**
@@ -262,7 +263,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		);
 
 		// create new session
-		return this.create(subject, context);
+		return this.create(subject, context, sessionMetaData.expiresAt - sessionMetaData.createdAt);
 	}
 
 	/**
@@ -272,13 +273,13 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * @param sessionId		Id of the user session.
 	 */
 	public async delete(subject: Subject, sessionId: SessionId): Promise<void> {
+		await this.options.storage.delete(subject, sessionId);
+
 		const deleteOfRenewedSessionTimeout = this.renewedSessions.get(sessionId);
 		if (deleteOfRenewedSessionTimeout != null) {
 			clearTimeout(deleteOfRenewedSessionTimeout);
 			this.renewedSessions.delete(sessionId);
 		}
-
-		await this.options.storage.delete(subject, sessionId);
 	}
 
 	/**

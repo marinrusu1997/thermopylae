@@ -113,20 +113,25 @@ interface UserSessionOptions {
 		readonly refresh: HttpResponseHeader | string;
 	};
 	/**
-	 * CSRF header options. <br/>
 	 * This option kicks in only when requests are made from browser devices. <br/>
-	 * Depending on whether this option is provided or not, the following behaviours will happen:
-	 * - *provided* - this will cause JWT `header.payload` to be sent via {@link UserSessionCookiesOptions.name.payload} cookie. <br/>
+	 * Depending on the provided value, the following behaviours will happen:
+	 * - *true* - this will cause JWT `header.payload` to be sent via {@link UserSessionCookiesOptions.name.payload} cookie. <br/>
 	 * 	After that, all subsequent requests will need to include {@link UserSessionOptions.csrfHeader.name} header with value
 	 * 	{@link UserSessionOptions.csrfHeader.value}. <br/>
 	 * 	This is needed for [CSRF mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html). <br/>
-	 * - *not provided* - this will cause JWT `header.payload` to be sent to client via {@link UserSessionOptions.headers.access} header. <br/>
+	 * - *false* - this will cause JWT `header.payload` to be sent to client via {@link UserSessionOptions.headers.access} header. <br/>
 	 * 	After that, all subsequent requests will need to include {@link HttpRequestHeaderEnum.AUTHORIZATION} header with `Bearer ${header.payload}` value.
 	 *
 	 * **Notice** that on requests made from browsers, JWT signature will always be sent via {@link UserSessionCookiesOptions.name.signature} cookie,
 	 * no matter of the value for this option.
 	 */
-	readonly csrfHeader?: {
+	readonly deliveryOfJwtPayloadViaCookie: boolean;
+	/**
+	 * CSRF header options. <br/>
+	 * CSRF will be validated when {@link UserSessionOptions.deliveryOfJwtPayloadViaCookie} has value *true*
+	 * or when refresh token is sent to server.
+	 */
+	readonly csrfHeader: {
 		/**
 		 * Lowercase name of the CSRF header.
 		 *
@@ -178,18 +183,36 @@ interface JwtUserSessionMiddlewareOptions {
  * 	- [CSRF mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html) <br/>
  */
 class JwtUserSessionMiddleware {
-	// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
-	private static readonly INVALIDATE_COOKIE: CookieSerializeOptions = {
-		expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-	};
-
 	private readonly options: RequireSome<JwtUserSessionMiddlewareOptions, 'accessTokenExtractor'>;
 
 	private readonly jwtSessionManager: JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation>;
 
+	private readonly refreshTokenCookieOptions: CookieSerializeOptions;
+
+	private readonly invalidationCookies: Readonly<Record<'signature' | 'payload' | 'refresh', string>>;
+
 	public constructor(options: JwtUserSessionMiddlewareOptions) {
 		this.options = JwtUserSessionMiddleware.fillWithDefaults(options);
 		this.jwtSessionManager = new JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation>(options.jwt);
+
+		this.refreshTokenCookieOptions = Object.freeze({
+			path: this.options.session.cookies.path.refresh,
+			secure: true,
+			httpOnly: true,
+			sameSite: this.options.session.cookies.sameSite,
+			domain: this.options.session.cookies.domain,
+			maxAge: this.options.jwt.invalidationOptions.refreshTokenTtl
+		});
+
+		// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
+		const invalidateCookieOptions: CookieSerializeOptions = {
+			expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
+		};
+		this.invalidationCookies = Object.freeze({
+			signature: serialize(this.options.session.cookies.name.signature, '', invalidateCookieOptions),
+			payload: serialize(this.options.session.cookies.name.payload, '', invalidateCookieOptions),
+			refresh: serialize(this.options.session.cookies.name.refresh, '', invalidateCookieOptions)
+		});
 	}
 
 	/**
@@ -215,15 +238,7 @@ class JwtUserSessionMiddleware {
 
 		try {
 			if (req.device && req.device.client && req.device.client.type === 'browser') {
-				const refreshCookie = serialize(this.options.session.cookies.name.refresh, session.refreshToken, {
-					path: this.options.session.cookies.path.refresh,
-					secure: true,
-					httpOnly: true,
-					sameSite: this.options.session.cookies.sameSite,
-					domain: this.options.session.cookies.domain,
-					maxAge: this.options.jwt.invalidationOptions.refreshTokenTtl
-				});
-				res.header('set-cookie', refreshCookie);
+				res.header('set-cookie', serialize(this.options.session.cookies.name.refresh, session.refreshToken, this.refreshTokenCookieOptions));
 
 				this.setAccessTokenInResponseForBrowserWithOptionalCacheControl(session.accessToken, signOptions.expiresIn as number, res);
 			} else {
@@ -260,11 +275,7 @@ class JwtUserSessionMiddleware {
 		} else {
 			payloadCookie = req.cookie(this.options.session.cookies.name.payload);
 			if (payloadCookie != null) {
-				const csrf = req.header(this.options.session.csrfHeader!.name);
-				if (csrf !== this.options.session.csrfHeader!.value) {
-					throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
-				}
-
+				this.performCSRFValidation(req);
 				accessToken = `${payloadCookie}.${signatureCookie}`;
 			} else {
 				accessToken = `${this.options.accessTokenExtractor(req.header('authorization') as string)}.${signatureCookie}`;
@@ -279,10 +290,10 @@ class JwtUserSessionMiddleware {
 				(e instanceof TokenExpiredError || e instanceof JsonWebTokenError || (e instanceof Exception && e.code === ErrorCodes.INVALID))
 			) {
 				if (signatureCookie != null) {
-					res.header('set-cookie', serialize(this.options.session.cookies.name.signature, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
+					res.header('set-cookie', this.invalidationCookies.signature);
 				}
 				if (payloadCookie != null) {
-					res.header('set-cookie', serialize(this.options.session.cookies.name.payload, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
+					res.header('set-cookie', this.invalidationCookies.payload);
 				}
 			}
 			throw e;
@@ -335,24 +346,34 @@ class JwtUserSessionMiddleware {
 		await this.jwtSessionManager.deleteOne(subject, refreshToken, payload);
 
 		if (unsetSessionCookies && clientType === 'browser' && payload) {
-			res.header('set-cookie', serialize(this.options.session.cookies.name.refresh, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
-			res.header('set-cookie', serialize(this.options.session.cookies.name.signature, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
-			if (this.options.session.csrfHeader) {
-				res.header('set-cookie', serialize(this.options.session.cookies.name.payload, '', JwtUserSessionMiddleware.INVALIDATE_COOKIE));
+			res.header('set-cookie', this.invalidationCookies.refresh);
+			res.header('set-cookie', this.invalidationCookies.signature);
+			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
+				res.header('set-cookie', this.invalidationCookies.payload);
 			}
 		}
 	}
 
-	private getRefreshTokenFromRequest(req: HttpRequest): [string, ClientType] {
+	private getRefreshTokenFromRequest(req: HttpRequest): [string, ClientType | null] {
 		let refreshToken: string | undefined;
 
 		if ((refreshToken = req.cookie(this.options.session.cookies.name.refresh))) {
+			this.performCSRFValidation(req);
 			return [refreshToken, 'browser'];
 		}
 		if ((refreshToken = req.header(this.options.session.headers.refresh) as string)) {
-			return [refreshToken, ''];
+			return [refreshToken, null];
 		}
 		throw createException(ErrorCodes.NOT_FOUND, 'Refresh token not found in the request header nor cookies.');
+	}
+
+	private performCSRFValidation(req: HttpRequest): void | never {
+		// @fixme test for refresh and access token
+
+		const csrf = req.header(this.options.session.csrfHeader.name);
+		if (csrf !== this.options.session.csrfHeader.value) {
+			throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
+		}
 	}
 
 	private setAccessTokenInResponseForBrowserWithOptionalCacheControl(token: string, expiresIn: number | undefined, res: HttpResponse): void {
@@ -363,32 +384,28 @@ class JwtUserSessionMiddleware {
 				: (this.options.jwt.signOptions.expiresIn as number)
 			: undefined;
 
-		const signatureCookie = serialize(this.options.session.cookies.name.signature, signature, {
+		const accessTokenCookieOptions: CookieSerializeOptions = {
 			path: this.options.session.cookies.path.access,
 			secure: true,
 			httpOnly: true,
 			sameSite: this.options.session.cookies.sameSite,
 			domain: this.options.session.cookies.domain,
 			maxAge: accessTokenCookiesMaxAge
-		});
+		};
+
+		const signatureCookie = serialize(this.options.session.cookies.name.signature, signature, accessTokenCookieOptions);
 		res.header('set-cookie', signatureCookie);
 
-		if (this.options.session.csrfHeader) {
-			const payloadCookie = serialize(this.options.session.cookies.name.payload, `${header}.${payload}`, {
-				path: this.options.session.cookies.path.access,
-				secure: true,
-				httpOnly: false,
-				sameSite: this.options.session.cookies.sameSite,
-				domain: this.options.session.cookies.domain,
-				maxAge: accessTokenCookiesMaxAge
-			});
+		if (this.options.session.deliveryOfJwtPayloadViaCookie) {
+			accessTokenCookieOptions.httpOnly = false;
+			const payloadCookie = serialize(this.options.session.cookies.name.payload, `${header}.${payload}`, accessTokenCookieOptions);
 			res.header('set-cookie', payloadCookie);
 		} else {
 			res.header(this.options.session.headers.access, `${header}.${payload}`);
 		}
 
 		if (this.options.session['cache-control']) {
-			if (this.options.session.csrfHeader) {
+			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
 				res.header('cache-control', 'no-cache="set-cookie, set-cookie2"');
 			} else {
 				res.header('cache-control', `no-cache="set-cookie, set-cookie2, ${this.options.session.headers.access}"`);
