@@ -37,7 +37,7 @@ interface UserSessionCookiesOptions {
 	/**
 	 * [Path](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_where_cookies_are_sent) attribute. <br/>
 	 */
-	readonly path: string;
+	readonly path?: string;
 	/**
 	 * [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite) attribute. <br/>
 	 * Set value to *false* if you don't want to set this attribute.
@@ -340,3 +340,4 @@ function isLowerCase(str: string): boolean {
 }
 
 export { CookieUserSessionMiddleware };
+export type { UserSessionCookiesOptions, UserSessionOptions, CookieUserSessionMiddlewareOptions };
