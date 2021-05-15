@@ -89,7 +89,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					method: routes.get_resource.method,
 					headers: {
 						[COOKIE]: cookie,
-						[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+						[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 					}
 				});
 				const resource = await resourceResp.json();
@@ -102,7 +102,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					method: routes.logout.method,
 					headers: {
 						[COOKIE]: cookie,
-						[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+						[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 					}
 				});
 				expect(logoutResp.status).to.be.eq(200);
@@ -112,10 +112,10 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 		});
 
 		it('authenticates, requests a resource and logs out (browser device & cookie + header)', async () => {
-			const { csrfHeader } = options.session;
+			const { deliveryOfJwtPayloadViaCookie } = options.session;
 
 			try {
-				(options.session as MutableSome<UserSessionOptions, 'csrfHeader'>).csrfHeader = undefined;
+				(options.session as MutableSome<UserSessionOptions, 'deliveryOfJwtPayloadViaCookie'>).deliveryOfJwtPayloadViaCookie = false;
 
 				/* AUTHENTICATE */
 				const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
@@ -152,12 +152,14 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					method: routes.logout.method,
 					headers: {
 						[COOKIE]: cookie,
-						[AUTHORIZATION]: `Bearer ${accessTokenPayload}`
+						[AUTHORIZATION]: `Bearer ${accessTokenPayload}`,
+						[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 					}
 				});
 				expect(logoutResp.status).to.be.eq(200);
 			} finally {
-				(options.session as MutableSome<UserSessionOptions, 'csrfHeader'>).csrfHeader = csrfHeader;
+				(options.session as MutableSome<UserSessionOptions, 'deliveryOfJwtPayloadViaCookie'>).deliveryOfJwtPayloadViaCookie =
+					deliveryOfJwtPayloadViaCookie;
 			}
 		});
 	});
@@ -220,7 +222,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_resource.method,
 				headers: {
 					[COOKIE]: cookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			const validationError = await resourceResp.json();
@@ -271,7 +273,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_resource.method,
 				headers: {
 					[COOKIE]: cookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			const validationError = await resourceResp.json();
@@ -319,7 +321,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.logout.method,
 				headers: {
 					[COOKIE]: cookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			expect(logoutResp.status).to.be.eq(200);
@@ -329,7 +331,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_resource.method,
 				headers: {
 					[COOKIE]: cookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			const validationError = await resourceResp.json();
@@ -388,7 +390,8 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					const logoutResponse = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
 						method: routes.logout.method,
 						headers: {
-							[COOKIE]: serialize(options.session.cookies.name.refresh, refreshToken)
+							[COOKIE]: serialize(options.session.cookies.name.refresh, refreshToken),
+							[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 						}
 					});
 
@@ -415,7 +418,8 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					const logoutResponse = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
 						method: routes.logout.method,
 						headers: {
-							[COOKIE]: serialize(options.session.cookies.name.refresh, 'invalid-refresh-token')
+							[COOKIE]: serialize(options.session.cookies.name.refresh, 'invalid-refresh-token'),
+							[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 						}
 					});
 
@@ -637,7 +641,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_resource.method,
 				headers: {
 					[COOKIE]: secondSessionCookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			const secondValidationError = await secondResourceResp.json();
@@ -682,6 +686,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.renew_session.method,
 				headers: {
 					[COOKIE]: refreshTokenCookie,
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string,
 					[USER_AGENT]: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36'
 				}
 			});
@@ -699,7 +704,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 				method: routes.get_resource.method,
 				headers: {
 					[COOKIE]: cookie,
-					[options.session.csrfHeader!.name]: options.session.csrfHeader!.value as string
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 				}
 			});
 			const resource = await resourceResp.json();

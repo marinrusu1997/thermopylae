@@ -120,7 +120,7 @@ interface UserSessionOptions {
 	 * 	{@link UserSessionOptions.csrfHeader.value}. <br/>
 	 * 	This is needed for [CSRF mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html). <br/>
 	 * - *false* - this will cause JWT `header.payload` to be sent to client via {@link UserSessionOptions.headers.access} header. <br/>
-	 * 	After that, all subsequent requests will need to include {@link HttpRequestHeaderEnum.AUTHORIZATION} header with `Bearer ${header.payload}` value.
+	 * 	After that, all subsequent requests will need to include *Authorization* header with `Bearer ${header.payload}` value.
 	 *
 	 * **Notice** that on requests made from browsers, JWT signature will always be sent via {@link UserSessionCookiesOptions.name.signature} cookie,
 	 * no matter of the value for this option.
@@ -368,8 +368,6 @@ class JwtUserSessionMiddleware {
 	}
 
 	private performCSRFValidation(req: HttpRequest): void | never {
-		// @fixme test for refresh and access token
-
 		const csrf = req.header(this.options.session.csrfHeader.name);
 		if (csrf !== this.options.session.csrfHeader.value) {
 			throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);

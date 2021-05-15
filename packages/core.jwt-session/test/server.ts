@@ -68,6 +68,7 @@ const options: JwtUserSessionMiddlewareOptions = {
 			name: 'x-requested-with',
 			value: 'XmlHttpRequest'
 		},
+		deliveryOfJwtPayloadViaCookie: true,
 		'cache-control': true
 	}
 };

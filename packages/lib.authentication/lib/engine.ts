@@ -60,6 +60,8 @@ import { logger } from './logger';
 
 // @fixme please review this https://www.youtube.com/watch?v=5rjjCZmbB6c before refactoring
 
+// @fixme  Security questions are no longer recognized as an acceptable authentication factor per NIST SP 800-63. they have nothing to do here
+
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
 
