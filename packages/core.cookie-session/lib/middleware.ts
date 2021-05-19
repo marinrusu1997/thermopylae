@@ -109,6 +109,7 @@ interface CookieUserSessionMiddlewareOptions {
 	readonly session: UserSessionOptions;
 	/**
 	 * Function which extracts session id from *Authorization* header. <br/>
+	 * If the token could not be extracted, the extractor should throw an exception. <br/>
 	 * **Defaults** to extractor which expects *Authorization* header with value in the format: `Bearer ${token}`.
 	 */
 	readonly sessionIdExtractor?: AuthorizationTokenExtractor;
@@ -181,7 +182,10 @@ class CookieUserSessionMiddleware {
 
 	/**
 	 * Verify user session. <br/>
-	 * Session id will be extracted from request according to {@link UserSessionOptions}.
+	 * Session id will be extracted from request according to {@link UserSessionOptions}. <br/>
+	 * Depending on the {@link UserSessionManager} config, user session might be renewed, and the new user session id
+	 * will be set in the headers of response object. Therefore, it's very important that response is sent to client
+	 * with renewed session id at least.
 	 *
 	 * @param req						Incoming HTTP request.
 	 * @param res						Outgoing HTTP response.
@@ -197,13 +201,12 @@ class CookieUserSessionMiddleware {
 		unsetSessionCookie = true
 	): Promise<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>> {
 		// outside of try-catch, cuz it throws if not found, or csrf validation issues
-		const [sessionId, clientType] = this.extractSessionId(req, subject);
+		const [sessionId, clientType] = this.extractSessionId(req);
 
 		try {
 			const [metaData, renewedSessionId] = await this.sessionManager.read(subject, sessionId, UserSessionUtils.buildUserSessionContext(req));
 
 			if (renewedSessionId != null) {
-				// @fixme very important that response is sent to client with renewed session id at least
 				this.setSessionIdInResponseHeader(clientType, res, renewedSessionId, metaData.expiresAt - metaData.createdAt);
 			}
 
@@ -235,7 +238,7 @@ class CookieUserSessionMiddleware {
 		subject: Subject,
 		metaData: UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
 	): Promise<void> {
-		const [sessionId, clientType] = this.extractSessionId(req, subject);
+		const [sessionId, clientType] = this.extractSessionId(req);
 		const renewedSessionId = await this.sessionManager.renew(subject, sessionId, metaData, UserSessionUtils.buildUserSessionContext(req));
 
 		if (renewedSessionId != null) {
@@ -250,12 +253,26 @@ class CookieUserSessionMiddleware {
 	 * @param req					Incoming HTTP request.
 	 * @param res					Outgoing HTTP response.
 	 * @param subject				Subject which has the session that needs to be deleted.
+	 * @param sessionId				Id of the session to be deleted. <br/>
+	 * 								This parameter is optional, and should be mainly by admins to forcefully end user session. <br/>
+	 * 								**CAUTION!** When this param is set, you will most probably want to set `unsetSessionCookie`
+	 * 								to *false* in order to not invalidate session id cookie of the admin.
 	 * @param unsetSessionCookie	Whether to unset session cookie in the `res` after session deletion. <br/>
 	 * 								This is valid only for requests made from browser devices. <br/>
 	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 */
-	public async delete(req: HttpRequest, res: HttpResponse, subject: string, unsetSessionCookie = true): Promise<void> {
-		const [sessionId, clientType] = this.extractSessionId(req, subject);
+	public async delete(
+		req: HttpRequest,
+		res: HttpResponse,
+		subject: string,
+		sessionId: string | null | undefined = undefined,
+		unsetSessionCookie = true
+	): Promise<void> {
+		let clientType: ClientType | null | undefined;
+
+		if (sessionId == null) {
+			[sessionId, clientType] = this.extractSessionId(req);
+		}
 		await this.sessionManager.delete(subject, sessionId);
 
 		if (unsetSessionCookie && clientType === 'browser') {
@@ -263,30 +280,23 @@ class CookieUserSessionMiddleware {
 		}
 	}
 
-	private extractSessionId(req: HttpRequest, subject: Subject): [SessionId, ClientType | null] {
+	private extractSessionId(req: HttpRequest): [SessionId, ClientType | null] {
 		let sessionId: Undefinable<SessionId>;
 
 		if ((sessionId = req.cookie(this.options.session.cookie.name)) == null) {
-			if ((sessionId = this.options.sessionIdExtractor(req.header('authorization') as string)) == null) {
-				throw createException(ErrorCodes.NOT_FOUND, `Session id of the subject '${subject}' not found in the incoming HTTP request.`);
-			} else {
-				return [sessionId, null];
-			}
-		} else {
-			const csrf = req.header(this.options.session.csrf.name);
-			if (csrf !== this.options.session.csrf.value) {
-				throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
-			}
-
-			return [sessionId, 'browser'];
+			return [this.options.sessionIdExtractor(req.header('authorization') as string), null];
 		}
+
+		const csrf = req.header(this.options.session.csrf.name);
+		if (csrf !== this.options.session.csrf.value) {
+			throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
+		}
+
+		return [sessionId, 'browser'];
 	}
 
 	private setSessionIdInResponseHeader(clientType: ClientType | null | undefined, res: HttpResponse, sessionId: SessionId, sessionTtl?: Seconds): void {
 		if (clientType === 'browser') {
-			// @fixme test with multiple SIMULTANEOUS create and other operations, and if it works,
-			//  make the same improvement approach with core.jwt-session access token cookie options (i.e. create them in the constructor)
-
 			this.cookieSerializeOptions.maxAge = this.options.session.cookie.persistent ? sessionTtl || this.options.sessionManager.sessionTtl : undefined;
 			res.header('set-cookie', serialize(this.options.session.cookie.name, sessionId, this.cookieSerializeOptions));
 

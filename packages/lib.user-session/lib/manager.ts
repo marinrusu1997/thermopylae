@@ -8,6 +8,36 @@ import { createException } from './error';
 import type { UserSessionMetaData } from './session';
 import type { UserSessionsStorage } from './storage';
 
+interface UserSessionTimeouts {
+	/**
+	 * This timeout defines the amount of time in seconds a session will remain active
+	 * in case there is no activity in the session, closing and invalidating the session
+	 * upon the defined idle period since the last HTTP request received by the web application. <br/>
+	 * If you do not need idle session feature, do not set this option. <br/>
+	 * **Defaults** to *undefined*.
+	 */
+	readonly idle?: Seconds;
+	/**
+	 * This timeout defines the amount of time in seconds since session creation
+	 * after which the session ID is automatically renewed, in the middle of the user session,
+	 * and independently of the session activity and, therefore, of the idle timeout. <br/>
+	 * Renewal consists in deletion of the old session and creation of a new one. <br/>
+	 * If you do not need idle session feature, do not set this option. <br/>
+	 * **Defaults** to *undefined*.
+	 */
+	readonly renewal?: Seconds;
+	/**
+	 * This timeout defines the amount of time the old session will still be available after it was renewed. <br/>
+	 * This timeout starts counting from renew session operation, and on elapse will delete the old session. <br/>
+	 * Usually you will want to keep this timeout as small as possible to give a chance to requests that
+	 * were issued before renew operation to finish successfully, and then invalidate old session.
+	 * If {@link UserSessionManagerOptions.timeouts.renewal} option is not set, this option is ignored. <br/>
+	 * **Required** when {@link UserSessionManagerOptions.timeouts.renewal} option is set.
+	 * **Recommended** value is *5*.
+	 */
+	readonly oldSessionAvailabilityTimeoutAfterRenewal?: Seconds;
+}
+
 interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	/**
 	 * Length of the generated session id. <br/>
@@ -32,35 +62,7 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	/**
 	 * User session lifetime timeouts.
 	 */
-	readonly timeouts?: {
-		/**
-		 * This timeout defines the amount of time in seconds a session will remain active
-		 * in case there is no activity in the session, closing and invalidating the session
-		 * upon the defined idle period since the last HTTP request received by the web application. <br/>
-		 * If you do not need idle session feature, do not set this option. <br/>
-		 * **Defaults** to *undefined*.
-		 */
-		readonly idle?: Seconds;
-		/**
-		 * This timeout defines the amount of time in seconds since session creation
-		 * after which the session ID is automatically renewed, in the middle of the user session,
-		 * and independently of the session activity and, therefore, of the idle timeout. <br/>
-		 * Renewal consists in deletion of the old session and creation of a new one. <br/>
-		 * If you do not need idle session feature, do not set this option. <br/>
-		 * **Defaults** to *undefined*.
-		 */
-		readonly renewal?: Seconds;
-		/**
-		 * This timeout defines the amount of time the old session will still be available after it was renewed. <br/>
-		 * This timeout starts counting from renew session operation, and on elapse will delete the old session. <br/>
-		 * Usually you will want to keep this timeout as small as possible to give a chance to requests that
-		 * were issued before renew operation to finish successfully, and then invalidate old session.
-		 * If {@link UserSessionManagerOptions.timeouts.renewal} option is not set, this option is ignored. <br/>
-		 * **Required** when {@link UserSessionManagerOptions.timeouts.renewal} option is set.
-		 * **Recommended** value is *5*.
-		 */
-		readonly oldSessionAvailabilityTimeoutAfterRenewal?: Seconds;
-	};
+	readonly timeouts?: UserSessionTimeouts;
 	/**
 	 * Read user session hook. <br/>
 	 * Defaults to hook which ensures that in case device is present in both context and session metadata,
@@ -375,4 +377,4 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	}
 }
 
-export { UserSessionManager, UserSessionManagerOptions, RENEWED_SESSION_FLAG };
+export { UserSessionManager, UserSessionManagerOptions, UserSessionTimeouts, RENEWED_SESSION_FLAG };

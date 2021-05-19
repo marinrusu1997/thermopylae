@@ -7,9 +7,9 @@ import { CookieUserSessionMiddleware, UserSessionRedisStorage } from '../../lib'
 const options: CookieUserSessionMiddlewareOptions = {
 	sessionManager: {
 		idLength: 18,
-		sessionTtl: 3,
+		sessionTtl: 5,
 		timeouts: {
-			idle: 1,
+			idle: 3,
 			renewal: 2,
 			oldSessionAvailabilityTimeoutAfterRenewal: 1
 		},

@@ -171,6 +171,9 @@ interface JwtUserSessionMiddlewareOptions {
 	readonly accessTokenExtractor?: AuthorizationTokenExtractor;
 }
 
+// @fixme test with multiple SIMULTANEOUS create and other operations, and if it works,
+//  make the same improvement approach with core.jwt-session access token cookie options (i.e. create them in the constructor)
+
 /**
  * JWT User Session middleware which uses *lib.jwt-user-session* for session management and HTTP protocol as transport of user session tokens. <br/>
  * Notice that all function members that operate on HTTP response, will set/unset only it's headers,

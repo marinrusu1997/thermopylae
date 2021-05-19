@@ -1,12 +1,12 @@
+import { HttpStatusCode } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/lib.unit-test';
+import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '@thermopylae/core.adapter.express';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import morgan, { FormatFn } from 'morgan';
 import addRequestId from 'express-request-id';
 import handler from 'express-async-handler';
-import { HttpStatusCode } from '@thermopylae/core.declarations';
-import { logger } from '@thermopylae/lib.unit-test';
-import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
 import { routes } from './routes';
 import { middleware } from './middleware';
 
@@ -67,8 +67,7 @@ app[routes.login.method](
 		const response = new ExpressResponseAdapter(res);
 
 		if (request.query('location') === '1') {
-			// @ts-ignore
-			req[LOCATION_SYM] = {
+			(req as any)[LOCATION_SYM] = {
 				countryCode: 'RO',
 				regionCode: null,
 				city: 'Bucharest',
@@ -87,6 +86,63 @@ app[routes.login.method](
 	})
 );
 
-// @fixme define other handlers
+app[routes.get_resource.method](
+	routes.get_resource.path,
+	handler(async (req, res) => {
+		const request = new ExpressRequestAdapter(req);
+		const response = new ExpressResponseAdapter(res);
+
+		try {
+			const userSessionMetaData = await middleware.verify(request, response, request.query('uid') as string);
+			response.status(HttpStatusCode.Ok).send(userSessionMetaData);
+		} catch (e) {
+			response.status(HttpStatusCode.Forbidden).send({ message: e.message });
+		}
+	})
+);
+
+app[routes.get_active_sessions.method](
+	routes.get_active_sessions.path,
+	handler(async (req, res) => {
+		const request = new ExpressRequestAdapter(req);
+		const response = new ExpressResponseAdapter(res);
+
+		const subject = request.query('uid')!;
+		const activeSessions = await middleware.userSessionManager.readAll(subject);
+		response.send(Object.fromEntries(activeSessions));
+	})
+);
+
+app[routes.renew_session.method](
+	routes.renew_session.path,
+	handler(async (req, res) => {
+		const request = new ExpressRequestAdapter(req);
+		const response = new ExpressResponseAdapter(res);
+
+		try {
+			const subject = request.query('uid')!;
+			const userSessionMetaData = await middleware.verify(request, response, subject);
+			await middleware.renew(request, response, subject, userSessionMetaData);
+			response.status(HttpStatusCode.Ok).send();
+		} catch (e) {
+			response.status(HttpStatusCode.NotFound).send({ message: e.message });
+		}
+	})
+);
+
+app[routes.logout.method](
+	routes.logout.path,
+	handler(async (req, res) => {
+		const request = new ExpressRequestAdapter(req);
+		const response = new ExpressResponseAdapter(res);
+
+		try {
+			await middleware.delete(request, response, request.query('uid')!);
+			response.status(HttpStatusCode.Ok).send();
+		} catch (e) {
+			response.status(HttpStatusCode.NotFound).send({ message: e.message });
+		}
+	})
+);
 
 export { app };
