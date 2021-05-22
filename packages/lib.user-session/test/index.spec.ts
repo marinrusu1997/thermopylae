@@ -3,7 +3,7 @@ import { expect, logger, initLogger } from '@thermopylae/lib.unit-test';
 import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { setTimeout } from 'timers/promises';
-import { UserSessionManager, UserSessionManagerOptions } from '../lib';
+import { RenewSessionHooks, UserSessionManager, UserSessionManagerOptions } from '../lib';
 import { StorageMock } from './storage-mock';
 
 function buildContext(): UserSessionOperationContext<DeviceBase, string> {
@@ -25,6 +25,22 @@ function escapeStringRegexp(str: string): string {
 	return str.replace(matchOperatorsRe, '\\$&');
 }
 
+const renewSessionHooks: RenewSessionHooks = {
+	onRenewMadeAlreadyFromCurrentProcess(sessionId: string) {
+		logger.warning(
+			`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
+		);
+	},
+	onRenewMadeAlreadyFromAnotherProcess(sessionId: string) {
+		logger.warning(
+			`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from another NodeJS process.`
+		);
+	},
+	onOldSessionDeleteFailure(sessionId: string, e: Error) {
+		logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e);
+	}
+};
+
 describe(`${UserSessionManager.name} spec`, () => {
 	before(() => {
 		LoggerInstance.console.createTransport({ level: 'info' });
@@ -37,7 +53,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			idLength: 18,
 			sessionTtl: 1,
 			storage: new StorageMock(),
-			logger
+			renewSessionHooks
 		});
 
 		const currentTimestamp = UserSessionManager.currentTimestamp();
@@ -60,7 +76,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			idLength: 18,
 			sessionTtl: 1,
 			storage: new StorageMock(),
-			logger
+			renewSessionHooks
 		});
 
 		const sessionId = await sessionManager.create('uid1', buildContext());
@@ -91,7 +107,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
 			storage: new StorageMock(),
-			logger
+			renewSessionHooks
 		});
 
 		const sessionId = await sessionManager.create('uid1', buildContext());
@@ -120,7 +136,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
 			storage,
-			logger
+			renewSessionHooks
 		});
 		const context = buildContext();
 
@@ -169,7 +185,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 					oldSessionAvailabilityTimeoutAfterRenewal: 1
 				},
 				storage,
-				logger
+				renewSessionHooks
 			};
 		}
 
@@ -216,7 +232,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
 			storage,
-			logger
+			renewSessionHooks
 		});
 		const context = buildContext();
 
@@ -241,7 +257,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				oldSessionAvailabilityTimeoutAfterRenewal: 1
 			},
 			storage,
-			logger
+			renewSessionHooks
 		});
 
 		const currentTimestamp = UserSessionManager.currentTimestamp();

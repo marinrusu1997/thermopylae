@@ -1,12 +1,43 @@
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { Seconds, UnixTimestamp, MutableSome } from '@thermopylae/core.declarations';
 import type { Subject, SessionId, DeviceBase, UserSessionOperationContext, ReadUserSessionHook } from '@thermopylae/lib.user-session.commons';
-import type { WinstonLogger } from '@thermopylae/lib.logger';
 import safeUid from 'uid-safe';
 import { createHash } from 'crypto';
 import { createException } from './error';
 import type { UserSessionMetaData } from './session';
 import type { UserSessionsStorage } from './storage';
+
+/**
+ * Hooks called when session is renewed. <br/>
+ * Mainly can be used for logging purposes.
+ */
+interface RenewSessionHooks {
+	/**
+	 * Hook called when making an attempt to renew user session, but it was
+	 * renewed already from current NodeJs process.
+	 *
+	 * @param sessionId		Id of the session that was tried to be renewed.
+	 */
+	onRenewMadeAlreadyFromCurrentProcess(sessionId: string): void;
+
+	/**
+	 * Hook called when making an attempt to renew user session, but it was
+	 * renewed already from another NodeJs process.
+	 *
+	 * @param sessionId		Id of the session that was tried to be renewed.
+	 */
+	onRenewMadeAlreadyFromAnotherProcess(sessionId: string): void;
+
+	/**
+	 * After successful renew operation, the deletion of old session will be scheduled to occur
+	 * after {@link UserSessionTimeouts.oldSessionAvailabilityTimeoutAfterRenewal} seconds. <br/>
+	 * In case the deletion of the old session will fail, this hook will be called with that error.
+	 *
+	 * @param sessionId		Id of the session.
+	 * @param e				Error that caused failure of the old session deletion.
+	 */
+	onOldSessionDeleteFailure(sessionId: string, e: Error): void;
+}
 
 interface UserSessionTimeouts {
 	/**
@@ -56,10 +87,6 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	 */
 	readonly storage: UserSessionsStorage<Device, Location>;
 	/**
-	 * Logger to inform about critical events detected by the library.
-	 */
-	readonly logger: WinstonLogger;
-	/**
 	 * User session lifetime timeouts.
 	 */
 	readonly timeouts?: UserSessionTimeouts;
@@ -69,6 +96,11 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 	 * their *name* and *type* needs to be equal.
 	 */
 	readonly readUserSessionHook?: ReadUserSessionHook<Device, Location, UserSessionMetaData<Device, Location>>;
+	/**
+	 * Hooks called on session renew. <br/>
+	 * Defaults to noop hooks.
+	 */
+	readonly renewSessionHooks?: RenewSessionHooks;
 }
 
 /**
@@ -228,16 +260,12 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		context: UserSessionOperationContext<Device, Location>
 	): Promise<string | null> {
 		if (this.renewedSessions.has(sessionId)) {
-			this.options.logger.warning(
-				`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
-			);
+			this.options.renewSessionHooks.onRenewMadeAlreadyFromCurrentProcess(sessionId);
 			return null;
 		}
 
 		if (sessionMetaData.accessedAt === RENEWED_SESSION_FLAG) {
-			this.options.logger.warning(
-				`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from another NodeJS process.`
-			);
+			this.options.renewSessionHooks.onRenewMadeAlreadyFromAnotherProcess(sessionId);
 			return null;
 		}
 
@@ -256,10 +284,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		this.renewedSessions.set(
 			sessionId,
 			setTimeout(
-				() =>
-					this.delete(subject, sessionId).catch((e) =>
-						this.options.logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e)
-					),
+				() => this.delete(subject, sessionId).catch((e) => this.options.renewSessionHooks.onOldSessionDeleteFailure(sessionId, e)),
 				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal! * 1000
 			)
 		);
@@ -351,6 +376,10 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			(options as MutableSome<UserSessionManagerOptions<Dev, Loc>, 'readUserSessionHook'>).readUserSessionHook = UserSessionManager.readUserSessionHook;
 		}
 
+		if (options.renewSessionHooks == null) {
+			(options as MutableSome<UserSessionManagerOptions<Dev, Loc>, 'renewSessionHooks'>).renewSessionHooks = UserSessionManager.renewSessionHooks;
+		}
+
 		return options as Required<UserSessionManagerOptions<Dev, Loc>>;
 	}
 
@@ -375,6 +404,18 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			}
 		}
 	}
+
+	private static renewSessionHooks: RenewSessionHooks = {
+		onOldSessionDeleteFailure() {
+			return undefined;
+		},
+		onRenewMadeAlreadyFromAnotherProcess() {
+			return undefined;
+		},
+		onRenewMadeAlreadyFromCurrentProcess() {
+			return undefined;
+		}
+	};
 }
 
-export { UserSessionManager, UserSessionManagerOptions, UserSessionTimeouts, RENEWED_SESSION_FLAG };
+export { UserSessionManager, UserSessionManagerOptions, UserSessionTimeouts, RenewSessionHooks, RENEWED_SESSION_FLAG };

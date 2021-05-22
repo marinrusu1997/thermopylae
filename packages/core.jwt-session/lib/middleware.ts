@@ -171,9 +171,6 @@ interface JwtUserSessionMiddlewareOptions {
 	readonly accessTokenExtractor?: AuthorizationTokenExtractor;
 }
 
-// @fixme test with multiple SIMULTANEOUS create and other operations, and if it works,
-//  make the same improvement approach with core.jwt-session access token cookie options (i.e. create them in the constructor)
-
 /**
  * JWT User Session middleware which uses *lib.jwt-user-session* for session management and HTTP protocol as transport of user session tokens. <br/>
  * Notice that all function members that operate on HTTP response, will set/unset only it's headers,
@@ -192,6 +189,8 @@ class JwtUserSessionMiddleware {
 
 	private readonly refreshTokenCookieOptions: CookieSerializeOptions;
 
+	private readonly accessTokenCookieOptions: CookieSerializeOptions;
+
 	private readonly invalidationCookies: Readonly<Record<'signature' | 'payload' | 'refresh', string>>;
 
 	public constructor(options: JwtUserSessionMiddlewareOptions) {
@@ -205,6 +204,15 @@ class JwtUserSessionMiddleware {
 			sameSite: this.options.session.cookies.sameSite,
 			domain: this.options.session.cookies.domain,
 			maxAge: this.options.jwt.invalidationOptions.refreshTokenTtl
+		});
+
+		this.accessTokenCookieOptions = Object.seal({
+			path: this.options.session.cookies.path.access,
+			secure: true,
+			httpOnly: true,
+			sameSite: this.options.session.cookies.sameSite,
+			domain: this.options.session.cookies.domain,
+			maxAge: undefined
 		});
 
 		// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
@@ -379,27 +387,21 @@ class JwtUserSessionMiddleware {
 
 	private setAccessTokenInResponseForBrowserWithOptionalCacheControl(token: string, expiresIn: number | undefined, res: HttpResponse): void {
 		const [header, payload, signature] = token.split('.');
-		const accessTokenCookiesMaxAge = this.options.session.cookies.persistentAccessToken
+
+		// maxAge is common for both
+		this.accessTokenCookieOptions.maxAge = this.options.session.cookies.persistentAccessToken
 			? typeof expiresIn === 'number'
 				? expiresIn
 				: (this.options.jwt.signOptions.expiresIn as number)
 			: undefined;
 
-		const accessTokenCookieOptions: CookieSerializeOptions = {
-			path: this.options.session.cookies.path.access,
-			secure: true,
-			httpOnly: true,
-			sameSite: this.options.session.cookies.sameSite,
-			domain: this.options.session.cookies.domain,
-			maxAge: accessTokenCookiesMaxAge
-		};
-
-		const signatureCookie = serialize(this.options.session.cookies.name.signature, signature, accessTokenCookieOptions);
+		this.accessTokenCookieOptions.httpOnly = true; // only for signature
+		const signatureCookie = serialize(this.options.session.cookies.name.signature, signature, this.accessTokenCookieOptions);
 		res.header('set-cookie', signatureCookie);
 
 		if (this.options.session.deliveryOfJwtPayloadViaCookie) {
-			accessTokenCookieOptions.httpOnly = false;
-			const payloadCookie = serialize(this.options.session.cookies.name.payload, `${header}.${payload}`, accessTokenCookieOptions);
+			this.accessTokenCookieOptions.httpOnly = false; // only for payload
+			const payloadCookie = serialize(this.options.session.cookies.name.payload, `${header}.${payload}`, this.accessTokenCookieOptions);
 			res.header('set-cookie', payloadCookie);
 		} else {
 			res.header(this.options.session.headers.access, `${header}.${payload}`);

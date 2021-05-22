@@ -4,6 +4,7 @@ import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode } from '@
 import type { MutableSome, Seconds } from '@thermopylae/core.declarations';
 import { parse, serialize } from 'cookie';
 import fetch from 'node-fetch';
+import capitalize from 'capitalize';
 import { setTimeout } from 'timers/promises';
 import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
 import type { IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
@@ -156,10 +157,84 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 						[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
 					}
 				});
-				expect(logoutResp.status).to.be.eq(200);
+				expect(logoutResp.status).to.be.eq(HttpStatusCode.Ok);
 			} finally {
 				(options.session as MutableSome<UserSessionOptions, 'deliveryOfJwtPayloadViaCookie'>).deliveryOfJwtPayloadViaCookie =
 					deliveryOfJwtPayloadViaCookie;
+			}
+		});
+	});
+
+	describe('session creation spec', () => {
+		it('creates multiple sessions for browser with accordingly serialized signature and payload cookies', async () => {
+			/* AUTHENTICATE (first session) */
+			const firstAuthResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method,
+				headers: {
+					[USER_AGENT]: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36'
+				}
+			});
+			expect(firstAuthResp.status).to.be.eq(HttpStatusCode.Created);
+
+			const firstAccessTokenCookies = firstAuthResp.headers
+				.get(SET_COOKIE)!
+				.split(', ')
+				.filter((cookie) => !cookie.startsWith(options.session.cookies.name.refresh));
+			expect(firstAccessTokenCookies).to.be.ofSize(2);
+			for (const cookie of firstAccessTokenCookies) {
+				if (cookie.startsWith(options.session.cookies.name.signature)) {
+					expect(cookie).to.match(
+						new RegExp(
+							`${options.session.cookies.name.signature}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
+								options.session.cookies.path.access
+							}; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+						)
+					);
+				}
+				if (cookie.startsWith(options.session.cookies.name.payload)) {
+					expect(cookie).to.match(
+						new RegExp(
+							`${options.session.cookies.name.payload}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
+								options.session.cookies.path.access
+							}; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+						)
+					);
+				}
+			}
+
+			/* AUTHENTICATE (second session) */
+			const secondAuthResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method,
+				headers: {
+					[USER_AGENT]: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36'
+				}
+			});
+			expect(secondAuthResp.status).to.be.eq(HttpStatusCode.Created);
+
+			const secondAccessTokenCookies = secondAuthResp.headers
+				.get(SET_COOKIE)!
+				.split(', ')
+				.filter((cookie) => !cookie.startsWith(options.session.cookies.name.refresh));
+			expect(secondAccessTokenCookies).to.be.ofSize(2);
+			for (const cookie of secondAccessTokenCookies) {
+				if (cookie.startsWith(options.session.cookies.name.signature)) {
+					expect(cookie).to.match(
+						new RegExp(
+							`${options.session.cookies.name.signature}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
+								options.session.cookies.path.access
+							}; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+						)
+					);
+				}
+				if (cookie.startsWith(options.session.cookies.name.payload)) {
+					expect(cookie).to.match(
+						new RegExp(
+							`${options.session.cookies.name.payload}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
+								options.session.cookies.path.access
+							}; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+						)
+					);
+				}
 			}
 		});
 	});
@@ -173,7 +248,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					[USER_AGENT]: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36'
 				}
 			});
-			expect(authResp.status).to.be.eq(201);
+			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
 
 			const cookie = authResp.headers
 				.raw()

@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/extensions
 import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro';
+import { UserSessionManager } from '@thermopylae/lib.user-session';
 import type { CookieUserSessionMiddlewareOptions } from '../../lib';
 import { logger } from '../../lib/logger';
 import { CookieUserSessionMiddleware, UserSessionRedisStorage } from '../../lib';
@@ -13,7 +14,23 @@ const options: CookieUserSessionMiddlewareOptions = {
 			renewal: 2,
 			oldSessionAvailabilityTimeoutAfterRenewal: 1
 		},
-		logger,
+		renewSessionHooks: {
+			onRenewMadeAlreadyFromCurrentProcess(sessionId: string) {
+				logger.warning(
+					`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
+				);
+			},
+			onRenewMadeAlreadyFromAnotherProcess(sessionId: string) {
+				logger.warning(
+					`Can't renew session '${UserSessionManager.hash(
+						sessionId
+					)}', because it was renewed already. Renew has been made from another NodeJS process.`
+				);
+			},
+			onOldSessionDeleteFailure(sessionId: string, e: Error) {
+				logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e);
+			}
+		},
 		storage: new UserSessionRedisStorage({
 			keyPrefix: {
 				sessions: 'sids',
