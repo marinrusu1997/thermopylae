@@ -1,6 +1,8 @@
 import { AuthenticationEntryPointModel, AccountModel, FailedAuthAttemptsModel, ActiveUserSession } from './models';
 import { OnGoingAuthenticationSession, FailedAuthenticationAttemptSession, ActivateAccountSession, ForgotPasswordSession } from './sessions';
 
+// @fixme should be renamed to repositories
+
 export interface AccountEntity {
 	/**
 	 * @fixme should fail if already exists
@@ -8,12 +10,12 @@ export interface AccountEntity {
 	create(account: AccountModel): Promise<string>;
 	read(username: string): Promise<AccountModel | null>;
 	readById(id: string): Promise<AccountModel | null>;
+	delete(id: string): Promise<void>;
 	enable(id: string): Promise<void>;
 	disable(id: string): Promise<void>;
 	enableMultiFactorAuth(id: string): Promise<void>;
 	disableMultiFactorAuth(id: string): Promise<void>;
 	changePassword(id: string, passwordHash: string, salt: string, hashingAlg: number): Promise<void>;
-	delete(id: string): Promise<void>;
 }
 
 export interface FailedAuthenticationAttemptsEntity {
@@ -26,6 +28,7 @@ export interface AuthenticationEntryPointEntity {
 	authBeforeFromThisDevice(accountId: string, device: string): Promise<boolean>;
 }
 
+// @fixme useless here, cuz we need to handle auth, not sessions
 export interface ActiveUserSessionEntity {
 	create(session: ActiveUserSession): Promise<void>;
 	readAll(accountId: string): Promise<Array<ActiveUserSession & AuthenticationEntryPointModel>>;

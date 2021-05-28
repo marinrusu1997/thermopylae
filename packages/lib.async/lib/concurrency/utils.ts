@@ -29,9 +29,12 @@ function toPromise<T>(maybePromise: Promise<T> | T): Promise<T> {
 	return Promise.resolve(maybePromise);
 }
 
+// @fixme this function should also support operation arguments
+// @fixme typeof returned function is the operation one
 function synchronize<T>(operation: AsyncFunction<void, T>): AsyncFunction<void, T> {
 	let inFlight: Promise<T> | false = false;
 
+	// @fixme this function should forward operation arguments
 	return function notConcurrent(): Promise<T> {
 		if (!inFlight) {
 			inFlight = operation().finally(() => {

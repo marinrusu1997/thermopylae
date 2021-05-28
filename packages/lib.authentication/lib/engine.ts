@@ -62,6 +62,43 @@ import { logger } from './logger';
 
 // @fixme  Security questions are no longer recognized as an acceptable authentication factor per NIST SP 800-63. they have nothing to do here
 
+// @fixme remember me feature https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
+
+// @fixme take care with password reset, must be done with certificates https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
+
+// @fixme allow explicit account close by users
+
+// @fixme feature for password expiration (i.e. to change at each x months)
+
+// @fixme feature for account expiration
+
+// @fixme add support for https://github.com/fido-alliance/webauthn-demo
+
+// @fixme feature email authentication
+
+// @fixme we can also do password verification by using SECURITY DEFINED DATABASE FUNCTIONS to prevent SQLi
+//		1. we store password hashes + salts in a different table, and prevent the application to read from it
+//		2. then we create 2 database functions
+//			2.1 first will compute password hash, given the salt (which he will read from table) and provided password
+//			2.2	second will compare computed with stored password hash to check matching
+// @fixme this might imply that password hashing can be done by database function an then do an insert in that table
+// @fixme this also will imply that we will have two hooks for password hash and password verify
+//		1. when we use techniques above, they will simply invoke database functions
+//		2. when we do normal way, they will call argon2 from NodeJS process
+// @fixme take care with error handling
+
+// @fixme when issuing tokens for password reset, account activation, etc, encode them with the following scheme
+// userid:token (it would be nice if they weren't separated, so that attacker can't guess user id from token)
+// this is a protection against brute force attacks
+
+// @fixme compare all tokens using constant time string comparison (e.g. password hashes, some tokens, etc)
+// https://snyk.io/blog/node-js-timing-attack-ccc-ctf/ (npm packages can be found in the Summary section)
+
+// @fixme also for tokens, it would be recommended to use HMAC, and secret to be kept outside of the db
+// this way if tokens are leaked, they are useless without that secret
+
+// @fixme we need multiple 2nd factor auth strategies (sms, google, push notifications, qr codes etc.)
+
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
 
@@ -160,6 +197,7 @@ class AuthenticationEngine {
 		options.enableMultiFactorAuth = (options && options.enableMultiFactorAuth) || false;
 		options.enabled = (options && options.enabled) || false;
 
+		// @fixme this can be minimized at insert (i.e. SQL can throw on unique username)
 		const account = await this.config.entities.account.read(registrationInfo.username);
 		if (account) {
 			throw createException(ErrorCodes.ACCOUNT_ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already.`);
@@ -180,6 +218,18 @@ class AuthenticationEngine {
 			pubKey: registrationInfo.pubKey
 		};
 		registeredAccount.id = await this.config.entities.account.create(registeredAccount);
+
+		/**
+		 * @fixme algorithm:
+		 * 	1. if account is enabled at it's creation, just save it in database and that's it
+		 * 	2. if account is not enabled then:
+		 * 		2.1	create account object
+		 * 		2.2 create activate account token (5-10 min should be more than enough, anyway in the worst case then will need to register again)
+		 * 		2.3 save account object in Redis under activate account token
+		 * 			2.4.1 when user sends back that token, read account from Redis and then store it in DB
+		 * 			2.4.2 when user doesn't send back that token, session from Redis will expire, and that's it :))
+		 * 				  he will have to reenter back details and register
+		 */
 
 		if (!options.enabled) {
 			let activateToken: string;

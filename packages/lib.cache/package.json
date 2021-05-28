@@ -40,7 +40,6 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
-        "@types/array-move": "2",
         "@types/lodash.range": "3",
         "array-move": "3",
         "colors": "1",

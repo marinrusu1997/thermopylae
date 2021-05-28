@@ -28,8 +28,9 @@
 
     "noImplicitAny": true,
     "noImplicitThis": true,
-    "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

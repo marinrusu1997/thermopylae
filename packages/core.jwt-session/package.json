@@ -48,7 +48,6 @@
         "@types/benchmark": "2",
         "@types/capitalize": "2",
         "@types/cookie": "0",
-        "@types/dotenv": "8",
         "@types/node-fetch": "2",
         "benchmark": "2",
         "capitalize": "2",

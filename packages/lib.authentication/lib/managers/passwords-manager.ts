@@ -16,6 +16,7 @@ interface PasswordHasherInterface {
 	getHashingAlgorithm(): number;
 }
 
+// @fixme for password policies https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
 class PasswordsManager {
 	private readonly breachThreshold: number;
 
@@ -30,6 +31,7 @@ class PasswordsManager {
 	}
 
 	public async validateStrengthness(password: string): Promise<void> {
+		// @fixme use this password tester instead https://github.com/dropbox/zxcvbn
 		const result = owasp.test(password);
 		if (!result.strong) {
 			throw createException(ErrorCodes.WEAK_PASSWORD, result.errors.join('.\n'));

@@ -3,6 +3,7 @@ export interface BasicCredentials {
 	password: string;
 }
 
+// @fixme get it from core.declarations
 export interface BasicLocation {
 	countryCode: string | null;
 	regionCode: string | null;

@@ -1,13 +1,13 @@
 declare interface EmailSender {
-	notifyMultiFactorAuthenticationFailed(emailAddress: string, ip: string, device: string): void;
+	notifyMultiFactorAuthenticationFailed(emailAddress: string, ip: string, device: string): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyAccountDisabled(emailAddress: string, cause: string): void;
+	notifyAccountDisabled(emailAddress: string, cause: string): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyAuthenticationFromDifferentDevice(emailAddress: string, ip: string, device: string): void;
+	notifyAuthenticationFromDifferentDevice(emailAddress: string, ip: string, device: string): Promise<void>;
 	sendActivateAccountLink(emailAddress: string, token: string): Promise<void>;
 	sendForgotPasswordToken(emailAddress: string, token: string): Promise<void>;
 }

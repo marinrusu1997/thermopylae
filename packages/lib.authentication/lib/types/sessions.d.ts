@@ -5,12 +5,13 @@ export interface OnGoingAuthenticationSession {
 }
 
 export interface FailedAuthenticationAttemptSession {
-	detectedAt: Date;
+	detectedAt: Date; // @fixme UnixTimestamp
 	ip: string;
 	device: string;
 	counter: number;
 }
 
+// @fixme will become useless
 export interface ActivateAccountSession {
 	taskId: string; // scheduleDeletion unactivated account task id
 	accountId: string;

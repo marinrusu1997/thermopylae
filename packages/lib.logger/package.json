@@ -41,7 +41,6 @@
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
-        "@types/chalk": "2",
         "moment": "2"
     },
     "peerDependencies": {

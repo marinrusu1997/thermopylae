@@ -6,6 +6,7 @@ export const enum SIDE_CHANNEL {
 	SMS = 'SMS'
 }
 
+// @fixme this needs to be a template, so that they can register whatever info they want
 export interface RegistrationRequest extends BasicCredentials {
 	email: string;
 	telephone: string;
@@ -17,8 +18,8 @@ export interface AuthRequest {
 	username: string;
 	password?: string;
 	ip: string;
-	device: string;
-	location: BasicLocation;
+	device: string; // @fixme (optional) replace with http device
+	location: BasicLocation; // @fixme (optional) replace with location from core
 	totp?: string;
 	recaptcha?: string;
 	generateChallenge?: boolean;
