@@ -32,6 +32,10 @@ class PasswordsManager {
 
 	public async validateStrengthness(password: string): Promise<void> {
 		// @fixme use this password tester instead https://github.com/dropbox/zxcvbn
+
+		// @fixme also validate for min and max lengths there, just in case
+
+		// @fixme do not allow password to be the same as username, or first and last name (although we are not interested in them)
 		const result = owasp.test(password);
 		if (!result.strong) {
 			throw createException(ErrorCodes.WEAK_PASSWORD, result.errors.join('.\n'));
@@ -57,6 +61,8 @@ class PasswordsManager {
 		await this.validateStrengthness(newPassword);
 		const passwordHash = await this.hash(newPassword);
 		await this.accountEntity.changePassword(accountId, passwordHash.hash, passwordHash.salt, passwordHash.alg);
+
+		// @fixme here we should also notify user via email or sms that password has been changed
 	}
 
 	public hash(password: string): Promise<PasswordHash> {

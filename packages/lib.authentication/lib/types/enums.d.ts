@@ -10,3 +10,10 @@ export const enum AUTH_STEP {
 	ERROR = 'ERROR',
 	UNKNOWN = 'UNKNOWN'
 }
+
+export const enum MFAOperation {
+	DISABLED = 0,
+	AUTHENTICATION = 1 << 0,
+	CHANGE_PASSWORD = 1 << 1,
+	VERIFY_CREDENTIALS = 1 << 2
+}

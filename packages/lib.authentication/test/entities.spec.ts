@@ -41,9 +41,9 @@ describe('entities', () => {
 		await AccountEntityMongo.enable(account.id!);
 		expect((await AccountEntityMongo.read(account.username))!.enabled).to.be.equal(true);
 		await AccountEntityMongo.enableMultiFactorAuth(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.usingMfa).to.be.equal(true);
+		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(true);
 		await AccountEntityMongo.disableMultiFactorAuth(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.usingMfa).to.be.equal(false);
+		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(false);
 	});
 
 	it('failed auth attempts', async () => {

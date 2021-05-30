@@ -65,7 +65,7 @@ describe('Account registration spec', () => {
 		expect(account.email).to.be.eq('user@product.com');
 		expect(account.role).to.be.eq(undefined);
 		expect(account.enabled).to.be.eq(true);
-		expect(account.usingMfa).to.be.eq(true);
+		expect(account.mfa).to.be.eq(true);
 	});
 
 	it('registers a new account with default registration options when they are not explicitly provided', async () => {
@@ -76,7 +76,7 @@ describe('Account registration spec', () => {
 			throw new Error('Registered account not found');
 		}
 		expect(account.enabled).to.be.eq(false);
-		expect(account.usingMfa).to.be.eq(false);
+		expect(account.mfa).to.be.eq(false);
 
 		// @ts-ignore
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
@@ -92,9 +92,7 @@ describe('Account registration spec', () => {
 			await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 			assert(false, 'Same account was created twice');
 		} catch (e) {
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('emitter', Libraries.AUTH_ENGINE);
+			expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('emitter', Libraries.AUTH_ENGINE);
 			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_ALREADY_REGISTERED);
 			expect(e).to.haveOwnProperty('message', `Account ${defaultRegistrationInfo.username} is registered already.`);
 		}
@@ -103,10 +101,8 @@ describe('Account registration spec', () => {
 	it('fails to register new account if provided password is weak (owasp validator)', () => {
 		return AuthEngineInstance.register({ ...defaultRegistrationInfo, password: 'weak-password' })
 			.then(() => assert(false, 'Account with weak password was registered'))
-			.catch(e => {
-				expect(e)
-					.to.be.instanceOf(Exception)
-					.and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
+			.catch((e) => {
+				expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 				expect(e).to.haveOwnProperty(
 					'message',
 					'The password must contain at least one uppercase letter..\nThe password must contain at least one number.'
@@ -169,9 +165,7 @@ describe('Account registration spec', () => {
 			if (!(e instanceof Exception)) {
 				throw e;
 			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+			expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
 			expect(e).to.haveOwnProperty('message', `Activate account session identified by provided token invalid-token not found. `);
 		}
 
@@ -249,9 +243,7 @@ describe('Account registration spec', () => {
 			if (!(e instanceof Exception)) {
 				throw e;
 			}
-			expect(e)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', EmailErrorCodes.EMAIL_DELIVERY_FAILED);
+			expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', EmailErrorCodes.EMAIL_DELIVERY_FAILED);
 			expect(e).to.haveOwnProperty('message', 'Email client was configured to fail mail delivery');
 
 			const account = await basicAuthEngineConfig.entities.account.read(defaultRegistrationInfo.username);

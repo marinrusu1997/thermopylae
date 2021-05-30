@@ -98,6 +98,23 @@ import { logger } from './logger';
 // this way if tokens are leaked, they are useless without that secret
 
 // @fixme we need multiple 2nd factor auth strategies (sms, google, push notifications, qr codes etc.)
+// https://venturebeat.com/2017/09/24/a-guide-to-common-types-of-two-factor-authentication/
+// consider to encrypt totp secrets before storing them https://security.stackexchange.com/questions/181184/storing-totp-secret-in-database-plaintext-or-encrypted
+// with sms we can use something custom
+// qr code example https://davidwalsh.name/2fa
+
+// @fixme when we get to password strength, we can have multiple policies that follow common interface
+// 1. owasp or that stuff from https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
+// 2. local test against most common passwords https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials
+// 3. call to external api service have been pwned to check password
+// this can be done via Chain of Responsibility design pattern
+
+// @fixme when locking out user accounts, we can do the following scheme to reduce number of interrogations to sql
+// we will store in the account the `lockedUntil` field, which will hold a UNIX timestamp until account is locked,
+// when we get account from db, we check for this field whether is greater or equal to current timestamp,
+// and if so, we deny auth or any other account manipulation actions
+// otherwise, only on auth operation, if we see that value differs from 0, we issue an unlock operation, and set it to 0 on db
+// if we see that value is 0, then we do nothing, account is unlocked
 
 class AuthenticationEngine {
 	private static readonly ALLOWED_SIDE_CHANNELS = [SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS];
@@ -208,13 +225,13 @@ class AuthenticationEngine {
 		const registeredAccount: AccountModel = {
 			username: registrationInfo.username,
 			password: passwordHash.hash,
-			hashingAlg: passwordHash.alg,
+			alg: passwordHash.alg,
 			salt: passwordHash.salt,
 			telephone: registrationInfo.telephone, // @fixme templates
 			email: registrationInfo.email,
 			role: registrationInfo.role,
 			enabled: options.enabled,
-			usingMfa: options.enableMultiFactorAuth,
+			mfa: options.enableMultiFactorAuth,
 			pubKey: registrationInfo.pubKey
 		};
 		registeredAccount.id = await this.config.entities.account.create(registeredAccount);
@@ -283,18 +300,22 @@ class AuthenticationEngine {
 		]);
 	}
 
+	// @fixme can be done only by authenticated user
 	public enableMultiFactorAuthentication(accountId: string): Promise<void> {
 		return this.config.entities.account.enableMultiFactorAuth(accountId);
 	}
 
+	// @fixme can be done only by authenticated user
 	public disableMultiFactorAuthentication(accountId: string): Promise<void> {
 		return this.config.entities.account.disableMultiFactorAuth(accountId);
 	}
 
+	// @fixme can be done only by authenticated user
 	public getFailedAuthAttempts(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthAttemptsModel>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
+	// @fixme can be done only by authenticated user, and only password of his account
 	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<void> {
 		const account = await this.config.entities.account.readById(changePasswordRequest.accountId);
 
@@ -306,17 +327,21 @@ class AuthenticationEngine {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${changePasswordRequest.accountId} is disabled. `);
 		}
 
+		// @fixme here we should also employ 2fa (ideally it would be that user already sends totp token, so we don't need to create temp sessions)
+
 		const passwordHash = {
 			hash: account.password,
 			salt: account.salt,
-			alg: account.hashingAlg
+			alg: account.alg
 		};
 
 		if (!(await this.passwordsManager.isSame(changePasswordRequest.old, passwordHash))) {
+			// @FIXME this is almost the same as auth, we should also employ there account lockout policies
 			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
 		}
 
 		// now that we know that old password is correct, we can safely check for equality with the new one
+		// @fixme do it with the help of https://www.npmjs.com/package/string-similarity, to check for similarities and impose a threshold
 		if (changePasswordRequest.old === changePasswordRequest.new) {
 			throw createException(ErrorCodes.SAME_PASSWORD, 'New password is same as the old one. ');
 		}
@@ -330,6 +355,7 @@ class AuthenticationEngine {
 			changePasswordRequest.logAllOtherSessionsOut = true;
 		}
 
+		// @fixme specify this in the JSDoc
 		if (changePasswordRequest.logAllOtherSessionsOut) {
 			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
 		}
@@ -361,6 +387,7 @@ class AuthenticationEngine {
 			this.config.ttl.forgotPasswordSessionMinutes
 		);
 
+		// @fixme this is like 2fa, i.e. we should better not use sms and email, but push notifications, qr codes & otp etc.
 		try {
 			// WE HAVE CHECKED THEM AT THE METHOD START!!!
 			// eslint-disable-next-line default-case
@@ -408,6 +435,7 @@ class AuthenticationEngine {
 		}
 	}
 
+	// @fixme can be done only by authenticated user or some external TRUSTED service
 	public async areAccountCredentialsValid(accountId: string, credentials: BasicCredentials): Promise<boolean> {
 		const account = await this.config.entities.account.readById(accountId);
 
@@ -427,16 +455,19 @@ class AuthenticationEngine {
 		const passwordHash = {
 			hash: account.password,
 			salt: account.salt,
-			alg: account.hashingAlg
+			alg: account.alg
 		};
 
+		// @FIXME this is almost the same as auth, we should also employ there account lockout policies
 		return this.passwordsManager.isSame(credentials.password, passwordHash);
 	}
 
+	// @fixme can be done only by admin or other internal procedures
 	public async enableAccount(accountId: string): Promise<void> {
 		await this.accountStatusManager.enable(accountId);
 	}
 
+	// @fixme can be done only by authenticated user or other internal procedures
 	public async disableAccount(accountId: string, cause: string): Promise<void> {
 		const account = await this.config.entities.account.readById(accountId);
 		if (!account) {

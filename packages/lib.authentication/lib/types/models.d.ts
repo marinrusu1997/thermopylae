@@ -1,14 +1,14 @@
 import { BasicCredentials, BasicLocation } from './basic-types';
+import { MFAOperation } from './enums';
 
 export interface AccountModel extends BasicCredentials {
 	id?: string;
-	hashingAlg: number;
+	alg: number;
 	salt: string;
-	email: string; // @fixme it might be the same as username
+	email: string;
 	telephone: string;
 	enabled: boolean;
-	usingMfa: boolean;
-	role?: string; // @fixme should disappear
+	mfa: MFAOperation;
 	pubKey?: string | Buffer;
 }
 
@@ -21,14 +21,6 @@ export interface AuthenticationEntryPointModel {
 	location: BasicLocation;
 }
 
-// @fixme should also be removed, it deals with session not with auth
-export interface ActiveUserSession {
-	authenticatedAtUNIX: number; // UNIX seconds
-	accountId: string;
-	// https://security.stackexchange.com/questions/170388/do-i-need-csrf-token-if-im-using-bearer-jwt
-}
-
-// @fixme take a look that this one can also be saved into JWT by the repository implementation
 export interface FailedAuthAttemptsModel {
 	id?: string;
 	accountId: string;

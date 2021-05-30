@@ -16,7 +16,7 @@ class PasswordStep implements AuthStep {
 		const passwordHash = {
 			hash: account.password,
 			salt: account.salt,
-			alg: account.hashingAlg
+			alg: account.alg
 		};
 
 		if (!(await this.passwordsManager.isSame(authRequest.password!, passwordHash))) {
@@ -27,7 +27,7 @@ class PasswordStep implements AuthStep {
 			return { nextStep: AUTH_STEP.RECAPTCHA };
 		}
 
-		if (account.usingMfa) {
+		if (account.mfa) {
 			return { nextStep: AUTH_STEP.GENERATE_TOTP };
 		}
 

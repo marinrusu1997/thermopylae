@@ -1,5 +1,6 @@
 export type TaskId = string;
 
+// @fixme will become useless
 export type ScheduleAccountEnabling = (accountId: string, whenToEnable: Date) => Promise<TaskId>;
 
 // @fixme this needs to be removed, we have nothing to do with sessions
