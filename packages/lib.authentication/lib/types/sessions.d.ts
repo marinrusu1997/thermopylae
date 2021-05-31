@@ -1,23 +1,29 @@
-export interface OnGoingAuthenticationSession {
-	recaptchaRequired: boolean;
-	mfaToken?: string; // preventing replay attacks
+import type { HttpDevice, UnixTimestamp } from '@thermopylae/core.declarations';
+
+/**
+ * Session which holds the current authentication made by user from a concrete device
+ * (i.e. these sessions are device based, usually by 'User-Agent' when using HTTP interface).
+ */
+interface AuthenticationSession {
+	recaptchaRequired?: boolean;
+	'2fa-token'?: string; // preventing replay attacks
 	challengeResponseNonce?: string; // preventing replay attacks
 }
 
-export interface FailedAuthenticationAttemptSession {
-	detectedAt: Date; // @fixme UnixTimestamp
+/**
+ * Session which stores failed authentication attempts for the whole account
+ * no matter from which device authentication is made. <br/>
+ * On the successful authentication, this session needs to be deleted.
+ */
+interface FailedAuthenticationAttemptSession {
+	detectedAt: UnixTimestamp;
 	ip: string;
-	device: string;
+	device?: HttpDevice;
 	counter: number;
 }
 
-// @fixme will become useless
-export interface ActivateAccountSession {
-	taskId: string; // scheduleDeletion unactivated account task id
+interface ForgotPasswordSession {
 	accountId: string;
 }
 
-export interface ForgotPasswordSession {
-	accountId: string;
-	accountRole?: string;
-}
+export type { AuthenticationSession, FailedAuthenticationAttemptSession, ForgotPasswordSession };

@@ -6,7 +6,7 @@ import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthRequest } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
 
 describe('Change password spec', () => {
@@ -20,7 +20,7 @@ describe('Change password spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // need long active sessions
 	};
 
-	const validAuthRequest: AuthRequest = {
+	const validAuthRequest: AuthenticationContext = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -49,8 +49,8 @@ describe('Change password spec', () => {
 			await AuthEngineInstance.changePassword({
 				accountId,
 				sessionId: activeSessions[0].authenticatedAtUNIX,
-				old: defaultRegistrationInfo.password,
-				new: newPassword
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword
 			})
 		).to.be.eq(0);
 
@@ -70,8 +70,8 @@ describe('Change password spec', () => {
 		await authEngineHashAlg2.changePassword({
 			accountId,
 			sessionId: activeSessions[0].authenticatedAtUNIX,
-			old: defaultRegistrationInfo.password,
-			new: newPassword
+			oldPassword: defaultRegistrationInfo.password,
+			newPassword
 		});
 
 		// Login with AUTH ENGINE which uses HASHING ALG 1
@@ -103,8 +103,8 @@ describe('Change password spec', () => {
 			await AuthEngineInstance.changePassword({
 				accountId,
 				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
-				old: defaultRegistrationInfo.password,
-				new: newPassword
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword
 			})
 		).to.be.eq(2); // 2 sessions were invalidated
 
@@ -131,8 +131,8 @@ describe('Change password spec', () => {
 			await AuthEngineInstance.changePassword({
 				accountId,
 				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
-				old: defaultRegistrationInfo.password,
-				new: newPassword,
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword,
 				logAllOtherSessionsOut: false
 			})
 		).to.be.eq(0); // no sessions were invalidated
@@ -146,13 +146,11 @@ describe('Change password spec', () => {
 		accountId = string.replaceAt('0', accountId.length - 1, accountId);
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: 'does not matter', new: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'does not matter', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
 	});
 
@@ -161,13 +159,11 @@ describe('Change password spec', () => {
 		await AuthEngineInstance.disableAccount(accountId, 'Suspicious activity detected');
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: 'invalid', new: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -175,13 +171,11 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: 'invalid', new: 'does not matter' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
 		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
 	});
 
@@ -189,13 +183,16 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: defaultRegistrationInfo.password, new: defaultRegistrationInfo.password });
+			await AuthEngineInstance.changePassword({
+				accountId,
+				sessionId: 0,
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword: defaultRegistrationInfo.password
+			});
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.SAME_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SAME_PASSWORD);
 		expect(err).to.haveOwnProperty('message', 'New password is same as the old one. ');
 	});
 
@@ -203,15 +200,13 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: 'same', new: 'same' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'same', newPassword: 'same' });
 		} catch (e) {
 			err = e;
 		}
 		// will try to validate firstly against stored one, thus preventing false positives in the following scenario:
 		// old = 'same', new = 'same', stored = 'valid'
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
 		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
 	});
 
@@ -219,13 +214,11 @@ describe('Change password spec', () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, old: defaultRegistrationInfo.password, new: 'Weak-password' });
+			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: defaultRegistrationInfo.password, newPassword: 'Weak-password' });
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 		expect(err).to.haveOwnProperty('message', 'The password must contain at least one number.');
 	});
 });

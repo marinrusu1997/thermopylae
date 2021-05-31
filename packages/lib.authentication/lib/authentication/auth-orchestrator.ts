@@ -1,17 +1,17 @@
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { AuthStatus, AuthStep } from './auth-step';
 import { createException } from '../error';
-import { AuthRequest } from '../types/requests';
+import { AuthenticationContext } from '../types/requests';
 import { AccountModel } from '../types/models';
 import { AUTH_STEP } from '../types/enums';
-import { OnGoingAuthenticationSession } from '../types/sessions';
+import { AuthenticationSession } from '../types/sessions';
 
 class AuthOrchestrator {
 	private readonly startStepName: AUTH_STEP;
 
 	private readonly steps: Map<AUTH_STEP, AuthStep> = new Map<AUTH_STEP, AuthStep>();
 
-	constructor(startStepName: AUTH_STEP = AUTH_STEP.DISPATCH) {
+	public constructor(startStepName: AUTH_STEP = AUTH_STEP.DISPATCH) {
 		this.startStepName = startStepName;
 	}
 
@@ -19,7 +19,7 @@ class AuthOrchestrator {
 		this.steps.set(name, step);
 	}
 
-	public async authenticate(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStatus> {
+	public async authenticate(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStatus> {
 		let currentStepName = this.startStepName;
 		let prevStepName = AUTH_STEP.UNKNOWN;
 		let currentStep = this.steps.get(currentStepName);

@@ -1,8 +1,8 @@
 import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationContext } from '../../types/requests';
 import { AccountModel } from '../../types/models';
-import { OnGoingAuthenticationSession } from '../../types/sessions';
-import { FailedAuthAttemptSessionEntity, FailedAuthenticationAttemptsEntity } from '../../types/entities';
+import { AuthenticationSession } from '../../types/sessions';
+import { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../../types/repositories';
 import { AccountStatusManager, EnableAfterCause } from '../../managers/account-status-manager';
 import { createException, ErrorCodes } from '../../error';
 import { AUTH_STEP } from '../../types/enums';
@@ -17,17 +17,17 @@ class ErrorStep implements AuthStep {
 
 	private readonly accountStatusManager: AccountStatusManager;
 
-	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
+	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository;
 
-	private readonly failedAuthAttemptsEntity: FailedAuthenticationAttemptsEntity;
+	private readonly failedAuthAttemptsEntity: FailedAuthenticationAttemptsRepository;
 
 	constructor(
 		failedAuthAttemptsThreshold: number,
 		recaptchaThreshold: number,
 		failedAuthAttemptSessionTtl: number,
 		accountStatusManager: AccountStatusManager,
-		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity,
-		failedAuthAttemptsEntity: FailedAuthenticationAttemptsEntity
+		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository,
+		failedAuthAttemptsEntity: FailedAuthenticationAttemptsRepository
 	) {
 		this.failedAuthAttemptsThreshold = failedAuthAttemptsThreshold;
 		this.recaptchaThreshold = recaptchaThreshold;
@@ -38,16 +38,16 @@ class ErrorStep implements AuthStep {
 	}
 
 	async process(
-		authRequest: AuthRequest,
+		authRequest: AuthenticationContext,
 		account: AccountModel,
-		onGoingAuthenticationSession: OnGoingAuthenticationSession,
+		onGoingAuthenticationSession: AuthenticationSession,
 		prevStepName: AUTH_STEP
 	): Promise<AuthStepOutput> {
 		const now = new Date();
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(authRequest.username);
 		if (!failedAuthAttemptSession) {
 			failedAuthAttemptSession = { detectedAt: now, ip: authRequest.ip, device: authRequest.device, counter: 1 };
-			await this.failedAuthAttemptSessionEntity.create(authRequest.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
+			await this.failedAuthAttemptSessionEntity.insert(authRequest.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 		} else {
 			failedAuthAttemptSession.detectedAt = now;
 			failedAuthAttemptSession.ip = authRequest.ip;
@@ -56,7 +56,7 @@ class ErrorStep implements AuthStep {
 
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsThreshold) {
 				// update only in case it will not be deleted later by reached threshold
-				await this.failedAuthAttemptSessionEntity.update(authRequest.username, failedAuthAttemptSession);
+				await this.failedAuthAttemptSessionEntity.replace(authRequest.username, failedAuthAttemptSession);
 			}
 		}
 
@@ -71,7 +71,7 @@ class ErrorStep implements AuthStep {
 
 			promises.push(
 				this.failedAuthAttemptsEntity
-					.create({
+					.insert({
 						accountId: account.id!,
 						detectedAt: now,
 						ip: failedAuthAttemptSession.ip,

@@ -1,28 +1,28 @@
 import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationContext } from '../../types/requests';
 import { AccountModel } from '../../types/models';
-import { AuthenticationEntryPointEntity, FailedAuthAttemptSessionEntity } from '../../types/entities';
+import { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
 import { EmailSender } from '../../side-channels';
 import { logger } from '../../logger';
 
 class AuthenticatedStep implements AuthStep {
 	private readonly emailSender: EmailSender;
 
-	private readonly accessPointEntity: AuthenticationEntryPointEntity;
+	private readonly accessPointEntity: SuccessfulAuthenticationsRepository;
 
-	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity;
+	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository;
 
 	public constructor(
 		emailSender: EmailSender,
-		accessPointEntity: AuthenticationEntryPointEntity,
-		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionEntity
+		accessPointEntity: SuccessfulAuthenticationsRepository,
+		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository
 	) {
 		this.emailSender = emailSender;
 		this.accessPointEntity = accessPointEntity;
 		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
 	}
 
-	async process(authRequest: AuthRequest, account: AccountModel): Promise<AuthStepOutput> {
+	async process(authRequest: AuthenticationContext, account: AccountModel): Promise<AuthStepOutput> {
 		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, authRequest.device))) {
 			this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authRequest.ip, authRequest.device);
 		}

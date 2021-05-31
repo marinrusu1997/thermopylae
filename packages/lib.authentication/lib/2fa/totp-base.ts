@@ -6,20 +6,25 @@ import type { RequireSome } from '@thermopylae/core.declarations/lib';
 import { createCipheriv, createDecipheriv } from 'crypto';
 import type { CipherCCMTypes, CipherGCMTypes, CipherKey, BinaryLike, CipherCCMOptions, CipherGCMOptions } from 'crypto';
 import type { TransformOptions } from 'stream';
+import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
+import type { AuthenticationContext } from '../types/requests';
+import type { TwoFactorAuthAChannel } from '../types/enums';
 
 interface AccountWithTotpSecret extends AccountModel {
 	totpSecret: string;
 }
 
+interface TotpSecretEncryptionOptions {
+	algorithm: CipherCCMTypes | CipherGCMTypes | string;
+	secret: CipherKey;
+	iv: BinaryLike | null;
+	options?: CipherCCMOptions | CipherGCMOptions | TransformOptions;
+}
+
 interface TotpBaseTwoFactorAuthStrategyOptions {
-	encryption: {
-		algorithm: CipherCCMTypes | CipherGCMTypes | string;
-		secret: CipherKey;
-		iv: BinaryLike | null;
-		options?: CipherCCMOptions | CipherGCMOptions | TransformOptions;
-	};
+	encryption: TotpSecretEncryptionOptions | false;
 	secretLength: number;
 	authenticator: Readonly<
 		Omit<
@@ -45,22 +50,45 @@ abstract class TotpBaseTwoFactorAuthStrategy<Account extends AccountWithTotpSecr
 		this.baseOptions = options;
 	}
 
-	public async beforeRegister(account: Account): Promise<void> {
+	public abstract readonly type: TwoFactorAuthAChannel;
+
+	public abstract beforeRegister(account: Account, registerResponse: Record<string, any>): Promise<void>;
+
+	public abstract sendToken(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<void>;
+
+	public abstract verifyToken(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<boolean>;
+
+	protected generateAndSetTotpSecret(account: Account): string {
 		const totpSecret = this.authenticator.generateSecret(this.baseOptions.secretLength);
-		const cypher = createCipheriv(
-			this.baseOptions.encryption.algorithm,
-			this.baseOptions.encryption.secret,
-			this.baseOptions.encryption.iv,
-			this.baseOptions.encryption.options
-		);
-		account.totpSecret = cypher.update(totpSecret, 'utf8', 'hex') + cypher.final('hex');
+		account.totpSecret = totpSecret;
+
+		if (this.baseOptions.encryption !== false) {
+			// https://codeforgeek.com/encrypt-and-decrypt-data-in-node-js/
+			const cypher = createCipheriv(
+				this.baseOptions.encryption.algorithm,
+				this.baseOptions.encryption.secret,
+				this.baseOptions.encryption.iv,
+				this.baseOptions.encryption.options
+			);
+			account.totpSecret = cypher.update(account.totpSecret, 'utf8', 'hex') + cypher.final('hex');
+		}
+
+		return totpSecret;
 	}
 
-	public abstract sendToken(account: Account): Promise<void>;
-
-	public abstract verifyToken(account: Account, token: string): Promise<boolean>;
-
 	protected getTotpSecret<Acc extends AccountWithTotpSecret>(account: Acc): string {
+		if (this.baseOptions.encryption === false) {
+			return account.totpSecret;
+		}
+
 		const decipher = createDecipheriv(
 			this.baseOptions.encryption.algorithm,
 			this.baseOptions.encryption.secret,
@@ -72,4 +100,4 @@ abstract class TotpBaseTwoFactorAuthStrategy<Account extends AccountWithTotpSecr
 }
 
 export { TotpBaseTwoFactorAuthStrategy };
-export type { TotpBaseTwoFactorAuthStrategyOptions, AccountWithTotpSecret };
+export type { TotpBaseTwoFactorAuthStrategyOptions, TotpSecretEncryptionOptions, AccountWithTotpSecret };

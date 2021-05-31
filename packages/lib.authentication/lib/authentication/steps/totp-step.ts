@@ -1,10 +1,10 @@
 import { totp } from '@thermopylae/lib.utils';
 import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationContext } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AUTH_STEP } from '../../types/enums';
 import { EmailSender } from '../../side-channels';
-import { OnGoingAuthenticationSession } from '../../types/sessions';
+import { AuthenticationSession } from '../../types/sessions';
 import { logger } from '../../logger';
 
 class TotpStep implements AuthStep {
@@ -17,7 +17,7 @@ class TotpStep implements AuthStep {
 		this.totpManager = totpManager;
 	}
 
-	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
+	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
 		if (!session.mfaToken) {
 			// received invalid token or someone is trying to use same token twice -> treat as error
 			return { nextStep: AUTH_STEP.ERROR };

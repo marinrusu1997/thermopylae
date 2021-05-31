@@ -9,7 +9,7 @@ import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 // @ts-ignore
 import keypair from 'keypair';
 import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthRequest } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AUTH_STEP } from '../lib/types/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
@@ -49,7 +49,7 @@ describe('Authenticate spec', () => {
 		pubKey: primaryKeyPair.public
 	};
 
-	const validAuthRequest: AuthRequest = {
+	const validAuthRequest: AuthenticationContext = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -74,13 +74,11 @@ describe('Authenticate spec', () => {
 	it('fails to authenticate non existing accounts', () => {
 		const networkInput = { username: 'non-existing-account' };
 		// @ts-ignore
-		return AuthEngineInstance.authenticate(networkInput).then(authStatus => {
+		return AuthEngineInstance.authenticate(networkInput).then((authStatus) => {
 			expect(authStatus.token).to.be.eq(undefined);
 			expect(authStatus.nextStep).to.be.eq(undefined);
 			expect(authStatus.error!.soft).to.be.eq(undefined);
-			expect(authStatus.error!.hard)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
+			expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account ${networkInput.username} not found. `);
 		});
 	});
@@ -90,13 +88,11 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.disableAccount(accountId, 'For test');
 		const networkInput = { username: defaultRegistrationInfo.username };
 		// @ts-ignore
-		return AuthEngineInstance.authenticate(networkInput).then(authStatus => {
+		return AuthEngineInstance.authenticate(networkInput).then((authStatus) => {
 			expect(authStatus.token).to.be.eq(undefined);
 			expect(authStatus.nextStep).to.be.eq(undefined);
 			expect(authStatus.error!.soft).to.be.eq(undefined);
-			expect(authStatus.error!.hard)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+			expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 			expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 		});
 	});
@@ -106,9 +102,7 @@ describe('Authenticate spec', () => {
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
-		expect(authStatus.error!.soft)
-			.to.be.instanceOf(Exception)
-			.and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authSessionMinutes!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
@@ -126,9 +120,7 @@ describe('Authenticate spec', () => {
 			...validAuthRequest,
 			responseForChallenge: { signature: signatureOfTokenWhichWasNeverIssued, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
@@ -146,9 +138,7 @@ describe('Authenticate spec', () => {
 			...validAuthRequest,
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -164,9 +154,7 @@ describe('Authenticate spec', () => {
 			...validAuthRequest,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -182,9 +170,7 @@ describe('Authenticate spec', () => {
 			...validAuthRequest,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
 	});
 
@@ -272,9 +258,7 @@ describe('Authenticate spec', () => {
 
 		// provide no recaptcha when it's required
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: undefined });
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('failed auth attempts are shared between auth sessions', async () => {
@@ -290,9 +274,7 @@ describe('Authenticate spec', () => {
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE1, password: 'invalid' });
-			expect(status.error!.soft)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(status.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
 			numberOfAuthAttempts += 1;
 		}
@@ -302,9 +284,7 @@ describe('Authenticate spec', () => {
 		// eslint-disable-next-line no-plusplus
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE2, password: 'invalid' });
-			expect(status.error!.soft)
-				.to.be.instanceOf(Exception)
-				.and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
+			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
 			expect(status.nextStep).to.be.eq(AUTH_STEP.RECAPTCHA);
 			numberOfAuthAttempts += 1;
 		}
@@ -312,9 +292,7 @@ describe('Authenticate spec', () => {
 		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds!.recaptcha);
 
 		const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE3, password: 'invalid' });
-		expect(status.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(status.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('disables account on failed auth attempts threshold, even if sending notification email and logging user out from all devices failed', async () => {
@@ -331,9 +309,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -540,17 +516,13 @@ describe('Authenticate spec', () => {
 			lastAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
-		expect(lastAuthStatus!.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(lastAuthStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -569,9 +541,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -594,9 +564,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -648,9 +616,7 @@ describe('Authenticate spec', () => {
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.nextStep).to.be.eq(undefined);
 		expect(authStatus.error!.soft).to.be.eq(undefined);
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -665,9 +631,7 @@ describe('Authenticate spec', () => {
 		expect(failedAuthAttempts.length).to.be.eq(1);
 
 		const expectedFailAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
-		expect(expectedFailAuthStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(expectedFailAuthStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		await chrono.sleep(chrono.minutesToSeconds(AuthenticationEngineConfig.thresholds!.enableAccountAfterAuthFailureDelayMinutes!) * 1000);
 
@@ -710,9 +674,7 @@ describe('Authenticate spec', () => {
 		expect(thrownError).to.haveOwnProperty('message', 'Scheduling account enabling was configured to fail');
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
-		expect(authStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('keeps account disabled if creating failed auth attempt model failed', async () => {
@@ -727,9 +689,7 @@ describe('Authenticate spec', () => {
 		expect(hasActiveTimers()).to.be.eq(true);
 
 		const expectedNegativeAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
-		expect(expectedNegativeAuthStatus.error!.hard)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(expectedNegativeAuthStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		await chrono.sleep(chrono.minutesToSeconds(AuthenticationEngineConfig.thresholds!.enableAccountAfterAuthFailureDelayMinutes!) * 1000);
 

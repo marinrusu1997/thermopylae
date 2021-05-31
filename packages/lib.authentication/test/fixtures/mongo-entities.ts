@@ -1,6 +1,11 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { AuthenticationEntryPointEntity, AccountEntity, ActiveUserSessionEntity, FailedAuthenticationAttemptsEntity } from '../../lib/types/entities';
+import {
+	SuccessfulAuthenticationsRepository,
+	AccountRepository,
+	ActiveUserSessionEntity,
+	FailedAuthenticationAttemptsRepository
+} from '../../lib/types/repositories';
 
 const mongod = new MongoMemoryServer();
 
@@ -41,16 +46,14 @@ const AccountSchema = new mongoose.Schema({
 	usingMfa: { type: Boolean, required: true },
 	pubKey: { type: String, required: false }
 });
-const AccountEntityMongo: AccountEntity = {
-	create: async account => {
+const AccountEntityMongo: AccountRepository = {
+	insert: async (account) => {
 		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).create(account);
 		// eslint-disable-next-line no-underscore-dangle
 		return String(accountModel._id);
 	},
-	read: async username => {
-		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema)
-			.find({ username })
-			.exec();
+	read: async (username) => {
+		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).find({ username }).exec();
 		if (!accountModel.length) {
 			return null;
 		}
@@ -82,10 +85,8 @@ const AccountEntityMongo: AccountEntity = {
 			pubKey: accountModel[0].pubKey
 		};
 	},
-	readById: async id => {
-		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema)
-			.findById(id)
-			.exec();
+	readById: async (id) => {
+		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).findById(id).exec();
 		if (!accountModel) {
 			return null;
 		}
@@ -114,41 +115,27 @@ const AccountEntityMongo: AccountEntity = {
 			pubKey: accountModel.pubKey
 		};
 	},
-	enable: _id =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { enabled: true })
-			.exec(),
-	disable: async _id => {
+	enable: (_id) => getMongoModel(Models.ACCOUNT, AccountSchema).updateOne({ _id }, { enabled: true }).exec(),
+	disable: async (_id) => {
 		if (failures.get(ENTITIES_OP.ACCOUNT_DISABLE)) {
 			throw new Error('Account disable was scheduled to fail');
 		}
 
-		return getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { enabled: false })
-			.exec();
+		return getMongoModel(Models.ACCOUNT, AccountSchema).updateOne({ _id }, { enabled: false }).exec();
 	},
-	enableMultiFactorAuth: _id =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { usingMfa: true })
-			.exec(),
-	disableMultiFactorAuth: _id =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { usingMfa: false })
-			.exec(),
-	delete: _id => {
+	enableMultiFactorAuth: (_id) => getMongoModel(Models.ACCOUNT, AccountSchema).updateOne({ _id }, { usingMfa: true }).exec(),
+	disableMultiFactorAuth: (_id) => getMongoModel(Models.ACCOUNT, AccountSchema).updateOne({ _id }, { usingMfa: false }).exec(),
+	delete: (_id) => {
 		return getMongoModel(Models.ACCOUNT, AccountSchema)
 			.deleteOne({ _id })
 			.exec()
-			.then(result => {
+			.then((result) => {
 				if (!result.ok || result.deletedCount !== 1) {
 					throw new Error(`Failed to delete account with id ${_id}. Cause: ${JSON.stringify(result)}`);
 				}
 			});
 	},
-	changePassword: (_id, password, salt, hashingAlg) =>
-		getMongoModel(Models.ACCOUNT, AccountSchema)
-			.updateOne({ _id }, { password, salt, hashingAlg })
-			.exec()
+	changePassword: (_id, password, salt, hashingAlg) => getMongoModel(Models.ACCOUNT, AccountSchema).updateOne({ _id }, { password, salt, hashingAlg }).exec()
 };
 
 /* Failed Auth Attempts */
@@ -158,8 +145,8 @@ const FailedAuthAttemptSchema = new mongoose.Schema({
 	device: String,
 	ip: String
 });
-const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
-	create: async attempts => {
+const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsRepository = {
+	insert: async (attempts) => {
 		if (failures.get(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE)) {
 			throw new Error('Creation of failed auth attempts was configured to fail.');
 		}
@@ -168,7 +155,7 @@ const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
 			getMongoModel(Models.FAILED_AUTH_ATTEMPT, FailedAuthAttemptSchema)
 				.create(attempts)
 				// eslint-disable-next-line no-underscore-dangle
-				.then(doc => String(doc._id))
+				.then((doc) => String(doc._id))
 		);
 	},
 	readRange: async (accountId, startingFrom, endingTo) => {
@@ -188,7 +175,7 @@ const FailedAuthAttemptsEntityMongo: FailedAuthenticationAttemptsEntity = {
 		}
 
 		const docs = await documentQuery.exec();
-		return docs.map(doc => ({
+		return docs.map((doc) => ({
 			// eslint-disable-next-line no-underscore-dangle
 			id: String(doc._id),
 			// @ts-ignore
@@ -220,14 +207,12 @@ const AuthenticationEntryPointSchema = new mongoose.Schema({
 		longitude: { type: Number, required: true }
 	}
 });
-const AuthenticationEntryPointEntityMongo: AuthenticationEntryPointEntity = {
-	create: async accessPoint => {
+const AuthenticationEntryPointEntityMongo: SuccessfulAuthenticationsRepository = {
+	insert: async (accessPoint) => {
 		await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema).create(accessPoint);
 	},
 	authBeforeFromThisDevice: async (accountId, device) => {
-		const prevAuthentications = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
-			.find({ accountId })
-			.exec();
+		const prevAuthentications = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema).find({ accountId }).exec();
 		if (prevAuthentications.length === 0) {
 			return true; // this is the first login ever, don't send notification
 		}
@@ -244,22 +229,20 @@ const ActiveUserSessionSchema = new mongoose.Schema({
 	accountId: { type: String, required: true }
 });
 const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
-	create: async session => {
+	create: async (session) => {
 		await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).create(session);
 	},
-	readAll: async accountId => {
-		const sessionsDocs = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
-			.find({ accountId })
-			.exec();
+	readAll: async (accountId) => {
+		const sessionsDocs = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).find({ accountId }).exec();
 		if (sessionsDocs.length === 0) {
 			return [];
 		}
 		// @ts-ignore
-		const sessionTimestamps = sessionsDocs.map(session => session.authenticatedAtUNIX);
+		const sessionTimestamps = sessionsDocs.map((session) => session.authenticatedAtUNIX);
 		const accessPointsDocs = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
 			.find({ authenticatedAtUNIX: { $in: sessionTimestamps }, accountId })
 			.exec();
-		return accessPointsDocs.map(accessPointDoc => {
+		return accessPointsDocs.map((accessPointDoc) => {
 			return {
 				// @ts-ignore
 				authenticatedAtUNIX: accessPointDoc.authenticatedAtUNIX,
@@ -297,11 +280,11 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 			return [];
 		}
 		// @ts-ignore
-		const sessionTimestamps = sessionsDocs.map(session => session.authenticatedAtUNIX);
+		const sessionTimestamps = sessionsDocs.map((session) => session.authenticatedAtUNIX);
 		const accessPointsDocs = await getMongoModel(Models.AUTHENTICATION_ENTRY_POINT, AuthenticationEntryPointSchema)
 			.find({ authenticatedAtUNIX: { $in: sessionTimestamps }, accountId })
 			.exec();
-		return accessPointsDocs.map(accessPointDoc => {
+		return accessPointsDocs.map((accessPointDoc) => {
 			return {
 				// @ts-ignore
 				authenticatedAtUNIX: accessPointDoc.authenticatedAtUNIX,
@@ -332,15 +315,13 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 		});
 	},
 	delete: async (accountId, authenticatedAtUNIX) => {
-		const deleteStatus = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema)
-			.deleteOne({ authenticatedAtUNIX, accountId })
-			.exec();
+		const deleteStatus = await getMongoModel(Models.ACTIVE_USER_SESSION, ActiveUserSessionSchema).deleteOne({ authenticatedAtUNIX, accountId }).exec();
 
 		if (!deleteStatus.ok || deleteStatus.deletedCount !== 1) {
 			throw new Error(`Deleting one active session for account ${accountId} with authenticatedAtUNIX ${authenticatedAtUNIX} failed.`);
 		}
 	},
-	deleteAll: async accountId => {
+	deleteAll: async (accountId) => {
 		if (failures.get(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL)) {
 			throw new Error('Deleting of all active user sessions was configured to fail.');
 		}
@@ -367,7 +348,7 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
  * Connect to the in-memory database.
  */
 function connectToMongoServer(): Promise<mongoose.Mongoose> {
-	return mongod.getConnectionString().then(uri => {
+	return mongod.getConnectionString().then((uri) => {
 		const mongooseOpts: mongoose.ConnectionOptions = {
 			useNewUrlParser: true,
 			useUnifiedTopology: true

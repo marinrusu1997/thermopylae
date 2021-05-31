@@ -33,7 +33,7 @@ describe('entities', () => {
 			pubKey: 'does not matter now this key, just testing that account works'
 		};
 
-		account.id = await AccountEntityMongo.create(account);
+		account.id = await AccountEntityMongo.insert(account);
 		expect(await AccountEntityMongo.readById(account.id)).to.be.deep.equal(account);
 		expect(await AccountEntityMongo.read(account.username)).to.be.deep.equal(account);
 		await AccountEntityMongo.disable(account.id!);
@@ -48,19 +48,19 @@ describe('entities', () => {
 
 	it('failed auth attempts', async () => {
 		const now = new Date();
-		await FailedAuthAttemptsEntityMongo.create({
+		await FailedAuthAttemptsEntityMongo.insert({
 			accountId: '1',
 			detectedAt: now,
 			device: 'device1',
 			ip: '127.0.0.1'
 		});
-		const attempt2Id = await FailedAuthAttemptsEntityMongo.create({
+		const attempt2Id = await FailedAuthAttemptsEntityMongo.insert({
 			accountId: '1',
 			detectedAt: new Date(now.getTime() - 1000),
 			device: 'device1',
 			ip: '127.0.0.1'
 		});
-		const attempt3Id = await FailedAuthAttemptsEntityMongo.create({
+		const attempt3Id = await FailedAuthAttemptsEntityMongo.insert({
 			accountId: '1',
 			detectedAt: new Date(now.getTime() - 5000),
 			device: 'device1',
@@ -74,8 +74,8 @@ describe('entities', () => {
 
 	it('onGet point', async () => {
 		const now = new Date().getTime();
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now + 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
 		expect(await AuthenticationEntryPointEntityMongo.authBeforeFromThisDevice('1', 'Android S9')).to.be.equal(true);
 		expect(await AuthenticationEntryPointEntityMongo.authBeforeFromThisDevice('1', 'Android A5')).to.be.equal(false);
 		expect(await AuthenticationEntryPointEntityMongo.authBeforeFromThisDevice('2', 'Android A5')).to.be.equal(true);
@@ -88,11 +88,11 @@ describe('entities', () => {
 		await ActiveUserSessionEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '1' });
 		await ActiveUserSessionEntityMongo.create({ authenticatedAtUNIX: now + 20, accountId: '1' });
 		// ... and their corresponding onGet points
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now + 10, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now + 20, accountId: '1', ip: '127.0.0.1', device: 'Android S9', location });
 		// user 2 is not active, but has a previous onGet point
-		await AuthenticationEntryPointEntityMongo.create({ authenticatedAtUNIX: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
+		await AuthenticationEntryPointEntityMongo.insert({ authenticatedAt: now - 10, accountId: '2', ip: '127.0.0.1', device: 'Android A5', location });
 
 		// read active sessions of user 1 ...
 		let activeSessionsUser1 = await ActiveUserSessionEntityMongo.readAll('1');

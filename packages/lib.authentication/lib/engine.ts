@@ -3,25 +3,25 @@ import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import uidSafe from 'uid-safe';
 
 import {
-	AuthRequest,
+	AuthenticationContext,
 	ChangeForgottenPasswordRequest,
 	ChangePasswordRequest,
 	CreateForgotPasswordSessionRequest,
 	RegistrationRequest,
 	SIDE_CHANNEL
 } from './types/requests';
-import { BasicCredentials } from './types/basic-types';
+import { UserCredentials } from './types/basic-types';
 import { AuthStatus } from './authentication/auth-step';
 import {
-	AuthenticationEntryPointEntity,
-	AccountEntity,
+	SuccessfulAuthenticationsRepository,
+	AccountRepository,
 	ActivateAccountSessionEntity,
 	ActiveUserSessionEntity,
-	AuthSessionEntity,
-	FailedAuthenticationAttemptsEntity,
-	FailedAuthAttemptSessionEntity,
-	ForgotPasswordSessionEntity
-} from './types/entities';
+	AuthenticationSessionRepository,
+	FailedAuthenticationAttemptsRepository,
+	FailedAuthAttemptSessionRepository,
+	ForgotPasswordSessionRepository
+} from './types/repositories';
 import { createException, ErrorCodes } from './error';
 import { AuthOrchestrator } from './authentication/auth-orchestrator';
 import { AUTH_STEP } from './types/enums';
@@ -34,7 +34,7 @@ import { ErrorStep } from './authentication/steps/error-step';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager, PasswordHasherInterface, PasswordHash } from './managers/passwords-manager';
 import { EmailSender, SmsSender } from './side-channels';
-import { AccountModel, FailedAuthAttemptsModel } from './types/models';
+import { AccountModel, FailedAuthenticationModel } from './types/models';
 import {
 	CancelScheduledUnactivatedAccountDeletion,
 	ScheduleAccountEnabling,
@@ -171,7 +171,7 @@ class AuthenticationEngine {
 		}
 	}
 
-	public async authenticate(authRequest: AuthRequest): Promise<AuthStatus> {
+	public async authenticate(authRequest: AuthenticationContext): Promise<AuthStatus> {
 		const account = await this.config.entities.account.read(authRequest.username);
 
 		if (!account) {
@@ -188,7 +188,7 @@ class AuthenticationEngine {
 			onGoingAuthSession = {
 				recaptchaRequired: false
 			};
-			await this.config.entities.onGoingAuthSession.create(
+			await this.config.entities.onGoingAuthSession.insert(
 				authRequest.username,
 				authRequest.device,
 				onGoingAuthSession,
@@ -200,7 +200,7 @@ class AuthenticationEngine {
 
 		if (result.nextStep) {
 			// will be reused on auth continuation from previous step
-			await this.config.entities.onGoingAuthSession.update(authRequest.username, authRequest.device, onGoingAuthSession);
+			await this.config.entities.onGoingAuthSession.replace(authRequest.username, authRequest.device, onGoingAuthSession);
 		} else {
 			// on success or hard error not needed anymore
 			await this.config.entities.onGoingAuthSession.delete(authRequest.username, authRequest.device);
@@ -234,7 +234,7 @@ class AuthenticationEngine {
 			mfa: options.enableMultiFactorAuth,
 			pubKey: registrationInfo.pubKey
 		};
-		registeredAccount.id = await this.config.entities.account.create(registeredAccount);
+		registeredAccount.id = await this.config.entities.account.insert(registeredAccount);
 
 		/**
 		 * @fixme algorithm:
@@ -311,7 +311,7 @@ class AuthenticationEngine {
 	}
 
 	// @fixme can be done only by authenticated user
-	public getFailedAuthAttempts(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthAttemptsModel>> {
+	public getFailedAuthAttempts(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthenticationModel>> {
 		return this.config.entities.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
@@ -335,20 +335,20 @@ class AuthenticationEngine {
 			alg: account.alg
 		};
 
-		if (!(await this.passwordsManager.isSame(changePasswordRequest.old, passwordHash))) {
+		if (!(await this.passwordsManager.isSame(changePasswordRequest.oldPassword, passwordHash))) {
 			// @FIXME this is almost the same as auth, we should also employ there account lockout policies
 			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
 		}
 
 		// now that we know that old password is correct, we can safely check for equality with the new one
 		// @fixme do it with the help of https://www.npmjs.com/package/string-similarity, to check for similarities and impose a threshold
-		if (changePasswordRequest.old === changePasswordRequest.new) {
+		if (changePasswordRequest.oldPassword === changePasswordRequest.newPassword) {
 			throw createException(ErrorCodes.SAME_PASSWORD, 'New password is same as the old one. ');
 		}
 
 		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 
-		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.new);
+		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.newPassword);
 
 		if (typeof changePasswordRequest.logAllOtherSessionsOut !== 'boolean') {
 			// by default logout from all devices, needs to be be done, as usually jwt will be long lived
@@ -362,9 +362,9 @@ class AuthenticationEngine {
 	}
 
 	public async createForgotPasswordSession(forgotPasswordRequest: CreateForgotPasswordSessionRequest): Promise<void> {
-		if (!AuthenticationEngine.ALLOWED_SIDE_CHANNELS.includes(forgotPasswordRequest['side-channel'])) {
+		if (!AuthenticationEngine.ALLOWED_SIDE_CHANNELS.includes(forgotPasswordRequest['2fa-channel'])) {
 			const errMsg = `Side-Channel ${
-				forgotPasswordRequest['side-channel']
+				forgotPasswordRequest['2fa-channel']
 			} is UNKNOWN. Allowed side-channels are: ${AuthenticationEngine.ALLOWED_SIDE_CHANNELS.join(', ')}`;
 			throw createException(CoreErrorCodes.UNKNOWN, errMsg);
 		}
@@ -381,7 +381,7 @@ class AuthenticationEngine {
 		}
 
 		const sessionToken = await uidSafe(this.config.tokensLength);
-		await this.config.entities.forgotPasswordSession.create(
+		await this.config.entities.forgotPasswordSession.insert(
 			sessionToken,
 			{ accountId: account.id!, accountRole: account.role },
 			this.config.ttl.forgotPasswordSessionMinutes
@@ -391,7 +391,7 @@ class AuthenticationEngine {
 		try {
 			// WE HAVE CHECKED THEM AT THE METHOD START!!!
 			// eslint-disable-next-line default-case
-			switch (forgotPasswordRequest['side-channel']) {
+			switch (forgotPasswordRequest['2fa-channel']) {
 				case SIDE_CHANNEL.EMAIL:
 					await this.config['side-channels'].email.sendForgotPasswordToken(account.email, sessionToken);
 					break;
@@ -436,7 +436,7 @@ class AuthenticationEngine {
 	}
 
 	// @fixme can be done only by authenticated user or some external TRUSTED service
-	public async areAccountCredentialsValid(accountId: string, credentials: BasicCredentials): Promise<boolean> {
+	public async areAccountCredentialsValid(accountId: string, credentials: UserCredentials): Promise<boolean> {
 		const account = await this.config.entities.account.readById(accountId);
 
 		if (!account) {
@@ -499,14 +499,14 @@ interface ThresholdsOptions {
 
 interface AuthEngineOptions {
 	entities: {
-		account: AccountEntity;
+		account: AccountRepository;
 		activeUserSession: ActiveUserSessionEntity;
-		onGoingAuthSession: AuthSessionEntity;
-		accessPoint: AuthenticationEntryPointEntity;
-		failedAuthAttemptsSession: FailedAuthAttemptSessionEntity;
-		failedAuthAttempts: FailedAuthenticationAttemptsEntity;
+		onGoingAuthSession: AuthenticationSessionRepository;
+		accessPoint: SuccessfulAuthenticationsRepository;
+		failedAuthAttemptsSession: FailedAuthAttemptSessionRepository;
+		failedAuthAttempts: FailedAuthenticationAttemptsRepository;
 		activateAccountSession: ActivateAccountSessionEntity;
-		forgotPasswordSession: ForgotPasswordSessionEntity;
+		forgotPasswordSession: ForgotPasswordSessionRepository;
 	};
 	'side-channels': {
 		email: EmailSender;

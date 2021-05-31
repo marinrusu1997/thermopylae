@@ -1,7 +1,7 @@
 import { assert, AssertionError, expect } from 'chai';
 import { Jwt } from '@marin/lib.jwt';
 import { AuthEngineOptions, AuthenticationEngine } from '../lib';
-import { AuthRequest } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/requests';
 import { AuthStatus } from '../lib/authentication/auth-step';
 import { HashingAlgorithms, PasswordHasher } from './fixtures/password-hasher';
 
@@ -23,9 +23,7 @@ async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> 
 		}
 		jwtValidateError = e;
 	}
-	expect(jwtValidateError)
-		.to.be.instanceOf(Error)
-		.and.to.haveOwnProperty('name', 'JsonWebTokenError');
+	expect(jwtValidateError).to.be.instanceOf(Error).and.to.haveOwnProperty('name', 'JsonWebTokenError');
 	expect(jwtValidateError.message.substr(jwtValidateError.message.length - 11)).to.be.eq('blacklisted');
 }
 
@@ -36,7 +34,7 @@ async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> 
  * @param authEngine
  * @param authRequest
  */
-async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthRequest): Promise<AuthStatus> {
+async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthenticationContext): Promise<AuthStatus> {
 	const authStatus = await authEngine.authenticate(authRequest);
 
 	expect(authStatus.token).to.not.be.eq(undefined);

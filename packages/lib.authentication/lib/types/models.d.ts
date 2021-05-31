@@ -1,30 +1,36 @@
-import { BasicCredentials, BasicLocation } from './basic-types';
-import { MFAOperation } from './enums';
+import type { HttpDevice, HTTPRequestLocation, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { TwoFactorAuthOperation } from './enums';
 
-export interface AccountModel extends BasicCredentials {
-	id?: string;
+interface UserCredentials {
+	username: string;
+	password: string;
+}
+
+interface AccountModel extends UserCredentials {
+	id: string;
 	alg: number;
 	salt: string;
 	email: string;
-	telephone: string;
+	telephone?: string;
 	enabled: boolean;
-	mfa: MFAOperation;
+	mfa: TwoFactorAuthOperation;
 	pubKey?: string | Buffer;
 }
 
-// @fixme user session, should be removed from this lib, and maybe put into core.package
-export interface AuthenticationEntryPointModel {
-	authenticatedAtUNIX: number; // UNIX seconds
+interface AuthenticationModelBase {
+	id: string;
 	accountId: string;
 	ip: string;
-	device: string;
-	location: BasicLocation;
+	device?: HttpDevice | null;
+	location?: HTTPRequestLocation | null;
 }
 
-export interface FailedAuthAttemptsModel {
-	id?: string;
-	accountId: string;
-	detectedAt: Date;
-	device: string;
-	ip: string;
+interface SuccessfulAuthenticationModel extends AuthenticationModelBase {
+	authenticatedAt: UnixTimestamp;
 }
+
+interface FailedAuthenticationModel extends AuthenticationModelBase {
+	detectedAt: Date;
+}
+
+export type { UserCredentials, AccountModel, SuccessfulAuthenticationModel, FailedAuthenticationModel };

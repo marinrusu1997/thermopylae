@@ -1,8 +1,8 @@
 import safeUid from 'uid-safe';
 import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationContext } from '../../types/requests';
 import { AccountModel } from '../../types/models';
-import { OnGoingAuthenticationSession } from '../../types/sessions';
+import { AuthenticationSession } from '../../types/sessions';
 import { AUTH_STEP } from '../../types/enums';
 
 class GenerateChallengeStep implements AuthStep {
@@ -12,7 +12,7 @@ class GenerateChallengeStep implements AuthStep {
 		this.nonceSize = nonceSize;
 	}
 
-	async process(_authRequest: AuthRequest, _account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
+	async process(_authRequest: AuthenticationContext, _account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
 		// not checking if a nonce was generated already, it's maybe failed because of network error and needs to be regenerated
 		const nonce = await safeUid(this.nonceSize);
 		session.challengeResponseNonce = nonce; // store for later comparison in challenge response step

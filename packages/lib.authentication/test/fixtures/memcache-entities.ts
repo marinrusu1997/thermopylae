@@ -1,6 +1,11 @@
 import { getDefaultMemCache } from '@marin/lib.memcache';
-import { ActivateAccountSessionEntity, AuthSessionEntity, FailedAuthAttemptSessionEntity, ForgotPasswordSessionEntity } from '../../lib/types/entities';
-import { OnGoingAuthenticationSession, FailedAuthenticationAttemptSession } from '../../lib/types/sessions';
+import {
+	ActivateAccountSessionEntity,
+	AuthenticationSessionRepository,
+	FailedAuthAttemptSessionRepository,
+	ForgotPasswordSessionRepository
+} from '../../lib/types/repositories';
+import { AuthenticationSession, FailedAuthenticationAttemptSession } from '../../lib/types/sessions';
 
 const memcache = getDefaultMemCache();
 
@@ -12,24 +17,24 @@ enum SESSIONS_OP {
 }
 const failures = new Map<SESSIONS_OP, boolean>();
 
-const AuthSessionEntityMemCache: AuthSessionEntity = {
+const AuthSessionEntityMemCache: AuthenticationSessionRepository = {
 	/**
 	 * @param username
 	 * @param deviceId
 	 * @param session
 	 * @param ttl 		Time to live in minutes
 	 */
-	create: (username, deviceId, session, ttl) => {
+	insert: (username, deviceId, session, ttl) => {
 		const key = `auths:${username}:${deviceId}`;
 		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve();
 	},
 	read: (username, deviceId) => {
 		const key = `auths:${username}:${deviceId}`;
-		const session = memcache.get(key) as OnGoingAuthenticationSession;
+		const session = memcache.get(key) as AuthenticationSession;
 		return Promise.resolve(session || null);
 	},
-	update: (username, deviceId, session) => {
+	replace: (username, deviceId, session) => {
 		const key = `auths:${username}:${deviceId}`;
 		if (!memcache.replace(key, session)) {
 			throw new Error('Failed to update session');
@@ -45,30 +50,30 @@ const AuthSessionEntityMemCache: AuthSessionEntity = {
 	}
 };
 
-const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionEntity = {
+const FailedAuthAttemptSessionEntityMemCache: FailedAuthAttemptSessionRepository = {
 	/**
 	 * @param username
 	 * @param session
 	 * @param ttl		Time to live in minutes
 	 */
-	create: (username, session, ttl) => {
+	insert: (username, session, ttl) => {
 		const key = `faas:${username}`;
 		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve();
 	},
-	read: username => {
+	read: (username) => {
 		const key = `faas:${username}`;
 		const session = memcache.get(key) as FailedAuthenticationAttemptSession;
 		return Promise.resolve(session || null);
 	},
-	update: (username, session) => {
+	replace: (username, session) => {
 		const key = `faas:${username}`;
 		if (!memcache.replace(key, session)) {
 			throw new Error('Failed to update session');
 		}
 		return Promise.resolve();
 	},
-	delete: username => {
+	delete: (username) => {
 		return new Promise((resolve, reject) => {
 			if (failures.get(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE)) {
 				return reject(new Error('Delete of failed auth attempts session was configured to fail.'));
@@ -97,12 +102,12 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 		memcache.set(key, session, ttl * 60); // convert from minutes to seconds
 		return Promise.resolve();
 	},
-	read: token => {
+	read: (token) => {
 		const key = `actacc:${token}`;
 		const session = memcache.get(key);
 		return Promise.resolve(session || null);
 	},
-	delete: token => {
+	delete: (token) => {
 		return new Promise<void>((resolve, reject) => {
 			if (failures.get(SESSIONS_OP.ACTIVATE_ACCOUNT_SESSION_DELETE)) {
 				return reject(new Error('Deletion of activate account session was configured to fail.'));
@@ -118,21 +123,21 @@ const ActivateAccountSessionEntityMemCache: ActivateAccountSessionEntity = {
 	}
 };
 
-const ForgotPasswordSessionEntityMemCache: ForgotPasswordSessionEntity = {
+const ForgotPasswordSessionEntityMemCache: ForgotPasswordSessionRepository = {
 	/**
 	 * @param token
 	 * @param session
 	 * @param ttl		Time to live in minutes
 	 */
-	create: async (token, session, ttl) => {
+	insert: async (token, session, ttl) => {
 		const key = `fgtpswd:${token}`;
 		memcache.set(key, session, ttl * 60);
 	},
-	read: async token => {
+	read: async (token) => {
 		const key = `fgtpswd:${token}`;
 		return memcache.get(key) || null;
 	},
-	delete: async token => {
+	delete: async (token) => {
 		if (failures.get(SESSIONS_OP.FORGOT_PASSWORD_SESSION_DELETE)) {
 			throw new Error('Deletion of forgot password session was configured to fail');
 		}

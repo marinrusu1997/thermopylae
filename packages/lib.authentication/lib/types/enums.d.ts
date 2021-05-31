@@ -11,7 +11,14 @@ export const enum AUTH_STEP {
 	UNKNOWN = 'UNKNOWN'
 }
 
-export const enum MFAOperation {
+export const enum TwoFactorAuthAChannel {
+	EMAIL,
+	SMS,
+	TOTP,
+	PUSH_NOTIFICATION
+}
+
+export const enum TwoFactorAuthOperation {
 	DISABLED = 0,
 	AUTHENTICATION = 1 << 0,
 	CHANGE_PASSWORD = 1 << 1,

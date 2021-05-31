@@ -10,7 +10,7 @@ import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 import { failureWillBeGeneratedForSessionOperation, hasAnySessions, SESSIONS_OP } from './fixtures/memcache-entities';
-import { AuthRequest } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/requests';
 
 describe('Account registration spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine({
@@ -35,7 +35,7 @@ describe('Account registration spec', () => {
 		telephone: '+568425666'
 	};
 
-	const validAuthRequest: AuthRequest = {
+	const validAuthRequest: AuthenticationContext = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

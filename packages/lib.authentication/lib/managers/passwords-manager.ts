@@ -2,7 +2,7 @@ import { http } from '@thermopylae/lib.utils';
 import owasp from 'owasp-password-strength-test';
 import crypto from 'crypto';
 import { createException, ErrorCodes } from '../error';
-import { AccountEntity } from '../types/entities';
+import { AccountRepository } from '../types/repositories';
 
 interface PasswordHash {
 	hash: string;
@@ -20,11 +20,11 @@ interface PasswordHasherInterface {
 class PasswordsManager {
 	private readonly breachThreshold: number;
 
-	private readonly accountEntity: AccountEntity;
+	private readonly accountEntity: AccountRepository;
 
 	private readonly passwordHasher: PasswordHasherInterface;
 
-	constructor(breachThreshold: number, accountEntity: AccountEntity, passwordHasher: PasswordHasherInterface) {
+	constructor(breachThreshold: number, accountEntity: AccountRepository, passwordHasher: PasswordHasherInterface) {
 		this.breachThreshold = breachThreshold;
 		this.accountEntity = accountEntity;
 		this.passwordHasher = passwordHasher;

@@ -1,9 +1,9 @@
 import { Encoding } from 'crypto';
 import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationContext } from '../../types/requests';
 import { AccountModel } from '../../types/models';
 import { AUTH_STEP } from '../../types/enums';
-import { OnGoingAuthenticationSession } from '../../types/sessions';
+import { AuthenticationSession } from '../../types/sessions';
 
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
@@ -20,7 +20,7 @@ class ChallengeResponseStep implements AuthStep {
 		this.validator = validator;
 	}
 
-	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
+	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
 		if (!session.challengeResponseNonce) {
 			return { nextStep: AUTH_STEP.ERROR };
 		}

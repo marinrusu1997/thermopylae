@@ -6,7 +6,7 @@ import { chrono, string } from '@marin/lib.utils';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthRequest, SIDE_CHANNEL } from '../lib/types/requests';
+import { AuthenticationContext, SIDE_CHANNEL } from '../lib/types/requests';
 import { EmailMockInstance } from './fixtures/mocks/email';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import memcache, { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
@@ -25,7 +25,7 @@ describe('forgot password spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // needing increased duration of session
 	};
 
-	const validAuthRequest: AuthRequest = {
+	const validAuthRequest: AuthenticationContext = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
@@ -50,7 +50,7 @@ describe('forgot password spec', () => {
 		await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
 		expect((await AuthEngineInstance.getActiveSessions(accountId)).length).to.be.eq(3);
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.EMAIL });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.EMAIL });
 		const forgotPasswordToken = JSON.parse(EmailMockInstance.outboxFor(defaultRegistrationInfo.email)[0].html as string).token;
 		const newPassword = 'asdD!45][#ddg85j';
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
@@ -74,7 +74,7 @@ describe('forgot password spec', () => {
 	it('recovers forgotten password via sms side channel', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const newPassword = 'asdD!45][#ddg85j';
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
@@ -89,7 +89,7 @@ describe('forgot password spec', () => {
 		await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
 
 		// Change forgotten password with AUTH ENGINE which uses HASHING ALG 2
-		await authEngineHashAlg2.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await authEngineHashAlg2.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const newPassword = string.generateStringOfLength(30);
 		await authEngineHashAlg2.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
@@ -104,7 +104,7 @@ describe('forgot password spec', () => {
 	it('changes forgotten password if validation was ok, even if deletion of forgot password session might fail', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const newPassword = 'asdD!45][#ddg85j';
 
@@ -118,7 +118,7 @@ describe('forgot password spec', () => {
 	it('changes forgotten password if validation was ok, even if logout from all devices might fail', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const newPassword = 'asdD!45][#ddg85j';
 
@@ -130,7 +130,7 @@ describe('forgot password spec', () => {
 	});
 
 	it('prevents user enumeration by responding positive on invalid username', async () => {
-		await AuthEngineInstance.createForgotPasswordSession({ username: 'non-existing', 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: 'non-existing', '2fa-channel': SIDE_CHANNEL.SMS });
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.be.eq(undefined);
 		expect(EmailMockInstance.outboxFor(defaultRegistrationInfo.email)[0]).to.be.eq(undefined);
 	});
@@ -142,15 +142,13 @@ describe('forgot password spec', () => {
 		try {
 			await AuthEngineInstance.createForgotPasswordSession({
 				username: defaultRegistrationInfo.username,
-				'side-channel': SIDE_CHANNEL.EMAIL
+				'2fa-channel': SIDE_CHANNEL.EMAIL
 			});
 		} catch (e) {
 			err = e;
 		}
 
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 
@@ -162,7 +160,7 @@ describe('forgot password spec', () => {
 		try {
 			await AuthEngineInstance.createForgotPasswordSession({
 				username: defaultRegistrationInfo.username,
-				'side-channel': SIDE_CHANNEL.EMAIL
+				'2fa-channel': SIDE_CHANNEL.EMAIL
 			});
 		} catch (e) {
 			err = e;
@@ -174,7 +172,7 @@ describe('forgot password spec', () => {
 		try {
 			await AuthEngineInstance.createForgotPasswordSession({
 				username: defaultRegistrationInfo.username,
-				'side-channel': SIDE_CHANNEL.SMS
+				'2fa-channel': SIDE_CHANNEL.SMS
 			});
 		} catch (e) {
 			err = e;
@@ -191,7 +189,7 @@ describe('forgot password spec', () => {
 			await AuthEngineInstance.createForgotPasswordSession({
 				username: 'does not matter',
 				// @ts-ignore, for testing purposes
-				'side-channel': sideChannel
+				'2fa-channel': sideChannel
 			});
 		} catch (e) {
 			unknownSideChannelErr = e;
@@ -211,16 +209,14 @@ describe('forgot password spec', () => {
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Forgot password session identified by provided token invalid not found. `);
 	});
 
 	it('fails to change forgotten password when providing new weak password', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
 		let err;
@@ -229,9 +225,7 @@ describe('forgot password spec', () => {
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 		expect(err).to.haveOwnProperty(
 			'message',
 			'The password must be at least 10 characters long..\nThe password must contain at least one uppercase letter..\nThe password must contain at least one number..\nThe password must contain at least one special character.'
@@ -254,8 +248,8 @@ describe('forgot password spec', () => {
 			await AuthEngineInstance.changePassword({
 				accountId,
 				sessionId: forgedActiveSessions[1].authenticatedAtUNIX, // invalidate all, except the last one
-				old: defaultRegistrationInfo.password,
-				new: forgedNewPassword
+				oldPassword: defaultRegistrationInfo.password,
+				newPassword: forgedNewPassword
 			})
 		).to.be.eq(1); // invalidated first session of the user
 
@@ -263,7 +257,7 @@ describe('forgot password spec', () => {
 		await checkIfJWTWasInvalidated(firstAccountOwnerAuthStatus.token!, basicAuthEngineConfig.jwt.instance);
 
 		// user tries to recover account using forgot password procedure
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, 'side-channel': SIDE_CHANNEL.SMS });
+		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
 		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const newPassword = 'asdD!45][#ddg85j';
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });

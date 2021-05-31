@@ -1,33 +1,62 @@
+import { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
+import { TwoFactorAuthAChannel } from '../types/enums';
+import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
-import { TotpBaseTwoFactorAuthStrategy, TotpBaseTwoFactorAuthStrategyOptions } from './totp-base';
+import type { AuthenticationContext } from '../types/requests';
 
 type SendSmsWithTotpToken = (telephone: string, token: string) => Promise<void>;
 
-interface AccountWithTotpSecret extends AccountModel {
-	totpSecret: string;
-}
-
 interface SmsTwoFactorAuthStrategyOptions {
-	readonly totp: TotpBaseTwoFactorAuthStrategyOptions;
+	readonly tokenLength: number;
 	readonly sendSms: SendSmsWithTotpToken;
 }
 
-class SmsTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> extends TotpBaseTwoFactorAuthStrategy<Account> {
-	private readonly sendSms: SendSmsWithTotpToken;
+class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
+	private readonly options: SmsTwoFactorAuthStrategyOptions;
 
 	public constructor(options: SmsTwoFactorAuthStrategyOptions) {
-		super(options.totp);
-		this.sendSms = options.sendSms;
+		this.options = options;
 	}
 
-	public async sendToken(account: Account): Promise<void> {
-		await this.sendSms(account.telephone, this.authenticator.generate(this.getTotpSecret(account)));
+	public get type(): TwoFactorAuthAChannel {
+		return TwoFactorAuthAChannel.SMS;
 	}
 
-	public async verifyToken(account: Account, token: string): Promise<boolean> {
-		return this.authenticator.check(token, this.getTotpSecret(account));
+	public async beforeRegister(): Promise<void> {
+		return undefined;
+	}
+
+	public async sendToken(
+		account: AccountModel,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<void> {
+		const token = SmsTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
+		const authenticationSession = await authenticationSessionRepositoryHolder.get(account.username, authenticationContext.deviceId);
+
+		await this.options.sendSms(account.telephone!, token);
+		authenticationSession['2fa-token'] = token;
+	}
+
+	public async verifyToken(
+		account: AccountModel,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<boolean> {
+		const authenticationSession = await authenticationSessionRepositoryHolder.get(account.username, authenticationContext.deviceId);
+
+		if (authenticationContext['2fa-token'] === authenticationSession['2fa-token']) {
+			delete authenticationSession['2fa-token']; // prevent replay attacks
+			return true;
+		}
+
+		return false;
+	}
+
+	private static getRandomNumber(digit: number): string {
+		return Math.random().toFixed(digit).substr(2); // 0.
 	}
 }
 
 export { SmsTwoFactorAuthStrategy };
-export type { SmsTwoFactorAuthStrategyOptions, AccountWithTotpSecret, SendSmsWithTotpToken };
+export type { SmsTwoFactorAuthStrategyOptions, SendSmsWithTotpToken };

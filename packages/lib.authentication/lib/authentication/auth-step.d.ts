@@ -1,8 +1,8 @@
 import { Exception } from '@thermopylae/lib.exception';
 import { AccountModel } from '../types/models';
 import { AUTH_STEP } from '../types/enums';
-import { OnGoingAuthenticationSession } from '../types/sessions';
-import { AuthRequest } from '../types/requests';
+import { AuthenticationSession } from '../types/sessions';
+import { AuthenticationContext } from '../types/requests';
 
 declare interface AuthStatus {
 	token?: string;
@@ -19,7 +19,7 @@ declare interface AuthStepOutput {
 }
 
 declare interface AuthStep {
-	process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput>;
+	process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession, prevStepName: AUTH_STEP): Promise<AuthStepOutput>;
 }
 
 export { AuthStatus, AuthStepOutput, AuthStep };

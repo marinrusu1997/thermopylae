@@ -6,7 +6,7 @@ import { Exception } from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthRequest } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';
 
 describe('Logout spec', () => {
@@ -33,7 +33,7 @@ describe('Logout spec', () => {
 		role: ACCOUNT_ROLES.MODERATOR // needed increased jwt duration
 	};
 
-	const validNetworkInput: AuthRequest = {
+	const validNetworkInput: AuthenticationContext = {
 		username: defaultRegistrationInfo.username,
 		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',

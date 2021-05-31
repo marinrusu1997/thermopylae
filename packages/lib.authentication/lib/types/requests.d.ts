@@ -1,26 +1,22 @@
-import { Encoding } from 'crypto';
-import { BasicCredentials, BasicLocation } from './basic-types';
+import type { Encoding } from 'crypto';
+import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
+import type { UserCredentials } from './models';
+import type { TwoFactorAuthAChannel } from './enums';
 
-export const enum SIDE_CHANNEL {
-	EMAIL = 'EMAIL',
-	SMS = 'SMS'
-}
-
-// @fixme this needs to be a template, so that they can register whatever info they want
-export interface RegistrationRequest extends BasicCredentials {
+interface RegistrationRequestBase extends UserCredentials {
 	email: string;
-	telephone: string;
-	role?: string;
+	telephone?: string;
 	pubKey?: string | Buffer;
 }
 
-export interface AuthRequest {
+interface AuthenticationContext {
 	username: string;
 	password?: string;
 	ip: string;
-	device: string; // @fixme (optional) replace with http device
-	location: BasicLocation; // @fixme (optional) replace with location from core
-	totp?: string;
+	deviceId: string;
+	device?: HttpDevice;
+	location?: HTTPRequestLocation;
+	'2fa-token'?: string;
 	recaptcha?: string;
 	generateChallenge?: boolean;
 	responseForChallenge?: {
@@ -30,20 +26,21 @@ export interface AuthRequest {
 	};
 }
 
-export interface ChangePasswordRequest {
+interface ChangePasswordRequest {
 	sessionId: number;
 	accountId: string;
-	old: string;
-	new: string;
-	logAllOtherSessionsOut?: boolean;
+	oldPassword: string;
+	newPassword: string;
 }
 
-export interface CreateForgotPasswordSessionRequest {
+interface CreateForgotPasswordSessionRequest {
 	username: string;
-	'side-channel': SIDE_CHANNEL;
+	'2fa-channel': TwoFactorAuthAChannel;
 }
 
-export interface ChangeForgottenPasswordRequest {
+interface ChangeForgottenPasswordRequest {
 	token: string;
 	newPassword: string;
 }
+
+export type { RegistrationRequestBase, AuthenticationContext, ChangePasswordRequest, CreateForgotPasswordSessionRequest, ChangeForgottenPasswordRequest };

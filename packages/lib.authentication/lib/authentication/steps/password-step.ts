@@ -2,8 +2,8 @@ import { PasswordsManager } from '../../managers/passwords-manager';
 import { AuthStep, AuthStepOutput } from '../auth-step';
 import { AccountModel } from '../../types/models';
 import { AUTH_STEP } from '../../types/enums';
-import { OnGoingAuthenticationSession } from '../../types/sessions';
-import { AuthRequest } from '../../types/requests';
+import { AuthenticationSession } from '../../types/sessions';
+import { AuthenticationContext } from '../../types/requests';
 
 class PasswordStep implements AuthStep {
 	private readonly passwordsManager: PasswordsManager;
@@ -12,7 +12,7 @@ class PasswordStep implements AuthStep {
 		this.passwordsManager = passwordsManager;
 	}
 
-	async process(authRequest: AuthRequest, account: AccountModel, session: OnGoingAuthenticationSession): Promise<AuthStepOutput> {
+	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
 		const passwordHash = {
 			hash: account.password,
 			salt: account.salt,
