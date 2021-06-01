@@ -5,9 +5,9 @@ import { createException, ErrorCodes } from '../error';
 import { AccountRepository } from '../types/repositories';
 
 interface PasswordHash {
-	hash: string;
-	salt: string;
-	alg: number;
+	passwordHash: string;
+	passwordSalt: string;
+	passwordAlg: number;
 }
 
 interface PasswordHasherInterface {

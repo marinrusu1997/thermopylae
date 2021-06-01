@@ -1,112 +1,111 @@
-import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthenticationContext } from '../../types/requests';
-import { AccountModel } from '../../types/models';
-import { AuthenticationSession } from '../../types/sessions';
-import { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../../types/repositories';
-import { AccountStatusManager, EnableAfterCause } from '../../managers/account-status-manager';
+import type { Seconds, Threshold } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../../error';
-import { AUTH_STEP } from '../../types/enums';
-import { logger } from '../../logger';
+import { getCurrentTimestamp } from '../../utils';
+import { AuthenticationStepName } from '../../types/enums';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
+import type { AuthenticationContext } from '../../types/requests';
+import type { AccountModel } from '../../types/models';
+import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../../types/repositories';
+import type { AccountManager } from '../../managers/account-manager';
+import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
 
-class ErrorStep implements AuthStep {
-	private readonly failedAuthAttemptsThreshold: number;
+class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Account> {
+	private readonly failedAuthAttemptsThreshold: Threshold;
 
-	private readonly recaptchaThreshold: number;
+	private readonly recaptchaThreshold: Threshold;
 
-	private readonly failedAuthAttemptSessionTtl: number;
+	private readonly accountDisableTimeout: Seconds;
 
-	private readonly accountStatusManager: AccountStatusManager;
+	private readonly failedAuthAttemptSessionTtl: Seconds;
 
-	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository;
+	private readonly accountStatusManager: AccountManager<Account>;
 
-	private readonly failedAuthAttemptsEntity: FailedAuthenticationAttemptsRepository;
+	private readonly failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository;
 
-	constructor(
-		failedAuthAttemptsThreshold: number,
-		recaptchaThreshold: number,
-		failedAuthAttemptSessionTtl: number,
-		accountStatusManager: AccountStatusManager,
-		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository,
-		failedAuthAttemptsEntity: FailedAuthenticationAttemptsRepository
+	private readonly failedAuthenticationAttemptsRepository: FailedAuthenticationAttemptsRepository;
+
+	public constructor(
+		failedAuthAttemptsThreshold: Threshold,
+		recaptchaThreshold: Threshold,
+		accountDisableTimeout: Seconds,
+		failedAuthAttemptSessionTtl: Seconds,
+		accountStatusManager: AccountManager<Account>,
+		failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository,
+		failedAuthenticationAttemptsRepository: FailedAuthenticationAttemptsRepository
 	) {
 		this.failedAuthAttemptsThreshold = failedAuthAttemptsThreshold;
 		this.recaptchaThreshold = recaptchaThreshold;
+		this.accountDisableTimeout = accountDisableTimeout;
 		this.failedAuthAttemptSessionTtl = failedAuthAttemptSessionTtl;
 		this.accountStatusManager = accountStatusManager;
-		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
-		this.failedAuthAttemptsEntity = failedAuthAttemptsEntity;
+		this.failedAuthAttemptSessionRepository = failedAuthAttemptSessionRepository;
+		this.failedAuthenticationAttemptsRepository = failedAuthenticationAttemptsRepository;
 	}
 
-	async process(
-		authRequest: AuthenticationContext,
-		account: AccountModel,
-		onGoingAuthenticationSession: AuthenticationSession,
-		prevStepName: AUTH_STEP
-	): Promise<AuthStepOutput> {
-		const now = new Date();
-		let failedAuthAttemptSession = await this.failedAuthAttemptSessionEntity.read(authRequest.username);
-		if (!failedAuthAttemptSession) {
-			failedAuthAttemptSession = { detectedAt: now, ip: authRequest.ip, device: authRequest.device, counter: 1 };
-			await this.failedAuthAttemptSessionEntity.insert(authRequest.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
+	public async process(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder,
+		previousAuthenticationStepName: AuthenticationStepName
+	): Promise<AuthenticationStepOutput> {
+		const currentTimestamp = getCurrentTimestamp();
+
+		let failedAuthAttemptSession = await this.failedAuthAttemptSessionRepository.read(authenticationContext.username);
+		if (failedAuthAttemptSession == null) {
+			failedAuthAttemptSession = { detectedAt: currentTimestamp, ip: authenticationContext.ip, device: authenticationContext.device, counter: 1 };
+			await this.failedAuthAttemptSessionRepository.insert(authenticationContext.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 		} else {
-			failedAuthAttemptSession.detectedAt = now;
-			failedAuthAttemptSession.ip = authRequest.ip;
-			failedAuthAttemptSession.device = authRequest.device;
+			failedAuthAttemptSession.detectedAt = currentTimestamp;
+			failedAuthAttemptSession.ip = authenticationContext.ip;
+			failedAuthAttemptSession.device = authenticationContext.device;
 			failedAuthAttemptSession.counter += 1;
 
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsThreshold) {
 				// update only in case it will not be deleted later by reached threshold
-				await this.failedAuthAttemptSessionEntity.replace(authRequest.username, failedAuthAttemptSession);
+				await this.failedAuthAttemptSessionRepository.replace(authenticationContext.username, failedAuthAttemptSession);
 			}
 		}
 
 		if (failedAuthAttemptSession.counter >= this.failedAuthAttemptsThreshold) {
-			const promises: Array<Promise<any>> = [];
-
-			// make sure account is disabled, this is the most important
-			await this.accountStatusManager.disable(account, `Threshold of failed authentication attempts (${this.failedAuthAttemptsThreshold}) was reached.`);
-
-			// account is disabled, safely schedule it's enabling in the near future
-			await this.accountStatusManager.enableAfter(account.id!, EnableAfterCause.FAILED_AUTH_ATTEMPT);
-
-			promises.push(
-				this.failedAuthAttemptsEntity
-					.insert({
-						accountId: account.id!,
-						detectedAt: now,
-						ip: failedAuthAttemptSession.ip,
-						device: failedAuthAttemptSession.device
-					})
-					.catch((error) => logger.error(`Failed to persist failed auth attempts for account ${account.id}. `, error))
-			);
-			promises.push(
-				this.failedAuthAttemptSessionEntity
-					.delete(account.username)
-					.catch((error) => logger.error(`Failed to delete failed auth attempts session for account ${account.id}. `, error))
-			);
-			await Promise.all(promises);
+			await Promise.all([
+				await this.accountStatusManager.disable(
+					account,
+					currentTimestamp + this.accountDisableTimeout,
+					`Threshold of failed authentication attempts was reached (${failedAuthAttemptSession.counter} attempts).`
+				),
+				this.failedAuthenticationAttemptsRepository.insert({
+					id: undefined!, // will be set by repo
+					accountId: account.id,
+					detectedAt: currentTimestamp,
+					ip: failedAuthAttemptSession.ip,
+					device: failedAuthAttemptSession.device
+				}),
+				this.failedAuthAttemptSessionRepository.delete(account.username)
+			]);
 
 			return {
 				done: {
 					error: {
 						hard: createException(
 							ErrorCodes.ACCOUNT_DISABLED,
-							`Account was disabled due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}). `
+							`Account was disabled due to reached threshold of failed auth attempts (${failedAuthAttemptSession.counter}).`
 						)
 					}
 				}
 			};
 		}
 
-		const errorMessage = `Credentials are not valid. Remaining attempts (${this.failedAuthAttemptsThreshold - failedAuthAttemptSession.counter}). `;
+		const errorMessage = `Credentials are not valid. Remaining attempts (${this.failedAuthAttemptsThreshold - failedAuthAttemptSession.counter}).`;
 
 		if (failedAuthAttemptSession.counter >= this.recaptchaThreshold) {
-			onGoingAuthenticationSession.recaptchaRequired = true;
+			const authenticationSession = await authenticationSessionRepositoryHolder.get();
+			authenticationSession.recaptchaRequired = true;
 			// when intercepted, this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
 			return {
 				done: {
 					// ternary is needed in order to inform client that it's time to use captcha
-					nextStep: prevStepName === AUTH_STEP.PASSWORD ? AUTH_STEP.RECAPTCHA : prevStepName,
+					nextStep:
+						previousAuthenticationStepName === AuthenticationStepName.PASSWORD ? AuthenticationStepName.RECAPTCHA : previousAuthenticationStepName,
 					error: {
 						soft: createException(ErrorCodes.RECAPTCHA_THRESHOLD_REACHED, errorMessage)
 					}
@@ -116,9 +115,12 @@ class ErrorStep implements AuthStep {
 
 		return {
 			done: {
-				// totp are generated only after successful password validation,
-				// therefore this cycle must be repeated, as we don't know whether provided totp is invalid or the stored one expired
-				nextStep: prevStepName === AUTH_STEP.TOTP ? AUTH_STEP.PASSWORD : prevStepName,
+				// two factor tokens are generated only after successful password validation,
+				// therefore this cycle must be repeated, as we don't know whether provided token is invalid or the stored one expired
+				nextStep:
+					previousAuthenticationStepName === AuthenticationStepName.TWO_FACTOR_AUTH_CHECK
+						? AuthenticationStepName.PASSWORD
+						: previousAuthenticationStepName,
 				error: {
 					soft: createException(ErrorCodes.INCORRECT_CREDENTIALS, errorMessage)
 				}

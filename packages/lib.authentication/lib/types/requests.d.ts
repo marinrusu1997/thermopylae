@@ -1,7 +1,7 @@
 import type { Encoding } from 'crypto';
 import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { UserCredentials } from './models';
-import type { TwoFactorAuthAChannel } from './enums';
+import type { TwoFactorAuthAChannelType } from './enums';
 
 interface RegistrationRequestBase extends UserCredentials {
 	email: string;
@@ -35,7 +35,7 @@ interface ChangePasswordRequest {
 
 interface CreateForgotPasswordSessionRequest {
 	username: string;
-	'2fa-channel': TwoFactorAuthAChannel;
+	'2fa-channel': TwoFactorAuthAChannelType;
 }
 
 interface ChangeForgottenPasswordRequest {

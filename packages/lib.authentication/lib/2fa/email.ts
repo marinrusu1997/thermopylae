@@ -4,22 +4,22 @@ import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationContext } from '../types/requests';
 
-type SendSmsWithToken = (telephone: string, token: string) => Promise<void>;
+type SendEmailWithToken = (email: string, token: string) => Promise<void>;
 
-interface SmsTwoFactorAuthStrategyOptions {
+interface EmailTwoFactorAuthStrategyOptions {
 	readonly tokenLength: number;
-	readonly sendSms: SendSmsWithToken;
+	readonly sendEmail: SendEmailWithToken;
 }
 
-class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
-	private readonly options: SmsTwoFactorAuthStrategyOptions;
+class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
+	private readonly options: EmailTwoFactorAuthStrategyOptions;
 
-	public constructor(options: SmsTwoFactorAuthStrategyOptions) {
+	public constructor(options: EmailTwoFactorAuthStrategyOptions) {
 		this.options = options;
 	}
 
 	public get type(): TwoFactorAuthAChannelType {
-		return TwoFactorAuthAChannelType.SMS;
+		return TwoFactorAuthAChannelType.EMAIL;
 	}
 
 	public async beforeRegister(): Promise<void> {
@@ -31,10 +31,10 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void> {
-		const token = SmsTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
+		const token = EmailTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 
-		await this.options.sendSms(account.telephone!, token);
+		await this.options.sendEmail(account.email, token);
 		authenticationSession['2fa-token'] = token;
 	}
 
@@ -58,5 +58,5 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	}
 }
 
-export { SmsTwoFactorAuthStrategy };
-export type { SmsTwoFactorAuthStrategyOptions, SendSmsWithToken };
+export { EmailTwoFactorAuthStrategy };
+export type { EmailTwoFactorAuthStrategyOptions, SendEmailWithToken };

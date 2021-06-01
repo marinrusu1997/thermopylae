@@ -1,7 +1,7 @@
 import type { HttpDevice, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { SuccessfulAuthenticationModel, AccountModel, FailedAuthenticationModel } from './models';
 import type { AuthenticationSession, FailedAuthenticationAttemptSession, ForgotPasswordSession } from './sessions';
-import type { TwoFactorAuthOperation } from './enums';
+import type { TwoFactorAuthOperationType } from './enums';
 
 /**
  * Repository which stores user accounts.
@@ -50,11 +50,11 @@ interface AccountRepository<Account extends AccountModel> {
 	 * Change account enable status.
 	 *
 	 * @param accountId		Account id.
-	 * @param isEnabled		Enabled status.
+	 * @param until			Disabled until timestamp.
 	 *
 	 * @throws {Error}		When account is not found or any other error is encountered.
 	 */
-	setEnabled(accountId: string, isEnabled: boolean): Promise<void>;
+	setDisabledUntil(accountId: string, until: UnixTimestamp): Promise<void>;
 
 	/**
 	 * Change account two factor auth status.
@@ -64,7 +64,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @throws {Error}					When account is not found or any other error is encountered.
 	 */
-	setTwoFactorAuth(accountId: string, twoFactorAuthOperation: TwoFactorAuthOperation): Promise<void>;
+	setTwoFactorAuth(accountId: string, twoFactorAuthOperation: TwoFactorAuthOperationType): Promise<void>;
 
 	/**
 	 * Change account password.

@@ -1,42 +1,39 @@
-import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthenticationContext } from '../../types/requests';
-import { AccountModel } from '../../types/models';
-import { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
-import { EmailSender } from '../../side-channels';
-import { logger } from '../../logger';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
+import type { AuthenticationContext } from '../../types/requests';
+import type { AccountModel } from '../../types/models';
+import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
+import type { EmailSender } from '../../side-channels';
 
-class AuthenticatedStep implements AuthStep {
+class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly emailSender: EmailSender;
 
-	private readonly accessPointEntity: SuccessfulAuthenticationsRepository;
+	private readonly successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository;
 
-	private readonly failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository;
+	private readonly failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository;
 
 	public constructor(
 		emailSender: EmailSender,
-		accessPointEntity: SuccessfulAuthenticationsRepository,
-		failedAuthAttemptSessionEntity: FailedAuthAttemptSessionRepository
+		successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository,
+		failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository
 	) {
 		this.emailSender = emailSender;
-		this.accessPointEntity = accessPointEntity;
-		this.failedAuthAttemptSessionEntity = failedAuthAttemptSessionEntity;
+		this.successfulAuthenticationsRepository = successfulAuthenticationsRepository;
+		this.failedAuthAttemptSessionRepository = failedAuthAttemptSessionRepository;
 	}
 
-	async process(authRequest: AuthenticationContext, account: AccountModel): Promise<AuthStepOutput> {
-		if (!(await this.accessPointEntity.authBeforeFromThisDevice(account.id!, authRequest.device))) {
-			this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authRequest.ip, authRequest.device);
+	public async process(account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput> {
+		if (
+			authenticationContext.device &&
+			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
+		) {
+			await this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authenticationContext);
 		}
 
-		// FIXME this call violates encapsulation of the error step, this might be moved to engine and called based on a flag from session
 		// reset failed auth attempts on successful authentication (in detached mode)
-		this.failedAuthAttemptSessionEntity
-			.delete(account.username)
-			.catch((e) => logger.error(`Failed to delete failed auth attempts session for account id ${account.id!}. `, e));
-
-		const sessionToken = await this.userSessionsManager.create(authRequest.ip, authRequest.device, authRequest.location, account.id!, account.role);
+		await this.failedAuthAttemptSessionRepository.delete(account.username);
 
 		return {
-			done: { token: sessionToken }
+			done: { authenticated: true }
 		};
 	}
 }

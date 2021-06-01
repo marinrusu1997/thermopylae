@@ -1,8 +1,8 @@
-export const enum AUTH_STEP {
+export const enum AuthenticationStepName {
 	DISPATCH = 'DISPATCH',
 	PASSWORD = 'PASSWORD',
-	GENERATE_TOTP = 'GENERATE_TOTP',
-	TOTP = 'TOTP',
+	GENERATE_2FA_TOKEN = 'GENERATE_2FA_TOKEN',
+	TWO_FACTOR_AUTH_CHECK = 'TWO_FACTOR_AUTH_CHECK',
 	GENERATE_CHALLENGE = 'GENERATE_CHALLENGE',
 	CHALLENGE_RESPONSE = 'CHALLENGE_RESPONSE',
 	RECAPTCHA = 'RECAPTCHA',
@@ -11,14 +11,14 @@ export const enum AUTH_STEP {
 	UNKNOWN = 'UNKNOWN'
 }
 
-export const enum TwoFactorAuthAChannel {
+export const enum TwoFactorAuthAChannelType {
 	EMAIL,
 	SMS,
 	TOTP,
 	PUSH_NOTIFICATION
 }
 
-export const enum TwoFactorAuthOperation {
+export const enum TwoFactorAuthOperationType {
 	DISABLED = 0,
 	AUTHENTICATION = 1 << 0,
 	CHANGE_PASSWORD = 1 << 1,

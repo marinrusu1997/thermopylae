@@ -11,7 +11,7 @@ import { EmailMockInstance } from './fixtures/mocks/email';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import memcache, { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
 import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
-import { AUTH_STEP } from '../lib/types/enums';
+import { AuthenticationStepName } from '../lib/types/enums';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
 
 describe('forgot password spec', () => {
@@ -56,14 +56,14 @@ describe('forgot password spec', () => {
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
 
 		// check forgot password session was deleted
-		expect(await basicAuthEngineConfig.entities.forgotPasswordSession.read(forgotPasswordToken)).to.be.eq(null);
+		expect(await basicAuthEngineConfig.repositories.forgotPasswordSession.read(forgotPasswordToken)).to.be.eq(null);
 
 		// check logged out from all devices
 		expect((await AuthEngineInstance.getActiveSessions(accountId)).length).to.be.eq(0);
 
 		// check old password is no longer valid
 		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(oldCredentialsAuthStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+		expect(oldCredentialsAuthStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(oldCredentialsAuthStatus.token).to.be.eq(undefined);
 

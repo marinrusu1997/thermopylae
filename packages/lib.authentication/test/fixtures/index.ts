@@ -1,6 +1,6 @@
-import LoggerInstance, { FormattingManager } from '../../../lib.logger.bk';
 import { string } from '@marin/lib.utils';
 import { after, afterEach, before } from 'mocha';
+import LoggerInstance, { FormattingManager } from '../../../lib.logger.bk';
 import { defaultJwtInstance, rolesTtlMap } from './jwt';
 import {
 	AccountEntityMongo,
@@ -39,18 +39,18 @@ import {
 } from './schedulers';
 import { getLogger } from '../../lib/logger';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
-import { AuthEngineOptions } from '../../lib';
+import { AuthenticationEngineOptions } from '../../lib';
 import { HashingAlgorithms, PasswordHasher } from './password-hasher';
 
 // initialize static variables
 PasswordHasher.pepper = string.generateStringOfLength(10);
 
-const basicAuthEngineConfig: AuthEngineOptions = {
+const basicAuthEngineConfig: AuthenticationEngineOptions = {
 	jwt: {
 		instance: defaultJwtInstance,
 		rolesTtl: rolesTtlMap
 	},
-	entities: {
+	repositories: {
 		account: AccountEntityMongo,
 		activeUserSession: ActiveUserSessionEntityMongo,
 		activateAccountSession: ActivateAccountSessionEntityMemCache,
@@ -126,7 +126,7 @@ afterEach(() =>
 			clearOperationFailuresForSessions();
 			cleanUpSchedulers();
 		})
-		.catch(err => getLogger().error('Failed to clean up resources', err))
+		.catch((err) => getLogger().error('Failed to clean up resources', err))
 );
 
 // trigger global hooks at the first import in test suite files

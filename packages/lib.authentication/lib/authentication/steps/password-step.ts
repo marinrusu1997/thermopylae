@@ -1,37 +1,36 @@
-import { PasswordsManager } from '../../managers/passwords-manager';
-import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AccountModel } from '../../types/models';
-import { AUTH_STEP } from '../../types/enums';
-import { AuthenticationSession } from '../../types/sessions';
-import { AuthenticationContext } from '../../types/requests';
+import { AuthenticationStepName } from '../../types/enums';
+import type { PasswordsManager } from '../../managers/passwords-manager';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationContext } from '../../types/requests';
+import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
 
-class PasswordStep implements AuthStep {
+class PasswordStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly passwordsManager: PasswordsManager;
 
-	constructor(passwordsManager: PasswordsManager) {
+	public constructor(passwordsManager: PasswordsManager) {
 		this.passwordsManager = passwordsManager;
 	}
 
-	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
-		const passwordHash = {
-			hash: account.password,
-			salt: account.salt,
-			alg: account.alg
-		};
-
-		if (!(await this.passwordsManager.isSame(authRequest.password!, passwordHash))) {
-			return { nextStep: AUTH_STEP.ERROR };
+	public async process(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<AuthenticationStepOutput> {
+		if (!(await this.passwordsManager.isSame(authenticationContext.password!, account))) {
+			return { nextStep: AuthenticationStepName.ERROR };
 		}
 
-		if (session.recaptchaRequired) {
-			return { nextStep: AUTH_STEP.RECAPTCHA };
+		const authenticationSession = await authenticationSessionRepositoryHolder.get();
+		if (authenticationSession.recaptchaRequired) {
+			return { nextStep: AuthenticationStepName.RECAPTCHA };
 		}
 
 		if (account.mfa) {
-			return { nextStep: AUTH_STEP.GENERATE_TOTP };
+			return { nextStep: AuthenticationStepName.GENERATE_2FA_TOKEN };
 		}
 
-		return { nextStep: AUTH_STEP.AUTHENTICATED };
+		return { nextStep: AuthenticationStepName.AUTHENTICATED };
 	}
 }
 

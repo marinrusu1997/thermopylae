@@ -8,6 +8,8 @@ eslint.rules["import/no-unresolved"][1].ignore.push(
     './models',
     './sessions',
     '../types/repositories',
+    './step',
+    '../hooks',
 
     './auth-step',
     './side-channels',

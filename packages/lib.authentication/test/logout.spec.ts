@@ -4,13 +4,13 @@ import { hostname } from 'os';
 import { chrono, number, string } from '@marin/lib.utils';
 import { Exception } from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
-import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
+import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthenticationContext } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';
 
 describe('Logout spec', () => {
-	const AuthenticationEngineConfig: AuthEngineOptions = {
+	const AuthenticationEngineConfig: AuthenticationEngineOptions = {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1,

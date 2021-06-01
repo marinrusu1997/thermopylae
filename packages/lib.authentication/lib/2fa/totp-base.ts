@@ -10,7 +10,7 @@ import type { AuthenticationSessionRepositoryHolder } from '../sessions/authenti
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationContext } from '../types/requests';
-import type { TwoFactorAuthAChannel } from '../types/enums';
+import type { TwoFactorAuthAChannelType } from '../types/enums';
 
 interface AccountWithTotpSecret extends AccountModel {
 	totpSecret: string;
@@ -50,7 +50,7 @@ abstract class TotpBaseTwoFactorAuthStrategy<Account extends AccountWithTotpSecr
 		this.baseOptions = options;
 	}
 
-	public abstract readonly type: TwoFactorAuthAChannel;
+	public abstract readonly type: TwoFactorAuthAChannelType;
 
 	public abstract beforeRegister(account: Account, registerResponse: Record<string, any>): Promise<void>;
 
@@ -60,7 +60,7 @@ abstract class TotpBaseTwoFactorAuthStrategy<Account extends AccountWithTotpSecr
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void>;
 
-	public abstract verifyToken(
+	public abstract isTokenValid(
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder

@@ -1,9 +1,9 @@
-import { Encoding } from 'crypto';
-import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthenticationContext } from '../../types/requests';
-import { AccountModel } from '../../types/models';
-import { AUTH_STEP } from '../../types/enums';
-import { AuthenticationSession } from '../../types/sessions';
+import type { Encoding } from 'crypto';
+import { AuthenticationStepName } from '../../types/enums';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
+import type { AuthenticationContext } from '../../types/requests';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
 
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
@@ -13,24 +13,38 @@ type ChallengeResponseValidator = (
 	encoding: Encoding
 ) => Promise<boolean>;
 
-class ChallengeResponseStep implements AuthStep {
+class ChallengeResponseStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly validator: ChallengeResponseValidator;
 
-	constructor(validator: ChallengeResponseValidator) {
+	public constructor(validator: ChallengeResponseValidator) {
 		this.validator = validator;
 	}
 
-	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
-		if (!session.challengeResponseNonce) {
-			return { nextStep: AUTH_STEP.ERROR };
+	public async process(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<AuthenticationStepOutput> {
+		const authenticationSession = await authenticationSessionRepositoryHolder.get();
+
+		if (!authenticationSession.challengeResponseNonce) {
+			return { nextStep: AuthenticationStepName.ERROR };
 		}
-		const response = authRequest.responseForChallenge!;
-		if (!(await this.validator(account.pubKey!, session.challengeResponseNonce, response.signature, response.signAlgorithm, response.signEncoding))) {
-			return { nextStep: AUTH_STEP.ERROR }; // follow common auth attempt failure handling
+
+		if (
+			!(await this.validator(
+				account.pubKey!,
+				authenticationSession.challengeResponseNonce,
+				authenticationContext.responseForChallenge!.signature,
+				authenticationContext.responseForChallenge!.signAlgorithm,
+				authenticationContext.responseForChallenge!.signEncoding
+			))
+		) {
+			return { nextStep: AuthenticationStepName.ERROR }; // follow common auth attempt failure handling
 		}
-		return { nextStep: AUTH_STEP.AUTHENTICATED }; // if signature is valid, user is considered authenticated
+
+		return { nextStep: AuthenticationStepName.AUTHENTICATED }; // if signature is valid, user is considered authenticated
 	}
 }
 
-// eslint-disable-next-line no-undef
 export { ChallengeResponseStep, ChallengeResponseValidator };

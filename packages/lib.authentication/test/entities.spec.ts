@@ -37,9 +37,9 @@ describe('entities', () => {
 		expect(await AccountEntityMongo.readById(account.id)).to.be.deep.equal(account);
 		expect(await AccountEntityMongo.read(account.username)).to.be.deep.equal(account);
 		await AccountEntityMongo.disable(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.enabled).to.be.equal(false);
+		expect((await AccountEntityMongo.read(account.username))!.disabledUntil).to.be.equal(false);
 		await AccountEntityMongo.enable(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.enabled).to.be.equal(true);
+		expect((await AccountEntityMongo.read(account.username))!.disabledUntil).to.be.equal(true);
 		await AccountEntityMongo.enableMultiFactorAuth(account.id!);
 		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(true);
 		await AccountEntityMongo.disableMultiFactorAuth(account.id!);

@@ -1,5 +1,5 @@
 import type { AccountModel } from '../types/models';
-import type { TwoFactorAuthAChannel } from '../types/enums';
+import type { TwoFactorAuthAChannelType } from '../types/enums';
 import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
 import type { AuthenticationContext } from '../types/requests';
 
@@ -10,7 +10,7 @@ interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	/**
 	 * Type of the two factor auth.
 	 */
-	readonly type: TwoFactorAuthAChannel;
+	readonly type: TwoFactorAuthAChannelType;
 
 	/**
 	 * Hook used by strategy in order to attach metadata to account before it's registered.
@@ -42,7 +42,7 @@ interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	 *
 	 * @returns         								Whether token is valid.
 	 */
-	verifyToken(
+	isTokenValid(
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder

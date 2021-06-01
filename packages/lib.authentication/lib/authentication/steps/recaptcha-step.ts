@@ -1,33 +1,39 @@
-import { AuthStep, AuthStepOutput } from '../auth-step';
-import { AuthenticationSession } from '../../types/sessions';
-import { AuthenticationContext } from '../../types/requests';
-import { AUTH_STEP } from '../../types/enums';
-import { AccountModel } from '../../types/models';
+import { AuthenticationStepName } from '../../types/enums';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
+import type { AuthenticationContext } from '../../types/requests';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
 
-export type RecaptchaValidator = (recaptcha: string, remoteIp: string) => Promise<boolean>;
+type RecaptchaValidator = (authenticationContext: AuthenticationContext) => Promise<boolean>;
 
-class RecaptchaStep implements AuthStep {
+class RecaptchaStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly recaptchaValidator: RecaptchaValidator;
 
-	constructor(recaptchaValidator: RecaptchaValidator) {
+	public constructor(recaptchaValidator: RecaptchaValidator) {
 		this.recaptchaValidator = recaptchaValidator;
 	}
 
-	async process(authRequest: AuthenticationContext, account: AccountModel, session: AuthenticationSession): Promise<AuthStepOutput> {
-		if (!authRequest.recaptcha) {
-			return { nextStep: AUTH_STEP.ERROR };
+	public async process(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<AuthenticationStepOutput> {
+		if (authenticationContext.recaptcha == null) {
+			return { nextStep: AuthenticationStepName.ERROR };
 		}
 
-		if (!(await this.recaptchaValidator(authRequest.recaptcha, authRequest.ip))) {
-			return { nextStep: AUTH_STEP.ERROR };
+		if (!(await this.recaptchaValidator(authenticationContext))) {
+			return { nextStep: AuthenticationStepName.ERROR };
 		}
 
-		session.recaptchaRequired = false;
+		const authenticationSession = await authenticationSessionRepositoryHolder.get();
+		authenticationSession.recaptchaRequired = false;
 		if (account.mfa) {
-			return { nextStep: AUTH_STEP.GENERATE_TOTP };
+			return { nextStep: AuthenticationStepName.GENERATE_2FA_TOKEN };
 		}
-		return { nextStep: AUTH_STEP.AUTHENTICATED };
+
+		return { nextStep: AuthenticationStepName.AUTHENTICATED };
 	}
 }
 
-export { RecaptchaStep };
+export { RecaptchaStep, RecaptchaValidator };

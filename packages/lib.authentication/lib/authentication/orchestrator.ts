@@ -1,0 +1,56 @@
+import { ErrorCodes } from '@thermopylae/core.declarations';
+import { createException } from '../error';
+import { AuthenticationStepName } from '../types/enums';
+import type { AuthenticationStatus, AuthenticationStep, AuthenticationStepOutput } from './step';
+import type { AuthenticationContext } from '../types/requests';
+import type { AccountModel } from '../types/models';
+import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
+
+class AuthenticationOrchestrator<Account extends AccountModel> {
+	private readonly startStepName: AuthenticationStepName;
+
+	private readonly steps: Map<AuthenticationStepName, AuthenticationStep<Account>>;
+
+	public constructor(startStepName: AuthenticationStepName) {
+		this.startStepName = startStepName;
+		this.steps = new Map<AuthenticationStepName, AuthenticationStep<Account>>();
+	}
+
+	public register(name: AuthenticationStepName, step: AuthenticationStep<Account>): void {
+		this.steps.set(name, step);
+	}
+
+	public async authenticate(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<AuthenticationStatus> {
+		let currentStepName: AuthenticationStepName | undefined = this.startStepName;
+		let currentStep: AuthenticationStep<Account> = this.steps.get(currentStepName)!;
+		let prevStepName = AuthenticationStepName.UNKNOWN;
+
+		// eslint-disable-next-line no-constant-condition
+		while (true) {
+			const output: AuthenticationStepOutput = await currentStep.process(
+				account,
+				authenticationContext,
+				authenticationSessionRepositoryHolder,
+				prevStepName
+			);
+
+			prevStepName = currentStepName;
+			currentStepName = output.nextStep;
+
+			if (currentStepName != null && !output.done) {
+				currentStep = this.steps.get(currentStepName)!;
+			} else if (output.done) {
+				return output.done;
+			} else {
+				// configuration error, allowed to throw
+				throw createException(ErrorCodes.INVALID, 'Expected done or next step');
+			}
+		}
+	}
+}
+
+export { AuthenticationOrchestrator };

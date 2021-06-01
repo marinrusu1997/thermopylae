@@ -8,10 +8,10 @@ import { chrono, number, string } from '@marin/lib.utils';
 import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 // @ts-ignore
 import keypair from 'keypair';
-import { AuthEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
+import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthenticationContext } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AUTH_STEP } from '../lib/types/enums';
+import { AuthenticationStepName } from '../lib/types/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import basicAuthEngineConfig from './fixtures';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
@@ -24,7 +24,7 @@ describe('Authenticate spec', () => {
 	const primaryKeyPair = keypair();
 	const secondaryKeyPair = keypair();
 
-	const AuthenticationEngineConfig: AuthEngineOptions = {
+	const AuthenticationEngineConfig: AuthenticationEngineOptions = {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1,
@@ -101,13 +101,13 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authSessionMinutes!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
-		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 	});
 
@@ -121,10 +121,10 @@ describe('Authenticate spec', () => {
 			responseForChallenge: { signature: signatureOfTokenWhichWasNeverIssued, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signatureOfValidToken = signChallengeNonce(authStatus.token!);
@@ -139,14 +139,14 @@ describe('Authenticate spec', () => {
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
 	it('fails to authenticate user when challenge nonce is signed with invalid private key', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce(authStatus.token!, secondaryKeyPair.private);
@@ -155,14 +155,14 @@ describe('Authenticate spec', () => {
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
 	it('fails to authenticate user when invalid challenge nonce is signed with valid private key (unlikely to happen in real scenario)', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce('invalid token');
@@ -171,7 +171,7 @@ describe('Authenticate spec', () => {
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
 	it('returns soft error when totp was not valid, regardless of whether `notify via email about failed mfa` might fail or not', async () => {
@@ -180,7 +180,7 @@ describe('Authenticate spec', () => {
 		let authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
 		expect(authStatus.token).to.be.eq(undefined);
 		expect(authStatus.error).to.be.eq(undefined);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone).length).to.be.eq(1);
 
 		EmailMockInstance.deliveryWillFail();
@@ -199,7 +199,7 @@ describe('Authenticate spec', () => {
 			`Credentials are not valid. Remaining attempts (${AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - 1}). `
 		);
 
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 	});
 
 	it('completes authentication successfully, regardless of whether `notify authentication from different device` might fail or not', async () => {
@@ -219,7 +219,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 		let authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const firstTOTP = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(firstTOTP).to.not.be.eq(undefined);
 
 		SmsMockInstance.clearOutboxFor(defaultRegistrationInfo.telephone);
@@ -228,7 +228,7 @@ describe('Authenticate spec', () => {
 		// subsequent calls should resolve to totp step
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
 		const [secondTOTP] = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(secondTOTP).to.not.be.eq(undefined);
 
 		expect(firstTOTP).to.not.be.eq(secondTOTP);
@@ -245,7 +245,7 @@ describe('Authenticate spec', () => {
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception);
 		expect(authStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 	});
 
 	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can disable account on threshold", async () => {
@@ -275,7 +275,7 @@ describe('Authenticate spec', () => {
 		while (recaptchaThreshold--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE1, password: 'invalid' });
 			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-			expect(status.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+			expect(status.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 			numberOfAuthAttempts += 1;
 		}
 
@@ -285,7 +285,7 @@ describe('Authenticate spec', () => {
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE2, password: 'invalid' });
 			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
-			expect(status.nextStep).to.be.eq(AUTH_STEP.RECAPTCHA);
+			expect(status.nextStep).to.be.eq(AuthenticationStepName.RECAPTCHA);
 			numberOfAuthAttempts += 1;
 		}
 
@@ -324,7 +324,7 @@ describe('Authenticate spec', () => {
 			});
 			expect(authStatus.error!.soft).to.be.instanceOf(Exception);
 			expect(authStatus.error!.soft!.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.RECAPTCHA_THRESHOLD_REACHED]);
-			expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		}
 
 		try {
@@ -363,7 +363,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -379,7 +379,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.enableMultiFactorAuthentication(accountId);
 
 		const authStatusSecretStep = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(authStatusSecretStep.nextStep!).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatusSecretStep.nextStep!).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 		const authStatusTotpStep = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
@@ -402,7 +402,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.entities.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -437,7 +437,7 @@ describe('Authenticate spec', () => {
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
 
-		const failedAuthAttemptsSession = await AuthenticationEngineConfig.entities.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
+		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
 		expect(failedAuthAttemptsSession!.counter).to.be.eq(2);
 	});
 
@@ -445,12 +445,12 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
 		let authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 		const totp = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
 
 		authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp: 'invalid' });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.PASSWORD);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 		expect(authStatus.error!.soft).to.not.be.eq(undefined);
 
 		// second time will work, also needs to reset failed auth attempts
@@ -465,7 +465,7 @@ describe('Authenticate spec', () => {
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
 
-		const failedAuthAttemptsSession = await AuthenticationEngineConfig.entities.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
+		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
 		expect(failedAuthAttemptsSession!.counter).to.be.eq(2);
 	});
 
@@ -502,7 +502,7 @@ describe('Authenticate spec', () => {
 
 		// provide valid recaptcha
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'valid' });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 		const [totp] = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone);
 		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, totp });
@@ -553,7 +553,7 @@ describe('Authenticate spec', () => {
 		}
 
 		const recaptchaAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'valid' });
-		expect(recaptchaAuthStatus.nextStep).to.be.eq(AUTH_STEP.TOTP);
+		expect(recaptchaAuthStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.not.be.eq(undefined);
 
 		for (let i = AuthenticationEngineConfig.thresholds!.recaptcha!; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
@@ -700,7 +700,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest, generateChallenge: true });
-		expect(authStatus.nextStep).to.be.eq(AUTH_STEP.CHALLENGE_RESPONSE);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
 		const signature = signChallengeNonce(authStatus.token!);
@@ -712,7 +712,7 @@ describe('Authenticate spec', () => {
 		await validateSuccessfulLogin(AuthEngineInstance, authRequest);
 
 		// session was deletion, prevent replay attacks with already emitted nonce
-		expect(await AuthenticationEngineConfig.entities.onGoingAuthSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
+		expect(await AuthenticationEngineConfig.repositories.onGoingAuthSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
 	});
 
 	it('authenticates user having password hashed with old algorithm, after password hashing algorithm changes', async () => {

@@ -5,19 +5,25 @@ import type { AuthenticationSession } from '../types/sessions';
 class AuthenticationSessionRepositoryHolder {
 	private readonly repository: AuthenticationSessionRepository;
 
+	private readonly username: string;
+
+	private readonly deviceId: string;
+
 	private session: AuthenticationSession | null;
 
-	public constructor(repository: AuthenticationSessionRepository) {
+	public constructor(repository: AuthenticationSessionRepository, username: string, deviceId: string) {
 		this.repository = repository;
+		this.username = username;
+		this.deviceId = deviceId;
 		this.session = null;
 	}
 
-	public async get(username: string, deviceId: string): Promise<AuthenticationSession> {
+	public async get(): Promise<AuthenticationSession> {
 		if (this.session != null) {
 			return this.session;
 		}
 
-		this.session = await this.repository.read(username, deviceId);
+		this.session = await this.repository.read(this.username, this.deviceId);
 		if (this.session == null) {
 			this.session = {};
 		}
@@ -25,13 +31,13 @@ class AuthenticationSessionRepositoryHolder {
 		return this.session;
 	}
 
-	public async delete(username: string, deviceId: string): Promise<void> {
-		await this.repository.delete(username, deviceId);
+	public async delete(): Promise<void> {
+		await this.repository.delete(this.username, this.deviceId);
 	}
 
-	public async flush(username: string, deviceId: string, sessionTtl: Seconds): Promise<void> {
+	public async flush(sessionTtl: Seconds): Promise<void> {
 		if (this.session != null) {
-			await this.repository.upsert(username, deviceId, this.session, sessionTtl);
+			await this.repository.upsert(this.username, this.deviceId, this.session, sessionTtl);
 		}
 	}
 }

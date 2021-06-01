@@ -1,5 +1,7 @@
+import type { AuthenticationContext } from './types/requests';
+
 declare interface EmailSender {
-	notifyMultiFactorAuthenticationFailed(emailAddress: string, ip: string, device: string): Promise<void>;
+	notifyMultiFactorAuthenticationFailed(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
@@ -7,14 +9,9 @@ declare interface EmailSender {
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyAuthenticationFromDifferentDevice(emailAddress: string, ip: string, device: string): Promise<void>;
-	sendActivateAccountLink(emailAddress: string, token: string): Promise<void>;
+	notifyAuthenticationFromDifferentDevice(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
+	sendActivateAccountToken(emailAddress: string, token: string): Promise<void>;
 	sendForgotPasswordToken(emailAddress: string, token: string): Promise<void>;
 }
 
-declare interface SmsSender {
-	sendTotpToken(telephone: string, token: string): Promise<void>;
-	sendForgotPasswordToken(telephone: string, token: string): Promise<void>;
-}
-
-export { EmailSender, SmsSender };
+export { EmailSender };

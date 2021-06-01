@@ -1,6 +1,6 @@
 import qrcode from 'qrcode';
 import { createException, ErrorCodes } from '../error';
-import { TwoFactorAuthAChannel } from '../types/enums';
+import { TwoFactorAuthAChannelType } from '../types/enums';
 import { TotpBaseTwoFactorAuthStrategy } from './totp-base';
 import type { AccountWithTotpSecret, TotpBaseTwoFactorAuthStrategyOptions } from './totp-base';
 import type { AuthenticationContext } from '../types/requests';
@@ -22,8 +22,8 @@ class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> extends T
 		this.serviceName = options.serviceName;
 	}
 
-	public get type(): TwoFactorAuthAChannel {
-		return TwoFactorAuthAChannel.TOTP;
+	public get type(): TwoFactorAuthAChannelType {
+		return TwoFactorAuthAChannelType.TOTP;
 	}
 
 	public async beforeRegister(account: Account, response: RegisterResponse): Promise<void> {
@@ -37,7 +37,7 @@ class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> extends T
 		return undefined;
 	}
 
-	public async verifyToken(account: Account, authenticationContext: AuthenticationContext): Promise<boolean> {
+	public async isTokenValid(account: Account, authenticationContext: AuthenticationContext): Promise<boolean> {
 		if (authenticationContext['2fa-token'] == null) {
 			throw createException(ErrorCodes.TWO_FACTOR_AUTH_TOKEN_NOT_PROVIDED, 'Totp token was not provided.');
 		}

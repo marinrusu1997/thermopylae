@@ -1,19 +1,21 @@
 import type { HttpDevice, HTTPRequestLocation, UnixTimestamp } from '@thermopylae/core.declarations';
-import type { TwoFactorAuthOperation } from './enums';
+import type { TwoFactorAuthOperationType } from './enums';
 
 interface UserCredentials {
 	username: string;
 	password: string;
 }
 
-interface AccountModel extends UserCredentials {
+interface AccountModel {
 	id: string;
-	alg: number;
-	salt: string;
+	username: string;
+	passwordHash: string;
+	passwordSalt: string;
+	passwordAlg: number;
 	email: string;
 	telephone?: string;
-	enabled: boolean;
-	mfa: TwoFactorAuthOperation;
+	disabledUntil: UnixTimestamp;
+	mfa: TwoFactorAuthOperationType;
 	pubKey?: string | Buffer;
 }
 
@@ -30,7 +32,7 @@ interface SuccessfulAuthenticationModel extends AuthenticationModelBase {
 }
 
 interface FailedAuthenticationModel extends AuthenticationModelBase {
-	detectedAt: Date;
+	detectedAt: UnixTimestamp;
 }
 
 export type { UserCredentials, AccountModel, SuccessfulAuthenticationModel, FailedAuthenticationModel };

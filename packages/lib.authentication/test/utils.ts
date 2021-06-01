@@ -1,8 +1,8 @@
 import { assert, AssertionError, expect } from 'chai';
 import { Jwt } from '@marin/lib.jwt';
-import { AuthEngineOptions, AuthenticationEngine } from '../lib';
+import { AuthenticationEngineOptions, AuthenticationEngine } from '../lib';
 import { AuthenticationContext } from '../lib/types/requests';
-import { AuthStatus } from '../lib/authentication/auth-step';
+import { AuthenticationStatus } from '../lib/authentication/step';
 import { HashingAlgorithms, PasswordHasher } from './fixtures/password-hasher';
 
 /**
@@ -34,7 +34,7 @@ async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> 
  * @param authEngine
  * @param authRequest
  */
-async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthenticationContext): Promise<AuthStatus> {
+async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthenticationContext): Promise<AuthenticationStatus> {
 	const authStatus = await authEngine.authenticate(authRequest);
 
 	expect(authStatus.token).to.not.be.eq(undefined);
@@ -45,7 +45,7 @@ async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authReq
 	return authStatus;
 }
 
-function createAuthEnginesWithDifferentPasswordHashingAlg(baseConfig: AuthEngineOptions): Array<AuthenticationEngine> {
+function createAuthEnginesWithDifferentPasswordHashingAlg(baseConfig: AuthenticationEngineOptions): Array<AuthenticationEngine> {
 	return [
 		new AuthenticationEngine({ ...baseConfig, passwordHasher: new PasswordHasher(HashingAlgorithms.BCRYPT) }),
 		new AuthenticationEngine({ ...baseConfig, passwordHasher: new PasswordHasher(HashingAlgorithms.ARGON2) })
