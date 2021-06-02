@@ -1,8 +1,8 @@
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AuthenticationContext } from '../../types/requests';
 import type { AccountModel } from '../../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationContext } from '../../types/contexts';
 
 type RecaptchaValidator = (authenticationContext: AuthenticationContext) => Promise<boolean>;
 

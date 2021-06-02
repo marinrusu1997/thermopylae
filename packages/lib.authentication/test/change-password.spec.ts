@@ -6,8 +6,8 @@ import Exception from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthenticationContext } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Change password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);

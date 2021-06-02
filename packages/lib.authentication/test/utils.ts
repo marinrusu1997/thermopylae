@@ -1,9 +1,9 @@
 import { assert, AssertionError, expect } from 'chai';
 import { Jwt } from '@marin/lib.jwt';
 import { AuthenticationEngineOptions, AuthenticationEngine } from '../lib';
-import { AuthenticationContext } from '../lib/types/requests';
 import { AuthenticationStatus } from '../lib/authentication/step';
 import { HashingAlgorithms, PasswordHasher } from './fixtures/password-hasher';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 /**
  * Checks if provided jwt was invalidated, i.e. blacklisted

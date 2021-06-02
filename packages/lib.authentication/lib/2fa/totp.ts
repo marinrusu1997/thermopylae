@@ -3,7 +3,7 @@ import { createException, ErrorCodes } from '../error';
 import { TwoFactorAuthAChannelType } from '../types/enums';
 import { TotpBaseTwoFactorAuthStrategy } from './totp-base';
 import type { AccountWithTotpSecret, TotpBaseTwoFactorAuthStrategyOptions } from './totp-base';
-import type { AuthenticationContext } from '../types/requests';
+import type { AuthenticationContext } from '../types/contexts';
 
 interface TotpTwoFactorAuthStrategyOptions {
 	readonly totp: TotpBaseTwoFactorAuthStrategyOptions;

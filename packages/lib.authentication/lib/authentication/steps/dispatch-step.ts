@@ -2,8 +2,8 @@ import { ErrorCodes } from '@thermopylae/core.declarations';
 import { createException } from '../../error';
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AuthenticationContext } from '../../types/requests';
-import { AccountModel } from '../../types/models';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationContext } from '../../types/contexts';
 
 class DispatchStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	public async process(_account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput> {

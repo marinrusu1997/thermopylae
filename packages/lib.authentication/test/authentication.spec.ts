@@ -9,7 +9,6 @@ import { AuthTokenType } from '@marin/lib.utils/dist/declarations';
 // @ts-ignore
 import keypair from 'keypair';
 import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthenticationContext } from '../lib/types/requests';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthenticationStepName } from '../lib/types/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
@@ -19,6 +18,7 @@ import { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtur
 import { EmailMockInstance } from './fixtures/mocks/email';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 import { createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Authenticate spec', () => {
 	const primaryKeyPair = keypair();

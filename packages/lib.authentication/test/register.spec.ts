@@ -10,7 +10,7 @@ import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
 import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
 import { failureWillBeGeneratedForSessionOperation, hasAnySessions, SESSIONS_OP } from './fixtures/memcache-entities';
-import { AuthenticationContext } from '../lib/types/requests';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Account registration spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine({

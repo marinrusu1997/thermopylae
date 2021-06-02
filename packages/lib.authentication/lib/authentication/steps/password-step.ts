@@ -1,14 +1,14 @@
 import { AuthenticationStepName } from '../../types/enums';
-import type { PasswordsManager } from '../../managers/passwords-manager';
+import type { PasswordsManager } from '../../managers/password';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
-import type { AuthenticationContext } from '../../types/requests';
 import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationContext } from '../../types/contexts';
 
 class PasswordStep<Account extends AccountModel> implements AuthenticationStep<Account> {
-	private readonly passwordsManager: PasswordsManager;
+	private readonly passwordsManager: PasswordsManager<Account>;
 
-	public constructor(passwordsManager: PasswordsManager) {
+	public constructor(passwordsManager: PasswordsManager<Account>) {
 		this.passwordsManager = passwordsManager;
 	}
 

@@ -6,13 +6,14 @@ import { chrono, string } from '@marin/lib.utils';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import basicAuthEngineConfig from './fixtures';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthenticationContext, SIDE_CHANNEL } from '../lib/types/requests';
+import { SIDE_CHANNEL } from '../lib/types/requests';
 import { EmailMockInstance } from './fixtures/mocks/email';
 import { SmsMockInstance } from './fixtures/mocks/sms';
 import memcache, { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
 import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
 import { AuthenticationStepName } from '../lib/types/enums';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('forgot password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);

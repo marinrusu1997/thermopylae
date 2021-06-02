@@ -36,8 +36,11 @@
         "@otplib/plugin-thirty-two": "12",
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
+        "argon2": "0",
+        "node-fetch": "2",
         "qrcode": "1",
-        "uid-safe": "2"
+        "uid-safe": "2",
+        "zxcvbn": "4"
     },
     "devDependencies": {
         "@ronomon/crypto-async": "5",
@@ -50,11 +53,11 @@
         "@types/bcrypt": "3",
         "@types/geoip-lite": "1",
         "@types/mongoose": "5",
-        "@types/owasp-password-strength-test": "1",
+        "@types/node-fetch": "2",
         "@types/qrcode": "1",
         "@types/ronomon__crypto-async": "2",
         "@types/uid-safe": "2",
-        "argon2": "0",
+        "@types/zxcvbn": "4",
         "bcrypt": "5",
         "keypair": "1",
         "mongodb-memory-server": "6",

@@ -1,8 +1,8 @@
 import type { Exception } from '@thermopylae/lib.exception';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationStepName } from '../types/enums';
-import type { AuthenticationContext } from '../types/requests';
 import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
+import type { AuthenticationContext } from '../types/contexts';
 
 interface AuthenticationStatus {
 	token?: string;

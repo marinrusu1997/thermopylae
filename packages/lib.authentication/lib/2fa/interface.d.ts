@@ -1,7 +1,7 @@
 import type { AccountModel } from '../types/models';
 import type { TwoFactorAuthAChannelType } from '../types/enums';
 import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
-import type { AuthenticationContext } from '../types/requests';
+import type { AuthenticationContext } from '../types/contexts';
 
 /**
  * Represents 2 Factor Authentication strategy.

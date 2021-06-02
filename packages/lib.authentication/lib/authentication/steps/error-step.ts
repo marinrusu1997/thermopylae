@@ -3,11 +3,11 @@ import { createException, ErrorCodes } from '../../error';
 import { getCurrentTimestamp } from '../../utils';
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AuthenticationContext } from '../../types/requests';
 import type { AccountModel } from '../../types/models';
 import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../../types/repositories';
-import type { AccountManager } from '../../managers/account-manager';
+import type { AccountManager } from '../../managers/account';
 import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationContext } from '../../types/contexts';
 
 class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly failedAuthAttemptsThreshold: Threshold;

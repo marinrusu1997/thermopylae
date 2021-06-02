@@ -9,8 +9,8 @@ import type { TransformOptions } from 'stream';
 import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
-import type { AuthenticationContext } from '../types/requests';
 import type { TwoFactorAuthAChannelType } from '../types/enums';
+import type { AuthenticationContext } from '../types/contexts';
 
 interface AccountWithTotpSecret extends AccountModel {
 	totpSecret: string;

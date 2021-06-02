@@ -1,8 +1,8 @@
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AuthenticationContext } from '../../types/requests';
 import type { AccountModel } from '../../types/models';
 import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
 import type { EmailSender } from '../../side-channels';
+import type { AuthenticationContext } from '../../types/contexts';
 
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly emailSender: EmailSender;

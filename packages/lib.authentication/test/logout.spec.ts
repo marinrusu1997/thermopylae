@@ -6,8 +6,8 @@ import { Exception } from '@marin/lib.error';
 import basicAuthEngineConfig from './fixtures';
 import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { AuthenticationContext } from '../lib/types/requests';
 import { checkIfJWTWasInvalidated } from './utils';
+import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Logout spec', () => {
 	const AuthenticationEngineConfig: AuthenticationEngineOptions = {

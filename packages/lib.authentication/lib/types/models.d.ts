@@ -10,7 +10,10 @@ interface AccountModel {
 	id: string;
 	username: string;
 	passwordHash: string;
-	passwordSalt: string;
+	/**
+	 * Optional, might be encoded in the password hash.
+	 */
+	passwordSalt?: string;
 	passwordAlg: number;
 	email: string;
 	telephone?: string;

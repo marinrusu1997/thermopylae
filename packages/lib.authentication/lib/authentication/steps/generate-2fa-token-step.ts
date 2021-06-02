@@ -1,9 +1,9 @@
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AuthenticationContext } from '../../types/requests';
 import type { AccountModel } from '../../types/models';
 import type { TwoFactorAuthStrategy } from '../../2fa/interface';
 import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationContext } from '../../types/contexts';
 
 class GenerateTwoFactorAuthTokenStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>;

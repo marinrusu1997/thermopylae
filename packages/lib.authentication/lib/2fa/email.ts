@@ -2,7 +2,7 @@ import { AuthenticationSessionRepositoryHolder } from '../sessions/authenticatio
 import { TwoFactorAuthAChannelType } from '../types/enums';
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
-import type { AuthenticationContext } from '../types/requests';
+import type { AuthenticationContext } from '../types/contexts';
 
 type SendEmailWithToken = (email: string, token: string) => Promise<void>;
 

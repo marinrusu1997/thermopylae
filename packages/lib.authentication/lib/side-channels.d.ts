@@ -1,4 +1,4 @@
-import type { AuthenticationContext } from './types/requests';
+import { AuthenticationContext, ChangePasswordContext } from './types/contexts';
 
 declare interface EmailSender {
 	notifyMultiFactorAuthenticationFailed(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
@@ -10,6 +10,10 @@ declare interface EmailSender {
 	 * Needs to be sent with high priority.
 	 */
 	notifyAuthenticationFromDifferentDevice(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
+	/**
+	 * Needs to be sent with high priority.
+	 */
+	notifyPasswordChanged(emailAddress: string, changePasswordContext: ChangePasswordContext): Promise<void>;
 	sendActivateAccountToken(emailAddress: string, token: string): Promise<void>;
 	sendForgotPasswordToken(emailAddress: string, token: string): Promise<void>;
 }
