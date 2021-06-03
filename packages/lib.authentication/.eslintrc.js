@@ -16,20 +16,7 @@ eslint.rules["import/no-unresolved"][1].ignore.push(
     './policy',
     './hash',
     './contexts',
-
-    './auth-step',
-    './side-channels',
-    '../side-channels',
-    '../types/models',
-    '../types/entities',
-    '../types/schedulers',
-    '../../types/requests',
-    './types/requests',
-    './types/basic-types',
-    './types/entities',
-    './types/enums',
-    './types/models',
-    './types/schedulers'
+    './types/side-channels'
 );
 
 module.exports = eslint;

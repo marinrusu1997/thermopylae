@@ -2,7 +2,7 @@ import { AuthenticationStepName } from '../../types/enums';
 import type { PasswordsManager } from '../../managers/password';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
 class PasswordStep<Account extends AccountModel> implements AuthenticationStep<Account> {
@@ -17,7 +17,7 @@ class PasswordStep<Account extends AccountModel> implements AuthenticationStep<A
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<AuthenticationStepOutput> {
-		if (!(await this.passwordsManager.isSame(authenticationContext.password!, account))) {
+		if (!(await this.passwordsManager.isSame(authenticationContext.password!, account.passwordHash, account.passwordSalt, account.passwordAlg))) {
 			return { nextStep: AuthenticationStepName.ERROR };
 		}
 

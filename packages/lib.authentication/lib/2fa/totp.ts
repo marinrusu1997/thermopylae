@@ -1,33 +1,64 @@
 import qrcode from 'qrcode';
+import type { RequireSome } from '@thermopylae/core.declarations/lib';
+import type { AuthenticatorOptions } from '@otplib/core';
+import { Authenticator } from '@otplib/core';
+import { createDigest, createRandomBytes } from '@otplib/plugin-crypto';
+import { keyDecoder, keyEncoder } from '@otplib/plugin-thirty-two';
 import { createException, ErrorCodes } from '../error';
-import { TwoFactorAuthAChannelType } from '../types/enums';
-import { TotpBaseTwoFactorAuthStrategy } from './totp-base';
-import type { AccountWithTotpSecret, TotpBaseTwoFactorAuthStrategyOptions } from './totp-base';
+import { SecretEncryptor } from '../helpers/secret-encryptor';
 import type { AuthenticationContext } from '../types/contexts';
+import type { AccountModel } from '../types/models';
+import type { SecretEncryptionOptions } from '../helpers/secret-encryptor';
+import type { TwoFactorAuthStrategy } from './interface';
 
-interface TotpTwoFactorAuthStrategyOptions {
-	readonly totp: TotpBaseTwoFactorAuthStrategyOptions;
-	readonly serviceName: string;
+interface AccountWithTotpSecret extends AccountModel {
+	totpSecret: string;
 }
 
 interface RegisterResponse {
 	totpSecretQRImageUrl: string;
 }
 
-class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> extends TotpBaseTwoFactorAuthStrategy<Account> {
+interface TotpTwoFactorAuthStrategyOptions {
+	readonly totp: {
+		secretLength: number;
+		encryption: SecretEncryptionOptions | false;
+		authenticator: Readonly<
+			Omit<
+				RequireSome<AuthenticatorOptions<string>, 'algorithm' | 'digits' | 'encoding' | 'step' | 'window'>,
+				'createDigest' | 'createHmacKey' | 'digest' | 'epoch' | 'createRandomBytes' | 'keyEncoder' | 'keyDecoder'
+			>
+		>;
+	};
+	readonly serviceName: string;
+}
+
+class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> implements TwoFactorAuthStrategy<Account> {
+	private readonly authenticator: Authenticator;
+
+	private readonly totpEncryptor: SecretEncryptor;
+
+	private readonly totpSecretLength: number;
+
 	private readonly serviceName: string;
 
 	public constructor(options: TotpTwoFactorAuthStrategyOptions) {
-		super(options.totp);
+		this.authenticator = new Authenticator({
+			...options.totp.authenticator,
+			createDigest,
+			createRandomBytes,
+			keyDecoder,
+			keyEncoder
+		});
+		this.totpEncryptor = new SecretEncryptor(options.totp.encryption);
+		this.totpSecretLength = options.totp.secretLength;
 		this.serviceName = options.serviceName;
 	}
 
-	public get type(): TwoFactorAuthAChannelType {
-		return TwoFactorAuthAChannelType.TOTP;
-	}
-
 	public async beforeRegister(account: Account, response: RegisterResponse): Promise<void> {
-		const totpSecret = this.generateAndSetTotpSecret(account);
+		const totpSecret = this.authenticator.generateSecret(this.totpSecretLength);
+		account.totpSecret = this.totpEncryptor.encrypt(totpSecret);
+
 		const otpAuth = this.authenticator.keyuri(account.username, this.serviceName, totpSecret);
 		response.totpSecretQRImageUrl = await qrcode.toDataURL(otpAuth);
 	}
@@ -41,8 +72,8 @@ class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> extends T
 		if (authenticationContext['2fa-token'] == null) {
 			throw createException(ErrorCodes.TWO_FACTOR_AUTH_TOKEN_NOT_PROVIDED, 'Totp token was not provided.');
 		}
-		return this.authenticator.check(authenticationContext['2fa-token'], this.getTotpSecret(account));
+		return this.authenticator.check(authenticationContext['2fa-token'], this.totpEncryptor.decrypt(account.totpSecret));
 	}
 }
 
-export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, RegisterResponse };
+export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, AccountWithTotpSecret, RegisterResponse };

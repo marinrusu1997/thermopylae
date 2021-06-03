@@ -192,7 +192,7 @@ describe('Change password spec', () => {
 		} catch (e) {
 			err = e;
 		}
-		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SAME_PASSWORD);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SIMILAR_PASSWORDS);
 		expect(err).to.haveOwnProperty('message', 'New password is same as the old one. ');
 	});
 

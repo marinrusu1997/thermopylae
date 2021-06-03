@@ -21,8 +21,8 @@ class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 		};
 	}
 
-	public async verify(hashedPassword: PasswordHash, plain: string): Promise<boolean> {
-		return verify(hashedPassword.passwordHash, plain, this.hashingOptions);
+	public async verify(plainPassword: string, hashedPassword: string): Promise<boolean> {
+		return verify(hashedPassword, plainPassword, this.hashingOptions);
 	}
 }
 

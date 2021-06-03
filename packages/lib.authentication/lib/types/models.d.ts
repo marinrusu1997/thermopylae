@@ -1,5 +1,5 @@
 import type { HttpDevice, HTTPRequestLocation, UnixTimestamp } from '@thermopylae/core.declarations';
-import type { TwoFactorAuthOperationType } from './enums';
+import type { AccountStatus } from './enums';
 
 interface UserCredentials {
 	username: string;
@@ -17,8 +17,8 @@ interface AccountModel {
 	passwordAlg: number;
 	email: string;
 	telephone?: string;
-	disabledUntil: UnixTimestamp;
-	mfa: TwoFactorAuthOperationType;
+	disabledUntil: UnixTimestamp | AccountStatus;
+	mfa?: boolean;
 	pubKey?: string | Buffer;
 }
 

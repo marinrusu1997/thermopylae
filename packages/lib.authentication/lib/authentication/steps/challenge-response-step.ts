@@ -2,7 +2,7 @@ import type { Encoding } from 'crypto';
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
 type ChallengeResponseValidator = (

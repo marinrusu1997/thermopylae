@@ -1,7 +1,7 @@
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../sessions/authentication';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
 type RecaptchaValidator = (authenticationContext: AuthenticationContext) => Promise<boolean>;
@@ -28,6 +28,7 @@ class RecaptchaStep<Account extends AccountModel> implements AuthenticationStep<
 
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 		authenticationSession.recaptchaRequired = false;
+
 		if (account.mfa) {
 			return { nextStep: AuthenticationStepName.GENERATE_2FA_TOKEN };
 		}

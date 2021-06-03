@@ -1,16 +1,15 @@
 import uidSafe from 'uid-safe';
-import type { AccountModel } from '../types/models';
 
-class TokenManager<Account extends AccountModel> {
+class TokenManager {
 	private readonly length: number;
 
 	public constructor(length: number) {
 		this.length = length;
 	}
 
-	public async issueEncoded(account: Account): Promise<string> {
+	public async issueEncoded(accountId: string): Promise<string> {
 		const token = await uidSafe(this.length);
-		return `${token}${account.id}`;
+		return `${token}${accountId}`;
 	}
 
 	public decode(token: string): [string, string] {

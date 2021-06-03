@@ -22,8 +22,4 @@ interface FailedAuthenticationAttemptSession {
 	counter: number;
 }
 
-interface ForgotPasswordSession {
-	accountId: string;
-}
-
-export type { AuthenticationSession, FailedAuthenticationAttemptSession, ForgotPasswordSession };
+export type { AuthenticationSession, FailedAuthenticationAttemptSession };

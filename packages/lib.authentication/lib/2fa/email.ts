@@ -1,5 +1,4 @@
-import { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
-import { TwoFactorAuthAChannelType } from '../types/enums';
+import { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationContext } from '../types/contexts';
@@ -16,10 +15,6 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 
 	public constructor(options: EmailTwoFactorAuthStrategyOptions) {
 		this.options = options;
-	}
-
-	public get type(): TwoFactorAuthAChannelType {
-		return TwoFactorAuthAChannelType.EMAIL;
 	}
 
 	public async beforeRegister(): Promise<void> {

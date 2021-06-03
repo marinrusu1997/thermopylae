@@ -39,6 +39,7 @@
         "argon2": "0",
         "node-fetch": "2",
         "qrcode": "1",
+        "string-similarity": "4",
         "uid-safe": "2",
         "zxcvbn": "4"
     },
@@ -56,6 +57,7 @@
         "@types/node-fetch": "2",
         "@types/qrcode": "1",
         "@types/ronomon__crypto-async": "2",
+        "@types/string-similarity": "4",
         "@types/uid-safe": "2",
         "@types/zxcvbn": "4",
         "bcrypt": "5",

@@ -14,10 +14,10 @@ describe('Logout spec', () => {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1,
-			authSessionMinutes: 0.01 // 1 second
+			authenticationSession: 0.01 // 1 second
 		},
 		thresholds: {
-			passwordBreach: 1,
+			passwordSimilarity: 1,
 			recaptcha: 2,
 			maxFailedAuthAttempts: 3
 		}

@@ -21,6 +21,15 @@ interface AuthenticationContext extends BaseContext {
 	};
 }
 
-type ChangePasswordContext = BaseContext;
+interface SetTwoFactorAuthenticationContext extends BaseContext {
+	password: string;
+}
 
-export { AuthenticationContext, ChangePasswordContext };
+interface ChangePasswordContext extends BaseContext {
+	accountId: string;
+	oldPassword: string;
+	newPassword: string;
+	sessionId: number;
+}
+
+export { AuthenticationContext, ChangePasswordContext, SetTwoFactorAuthenticationContext, BaseContext };

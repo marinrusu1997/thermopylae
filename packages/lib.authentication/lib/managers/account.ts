@@ -1,15 +1,11 @@
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../error';
 import { getCurrentTimestamp } from '../utils';
+import { AccountStatus } from '../types/enums';
 import type { AccountModel } from '../types/models';
-import type { EmailSender } from '../side-channels';
+import type { EmailSender } from '../types/side-channels';
 import type { AccountRepository } from '../types/repositories';
-import type { OnAccountDisabledHook } from '../hooks';
-
-const enum AccountStatus {
-	ENABLED = 0,
-	DISABLED_UNTIL_ACTIVATION = -1
-}
+import type { OnAccountDisabledHook } from '../types/hooks';
 
 class AccountManager<Account extends AccountModel> {
 	private readonly adminEmail: string;
@@ -32,19 +28,43 @@ class AccountManager<Account extends AccountModel> {
 		this.onAccountDisabledHook = onAccountDisabledHook;
 	}
 
-	public async read(username: string): Promise<Account | null> {
-		const account = await this.accountRepository.read(username);
-		if (account != null) {
-			await this.ensureNotDisabled(account);
+	public async readById(accountId: string): Promise<Account> {
+		const account = await this.accountRepository.readById(accountId);
+		if (account == null) {
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${accountId} doesn't exist.`);
 		}
+
+		await this.ensureNotDisabled(account);
 		return account;
 	}
 
-	public async readById(accountId: string): Promise<Account | null> {
-		const account = await this.accountRepository.readById(accountId);
-		if (account != null) {
-			await this.ensureNotDisabled(account);
+	public async readByUsername(username: string): Promise<Account> {
+		const account = await this.accountRepository.readByUsername(username);
+		if (account == null) {
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with username ${username} doesn't exist.`);
 		}
+
+		await this.ensureNotDisabled(account);
+		return account;
+	}
+
+	public async readByEmail(email: string): Promise<Account> {
+		const account = await this.accountRepository.readByEmail(email);
+		if (account == null) {
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with email ${email} doesn't exist.`);
+		}
+
+		await this.ensureNotDisabled(account);
+		return account;
+	}
+
+	public async readByTelephone(telephone: string): Promise<Account> {
+		const account = await this.accountRepository.readByTelephone(telephone);
+		if (account == null) {
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with telephone ${telephone} doesn't exist.`);
+		}
+
+		await this.ensureNotDisabled(account);
 		return account;
 	}
 

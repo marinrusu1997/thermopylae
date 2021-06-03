@@ -54,10 +54,10 @@ const basicAuthEngineConfig: AuthenticationEngineOptions = {
 		account: AccountEntityMongo,
 		activeUserSession: ActiveUserSessionEntityMongo,
 		activateAccountSession: ActivateAccountSessionEntityMemCache,
-		accessPoint: AuthenticationEntryPointEntityMongo,
-		onGoingAuthSession: AuthSessionEntityMemCache,
-		failedAuthAttempts: FailedAuthAttemptsEntityMongo,
-		failedAuthAttemptsSession: FailedAuthAttemptSessionEntityMemCache,
+		successfulAuthentications: AuthenticationEntryPointEntityMongo,
+		authenticationSession: AuthSessionEntityMemCache,
+		failedAuthenticationAttempts: FailedAuthAttemptsEntityMongo,
+		failedAuthAttemptSession: FailedAuthAttemptSessionEntityMemCache,
 		forgotPasswordSession: ForgotPasswordSessionEntityMemCache
 	},
 	'side-channels': {

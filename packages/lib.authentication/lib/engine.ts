@@ -1,9 +1,12 @@
-import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { ErrorCodes as CoreErrorCodes, RequireSome, Seconds, Threshold, UnixTimestamp } from '@thermopylae/core.declarations';
 
-import { ChangeForgottenPasswordRequest, ChangePasswordRequest, CreateForgotPasswordSessionRequest, RegistrationRequestBase } from './types/requests';
+import uidSafe from 'uid-safe';
+import { compareTwoStrings } from 'string-similarity';
+import { publicEncrypt } from 'crypto';
 import { AuthenticationStatus } from './authentication/step';
 import {
 	AccountRepository,
+	ActivateAccountSessionRepository,
 	AuthenticationSessionRepository,
 	FailedAuthAttemptSessionRepository,
 	FailedAuthenticationAttemptsRepository,
@@ -12,7 +15,7 @@ import {
 } from './types/repositories';
 import { createException, ErrorCodes } from './error';
 import { AuthenticationOrchestrator } from './authentication/orchestrator';
-import { AuthenticationStepName } from './types/enums';
+import { AccountStatus, AuthenticationStepName } from './types/enums';
 import { DispatchStep } from './authentication/steps/dispatch-step';
 import { PasswordStep } from './authentication/steps/password-step';
 import { TwoFactorAuthStep } from './authentication/steps/2fa-step';
@@ -20,15 +23,20 @@ import { GenerateTwoFactorAuthTokenStep } from './authentication/steps/generate-
 import { RecaptchaStep, RecaptchaValidator } from './authentication/steps/recaptcha-step';
 import { ErrorStep } from './authentication/steps/error-step';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
-import { PasswordsManager } from './managers/password';
-import type { EmailSender } from './side-channels';
+import { PasswordHashing, PasswordsManager } from './managers/password';
+import type { EmailSender } from './types/side-channels';
 import type { AccountModel, FailedAuthenticationModel, UserCredentials } from './types/models';
 import { ChallengeResponseStep, ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
 import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
 import { AccountManager } from './managers/account';
-import type { OnAccountDisabledHook } from './hooks';
-import type { AuthenticationContext } from './types/contexts';
+import type { OnAccountDisabledHook, OnPasswordChangedHook } from './types/hooks';
+import type { AuthenticationContext, ChangePasswordContext, SetTwoFactorAuthenticationContext } from './types/contexts';
 import { PasswordStrengthPolicyValidator } from './managers/password/strength/policy';
+import { SecretEncryptionOptions, SecretEncryptor } from './helpers/secret-encryptor';
+import { TwoFactorAuthStrategy } from './2fa/interface';
+import { AuthenticationSessionRepositoryHolder } from './helpers/authentication-session-repository-holder';
+import { FailedAuthenticationsManager } from './managers/failed-authentications';
+import { TokenManager } from './managers/token';
 
 // @fixme implement something like password confirmation, like when deleting repo on github,
 //	it requires from user his password, validate it, and then perform action,
@@ -87,6 +95,8 @@ import { PasswordStrengthPolicyValidator } from './managers/password/strength/po
 // with sms we can use something custom
 // qr code example https://davidwalsh.name/2fa
 
+// @fixme implement 2fa with push notifications https://www.npmjs.com/package/node-pushnotifications
+
 // @fixme when we get to password strength, we can have multiple policies that follow common interface
 // 1. owasp or that stuff from https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
 // 2. local test against most common passwords https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials
@@ -100,8 +110,57 @@ import { PasswordStrengthPolicyValidator } from './managers/password/strength/po
 // otherwise, only on auth operation, if we see that value differs from 0, we issue an unlock operation, and set it to 0 on db
 // if we see that value is 0, then we do nothing, account is unlocked
 
+interface TTLOptions {
+	readonly authenticationSession: Seconds;
+	readonly failedAuthAttemptsSession: Seconds;
+	readonly activateAccountSession: Seconds;
+	readonly forgotPasswordSession: Seconds;
+	readonly accountDisableTimeout: Seconds;
+}
+
+interface ThresholdsOptions {
+	readonly maxFailedAuthAttempts: Threshold;
+	readonly recaptcha: Threshold;
+	readonly passwordSimilarity: Threshold; // @fixme validate
+}
+
+interface AuthenticationEngineOptions<Account extends AccountModel> {
+	repositories: {
+		account: AccountRepository<Account>;
+		successfulAuthentications: SuccessfulAuthenticationsRepository;
+		failedAuthenticationAttempts: FailedAuthenticationAttemptsRepository;
+		authenticationSession: AuthenticationSessionRepository;
+		failedAuthAttemptSession: FailedAuthAttemptSessionRepository;
+		forgotPasswordSession: ForgotPasswordSessionRepository;
+		activateAccountSession: ActivateAccountSessionRepository<Account>;
+	};
+	hooks: {
+		onAccountDisabled: OnAccountDisabledHook<Account>;
+		onPasswordChanged: OnPasswordChangedHook<Account>;
+	};
+	validators: {
+		recaptcha: RecaptchaValidator;
+		challengeResponse?: ChallengeResponseValidator;
+	};
+	password: {
+		hashing: PasswordHashing;
+		encryption: SecretEncryptionOptions | false;
+		strength: PasswordStrengthPolicyValidator<Account>[];
+	};
+	email: {
+		admin: string;
+		sender: EmailSender;
+	};
+	'2fa-strategy': TwoFactorAuthStrategy<Account>;
+	ttl: TTLOptions;
+	thresholds: ThresholdsOptions;
+	tokensLength: number;
+}
+
 class AuthenticationEngine<Account extends AccountModel> {
 	private readonly options: AuthenticationEngineOptions<Account>;
+
+	private readonly tokenManager: TokenManager;
 
 	private readonly accountManager: AccountManager<Account>;
 
@@ -109,52 +168,57 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 	private readonly passwordsManager: PasswordsManager<Account>;
 
+	private readonly failedAuthenticationsManager: FailedAuthenticationsManager<Account>;
+
 	public constructor(options: AuthenticationEngineOptions<Account>) {
-		this.options = fillWithDefaults(options);
+		// @fixme do some validations here
+		this.options = options;
+
+		this.tokenManager = new TokenManager(this.options.tokensLength);
 
 		this.accountManager = new AccountManager(
-			this.options.contacts.adminEmail,
-			this.options['side-channels'].email,
+			this.options.email.admin,
+			this.options.email.sender,
 			this.options.repositories.account,
 			this.options.hooks.onAccountDisabled
 		);
 
 		this.passwordsManager = new PasswordsManager(
 			this.options.password.hashing,
-			this.options.password.strengthValidators,
+			new SecretEncryptor(this.options.password.encryption),
+			this.options.password.strength,
 			this.options.repositories.account,
-			this.options['side-channels'].email
+			this.options.email.sender
+		);
+
+		this.failedAuthenticationsManager = new FailedAuthenticationsManager<Account>(
+			this.options.thresholds.maxFailedAuthAttempts,
+			this.options.ttl.failedAuthAttemptsSession,
+			this.options.ttl.accountDisableTimeout,
+			this.accountManager,
+			this.options.repositories.failedAuthAttemptSession,
+			this.options.repositories.failedAuthenticationAttempts
 		);
 
 		this.authenticationOrchestrator = new AuthenticationOrchestrator<Account>(AuthenticationStepName.DISPATCH);
 		this.authenticationOrchestrator.register(AuthenticationStepName.DISPATCH, new DispatchStep());
 		this.authenticationOrchestrator.register(AuthenticationStepName.PASSWORD, new PasswordStep(this.passwordsManager));
-		this.authenticationOrchestrator.register(
-			AuthenticationStepName.GENERATE_2FA_TOKEN,
-			new GenerateTwoFactorAuthTokenStep(this.options['side-channels'].sms, this.totpManager)
-		);
+		this.authenticationOrchestrator.register(AuthenticationStepName.GENERATE_2FA_TOKEN, new GenerateTwoFactorAuthTokenStep(this.options['2fa-strategy']));
 		this.authenticationOrchestrator.register(
 			AuthenticationStepName.TWO_FACTOR_AUTH_CHECK,
-			new TwoFactorAuthStep(this.options['side-channels'].email, this.totpManager)
+			new TwoFactorAuthStep(this.options['2fa-strategy'], this.options.email.sender)
 		);
 		this.authenticationOrchestrator.register(AuthenticationStepName.RECAPTCHA, new RecaptchaStep(this.options.validators.recaptcha));
 		this.authenticationOrchestrator.register(
 			AuthenticationStepName.ERROR,
-			new ErrorStep(
-				this.options.thresholds.maxFailedAuthAttempts,
-				this.options.thresholds.recaptcha,
-				this.options.ttl.failedAuthAttemptsSessionMinutes,
-				this.accountManager,
-				this.options.repositories.failedAuthAttemptsSession,
-				this.options.repositories.failedAuthAttempts
-			)
+			new ErrorStep(this.options.thresholds.maxFailedAuthAttempts, this.options.thresholds.recaptcha, this.failedAuthenticationsManager)
 		);
 		this.authenticationOrchestrator.register(
 			AuthenticationStepName.AUTHENTICATED,
 			new AuthenticatedStep(
-				this.options['side-channels'].email,
-				this.options.repositories.accessPoint,
-				this.options.repositories.failedAuthAttemptsSession
+				this.options.email.sender,
+				this.options.repositories.successfulAuthentications,
+				this.options.repositories.failedAuthAttemptSession
 			)
 		);
 		if (this.options.validators.challengeResponse) {
@@ -166,238 +230,141 @@ class AuthenticationEngine<Account extends AccountModel> {
 		}
 	}
 
-	public async authenticate(authRequest: AuthenticationContext): Promise<AuthenticationStatus> {
-		const account = await this.options.repositories.account.read(authRequest.username);
+	public async authenticate(authenticationContext: AuthenticationContext): Promise<AuthenticationStatus> {
+		const account = await this.accountManager.readByUsername(authenticationContext.username);
+		const authenticationSessionRepositoryHolder = new AuthenticationSessionRepositoryHolder(
+			this.options.repositories.authenticationSession,
+			authenticationContext
+		);
 
-		if (!account) {
-			return { error: { hard: createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account ${authRequest.username} not found. `) } };
-		}
-
-		if (!account.disabledUntil) {
-			return { error: { hard: createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `) } };
-		}
-
-		// auth session is based and on device too, in order to prevent collisions with other auth sessions which may take place simultaneously
-		let onGoingAuthSession = await this.options.repositories.onGoingAuthSession.read(authRequest.username, authRequest.device);
-		if (!onGoingAuthSession) {
-			onGoingAuthSession = {
-				recaptchaRequired: false
-			};
-			await this.options.repositories.onGoingAuthSession.insert(
-				authRequest.username,
-				authRequest.device,
-				onGoingAuthSession,
-				this.options.ttl.authSessionMinutes
-			);
-		}
-
-		const result = await this.authenticationOrchestrator.authenticate(authRequest, account, onGoingAuthSession);
-
-		if (result.nextStep) {
-			// will be reused on auth continuation from previous step
-			await this.options.repositories.onGoingAuthSession.replace(authRequest.username, authRequest.device, onGoingAuthSession);
-		} else {
-			// on success or hard error not needed anymore
-			await this.options.repositories.onGoingAuthSession.delete(authRequest.username, authRequest.device);
-		}
+		const result = await this.authenticationOrchestrator.authenticate(account, authenticationContext, authenticationSessionRepositoryHolder);
+		await authenticationSessionRepositoryHolder.flush(this.options.ttl.authenticationSession);
 
 		return result;
 	}
 
-	public async register(registrationInfo: RegistrationRequestBase, options?: Partial<RegistrationOptions>): Promise<string> {
-		options = options || {};
-		options.enableMultiFactorAuth = (options && options.enableMultiFactorAuth) || false;
-		options.enabled = (options && options.enabled) || false;
+	public async register(account: RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil' | 'mfa'>): Promise<void> {
+		await this.passwordsManager.hashAndStoreOnAccount(account.passwordHash, account as Account);
 
-		// @fixme this can be minimized at insert (i.e. SQL can throw on unique username)
-		const account = await this.options.repositories.account.read(registrationInfo.username);
-		if (account) {
-			throw createException(ErrorCodes.ACCOUNT_ALREADY_REGISTERED, `Account ${registrationInfo.username} is registered already.`);
+		if (account.disabledUntil === AccountStatus.ENABLED) {
+			await this.options.repositories.account.insert(account as Account);
+			return;
 		}
 
-		await this.passwordsManager.validateStrength(registrationInfo.password);
-		const passwordHash = await this.passwordsManager.hash(registrationInfo.password);
-		const registeredAccount: AccountModel = {
-			username: registrationInfo.username,
-			password: passwordHash.hash,
-			alg: passwordHash.alg,
-			salt: passwordHash.salt,
-			telephone: registrationInfo.telephone, // @fixme templates
-			email: registrationInfo.email,
-			role: registrationInfo.role,
-			disabledUntil: options.enabled,
-			mfa: options.enableMultiFactorAuth,
-			pubKey: registrationInfo.pubKey
-		};
-		registeredAccount.id = await this.options.repositories.account.insert(registeredAccount);
-
-		/**
-		 * @fixme algorithm:
-		 * 	1. if account is enabled at it's creation, just save it in database and that's it
-		 * 	2. if account is not enabled then:
-		 * 		2.1	create account object
-		 * 		2.2 create activate account token (5-10 min should be more than enough, anyway in the worst case then will need to register again)
-		 * 		2.3 save account object in Redis under activate account token
-		 * 			2.4.1 when user sends back that token, read account from Redis and then store it in DB
-		 * 			2.4.2 when user doesn't send back that token, session from Redis will expire, and that's it :))
-		 * 				  he will have to reenter back details and register
-		 */
-
-		if (!options.enabled) {
-			let activateToken: string;
-			let deleteAccountTaskId;
-			let activateAccountSessionWasCreated = false;
-			try {
-				activateToken = await uidSafe(this.options.tokensLength);
-				deleteAccountTaskId = await this.options.schedulers.account.deleteUnactivated(
-					registeredAccount.id,
-					chrono.fromUnixTime(chrono.unixTime() + chrono.minutesToSeconds(this.options.ttl.activateAccountSessionMinutes))
-				);
-				await this.options.repositories.activateAccountSession.create(
-					activateToken,
-					{ accountId: registeredAccount.id, taskId: deleteAccountTaskId },
-					this.options.ttl.activateAccountSessionMinutes
-				);
-				activateAccountSessionWasCreated = true;
-				await this.options['side-channels'].email.sendActivateAccountToken(registeredAccount.email, activateToken);
-			} catch (e) {
-				if (deleteAccountTaskId) {
-					// in future it's a very very small chance to id collision, so this task may scheduleDeletion account of the other valid user
-					await this.options.schedulers.account.cancelDeleteUnactivated(deleteAccountTaskId); // task cancelling is not allowed to throw
-				}
-				await this.options.repositories.account.delete(registeredAccount.id);
-				if (activateAccountSessionWasCreated) {
-					await this.options.repositories.activateAccountSession.delete(activateToken!);
-				}
-				throw e;
-			}
+		if (account.disabledUntil === AccountStatus.DISABLED_UNTIL_ACTIVATION) {
+			const activateToken = await uidSafe(this.options.tokensLength);
+			await this.options.repositories.activateAccountSession.insert(activateToken, account as Account, this.options.ttl.activateAccountSession);
+			await this.options.email.sender.sendActivateAccountToken(account.email, activateToken);
+			return;
 		}
 
-		return registeredAccount.id;
+		throw createException(
+			CoreErrorCodes.MISCONFIGURATION,
+			`Account 'disabledUntil' field should take either ${AccountStatus.ENABLED} or ${AccountStatus.DISABLED_UNTIL_ACTIVATION} values. Given: ${account.disabledUntil}.`
+		);
 	}
 
 	public async activateAccount(activateAccountToken: string): Promise<void> {
-		const session = await this.options.repositories.activateAccountSession.read(activateAccountToken);
-		if (!session) {
-			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by provided token ${activateAccountToken} not found. `);
+		const unactivatedAccount = await this.options.repositories.activateAccountSession.read(activateAccountToken);
+		if (!unactivatedAccount) {
+			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by token ${activateAccountToken} not found.`);
 		}
 
-		// it's pointless to activate users account if canceling it's scheduled deletion fails
-		await this.options.schedulers.account.cancelDeleteUnactivated(session.taskId);
+		unactivatedAccount.disabledUntil = AccountStatus.ENABLED;
 
 		await Promise.all([
-			this.options.repositories.account.enable(session.accountId),
-			this.options.repositories.activateAccountSession
-				.delete(activateAccountToken)
-				.catch((err) =>
-					logger.error(`Failed to delete activate account session with id ${activateAccountToken} for account with id ${session.accountId}. `, err)
-				)
+			this.options.repositories.activateAccountSession.delete(activateAccountToken), // prevent replay
+			this.options.repositories.account.insert(unactivatedAccount)
 		]);
 	}
 
 	// @fixme can be done only by authenticated user
-	public enableMultiFactorAuthentication(accountId: string): Promise<void> {
-		return this.options.repositories.account.enableMultiFactorAuth(accountId);
+	public async setTwoFactorAuthEnabled(accountId: string, enabled: boolean, context?: SetTwoFactorAuthenticationContext): Promise<void> {
+		if (context != null) {
+			const account = await this.accountManager.readById(accountId);
+
+			// defense against stolen sessions
+			if (!(await this.passwordsManager.isSame(context.password, account.passwordHash, account.passwordSalt, account.passwordAlg))) {
+				if (await this.failedAuthenticationsManager.incrementSession(account, context)) {
+					throw createException(
+						ErrorCodes.INCORRECT_PASSWORD,
+						`Can't set two factor authentication for account with id ${account.id}, because given password doesn't match with the account one.`
+					);
+				} else {
+					throw createException(
+						ErrorCodes.ACCOUNT_DISABLED,
+						`Can't set two factor authentication for account with id ${account.id}, because it was disabled due to reached threshold of failed auth attempts.`
+					);
+				}
+			}
+		}
+
+		await this.options.repositories.account.setTwoFactorAuthEnabled(accountId, enabled);
 	}
 
 	// @fixme can be done only by authenticated user
-	public disableMultiFactorAuthentication(accountId: string): Promise<void> {
-		return this.options.repositories.account.disableMultiFactorAuth(accountId);
+	public getFailedAuthAttempts(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<FailedAuthenticationModel>> {
+		return this.options.repositories.failedAuthenticationAttempts.readRange(accountId, startingFrom, endingTo);
 	}
 
-	// @fixme can be done only by authenticated user
-	public getFailedAuthAttempts(accountId: string, startingFrom?: Date, endingTo?: Date): Promise<Array<FailedAuthenticationModel>> {
-		return this.options.repositories.failedAuthAttempts.readRange(accountId, startingFrom, endingTo);
-	}
+	/**
+	 * Changes users password. <br/>
+	 * > **Important!** This method has authorization implications.
+	 * > It needs to be called only by authenticated users and they can change only their password.
+	 *
+	 * @param changePasswordContext			Change password context.
+	 */
+	public async changePassword(changePasswordContext: ChangePasswordContext): Promise<void> {
+		const account = await this.accountManager.readById(changePasswordContext.accountId);
 
-	// @fixme can be done only by authenticated user, and only password of his account
-	public async changePassword(changePasswordRequest: ChangePasswordRequest): Promise<void> {
-		const account = await this.options.repositories.account.readById(changePasswordRequest.accountId);
-
-		if (!account) {
-			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id ${changePasswordRequest.accountId} not found. `);
+		// defense against stolen sessions
+		if (!(await this.passwordsManager.isSame(changePasswordContext.oldPassword, account.passwordHash, account.passwordSalt, account.passwordAlg))) {
+			if (await this.failedAuthenticationsManager.incrementSession(account, changePasswordContext)) {
+				throw createException(
+					ErrorCodes.INCORRECT_PASSWORD,
+					`Can't change password for account with id ${account.id}, because old passwords doesn't match.`
+				);
+			} else {
+				throw createException(
+					ErrorCodes.ACCOUNT_DISABLED,
+					`Can't change password for account with id ${account.id}, because it was disabled due to reached threshold of failed auth attempts.`
+				);
+			}
 		}
-		if (!account.disabledUntil) {
-			// just in case session invalidation failed when account was disabled
-			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${changePasswordRequest.accountId} is disabled. `);
-		}
-
-		// @fixme here we should also employ 2fa (ideally it would be that user already sends totp token, so we don't need to create temp sessions)
-
-		const passwordHash = {
-			hash: account.password,
-			salt: account.salt,
-			alg: account.alg
-		};
-
-		if (!(await this.passwordsManager.isSame(changePasswordRequest.oldPassword, passwordHash))) {
-			// @FIXME this is almost the same as auth, we should also employ there account lockout policies
-			throw createException(ErrorCodes.INCORRECT_PASSWORD, "Old passwords doesn't match. ");
-		}
+		await this.failedAuthenticationsManager.deleteSession(account);
 
 		// now that we know that old password is correct, we can safely check for equality with the new one
-		// @fixme do it with the help of https://www.npmjs.com/package/string-similarity, to check for similarities and impose a threshold
-		if (changePasswordRequest.oldPassword === changePasswordRequest.newPassword) {
-			throw createException(ErrorCodes.SAME_PASSWORD, 'New password is same as the old one. ');
+		if (compareTwoStrings(changePasswordContext.oldPassword, changePasswordContext.newPassword) >= this.options.thresholds.passwordSimilarity) {
+			throw createException(
+				ErrorCodes.SIMILAR_PASSWORDS,
+				`Can't change password for account with id ${account.id}, because new password is too similar with the old one.`
+			);
 		}
 
 		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
+		await this.passwordsManager.changeAndStoreOnAccount(changePasswordContext.newPassword, account, changePasswordContext);
 
-		await this.passwordsManager.change(changePasswordRequest.accountId, changePasswordRequest.newPassword);
-
-		if (typeof changePasswordRequest.logAllOtherSessionsOut !== 'boolean') {
-			// by default logout from all devices, needs to be be done, as usually jwt will be long lived
-			changePasswordRequest.logAllOtherSessionsOut = true;
-		}
-
-		// @fixme specify this in the JSDoc
-		if (changePasswordRequest.logAllOtherSessionsOut) {
-			return this.userSessionsManager.deleteAllButCurrent(account.id!, account.role, changePasswordRequest.sessionId);
-		}
+		await this.options.hooks.onPasswordChanged(account, changePasswordContext);
 	}
 
-	public async createForgotPasswordSession(forgotPasswordRequest: CreateForgotPasswordSessionRequest): Promise<void> {
-		if (!AuthenticationEngine.ALLOWED_SIDE_CHANNELS.includes(forgotPasswordRequest['2fa-channel'])) {
-			const errMsg = `Side-Channel ${
-				forgotPasswordRequest['2fa-channel']
-			} is UNKNOWN. Allowed side-channels are: ${AuthenticationEngine.ALLOWED_SIDE_CHANNELS.join(', ')}`;
-			throw createException(CoreErrorCodes.UNKNOWN, errMsg);
-		}
+	public async createForgotPasswordSession(
+		accountUniqueFieldName: `readBy${Capitalize<Extract<keyof Account, 'username' | 'email' | 'telephone'>>}`,
+		accountUniqueFieldValue: string
+	): Promise<void> {
+		const account = await this.accountManager[accountUniqueFieldName](accountUniqueFieldValue);
 
-		const account = await this.options.repositories.account.read(forgotPasswordRequest.username);
-		if (!account) {
-			// silently discard invalid username, in order to prevent user enumeration
-			return;
-		}
-
-		if (!account.disabledUntil) {
-			// it's pointless to use forgot password sequence for a disabled account
-			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled. `);
-		}
-
-		const sessionToken = await uidSafe(this.options.tokensLength);
-		await this.options.repositories.forgotPasswordSession.insert(
-			sessionToken,
-			{ accountId: account.id!, accountRole: account.role },
-			this.options.ttl.forgotPasswordSessionMinutes
-		);
-
-		// @fixme this is like 2fa, i.e. we should better not use sms and email, but push notifications, qr codes & otp etc.
-		try {
-			// WE HAVE CHECKED THEM AT THE METHOD START!!!
-			// eslint-disable-next-line default-case
-			switch (forgotPasswordRequest['2fa-channel']) {
-				case SIDE_CHANNEL.EMAIL:
-					await this.options['side-channels'].email.sendForgotPasswordToken(account.email, sessionToken);
-					break;
-				case SIDE_CHANNEL.SMS:
-					await this.options['side-channels'].sms.sendForgotPasswordToken(account.telephone, sessionToken);
-					break;
-			}
-		} catch (err) {
-			logger.error(`Failed to send forgot password token for account ${account.id}. Deleting session with id ${sessionToken}. `, err);
-			await this.options.repositories.forgotPasswordSession.delete(sessionToken);
-			throw err;
+		if (account.pubKey != null) {
+			const sessionToken = await this.tokenManager.issueEncoded(account.id);
+			await this.options.repositories.forgotPasswordSession.insert(sessionToken, this.options.ttl.forgotPasswordSession);
+			// @fixme maybe use sms too
+			await this.options.email.sender.sendForgotPasswordToken(account.email, publicEncrypt(account.pubKey, Buffer.from(sessionToken)).toString('utf8'));
+		} else if (account.mfa) {
+			// generate by 2fa
+		} else {
+			const sessionToken = await this.tokenManager.issueEncoded(account.id);
+			await this.options.repositories.forgotPasswordSession.insert(sessionToken, this.options.ttl.forgotPasswordSession);
+			// @fixme maybe use sms too
+			await this.options.email.sender.sendForgotPasswordToken(account.email, sessionToken); // without encryption
 		}
 	}
 
@@ -418,7 +385,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		 * 	  therefore in real life duplicate scenario won't likely to occur
 		 * 	- after all, it's not a big problem if we allow new password to be the same as the old one
 		 */
-		await this.passwordsManager.change(forgotPasswordSession.accountId, changeForgottenPasswordRequest.newPassword);
+		await this.passwordsManager.changeAndStoreOnAccount(forgotPasswordSession.accountId, changeForgottenPasswordRequest.newPassword);
 
 		try {
 			// prevent replay attacks
@@ -472,60 +439,6 @@ class AuthenticationEngine<Account extends AccountModel> {
 	}
 }
 
-interface RegistrationOptions {
-	enableMultiFactorAuth: boolean;
-	enabled: boolean; // based on user role, account can be activated or not at the registration time
-}
-
-interface TTLOptions {
-	authSessionMinutes?: number;
-	failedAuthAttemptsSessionMinutes?: number;
-	activateAccountSessionMinutes?: number;
-	forgotPasswordSessionMinutes?: number;
-	totpSeconds?: number;
-}
-
-interface ThresholdsOptions {
-	maxFailedAuthAttempts?: number;
-	recaptcha?: number;
-	passwordBreach?: number;
-	enableAccountAfterAuthFailureDelayMinutes?: number;
-}
-
-interface AuthenticationEngineOptions<Account extends AccountModel> {
-	repositories: {
-		account: AccountRepository<Account>;
-		onGoingAuthSession: AuthenticationSessionRepository;
-		accessPoint: SuccessfulAuthenticationsRepository;
-		failedAuthAttemptsSession: FailedAuthAttemptSessionRepository;
-		failedAuthAttempts: FailedAuthenticationAttemptsRepository;
-		forgotPasswordSession: ForgotPasswordSessionRepository;
-	};
-	'side-channels': {
-		email: EmailSender;
-	};
-	hooks: {
-		onAccountDisabled: OnAccountDisabledHook<Account>;
-	};
-	validators: {
-		recaptcha: RecaptchaValidator;
-		challengeResponse?: ChallengeResponseValidator;
-	};
-	password: {
-		hashing: PasswordHashing;
-		strengthValidators: PasswordStrengthPolicyValidator<Account>[];
-	};
-	ttl: TTLOptions;
-	thresholds: ThresholdsOptions;
-	tokensLength: number;
-	secrets: {
-		totp: string;
-	};
-	contacts: {
-		adminEmail: string;
-	};
-}
-
 function fillWithDefaults(options: AuthenticationEngineOptions): Required<InternalUsageOptions> {
 	options.ttl = options.ttl || {};
 	options.thresholds = options.thresholds || {};
@@ -533,16 +446,16 @@ function fillWithDefaults(options: AuthenticationEngineOptions): Required<Intern
 	return {
 		repositories: options.repositories,
 		ttl: {
-			authSessionMinutes: options.ttl.authSessionMinutes || 2, // this needs to be as short as possible
-			failedAuthAttemptsSessionMinutes: options.ttl.failedAuthAttemptsSessionMinutes || 10,
-			activateAccountSessionMinutes: options.ttl.activateAccountSessionMinutes || 60,
-			forgotPasswordSessionMinutes: options.ttl.forgotPasswordSessionMinutes || 5,
+			authSessionMinutes: options.ttl.authenticationSession || 2, // this needs to be as short as possible
+			failedAuthAttemptsSessionMinutes: options.ttl.failedAuthAttemptsSession || 10,
+			activateAccountSessionMinutes: options.ttl.activateAccountSession || 60,
+			forgotPasswordSessionMinutes: options.ttl.forgotPasswordSession || 5,
 			totpSeconds: options.ttl.totpSeconds || 30
 		},
 		thresholds: {
 			maxFailedAuthAttempts: options.thresholds.maxFailedAuthAttempts || 20,
 			recaptcha: options.thresholds.recaptcha || 10,
-			passwordBreach: options.thresholds.passwordBreach || 5,
+			passwordBreach: options.thresholds.passwordSimilarity || 5,
 			enableAccountAfterAuthFailureDelayMinutes: options.thresholds.enableAccountAfterAuthFailureDelayMinutes || 120
 		},
 		tokensLength: options.tokensLength,

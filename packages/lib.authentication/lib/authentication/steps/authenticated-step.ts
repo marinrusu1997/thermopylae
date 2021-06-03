@@ -1,8 +1,9 @@
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
 import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
-import type { EmailSender } from '../../side-channels';
+import type { EmailSender } from '../../types/side-channels';
 import type { AuthenticationContext } from '../../types/contexts';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly emailSender: EmailSender;
@@ -21,7 +22,11 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 		this.failedAuthAttemptSessionRepository = failedAuthAttemptSessionRepository;
 	}
 
-	public async process(account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput> {
+	public async process(
+		account: Account,
+		authenticationContext: AuthenticationContext,
+		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
+	): Promise<AuthenticationStepOutput> {
 		if (
 			authenticationContext.device &&
 			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
@@ -29,8 +34,7 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 			await this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authenticationContext);
 		}
 
-		// reset failed auth attempts on successful authentication (in detached mode)
-		await this.failedAuthAttemptSessionRepository.delete(account.username);
+		await Promise.all([this.failedAuthAttemptSessionRepository.delete(account.username), authenticationSessionRepositoryHolder.delete()]);
 
 		return {
 			done: { authenticated: true }

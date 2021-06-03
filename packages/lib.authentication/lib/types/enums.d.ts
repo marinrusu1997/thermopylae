@@ -11,16 +11,7 @@ export const enum AuthenticationStepName {
 	UNKNOWN = 'UNKNOWN'
 }
 
-export const enum TwoFactorAuthAChannelType {
-	EMAIL,
-	SMS,
-	TOTP,
-	PUSH_NOTIFICATION
-}
-
-export const enum TwoFactorAuthOperationType {
-	DISABLED = 0,
-	AUTHENTICATION = 1 << 0,
-	CHANGE_PASSWORD = 1 << 1,
-	VERIFY_CREDENTIALS = 1 << 2
+export const enum AccountStatus {
+	ENABLED = 0,
+	DISABLED_UNTIL_ACTIVATION = -1
 }

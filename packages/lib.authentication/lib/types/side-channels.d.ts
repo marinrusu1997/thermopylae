@@ -1,4 +1,4 @@
-import { AuthenticationContext, ChangePasswordContext } from './types/contexts';
+import { AuthenticationContext, ChangePasswordContext } from './contexts';
 
 declare interface EmailSender {
 	notifyMultiFactorAuthenticationFailed(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;

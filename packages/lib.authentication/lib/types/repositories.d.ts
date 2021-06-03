@@ -1,7 +1,6 @@
 import type { HttpDevice, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import type { SuccessfulAuthenticationModel, AccountModel, FailedAuthenticationModel } from './models';
-import type { AuthenticationSession, FailedAuthenticationAttemptSession, ForgotPasswordSession } from './sessions';
-import type { TwoFactorAuthOperationType } from './enums';
+import type { AuthenticationSession, FailedAuthenticationAttemptSession } from './sessions';
 
 /**
  * Repository which stores user accounts.
@@ -20,15 +19,6 @@ interface AccountRepository<Account extends AccountModel> {
 	insert(account: Account): Promise<void>;
 
 	/**
-	 * Read account from repository by his username.
-	 *
-	 * @param username	Account username.
-	 *
-	 * @returns		Account entity or null when not found.
-	 */
-	read(username: string): Promise<Account | null>;
-
-	/**
 	 * Read account from repository by his id.
 	 *
 	 * @param accountId		Account id.
@@ -36,6 +26,33 @@ interface AccountRepository<Account extends AccountModel> {
 	 * @returns				Account entity or null when not found.
 	 */
 	readById(accountId: string): Promise<Account | null>;
+
+	/**
+	 * Read account from repository by his username.
+	 *
+	 * @param username	Account username.
+	 *
+	 * @returns			Account entity or null when not found.
+	 */
+	readByUsername(username: string): Promise<Account | null>;
+
+	/**
+	 * Read account from repository by his email.
+	 *
+	 * @param email		Account email.
+	 *
+	 * @returns			Account entity or null when not found.
+	 */
+	readByEmail(email: string): Promise<Account | null>;
+
+	/**
+	 * Read account from repository by his telephone number.
+	 *
+	 * @param telephone	Account telephone.
+	 *
+	 * @returns			Account entity or null when not found.
+	 */
+	readByTelephone(telephone: string): Promise<Account | null>;
 
 	/**
 	 * Delete account from repository.
@@ -59,12 +76,12 @@ interface AccountRepository<Account extends AccountModel> {
 	/**
 	 * Change account two factor auth status.
 	 *
-	 * @param accountId					Account id.
-	 * @param twoFactorAuthOperation	Two factor auth operation.
+	 * @param accountId		Account id.
+	 * @param enabled		Whether two factor auth is enabled.
 	 *
-	 * @throws {Error}					When account is not found or any other error is encountered.
+	 * @throws {Error}		When account is not found or any other error is encountered.
 	 */
-	setTwoFactorAuth(accountId: string, twoFactorAuthOperation: TwoFactorAuthOperationType): Promise<void>;
+	setTwoFactorAuthEnabled(accountId: string, enabled: boolean): Promise<void>;
 
 	/**
 	 * Change account password.
@@ -76,7 +93,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @throws {Error}				When account is not found or any other error is encountered.
 	 */
-	changePassword(accountId: string, passwordHash: string, salt: string, hashingAlg: number): Promise<void>;
+	changePassword(accountId: string, passwordHash: string, salt: string | undefined, hashingAlg: number): Promise<void>;
 }
 
 /**
@@ -202,6 +219,38 @@ interface FailedAuthAttemptSessionRepository {
 }
 
 /**
+ * Repository which holds temporary accounts that weren't activated yet.
+ */
+interface ActivateAccountSessionRepository<Account extends AccountModel> {
+	/**
+	 * Insert session.
+	 *
+	 * @param token			Activate account token.
+	 * @param account		Account that needs to be activated.
+	 * @param ttl			Session ttl in seconds.
+	 *
+	 * @throws {Error}		When token exists already.
+	 */
+	insert(token: string, account: Account, ttl: Seconds): Promise<void>;
+
+	/**
+	 * Read session.
+	 *
+	 * @param token		Activate account token.
+	 *
+	 * @returns			Account that needs to be activated or `null` when token was not valid.
+	 */
+	read(token: string): Promise<Account | null>;
+
+	/**
+	 * Delete session.
+	 *
+	 * @param token		Activate account token.
+	 */
+	delete(token: string): Promise<void>;
+}
+
+/**
  * Repository which holds forgot password sessions.
  */
 interface ForgotPasswordSessionRepository {
@@ -209,19 +258,18 @@ interface ForgotPasswordSessionRepository {
 	 * Insert forgot password session.
 	 *
 	 * @param token			Forgot password session token.
-	 * @param session		Forgot password session.
 	 * @param ttl			Session ttl in seconds.
+	 *
+	 * @throws {Error}		When token exists already.
 	 */
-	insert(token: string, session: ForgotPasswordSession, ttl: Seconds): Promise<void>;
+	insert(token: string, ttl: Seconds): Promise<void>;
 
 	/**
-	 * Read forgot password session.
+	 * Check whether forgot password session token exists.
 	 *
 	 * @param token		Forgot password session token.
-	 *
-	 * @returns			Forgot password session or null when not found.
 	 */
-	read(token: string): Promise<ForgotPasswordSession | null>;
+	exists(token: string): Promise<boolean>;
 
 	/**
 	 * Delete forgot password session.
@@ -237,5 +285,6 @@ export type {
 	SuccessfulAuthenticationsRepository,
 	AuthenticationSessionRepository,
 	FailedAuthAttemptSessionRepository,
+	ActivateAccountSessionRepository,
 	ForgotPasswordSessionRepository
 };

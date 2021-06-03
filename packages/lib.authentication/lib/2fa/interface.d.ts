@@ -1,17 +1,11 @@
 import type { AccountModel } from '../types/models';
-import type { TwoFactorAuthAChannelType } from '../types/enums';
-import type { AuthenticationSessionRepositoryHolder } from '../sessions/authentication';
+import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../types/contexts';
 
 /**
  * Represents 2 Factor Authentication strategy.
  */
 interface TwoFactorAuthStrategy<Account extends AccountModel> {
-	/**
-	 * Type of the two factor auth.
-	 */
-	readonly type: TwoFactorAuthAChannelType;
-
 	/**
 	 * Hook used by strategy in order to attach metadata to account before it's registered.
 	 *

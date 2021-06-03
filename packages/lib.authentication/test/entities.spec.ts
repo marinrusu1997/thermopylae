@@ -35,15 +35,15 @@ describe('entities', () => {
 
 		account.id = await AccountEntityMongo.insert(account);
 		expect(await AccountEntityMongo.readById(account.id)).to.be.deep.equal(account);
-		expect(await AccountEntityMongo.read(account.username)).to.be.deep.equal(account);
+		expect(await AccountEntityMongo.readByUsername(account.username)).to.be.deep.equal(account);
 		await AccountEntityMongo.disable(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.disabledUntil).to.be.equal(false);
+		expect((await AccountEntityMongo.readByUsername(account.username))!.disabledUntil).to.be.equal(false);
 		await AccountEntityMongo.enable(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.disabledUntil).to.be.equal(true);
+		expect((await AccountEntityMongo.readByUsername(account.username))!.disabledUntil).to.be.equal(true);
 		await AccountEntityMongo.enableMultiFactorAuth(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(true);
+		expect((await AccountEntityMongo.readByUsername(account.username))!.mfa).to.be.equal(true);
 		await AccountEntityMongo.disableMultiFactorAuth(account.id!);
-		expect((await AccountEntityMongo.read(account.username))!.mfa).to.be.equal(false);
+		expect((await AccountEntityMongo.readByUsername(account.username))!.mfa).to.be.equal(false);
 	});
 
 	it('failed auth attempts', async () => {

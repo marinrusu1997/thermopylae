@@ -17,12 +17,12 @@ describe('Account registration spec', () => {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1, // sec
-			activateAccountSessionMinutes: 0.01, // in minutes -> 1 sec
-			failedAuthAttemptsSessionMinutes: 0.01, // in minutes -> 1 sec
-			authSessionMinutes: 0.01 // in minutes -> 1 sec
+			activateAccountSession: 0.01, // in minutes -> 1 sec
+			failedAuthAttemptsSession: 0.01, // in minutes -> 1 sec
+			authenticationSession: 0.01 // in minutes -> 1 sec
 		},
 		thresholds: {
-			passwordBreach: 1,
+			passwordSimilarity: 1,
 			recaptcha: 2,
 			maxFailedAuthAttempts: 3
 		}
@@ -53,7 +53,7 @@ describe('Account registration spec', () => {
 
 	it('registers a new account using explicit registration options', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true }); // do not trigger deletion timer
-		const account = await basicAuthEngineConfig.repositories.account.read('username');
+		const account = await basicAuthEngineConfig.repositories.account.readByUsername('username');
 		if (!account) {
 			throw new Error('Registered account not found');
 		}
@@ -70,7 +70,7 @@ describe('Account registration spec', () => {
 
 	it('registers a new account with default registration options when they are not explicitly provided', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo); // activate default is false, it will trigger deletion timer
-		const account = await basicAuthEngineConfig.repositories.account.read('username');
+		const account = await basicAuthEngineConfig.repositories.account.readByUsername('username');
 
 		if (!account) {
 			throw new Error('Registered account not found');
@@ -127,7 +127,7 @@ describe('Account registration spec', () => {
 
 		await chrono.sleep(1500); // wait for scheduleDeletion account scheduler timer to finish
 
-		const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+		const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 		if (!account) {
 			throw new Error('Account not found. Delete account scheduling was not cancelled.');
 		}
@@ -146,7 +146,7 @@ describe('Account registration spec', () => {
 		const activationToken = JSON.parse(basicAuthEngineConfig['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string);
 		await AuthEngineInstance.activateAccount(activationToken.token);
 
-		const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+		const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 		if (!account) {
 			throw new Error('Account not found. Delete account scheduling was not cancelled.');
 		}
@@ -201,7 +201,7 @@ describe('Account registration spec', () => {
 
 		const activateAccountSession = await basicAuthEngineConfig.repositories.activateAccountSession.read(activationToken.token);
 		expect(activateAccountSession).to.be.eq(null);
-		const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+		const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 		expect(account).to.be.eq(null);
 	});
 
@@ -212,7 +212,7 @@ describe('Account registration spec', () => {
 			assert(false, 'Non-activated account was registered, even if scheduling deletion of unactivated account failed');
 		} catch (e) {
 			expect(e).to.be.instanceOf(Error, 'Scheduling scheduleDeletion unactivated account was configured to fail');
-			const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+			const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 			expect(account).to.be.eq(null);
 			expect(hasActiveTimers()).to.be.eq(false);
 			expect(hasAnySessions()).to.be.eq(false);
@@ -226,7 +226,7 @@ describe('Account registration spec', () => {
 			assert(false, 'Non-activated account was registered, even if creation of activate account session failed');
 		} catch (e) {
 			expect(e).to.be.instanceOf(Error, 'Creation of activate account session was configured to fail.');
-			const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+			const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 			expect(account).to.be.eq(null);
 			expect(hasActiveTimers()).to.be.eq(false);
 			expect(hasAnySessions()).to.be.eq(false);
@@ -246,7 +246,7 @@ describe('Account registration spec', () => {
 			expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', EmailErrorCodes.EMAIL_DELIVERY_FAILED);
 			expect(e).to.haveOwnProperty('message', 'Email client was configured to fail mail delivery');
 
-			const account = await basicAuthEngineConfig.repositories.account.read(defaultRegistrationInfo.username);
+			const account = await basicAuthEngineConfig.repositories.account.readByUsername(defaultRegistrationInfo.username);
 			expect(account).to.be.eq(null);
 			expect(hasActiveTimers()).to.be.eq(false);
 			expect(hasAnySessions()).to.be.eq(false);

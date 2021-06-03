@@ -52,7 +52,7 @@ const AccountEntityMongo: AccountRepository = {
 		// eslint-disable-next-line no-underscore-dangle
 		return String(accountModel._id);
 	},
-	read: async (username) => {
+	readByUsername: async (username) => {
 		const accountModel = await getMongoModel(Models.ACCOUNT, AccountSchema).find({ username }).exec();
 		if (!accountModel.length) {
 			return null;

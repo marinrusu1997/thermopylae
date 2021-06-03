@@ -28,10 +28,10 @@ describe('Authenticate spec', () => {
 		...basicAuthEngineConfig,
 		ttl: {
 			totpSeconds: 1,
-			authSessionMinutes: 0.01 // 1 second
+			authenticationSession: 0.01 // 1 second
 		},
 		thresholds: {
-			passwordBreach: 1,
+			passwordSimilarity: 1,
 			recaptcha: 2,
 			maxFailedAuthAttempts: 3,
 			enableAccountAfterAuthFailureDelayMinutes: 0.03 // 3 seconds
@@ -104,10 +104,10 @@ describe('Authenticate spec', () => {
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
-		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authSessionMinutes!) * 1000 + 50; // 1050 ms
+		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authenticationSession!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
-		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 	});
 
@@ -363,7 +363,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -402,7 +402,7 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.repositories.onGoingAuthSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
@@ -437,7 +437,7 @@ describe('Authenticate spec', () => {
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
 
-		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
+		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptSession.read(defaultRegistrationInfo.username);
 		expect(failedAuthAttemptsSession!.counter).to.be.eq(2);
 	});
 
@@ -465,7 +465,7 @@ describe('Authenticate spec', () => {
 			expect(authStatus.error!.hard).to.be.eq(undefined);
 		}
 
-		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptsSession.read(defaultRegistrationInfo.username);
+		const failedAuthAttemptsSession = await AuthenticationEngineConfig.repositories.failedAuthAttemptSession.read(defaultRegistrationInfo.username);
 		expect(failedAuthAttemptsSession!.counter).to.be.eq(2);
 	});
 
@@ -712,7 +712,9 @@ describe('Authenticate spec', () => {
 		await validateSuccessfulLogin(AuthEngineInstance, authRequest);
 
 		// session was deletion, prevent replay attacks with already emitted nonce
-		expect(await AuthenticationEngineConfig.repositories.onGoingAuthSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(null);
+		expect(await AuthenticationEngineConfig.repositories.authenticationSession.read(defaultRegistrationInfo.username, validAuthRequest.device)).to.be.eq(
+			null
+		);
 	});
 
 	it('authenticates user having password hashed with old algorithm, after password hashing algorithm changes', async () => {
