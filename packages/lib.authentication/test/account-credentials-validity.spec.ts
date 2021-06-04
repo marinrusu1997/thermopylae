@@ -27,9 +27,7 @@ describe('Validate account credentials spec', () => {
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
 	});
 
@@ -43,9 +41,7 @@ describe('Validate account credentials spec', () => {
 		} catch (e) {
 			err = e;
 		}
-		expect(err)
-			.to.be.instanceOf(Exception)
-			.and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
 	});
 

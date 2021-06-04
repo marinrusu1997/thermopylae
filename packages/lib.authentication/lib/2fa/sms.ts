@@ -17,11 +17,11 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		this.options = options;
 	}
 
-	public async beforeRegister(): Promise<void> {
+	public async beforeRegister(): Promise<undefined> {
 		return undefined;
 	}
 
-	public async sendToken(
+	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
@@ -33,7 +33,7 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		authenticationSession['2fa-token'] = token;
 	}
 
-	public async isTokenValid(
+	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder

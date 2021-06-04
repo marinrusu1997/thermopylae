@@ -110,6 +110,8 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
  */
 const RENEWED_SESSION_FLAG = -1;
 
+// @fixme remember me feature https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
+
 /**
  * Stateful implementation of the user sessions. <br/>
  * Session data is stored in external storage and client receives only it's id. <br/>

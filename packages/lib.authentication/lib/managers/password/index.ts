@@ -1,8 +1,6 @@
 import type { AccountRepository } from '../../types/repositories';
 import type { PasswordStrengthPolicyValidator } from './strength/policy';
 import type { AccountModel } from '../../types/models';
-import type { EmailSender } from '../../types/side-channels';
-import type { ChangePasswordContext } from '../../types/contexts';
 import type { SecretEncryptor } from '../../helpers/secret-encryptor';
 import type { PasswordHashingAlgorithm } from './hash';
 
@@ -25,27 +23,21 @@ class PasswordsManager<Account extends AccountModel> {
 
 	private readonly accountRepository: AccountRepository<Account>;
 
-	private readonly emailSender: EmailSender;
-
 	public constructor(
 		passwordHashing: PasswordHashing,
 		passwordEncryptor: SecretEncryptor,
 		passwordStrength: PasswordStrengthPolicyValidator<Account>[],
-		accountRepository: AccountRepository<Account>,
-		emailSender: EmailSender
+		accountRepository: AccountRepository<Account>
 	) {
 		this.hashing = passwordHashing;
 		this.encryptor = passwordEncryptor;
 		this.strength = passwordStrength;
 		this.accountRepository = accountRepository;
-		this.emailSender = emailSender;
 	}
 
-	public async changeAndStoreOnAccount(newPassword: string, account: Account, context: ChangePasswordContext): Promise<void> {
+	public async changeAndStoreOnAccount(newPassword: string, account: Account): Promise<void> {
 		await this.hashAndStoreOnAccount(newPassword, account);
 		await this.accountRepository.changePassword(account.id, account.passwordHash, account.passwordSalt, account.passwordAlg);
-
-		await this.emailSender.notifyPasswordChanged(account.email, context);
 	}
 
 	public async hashAndStoreOnAccount(password: string, account: Account): Promise<void> {

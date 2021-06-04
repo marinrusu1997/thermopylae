@@ -1,6 +1,6 @@
 import { AuthenticationContext, ChangePasswordContext } from './contexts';
 
-declare interface EmailSender {
+interface EmailSender {
 	notifyMultiFactorAuthenticationFailed(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
@@ -18,4 +18,8 @@ declare interface EmailSender {
 	sendForgotPasswordToken(emailAddress: string, token: string): Promise<void>;
 }
 
-export { EmailSender };
+interface SmsSender {
+	sendForgotPasswordToken(telephone: string, token: string): Promise<void>;
+}
+
+export { EmailSender, SmsSender };

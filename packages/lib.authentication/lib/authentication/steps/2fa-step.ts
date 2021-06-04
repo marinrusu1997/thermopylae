@@ -26,7 +26,7 @@ class TwoFactorAuthStep<Account extends AccountModel> implements AuthenticationS
 			return { nextStep: AuthenticationStepName.ERROR };
 		}
 
-		if (await this.twoFactorAuthStrategy.isTokenValid(account, authenticationContext, authenticationSessionRepositoryHolder)) {
+		if (await this.twoFactorAuthStrategy.isAuthenticationTokenValid(account, authenticationContext, authenticationSessionRepositoryHolder)) {
 			return { nextStep: AuthenticationStepName.AUTHENTICATED };
 		}
 

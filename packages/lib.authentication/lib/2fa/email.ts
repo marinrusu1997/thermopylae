@@ -1,4 +1,4 @@
-import { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
+import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
 import type { TwoFactorAuthStrategy } from './interface';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationContext } from '../types/contexts';
@@ -17,11 +17,11 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		this.options = options;
 	}
 
-	public async beforeRegister(): Promise<void> {
+	public async beforeRegister(): Promise<undefined> {
 		return undefined;
 	}
 
-	public async sendToken(
+	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
@@ -33,7 +33,7 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		authenticationSession['2fa-token'] = token;
 	}
 
-	public async isTokenValid(
+	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder

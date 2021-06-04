@@ -26,7 +26,7 @@ rolesTtlMap.set(ACCOUNT_ROLES.USER, 1);
 
 (async (): Promise<void> => {
 	await defaultJwtInstance.blacklist().init(new MemoryStorage(), 1);
-	await defaultJwtInstance.blacklist().defineAudiences(Array.from(rolesTtlMap.entries()).map(entry => ({ name: entry[0], ttl: entry[1] })));
+	await defaultJwtInstance.blacklist().defineAudiences(Array.from(rolesTtlMap.entries()).map((entry) => ({ name: entry[0], ttl: entry[1] })));
 })();
 
 export { defaultJwtInstance, rolesTtlMap, ACCOUNT_ROLES };

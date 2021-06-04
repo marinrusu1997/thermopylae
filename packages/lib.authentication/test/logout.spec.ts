@@ -18,7 +18,7 @@ describe('Logout spec', () => {
 		},
 		thresholds: {
 			passwordSimilarity: 1,
-			recaptcha: 2,
+			failedAuthAttemptsRecaptcha: 2,
 			maxFailedAuthAttempts: 3
 		}
 	};

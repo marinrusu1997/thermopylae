@@ -9,26 +9,27 @@ interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	/**
 	 * Hook used by strategy in order to attach metadata to account before it's registered.
 	 *
-	 * @param account				User account.
-	 * @param registerResponse		Response that will be sent to user after registration.
+	 * @param account	User account.
+	 *
+	 * @returns			Result to be returned to user.
 	 */
-	beforeRegister(account: Account, registerResponse: Record<string, any>): Promise<void>;
+	beforeRegister(account: Account): Promise<Record<string, any> | undefined>;
 
 	/**
-	 * Send token via side channel.
+	 * Send authentication token via side channel.
 	 *
 	 * @param account									User account.
 	 * @param authenticationContext						Authentication context.
 	 * @param authenticationSessionRepositoryHolder		Authentication session repository holder.
 	 */
-	sendToken(
+	sendAuthenticationToken(
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void>;
 
 	/**
-	 * Verify 2FA token.
+	 * Verify 2FA authentication token.
 	 *
 	 * @param account									User account.
 	 * @param authenticationContext						Authentication context.
@@ -36,7 +37,7 @@ interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	 *
 	 * @returns         								Whether token is valid.
 	 */
-	isTokenValid(
+	isAuthenticationTokenValid(
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder

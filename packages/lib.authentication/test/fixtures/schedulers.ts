@@ -39,7 +39,7 @@ const ScheduleAccountEnablingFromMongo: ScheduleAccountEnabling = async (account
 	}
 
 	return registerTask(() => {
-		AccountEntityMongo.enable(accountId).catch(err => console.error('Error occured in scheduling account enabling', err));
+		AccountEntityMongo.enable(accountId).catch((err) => console.error('Error occured in scheduling account enabling', err));
 	}, whenToEnable);
 };
 
@@ -49,7 +49,7 @@ const ScheduleActiveUserSessionDeletionFromMongo: ScheduleActiveUserSessionDelet
 	}
 
 	return registerTask(() => {
-		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch(err =>
+		ActiveUserSessionEntityMongo.delete(accountId, sessionTimestamp).catch((err) =>
 			console.error('Error occurred in scheduling scheduleDeletion active user session', err)
 		);
 	}, whenToDelete);
@@ -61,12 +61,12 @@ const ScheduleUnactivatedAccountDeletionFromMongo: ScheduleUnactivatedAccountDel
 	}
 
 	return registerTask(
-		() => AccountEntityMongo.delete(accountId).catch(err => console.error('Error occurred while scheduling unactivated account deletion', err)),
+		() => AccountEntityMongo.delete(accountId).catch((err) => console.error('Error occurred while scheduling unactivated account deletion', err)),
 		whenToDelete
 	);
 };
 
-const CancelScheduledUnactivatedAccountDeletionFromMongo: CancelScheduledUnactivatedAccountDeletion = async taskId => {
+const CancelScheduledUnactivatedAccountDeletionFromMongo: CancelScheduledUnactivatedAccountDeletion = async (taskId) => {
 	if (failures.get(SCHEDULING_OP.CANCEL_DELETION_OF_UNACTIVATED_ACCOUNT)) {
 		throw new Error('Canceling deletion of unactivated account was configured to fail');
 	}
@@ -85,7 +85,7 @@ function failureWillBeGeneratedWhenScheduling(operation: SCHEDULING_OP, willBeGe
 }
 
 function cleanUpSchedulers(): void {
-	scheduledTasks.forEach(timeout => clearTimeout(timeout));
+	scheduledTasks.forEach((timeout) => clearTimeout(timeout));
 	scheduledTasks.clear();
 	failures.clear();
 }

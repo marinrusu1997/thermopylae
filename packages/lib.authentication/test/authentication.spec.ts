@@ -32,7 +32,7 @@ describe('Authenticate spec', () => {
 		},
 		thresholds: {
 			passwordSimilarity: 1,
-			recaptcha: 2,
+			failedAuthAttemptsRecaptcha: 2,
 			maxFailedAuthAttempts: 3,
 			enableAccountAfterAuthFailureDelayMinutes: 0.03 // 3 seconds
 		}
@@ -252,7 +252,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
 		// activate recaptcha
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -270,7 +270,7 @@ describe('Authenticate spec', () => {
 		let numberOfAuthAttempts = 0;
 
 		// increase failure counter from one session till recaptcha
-		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha! - 1;
+		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha! - 1;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE1, password: 'invalid' });
@@ -280,7 +280,8 @@ describe('Authenticate spec', () => {
 		}
 
 		// from another session increase till account is disabled
-		let numberOfTriesTillAccountLock = AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - AuthenticationEngineConfig.thresholds!.recaptcha!;
+		let numberOfTriesTillAccountLock =
+			AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts! - AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!;
 		// eslint-disable-next-line no-plusplus
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE2, password: 'invalid' });
@@ -289,7 +290,7 @@ describe('Authenticate spec', () => {
 			numberOfAuthAttempts += 1;
 		}
 
-		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds!.recaptcha);
+		expect(numberOfAuthAttempts).to.be.eq(AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha);
 
 		const status = await AuthEngineInstance.authenticate({ ...validAuthRequest, device: DEVICE3, password: 'invalid' });
 		expect(status.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
@@ -473,7 +474,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
 		async function authenticateAfterSoftErrorInRecaptchaStep() {
-			let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha!;
+			let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!;
 			// eslint-disable-next-line no-plusplus
 			while (recaptchaThreshold--) {
 				await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -494,7 +495,7 @@ describe('Authenticate spec', () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
 		// trigger recaptcha
-		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.recaptcha!;
+		let recaptchaThreshold = AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!;
 		// eslint-disable-next-line no-plusplus
 		while (recaptchaThreshold--) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
@@ -529,11 +530,15 @@ describe('Authenticate spec', () => {
 	it('aborts authentication after hard error occurred in recaptcha step (mfa disabled)', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
-		for (let i = AuthenticationEngineConfig.thresholds!.recaptcha!; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+		for (
+			let i = AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!;
+			i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!;
+			i++
+		) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, recaptcha: 'invalid' });
 		}
 
@@ -548,7 +553,7 @@ describe('Authenticate spec', () => {
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
 		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
 
-		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.recaptcha!; i++) {
+		for (let i = 0; i < AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!; i++) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
 		}
 
@@ -556,7 +561,11 @@ describe('Authenticate spec', () => {
 		expect(recaptchaAuthStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.not.be.eq(undefined);
 
-		for (let i = AuthenticationEngineConfig.thresholds!.recaptcha!; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
+		for (
+			let i = AuthenticationEngineConfig.thresholds!.failedAuthAttemptsRecaptcha!;
+			i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!;
+			i++
+		) {
 			await AuthEngineInstance.authenticate({ ...validAuthRequest, totp: 'invalid' });
 		}
 

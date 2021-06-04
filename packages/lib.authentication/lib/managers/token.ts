@@ -7,13 +7,17 @@ class TokenManager {
 		this.length = length;
 	}
 
-	public async issueEncoded(accountId: string): Promise<string> {
+	public async issueEncodedWithAccountId(accountId: string): Promise<string> {
 		const token = await uidSafe(this.length);
 		return `${token}${accountId}`;
 	}
 
 	public decode(token: string): [string, string] {
 		return [token.slice(0, this.length), token.slice(this.length)];
+	}
+
+	public extractAccountId(token: string): string {
+		return token.slice(this.length);
 	}
 }
 

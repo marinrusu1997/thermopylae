@@ -17,7 +17,7 @@ class GenerateTwoFactorAuthTokenStep<Account extends AccountModel> implements Au
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<AuthenticationStepOutput> {
-		await this.twoFactorAuthStrategy.sendToken(account, authenticationContext, authenticationSessionRepositoryHolder);
+		await this.twoFactorAuthStrategy.sendAuthenticationToken(account, authenticationContext, authenticationSessionRepositoryHolder);
 		return { done: { nextStep: AuthenticationStepName.TWO_FACTOR_AUTH_CHECK } }; // partial successful authentication
 	}
 }

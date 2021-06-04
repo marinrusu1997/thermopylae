@@ -68,11 +68,11 @@ class AccountManager<Account extends AccountModel> {
 		return account;
 	}
 
-	public async enable(account: Account): Promise<void> {
-		await this.accountRepository.setDisabledUntil(account.id, AccountStatus.ENABLED);
+	public async enable(accountId: string): Promise<void> {
+		await this.accountRepository.setDisabledUntil(accountId, AccountStatus.ENABLED);
 	}
 
-	public async disable(account: Account, until: UnixTimestamp, cause: string): Promise<void> {
+	public async disable(account: Account, until: UnixTimestamp | AccountStatus.DISABLED_UNTIL_ACTIVATION, cause: string): Promise<void> {
 		// best effort, we must take at least one of these actions, because it's clearly
 		// that something bad happened in the system, if account needs to be disabled
 		await Promise.all([
