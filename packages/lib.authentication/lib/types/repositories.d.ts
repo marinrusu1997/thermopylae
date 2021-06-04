@@ -8,7 +8,8 @@ import type { AuthenticationSession, FailedAuthenticationAttemptSession } from '
 interface AccountRepository<Account extends AccountModel> {
 	/**
 	 * Inserts a new account. <br/>
-	 * Accounts are unique, and therefore in case account already exists, and exception needs to be thrown. <br/>
+	 * Accounts are unique, and therefore in case account with same {@link AccountModel.username} already exists,
+	 * an exception needs to be thrown. <br/>
 	 * On successful account insertion, it's generated id needs to be stored in the {@link AccountModel.id} property of the
 	 * `account` argument.
 	 *

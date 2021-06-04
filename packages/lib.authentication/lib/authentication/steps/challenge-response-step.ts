@@ -1,4 +1,4 @@
-import type { Encoding } from 'crypto';
+import type { BinaryToTextEncoding } from 'crypto';
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
@@ -10,7 +10,7 @@ type ChallengeResponseValidator = (
 	nonce: string,
 	signature: string | Buffer,
 	signAlgorithm: string,
-	encoding: Encoding
+	encoding: BinaryToTextEncoding
 ) => Promise<boolean>;
 
 class ChallengeResponseStep<Account extends AccountModel> implements AuthenticationStep<Account> {

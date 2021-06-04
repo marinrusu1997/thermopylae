@@ -1,5 +1,5 @@
 import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
-import type { Encoding } from 'crypto';
+import type { BinaryToTextEncoding } from 'crypto';
 
 interface BaseContext {
 	ip: string;
@@ -17,7 +17,7 @@ interface AuthenticationContext extends BaseContext {
 	responseForChallenge?: {
 		signature: string | Buffer;
 		signAlgorithm: string;
-		signEncoding: Encoding;
+		signEncoding: BinaryToTextEncoding;
 	};
 }
 

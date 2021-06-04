@@ -1,30 +1,11 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import {
-	SuccessfulAuthenticationsRepository,
-	AccountRepository,
-	ActiveUserSessionEntity,
-	FailedAuthenticationAttemptsRepository
-} from '../../lib/types/repositories';
+import mongoose from 'test/fixtures/mongodb';
+import { SuccessfulAuthenticationsRepository, AccountRepository, FailedAuthenticationAttemptsRepository } from '../../lib';
 
-const mongod = new MongoMemoryServer();
+const mongoMemoryServer = new MongoMemoryServer();
 
 // see https://stackoverflow.com/questions/51960171/node63208-deprecationwarning-collection-ensureindex-is-deprecated-use-creat
 mongoose.set('useCreateIndex', true);
-
-// see https://stackoverflow.com/questions/39035634/mocha-watch-and-mongoose-models
-function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mongoose.Document> {
-	return mongoose.models[name] // Check if the model exists
-		? mongoose.model(name) // If true, only retrieve it
-		: mongoose.model(name, schema); // If false, define it
-}
-
-enum ENTITIES_OP {
-	FAILED_AUTH_ATTEMPTS_CREATE,
-	ACTIVE_USER_SESSION_DELETE_ALL,
-	ACCOUNT_DISABLE
-}
-const failures = new Map<ENTITIES_OP, boolean>();
 
 const Models = {
 	ACCOUNT: 'account',
@@ -344,64 +325,4 @@ const ActiveUserSessionEntityMongo: ActiveUserSessionEntity = {
 	}
 };
 
-/**
- * Connect to the in-memory database.
- */
-function connectToMongoServer(): Promise<mongoose.Mongoose> {
-	return mongod.getConnectionString().then((uri) => {
-		const mongooseOpts: mongoose.ConnectionOptions = {
-			useNewUrlParser: true,
-			useUnifiedTopology: true
-		};
-		return mongoose.connect(uri, mongooseOpts);
-	});
-}
-
-/**
- * Drop database, close the connection and stop mongod.
- */
-function closeMongoDatabase(): Promise<boolean> {
-	return mongoose.connection
-		.dropDatabase()
-		.then(() => {
-			return mongoose.connection.close();
-		})
-		.then(() => {
-			return mongod.stop();
-		});
-}
-
-/**
- * Remove all the data for all db collections.
- */
-function clearMongoDatabase(): Promise<any[]> {
-	const collectionNames = Object.keys(mongoose.connection.collections);
-	const deletePromises: Array<Promise<any>> = [];
-
-	for (let i = 0; i < collectionNames.length; i += 1) {
-		deletePromises.push(mongoose.connection.collections[collectionNames[i]].deleteMany({}));
-	}
-
-	return Promise.all(deletePromises);
-}
-
-function failureWillBeGeneratedForEntityOperation(op: ENTITIES_OP, willFail = true): void {
-	failures.set(op, willFail);
-}
-
-function clearOperationFailuresForEntities(): void {
-	failures.clear();
-}
-
-export {
-	ENTITIES_OP,
-	AccountEntityMongo,
-	FailedAuthAttemptsEntityMongo,
-	AuthenticationEntryPointEntityMongo,
-	ActiveUserSessionEntityMongo,
-	connectToMongoServer,
-	clearMongoDatabase,
-	closeMongoDatabase,
-	failureWillBeGeneratedForEntityOperation,
-	clearOperationFailuresForEntities
-};
+export { AccountEntityMongo, FailedAuthAttemptsEntityMongo, AuthenticationEntryPointEntityMongo, ActiveUserSessionEntityMongo };

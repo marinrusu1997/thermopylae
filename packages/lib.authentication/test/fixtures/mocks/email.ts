@@ -1,27 +1,22 @@
-import { EmailClient, SentMessageInfo, SendMailOptions, ErrorCodes as EmailErrorCodes } from '@marin/lib.email';
-import { createException } from '../../../lib/error';
+class EmailClientMock {
+	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
 
-class EmailMock extends EmailClient {
-	private readonly outbox: Map<string, Array<SendMailOptions>> = new Map<string, Array<SendMailOptions>>();
+	public deliveryWillFail = false;
 
-	private failEmailDelivery = false;
-
-	async send(message: SendMailOptions): Promise<SentMessageInfo> {
-		if (this.failEmailDelivery) {
-			throw createException(EmailErrorCodes.EMAIL_DELIVERY_FAILED, 'Email client was configured to fail mail delivery');
+	async send(email: string, message: string): Promise<void> {
+		if (this.deliveryWillFail) {
+			throw new Error('Email client was configured to fail mail delivery');
 		}
 
-		const emails = this.outbox.get(message.to as string);
+		const emails = this.outbox.get(email);
 		if (!emails) {
-			this.outbox.set(message.to as string, [message]);
+			this.outbox.set(email, [message]);
 		} else {
 			emails.push(message);
 		}
-		// @ts-ignore
-		return {};
 	}
 
-	outboxFor(userEmail: string): Array<SendMailOptions> {
+	outboxFor(userEmail: string): Array<string> {
 		return this.outbox.get(userEmail) || [];
 	}
 
@@ -31,13 +26,8 @@ class EmailMock extends EmailClient {
 
 	reset(): void {
 		this.outbox.clear();
-		this.failEmailDelivery = false;
-	}
-
-	deliveryWillFail(flag = true): void {
-		this.failEmailDelivery = flag;
+		this.deliveryWillFail = false;
 	}
 }
 
-const instance = new EmailMock({}, {});
-export { instance as EmailMockInstance, EmailMock };
+export { EmailClientMock };

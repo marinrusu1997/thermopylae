@@ -1,14 +1,11 @@
-import { SmsClient, ErrorCodes as SmsErrorCodes } from '@marin/lib.sms';
-import { createException } from '../../../lib/error';
-
-class SmsMock extends SmsClient {
+class SmsClientMock {
 	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
 
-	private deliveryFails = false;
+	public deliveryWillFail = false;
 
-	async send(to: string, body: string): Promise<string> {
-		if (this.deliveryFails) {
-			throw createException(SmsErrorCodes.SMS_DELIVERY_FAILED, 'SMS mock client was configured to fail sms delivery');
+	async send(to: string, body: string): Promise<void> {
+		if (this.deliveryWillFail) {
+			throw new Error('SMS mock client was configured to fail sms delivery');
 		}
 
 		const sms = this.outbox.get(to);
@@ -17,11 +14,6 @@ class SmsMock extends SmsClient {
 		} else {
 			sms.push(body);
 		}
-		return '';
-	}
-
-	deliveryWillFail(flag: boolean): void {
-		this.deliveryFails = flag;
 	}
 
 	outboxFor(userTelephone: string): Array<string> {
@@ -34,13 +26,8 @@ class SmsMock extends SmsClient {
 
 	reset(): void {
 		this.outbox.clear();
-		this.deliveryFails = false;
+		this.deliveryWillFail = false;
 	}
 }
 
-const instance = new SmsMock({
-	accountSid: 'ACdoes not matter',
-	authToken: 'does not matter',
-	fromNumber: 'does not matter'
-});
-export { instance as SmsMockInstance, SmsMock };
+export { SmsClientMock };

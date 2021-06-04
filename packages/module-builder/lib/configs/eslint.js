@@ -50,6 +50,7 @@ module.exports = {
 		// base rule can report incorrect errors for TS code
 		"no-shadow": "off",
 		"no-nested-ternary": "warn",
+		"no-underscore-dangle": "warn",
 
 		"import/no-unresolved": [
 			"error",
