@@ -3,10 +3,10 @@ import { expect } from 'chai';
 import { string } from '@marin/lib.utils';
 import { Exception } from '@marin/lib.error';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 
 describe('Account Status spec', () => {
-	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
+	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it("fails to disable account if it wasn't found", async () => {
 		let accountNotFoundErr;

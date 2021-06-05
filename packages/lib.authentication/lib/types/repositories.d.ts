@@ -56,15 +56,6 @@ interface AccountRepository<Account extends AccountModel> {
 	readByTelephone(telephone: string): Promise<Account | null>;
 
 	/**
-	 * Delete account from repository.
-	 *
-	 * @param accountId		Account id.
-	 *
-	 * @returns				Whether account was deleted.
-	 */
-	delete(accountId: string): Promise<boolean>;
-
-	/**
 	 * Change account enable status.
 	 *
 	 * @param accountId		Account id.

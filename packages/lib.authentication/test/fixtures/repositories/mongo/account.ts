@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
-import type { AccountRepository } from '../../../lib';
-import type { Account } from '../typings';
-import { getMongoModel } from '../mongodb';
+import type { AccountRepository, AccountWithTotpSecret } from '../../../../lib';
+import { getMongoModel } from '../../mongodb';
 
 const AccountSchema = new mongoose.Schema({
 	username: { type: String, required: true, unique: true },
@@ -11,13 +10,14 @@ const AccountSchema = new mongoose.Schema({
 	telephone: { type: String, required: true, unique: true },
 	disabledUntil: { type: Number, required: true },
 	mfa: { type: Boolean, required: true },
-	pubKey: { type: String, required: false }
+	pubKey: String,
+	totpSecret: String
 });
 function model(): mongoose.Model<mongoose.Document> {
 	return getMongoModel('account', AccountSchema);
 }
 
-const AccountRepositoryMongo: AccountRepository<Account> = {
+const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 	insert: async (account) => {
 		if (await model().exists({ username: account.username })) {
 			throw new Error(`Account with username ${account.username} already exists.`);
@@ -34,7 +34,7 @@ const AccountRepositoryMongo: AccountRepository<Account> = {
 		}
 
 		accountModel.id = String(accountModel._id);
-		return accountModel as unknown as Account;
+		return accountModel as unknown as AccountWithTotpSecret;
 	},
 
 	readByUsername: async (username) => {
@@ -47,7 +47,7 @@ const AccountRepositoryMongo: AccountRepository<Account> = {
 		}
 
 		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as Account;
+		return accountModel[0] as unknown as AccountWithTotpSecret;
 	},
 
 	readByEmail: async (email) => {
@@ -60,7 +60,7 @@ const AccountRepositoryMongo: AccountRepository<Account> = {
 		}
 
 		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as Account;
+		return accountModel[0] as unknown as AccountWithTotpSecret;
 	},
 
 	readByTelephone: async (telephone) => {
@@ -73,16 +73,7 @@ const AccountRepositoryMongo: AccountRepository<Account> = {
 		}
 
 		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as Account;
-	},
-
-	// @fixme remove this method, think about password algorithm change
-	delete: async (_id) => {
-		const result = await model().deleteOne({ _id }).exec();
-		if (!result.ok || result.deletedCount !== 1) {
-			return false;
-		}
-		return true;
+		return accountModel[0] as unknown as AccountWithTotpSecret;
 	},
 
 	setDisabledUntil: async (_id, disabledUntil) => {

@@ -4,7 +4,7 @@ import { hostname } from 'os';
 import Exception from '@marin/lib.error';
 import { chrono, string } from '@marin/lib.utils';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { SIDE_CHANNEL } from '../lib/types/requests';
 import { EmailMockInstance } from './fixtures/mocks/email';
@@ -16,7 +16,7 @@ import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixture
 import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('forgot password spec', () => {
-	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
+	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	const defaultRegistrationInfo = {
 		username: 'username',
@@ -57,7 +57,7 @@ describe('forgot password spec', () => {
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
 
 		// check forgot password session was deleted
-		expect(await basicAuthEngineConfig.repositories.forgotPasswordSession.read(forgotPasswordToken)).to.be.eq(null);
+		expect(await AuthenticationEngineDefaultOptions.repositories.forgotPasswordSession.read(forgotPasswordToken)).to.be.eq(null);
 
 		// check logged out from all devices
 		expect((await AuthEngineInstance.getActiveSessions(accountId)).length).to.be.eq(0);
@@ -84,7 +84,7 @@ describe('forgot password spec', () => {
 	});
 
 	it('recovers forgotten password via sms side channel after a new password hashing algorithm is used by the system', async () => {
-		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(basicAuthEngineConfig);
+		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
 
 		// Register with AUTH ENGINE which uses HASHING ALG 1
 		await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
@@ -255,7 +255,7 @@ describe('forgot password spec', () => {
 		).to.be.eq(1); // invalidated first session of the user
 
 		// user session was invalidated after password change
-		await checkIfJWTWasInvalidated(firstAccountOwnerAuthStatus.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(firstAccountOwnerAuthStatus.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 
 		// user tries to recover account using forgot password procedure
 		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
@@ -264,7 +264,7 @@ describe('forgot password spec', () => {
 		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
 
 		// after recovering his account password, session of the bad guy is invalidated
-		await checkIfJWTWasInvalidated(forgedAuthStatus.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(forgedAuthStatus.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 
 		// valid user can authenticate with his new password
 		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });

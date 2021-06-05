@@ -1,23 +1,36 @@
+import { SmsSender } from '../../../lib';
+
 class SmsClientMock {
-	private readonly outbox: Map<string, Array<string>> = new Map<string, Array<string>>();
+	private readonly outbox: Map<string, Map<keyof SmsSender, Array<string>>> = new Map();
 
 	public deliveryWillFail = false;
 
-	async send(to: string, body: string): Promise<void> {
+	send(to: string, type: keyof SmsSender, body: string): void {
 		if (this.deliveryWillFail) {
 			throw new Error('SMS mock client was configured to fail sms delivery');
 		}
 
-		const sms = this.outbox.get(to);
-		if (!sms) {
-			this.outbox.set(to, [body]);
-		} else {
-			sms.push(body);
+		let smsByType = this.outbox.get(to);
+		if (!smsByType) {
+			smsByType = new Map();
+			this.outbox.set(to, smsByType);
 		}
+
+		let sms = smsByType.get(type);
+		if (sms == null) {
+			sms = [];
+			smsByType.set(type, sms);
+		}
+
+		sms.push(body);
 	}
 
-	outboxFor(userTelephone: string): Array<string> {
-		return this.outbox.get(userTelephone) || [];
+	outboxFor(userTelephone: string, type: keyof SmsSender): Array<string> {
+		const smsByType = this.outbox.get(userTelephone);
+		if (smsByType == null) {
+			return [];
+		}
+		return smsByType.get(type) || [];
 	}
 
 	clearOutboxFor(userTelephone: string): void {

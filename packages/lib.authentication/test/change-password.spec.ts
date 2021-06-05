@@ -3,14 +3,14 @@ import { expect } from 'chai';
 import { hostname } from 'os';
 import { chrono, string } from '@marin/lib.utils';
 import Exception from '@marin/lib.error';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
 import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Change password spec', () => {
-	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
+	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	const defaultRegistrationInfo = {
 		username: 'username',
@@ -58,7 +58,7 @@ describe('Change password spec', () => {
 	});
 
 	it('changes password after new hashing algorithm is used', async () => {
-		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(basicAuthEngineConfig);
+		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
 
 		// Register and Authenticate with AUTH ENGINE which uses HASHING ALG 1
 		const accountId = await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
@@ -112,9 +112,9 @@ describe('Change password spec', () => {
 		expect(activeSessionsAfterChangePassword.length).to.be.eq(1);
 		expect(activeSessionsAfterChangePassword[0].authenticatedAtUNIX).to.be.eq(activeSessionsBeforeChangePassword[0].authenticatedAtUNIX);
 
-		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
-		await checkIfJWTWasInvalidated(authStatus2.token!, basicAuthEngineConfig.jwt.instance);
-		await checkIfJWTWasInvalidated(authStatus3.token!, basicAuthEngineConfig.jwt.instance);
+		expect(await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
+		await checkIfJWTWasInvalidated(authStatus2.token!, AuthenticationEngineDefaultOptions.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatus3.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 	}).timeout(3000);
 
 	it('does not invalidate other sessions if explicitly instructed not to do so', async () => {

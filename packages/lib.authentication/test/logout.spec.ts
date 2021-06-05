@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { hostname } from 'os';
 import { chrono, number, string } from '@marin/lib.utils';
 import { Exception } from '@marin/lib.error';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { checkIfJWTWasInvalidated } from './utils';
@@ -11,7 +11,7 @@ import { AuthenticationContext } from '../lib/types/contexts';
 
 describe('Logout spec', () => {
 	const AuthenticationEngineConfig: AuthenticationEngineOptions = {
-		...basicAuthEngineConfig,
+		...AuthenticationEngineDefaultOptions,
 		ttl: {
 			totpSeconds: 1,
 			authenticationSession: 0.01 // 1 second
@@ -65,7 +65,7 @@ describe('Logout spec', () => {
 
 		expect(activeSessions[0].device).to.be.eq('device2');
 
-		await checkIfJWTWasInvalidated(authStatusFirstDevice.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatusFirstDevice.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 	});
 
 	it('logs out from all devices, expecting to scheduleDeletion all existing sessions and invalidate issued tokens', async () => {
@@ -82,7 +82,7 @@ describe('Logout spec', () => {
 		const deletedSessions = await AuthEngineInstance.logoutFromAllDevices({ sub: accountId, aud: defaultRegistrationInfo.role });
 		expect(deletedSessions).to.be.eq(activeSessions.length);
 
-		await checkIfJWTWasInvalidated(authStatus.token!, basicAuthEngineConfig.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatus.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 	});
 
 	it('logs out from all devices, except from the connected one from where logout was requested', async () => {
@@ -100,9 +100,9 @@ describe('Logout spec', () => {
 		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(activeSessions.length - 1);
 
-		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
-		await checkIfJWTWasInvalidated(authStatus2.token!, basicAuthEngineConfig.jwt.instance);
-		await checkIfJWTWasInvalidated(authStatus3.token!, basicAuthEngineConfig.jwt.instance);
+		expect(await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
+		await checkIfJWTWasInvalidated(authStatus2.token!, AuthenticationEngineDefaultOptions.jwt.instance);
+		await checkIfJWTWasInvalidated(authStatus3.token!, AuthenticationEngineDefaultOptions.jwt.instance);
 	}).timeout(3000);
 
 	it('logs out from no devices, except one, when there is only 1 session', async () => {
@@ -116,7 +116,7 @@ describe('Logout spec', () => {
 		const deletedSessions = await AuthEngineInstance.logoutFromAllDevicesExceptCurrent(accountId, activeSessions[0].authenticatedAtUNIX);
 		expect(deletedSessions).to.be.eq(0);
 
-		expect(await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!)).to.not.be.eq(undefined);
+		expect(await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatus.token!)).to.not.be.eq(undefined);
 	});
 
 	it('fails to `log out from all devices except current` if account not found', async () => {

@@ -12,7 +12,7 @@ import { AuthenticationEngineOptions, AuthenticationEngine, ErrorCodes } from '.
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { AuthenticationStepName } from '../lib/types/enums';
 import { SmsMockInstance } from './fixtures/mocks/sms';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
 import { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
 import { EmailMockInstance } from './fixtures/mocks/email';
@@ -25,7 +25,7 @@ describe('Authenticate spec', () => {
 	const secondaryKeyPair = keypair();
 
 	const AuthenticationEngineConfig: AuthenticationEngineOptions = {
-		...basicAuthEngineConfig,
+		...AuthenticationEngineDefaultOptions,
 		ttl: {
 			totpSeconds: 1,
 			authenticationSession: 0.01 // 1 second
@@ -107,7 +107,10 @@ describe('Authenticate spec', () => {
 		const authSessionTTLMs = chrono.minutesToSeconds(AuthenticationEngineConfig.ttl!.authenticationSession!) * 1000 + 50; // 1050 ms
 		await chrono.sleep(authSessionTTLMs);
 
-		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await AuthenticationEngineDefaultOptions.repositories.authenticationSession.read(
+			validAuthRequest.username,
+			validAuthRequest.device
+		);
 		expect(authSession).to.be.eq(null);
 	});
 
@@ -347,7 +350,7 @@ describe('Authenticate spec', () => {
 		const authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
 
 		// check issued valid jwt
-		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatus.token!);
+		const jwtPayload = await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatus.token!);
 		expect(jwtPayload.sub).to.be.eq(accountId);
 		expect(jwtPayload.aud).to.be.eq(defaultRegistrationInfo.role);
 		expect(jwtPayload.type).to.be.eq(AuthTokenType.BASIC);
@@ -364,11 +367,14 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await AuthenticationEngineDefaultOptions.repositories.authenticationSession.read(
+			validAuthRequest.username,
+			validAuthRequest.device
+		);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
-		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
+		await chrono.sleep(AuthenticationEngineDefaultOptions.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
 		activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(0);
 	});
@@ -386,7 +392,7 @@ describe('Authenticate spec', () => {
 		const authStatusTotpStep = await AuthEngineInstance.authenticate({ ...validAuthRequest, totp });
 
 		// check issued valid jwt
-		const jwtPayload = await basicAuthEngineConfig.jwt.instance.validate(authStatusTotpStep.token!);
+		const jwtPayload = await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatusTotpStep.token!);
 		expect(jwtPayload.sub).to.be.eq(accountId);
 		expect(jwtPayload.aud).to.be.eq(defaultRegistrationInfo.role);
 		expect(jwtPayload.type).to.be.eq(AuthTokenType.BASIC);
@@ -403,11 +409,14 @@ describe('Authenticate spec', () => {
 		});
 
 		// check it deleted auth session
-		const authSession = await basicAuthEngineConfig.repositories.authenticationSession.read(validAuthRequest.username, validAuthRequest.device);
+		const authSession = await AuthenticationEngineDefaultOptions.repositories.authenticationSession.read(
+			validAuthRequest.username,
+			validAuthRequest.device
+		);
 		expect(authSession).to.be.eq(null);
 
 		// check if scheduled active session deletion
-		await chrono.sleep(basicAuthEngineConfig.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
+		await chrono.sleep(AuthenticationEngineDefaultOptions.jwt.rolesTtl!.get(defaultRegistrationInfo.role)! * 1000);
 		activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
 		expect(activeSessions.length).to.be.eq(0);
 	});

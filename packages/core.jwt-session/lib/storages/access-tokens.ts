@@ -25,7 +25,7 @@ class InvalidAccessTokensMemCache<CacheArgsBundle extends AbsoluteExpirationPoli
 		}
 
 		this.cache = new PolicyBasedCache<string, Nullable<UnixTimestamp>, CacheArgsBundle>(new EntryPoolCacheBackend<string, Nullable<UnixTimestamp>>(), [
-			new ProactiveExpirationPolicy<string, Nullable<UnixTimestamp>>(new HeapGarbageCollector())
+			new ProactiveExpirationPolicy<string, Nullable<UnixTimestamp>, CacheArgsBundle>(new HeapGarbageCollector())
 		]);
 	}
 

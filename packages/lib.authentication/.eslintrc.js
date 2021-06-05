@@ -17,7 +17,8 @@ eslint.rules["import/no-unresolved"][1].ignore.push(
     './hash',
     './contexts',
     './types/side-channels',
-    '../typings'
+    '../typings',
+    './typings'
 );
 
 module.exports = eslint;

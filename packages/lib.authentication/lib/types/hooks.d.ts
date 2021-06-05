@@ -15,9 +15,9 @@ type OnAccountDisabledHook<Account extends AccountModel> = (account: Account) =>
  * except the current one ({@link ChangePasswordContext.sessionId}), from where password change has been made.
  *
  * @param account                   User account password of which has been changed.
- * @param changePasswordRequest     Context of the password change.
+ * @param changePasswordContext     Context of the password change.
  */
-type OnPasswordChangedHook<Account extends AccountModel> = (account: Account, changePasswordRequest: ChangePasswordContext) => Promise<void>;
+type OnPasswordChangedHook<Account extends AccountModel> = (account: Account, changePasswordContext: ChangePasswordContext) => Promise<void>;
 
 /**
  * Hook called when forgotten password has been changed.

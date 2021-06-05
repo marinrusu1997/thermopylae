@@ -2,13 +2,13 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import Exception from '@marin/lib.error';
 import { string } from '@marin/lib.utils';
-import basicAuthEngineConfig from './fixtures';
+import AuthenticationEngineDefaultOptions from './fixtures';
 import { AuthenticationEngine, ErrorCodes } from '../lib';
 import { ACCOUNT_ROLES } from './fixtures/jwt';
 import { createAuthEnginesWithDifferentPasswordHashingAlg } from './utils';
 
 describe('Validate account credentials spec', () => {
-	const AuthEngineInstance = new AuthenticationEngine(basicAuthEngineConfig);
+	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	const defaultRegistrationInfo = {
 		username: 'username',
@@ -55,7 +55,7 @@ describe('Validate account credentials spec', () => {
 	});
 
 	it('validates correct account credentials after system is using a new password hashing algorithm', async () => {
-		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(basicAuthEngineConfig);
+		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
 
 		// Register with AUTH ENGINE which uses HASHING ALG 1
 		const accountId = await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });

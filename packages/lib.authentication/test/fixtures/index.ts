@@ -1,136 +1,116 @@
-import { string } from '@marin/lib.utils';
 import { after, afterEach, before } from 'mocha';
-import LoggerInstance, { FormattingManager } from '../../../lib.logger.bk';
-import { defaultJwtInstance, rolesTtlMap } from './jwt';
+import { argon2id } from 'argon2';
 import {
-	AccountEntityMongo,
-	ActiveUserSessionEntityMongo,
-	AuthenticationEntryPointEntityMongo,
-	clearMongoDatabase,
-	clearOperationFailuresForEntities,
-	closeMongoDatabase,
-	connectToMongoServer,
-	FailedAuthAttemptsEntityMongo
-} from './mongo-entities';
-import memcache, {
-	ActivateAccountSessionEntityMemCache,
-	AuthSessionEntityMemCache,
-	clearOperationFailuresForSessions,
-	FailedAuthAttemptSessionEntityMemCache,
-	ForgotPasswordSessionEntityMemCache
-} from './memcache-entities';
-import { EmailMockInstance } from './mocks/email';
-import { SmsMockInstance } from './mocks/sms';
-import {
-	AccountDisabledTemplate,
-	ActivateAccountTemplate,
-	AuthFromDiffDeviceTemplate,
-	ForgotPasswordTemplateEmail,
-	ForgotPasswordTemplateSms,
-	MultiFactorAuthFailedTemplate,
-	TotpTokenSmsTemplate
-} from './templates';
-import {
-	CancelScheduledUnactivatedAccountDeletionFromMongo,
-	cleanUpSchedulers,
-	ScheduleAccountEnablingFromMongo,
-	ScheduleActiveUserSessionDeletionFromMongo,
-	ScheduleUnactivatedAccountDeletionFromMongo
-} from './schedulers';
-import { getLogger } from '../../lib/logger';
+	AccountWithTotpSecret,
+	Argon2PasswordHashingAlgorithm,
+	AuthenticationEngineOptions,
+	PasswordLengthValidator,
+	PasswordStrengthValidator,
+	PwnedPasswordValidator,
+	TotpTwoFactorAuthStrategy
+} from '../../lib';
+import { AccountRepositoryMongo } from './repositories/mongo/account';
+import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth';
+import { FailedAuthenticationAttemptsRepositoryMongo } from './repositories/mongo/failed-auth';
+import { ActivateAccountSessionMemoryRepository } from './repositories/memory/activate-account-session';
+import { AuthenticationSessionMemoryRepository } from './repositories/memory/auth-session';
+import { FailedAuthAttemptSessionMemoryRepository } from './repositories/memory/failed-auth-session';
+import { ForgotPasswordSessionMemoryRepository } from './repositories/memory/forgot-password-session';
+import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from './mongodb';
+import { MemoryCache } from './memory-cache';
+import { EmailSenderInstance } from './senders/email';
+import { SmsSenderInstance } from './senders/sms';
+import { OnAccountDisabledHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
-import { AuthenticationEngineOptions } from '../../lib';
-import { HashingAlgorithms, PasswordHasher } from './password-hasher';
 
-// initialize static variables
-PasswordHasher.pepper = string.generateStringOfLength(10);
+const hashingAlgorithm = new Argon2PasswordHashingAlgorithm({
+	type: argon2id,
+	hashLength: 5,
+	memoryCost: 8192,
+	parallelism: 4,
+	timeCost: 1,
+	saltLength: 5
+});
 
-const basicAuthEngineConfig: AuthenticationEngineOptions = {
-	jwt: {
-		instance: defaultJwtInstance,
-		rolesTtl: rolesTtlMap
+const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
+	thresholds: {
+		maxFailedAuthAttempts: 3,
+		failedAuthAttemptsRecaptcha: 2
+	},
+	ttl: {
+		authenticationSession: 10,
+		failedAuthAttemptsSession: 10,
+		activateAccountSession: 5,
+		forgotPasswordSession: 5,
+		accountDisableTimeout: 5
 	},
 	repositories: {
-		account: AccountEntityMongo,
-		activeUserSession: ActiveUserSessionEntityMongo,
-		activateAccountSession: ActivateAccountSessionEntityMemCache,
-		successfulAuthentications: AuthenticationEntryPointEntityMongo,
-		authenticationSession: AuthSessionEntityMemCache,
-		failedAuthenticationAttempts: FailedAuthAttemptsEntityMongo,
-		failedAuthAttemptSession: FailedAuthAttemptSessionEntityMemCache,
-		forgotPasswordSession: ForgotPasswordSessionEntityMemCache
+		account: AccountRepositoryMongo,
+		successfulAuthentications: SuccessfulAuthenticationsRepositoryMongo,
+		failedAuthenticationAttempts: FailedAuthenticationAttemptsRepositoryMongo,
+		activateAccountSession: ActivateAccountSessionMemoryRepository,
+		authenticationSession: AuthenticationSessionMemoryRepository,
+		failedAuthAttemptSession: FailedAuthAttemptSessionMemoryRepository,
+		forgotPasswordSession: ForgotPasswordSessionMemoryRepository
 	},
-	'side-channels': {
-		email: {
-			client: EmailMockInstance,
-			'send-options': {
-				activateAccount: {
-					htmlTemplate: ActivateAccountTemplate
-				},
-				authenticationFromDifferentDevice: {
-					htmlTemplate: AuthFromDiffDeviceTemplate
-				},
-				accountDisabled: {
-					htmlTemplate: AccountDisabledTemplate
-				},
-				multiFactorAuthenticationFailed: {
-					htmlTemplate: MultiFactorAuthFailedTemplate
-				},
-				forgotPasswordToken: {
-					htmlTemplate: ForgotPasswordTemplateEmail
-				}
-			}
-		},
-		sms: {
-			client: SmsMockInstance,
-			'send-options': {
-				totpTokenTemplate: TotpTokenSmsTemplate,
-				forgotPasswordTokenTemplate: ForgotPasswordTemplateSms
-			}
-		}
-	},
-	schedulers: {
-		account: {
-			enable: ScheduleAccountEnablingFromMongo,
-			deleteUnactivated: ScheduleUnactivatedAccountDeletionFromMongo,
-			cancelDeleteUnactivated: CancelScheduledUnactivatedAccountDeletionFromMongo
-		},
-		deleteActiveUserSession: ScheduleActiveUserSessionDeletionFromMongo
+	hooks: {
+		onAccountDisabled: OnAccountDisabledHookMock.hook,
+		onForgottenPasswordChanged: OnForgottenPasswordChangedHookMock.hook,
+		onPasswordChanged: OnPasswordChangedHookMock.hook
 	},
 	validators: {
 		recaptcha: recaptchaValidator,
 		challengeResponse: challengeResponseValidator
 	},
-	passwordHasher: new PasswordHasher(HashingAlgorithms.BCRYPT),
-	secrets: {
-		totp: string.generateStringOfLength(10)
+	password: {
+		hashing: {
+			algorithms: new Map([[0, hashingAlgorithm]]),
+			currentAlgorithmId: 0,
+			currentAlgorithm: hashingAlgorithm
+		},
+		encryption: false,
+		strength: [new PasswordLengthValidator(12, 4_096), new PasswordStrengthValidator(['thermopylae']), new PwnedPasswordValidator(2)],
+		similarity: 0.8
 	},
-	contacts: {
-		adminEmail: 'admin@product.com'
+	email: {
+		admin: 'admin@thermopylae.io',
+		sender: EmailSenderInstance
 	},
-	tokensLength: 20
+	smsSender: SmsSenderInstance,
+	'2fa-strategy': new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>({
+		serviceName: 'thermopylae',
+		totp: {
+			secretLength: 10,
+			encryption: {
+				algorithm: 'aes-128-ccm',
+				secret: 'totp-secret',
+				iv: null
+			},
+			authenticator: {
+				algorithm: 'sha1',
+				encoding: 'utf8',
+				step: 10,
+				window: 1,
+				digits: 6
+			}
+		}
+	}),
+	tokensLength: 10
 };
 
-// since this config will be imported from all tests, it's the right place to put some initializations
-LoggerInstance.console.setConfig({ level: 'emerg' }); // emerg is to supress error logs generatted by the engine
-LoggerInstance.formatting.applyOrderFor(FormattingManager.OutputFormat.PRINTF, true);
-
 // trigger automatic clean up after each test (will be done at the first import)
-afterEach(() =>
-	clearMongoDatabase()
-		.then(() => {
-			memcache.clear();
-			EmailMockInstance.reset();
-			SmsMockInstance.reset();
-			clearOperationFailuresForEntities();
-			clearOperationFailuresForSessions();
-			cleanUpSchedulers();
-		})
-		.catch((err) => getLogger().error('Failed to clean up resources', err))
-);
+afterEach(async () => {
+	await clearMongoDatabase();
+	MemoryCache.clear();
+	EmailSenderInstance.client.reset();
+	SmsSenderInstance.client.reset();
+	OnAccountDisabledHookMock.calls.length = 0;
+	OnForgottenPasswordChangedHookMock.calls.length = 0;
+	OnPasswordChangedHookMock.calls.length = 0;
+});
 
 // trigger global hooks at the first import in test suite files
-before(() => connectToMongoServer());
-after(() => closeMongoDatabase());
+before(connectToMongoDatabase);
+after(dropMongoDatabase);
 
-export default basicAuthEngineConfig;
+export { AuthenticationEngineDefaultOptions };
