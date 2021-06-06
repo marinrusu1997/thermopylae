@@ -9,6 +9,11 @@ const FailedAuthAttemptSchema = new mongoose.Schema({
 	location: Object,
 	detectedAt: { type: Number, required: true, unique: true }
 });
+FailedAuthAttemptSchema.virtual('id').get(function getter() {
+	// @ts-ignore
+	return String(this._id);
+});
+
 function model(): mongoose.Model<mongoose.Document> {
 	return getMongoModel('failed-authentication', FailedAuthAttemptSchema);
 }
@@ -26,16 +31,19 @@ const FailedAuthenticationAttemptsRepositoryMongo: FailedAuthenticationAttemptsR
 				documentQuery.gte(startingFrom);
 			}
 			if (endingTo) {
-				documentQuery.lt(endingTo);
+				documentQuery.lte(endingTo);
 			}
 		}
 
 		const docs = await documentQuery.exec();
-		for (const doc of docs) {
-			doc.id = String(doc._id);
-		}
 
-		return docs as unknown as FailedAuthenticationModel[];
+		return docs.map((doc) => {
+			const failedAuthentication = doc.toObject({ virtuals: true }) as FailedAuthenticationModel;
+			delete (failedAuthentication as any)._id;
+			delete (failedAuthentication as any).__v;
+
+			return failedAuthentication;
+		});
 	}
 };
 Object.freeze(FailedAuthenticationAttemptsRepositoryMongo);

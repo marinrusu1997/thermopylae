@@ -2,7 +2,6 @@ import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
 
 const enum ErrorCodes {
-	ACCOUNT_ALREADY_REGISTERED = 'ACCOUNT_ALREADY_REGISTERED',
 	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
 	ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
 

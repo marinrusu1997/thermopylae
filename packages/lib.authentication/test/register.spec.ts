@@ -1,128 +1,149 @@
 import { describe, it } from 'mocha';
-import { assert, expect } from 'chai';
-import { chrono } from '@marin/lib.utils';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { Libraries } from '@marin/lib.utils/dist/declarations';
-import { ErrorCodes as EmailErrorCodes } from '@marin/lib.email';
-import Exception from '@marin/lib.error';
-import { hostname } from 'os';
-import { AuthenticationEngine, ErrorCodes } from '../lib';
-import AuthenticationEngineDefaultOptions from './fixtures';
-import { failureWillBeGeneratedWhenScheduling, hasActiveTimers, SCHEDULING_OP } from './fixtures/schedulers';
-import { failureWillBeGeneratedForSessionOperation, hasAnySessions, SESSIONS_OP } from './fixtures/memcache-entities';
-import { AuthenticationContext } from '../lib/types/contexts';
+import { expect } from '@thermopylae/lib.unit-test';
+import { Exception } from '@thermopylae/lib.exception';
+import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, AuthenticationContext, AuthenticationEngine, ErrorCodes } from '../lib';
+import { AuthenticationEngineDefaultOptions } from './fixtures';
+import { EmailSenderInstance } from './fixtures/senders/email';
+import { ActivateAccountSessionMemoryRepository } from './fixtures/repositories/memory/activate-account-session';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
+
+function buildAccountToBeRegistered(): AccountToBeRegistered<AccountWithTotpSecret> {
+	return {
+		username: 'username',
+		passwordHash: 'auirg7q85y1298huwityh289',
+		email: 'user@product.com',
+		telephone: '+568425666',
+		disabledUntil: AccountStatus.ENABLED
+	};
+}
 
 describe('Account registration spec', () => {
-	const AuthEngineInstance = new AuthenticationEngine({
-		...AuthenticationEngineDefaultOptions,
-		ttl: {
-			totpSeconds: 1, // sec
-			activateAccountSession: 0.01, // in minutes -> 1 sec
-			failedAuthAttemptsSession: 0.01, // in minutes -> 1 sec
-			authenticationSession: 0.01 // in minutes -> 1 sec
-		},
-		thresholds: {
-			passwordSimilarity: 1,
-			failedAuthAttemptsRecaptcha: 2,
-			maxFailedAuthAttempts: 3
-		}
-	});
+	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
-	const defaultRegistrationInfo = {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// @ts-ignore
+	const authenticationContext: AuthenticationContext = {
 		username: 'username',
 		password: 'auirg7q85y1298huwityh289',
-		email: 'user@product.com',
-		telephone: '+568425666'
-	};
-
-	const validAuthRequest: AuthenticationContext = {
-		username: defaultRegistrationInfo.username,
-		password: defaultRegistrationInfo.password,
 		ip: '158.56.89.230',
-		device: hostname(),
+		deviceId: 'ah93y5928735yyhauihf98par',
+		device: {
+			device: {
+				type: 'smartphone',
+				brand: 'Android',
+				model: '9'
+			},
+			os: {
+				name: 'Linux',
+				version: '20',
+				platform: 'ARM'
+			},
+			client: {
+				name: 'Thermopylae',
+				type: 'mobile app',
+				version: ''
+			},
+			bot: null
+		},
 		location: {
 			countryCode: 'US',
 			regionCode: 'CA',
 			city: 'Los Angeles',
-			postalCode: '90067',
-			timeZone: 'America/Los_Angeles',
+			timezone: 'America/Los_Angeles',
 			latitude: 34.0577507019043,
 			longitude: -118.41380310058594
 		}
 	};
 
-	it('registers a new account using explicit registration options', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true }); // do not trigger deletion timer
-		const account = await AuthenticationEngineDefaultOptions.repositories.account.readByUsername('username');
+	it('registers a new account', async () => {
+		const accountToBeRegistered = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(accountToBeRegistered);
+
+		const account = await AuthenticationEngineDefaultOptions.repositories.account.readById(accountToBeRegistered.id);
 		if (!account) {
 			throw new Error('Registered account not found');
 		}
-		expect(account.id!).to.not.be.equal(undefined);
-		expect(account.password).to.not.be.equal('auirg7q85y1298huwityh289');
-		expect(account.password.length).to.be.equal(60);
-		expect(account.salt).to.have.length(29);
-		expect(account.telephone).to.be.eq('+568425666');
-		expect(account.email).to.be.eq('user@product.com');
-		expect(account.role).to.be.eq(undefined);
-		expect(account.disabledUntil).to.be.eq(true);
-		expect(account.mfa).to.be.eq(true);
-	});
 
-	it('registers a new account with default registration options when they are not explicitly provided', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo); // activate default is false, it will trigger deletion timer
-		const account = await AuthenticationEngineDefaultOptions.repositories.account.readByUsername('username');
-
-		if (!account) {
-			throw new Error('Registered account not found');
-		}
-		expect(account.disabledUntil).to.be.eq(false);
-		expect(account.mfa).to.be.eq(false);
-
-		// @ts-ignore
-		const activationToken = JSON.parse(
-			AuthenticationEngineDefaultOptions['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string
-		);
-		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel scheduleDeletion account timer
+		expect(accountToBeRegistered.id).to.be.eq(account.id);
+		expect(accountToBeRegistered.username).to.be.eq(account.username);
+		expect(accountToBeRegistered.passwordHash).to.be.eq(account.passwordHash);
+		expect(accountToBeRegistered.passwordAlg).to.be.eq(account.passwordAlg);
+		expect(accountToBeRegistered.email).to.be.eq(account.email);
+		expect(accountToBeRegistered.telephone).to.be.eq(account.telephone);
+		expect(accountToBeRegistered.disabledUntil).to.be.eq(account.disabledUntil);
+		expect(accountToBeRegistered.mfa).to.be.eq(account.mfa);
 	});
 
 	it('fails to register new account if it is registered already', async () => {
-		// email ownership is checked via activation link -> OK
-		// mobile ownership is not checked, but we assume that only account owner has onGet to his mobile number -> OK
-		// check is made based on username, it needs to be unique, account activation status is not taken into account
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true }); // do not place scheduleDeletion timer
+		await AuthEngineInstance.register(buildAccountToBeRegistered());
+
+		let err: Error | null = null;
 		try {
-			await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
-			assert(false, 'Same account was created twice');
+			await AuthEngineInstance.register(buildAccountToBeRegistered());
 		} catch (e) {
-			expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('emitter', Libraries.AUTH_ENGINE);
-			expect(e).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_ALREADY_REGISTERED);
-			expect(e).to.haveOwnProperty('message', `Account ${defaultRegistrationInfo.username} is registered already.`);
+			err = e;
 		}
+
+		expect(err).to.not.be.eq(null);
+		expect(err!.message).to.be.eq('E11000 duplicate key error dup key: { : "username" }');
 	});
 
-	it('fails to register new account if provided password is weak (owasp validator)', () => {
-		return AuthEngineInstance.register({ ...defaultRegistrationInfo, password: 'weak-password' })
-			.then(() => assert(false, 'Account with weak password was registered'))
-			.catch((e) => {
-				expect(e).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
-				expect(e).to.haveOwnProperty(
-					'message',
-					'The password must contain at least one uppercase letter..\nThe password must contain at least one number.'
-				);
-			});
+	it('fails to register new account if provided password is too weak', async () => {
+		const errors = new Array<Exception>();
+
+		try {
+			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: 'sho' });
+		} catch (e) {
+			errors.push(e);
+		}
+
+		try {
+			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: 'qwerty' });
+		} catch (e) {
+			errors.push(e);
+		}
+
+		try {
+			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: '2307mgd73fn' });
+		} catch (e) {
+			errors.push(e);
+		}
+
+		expect(errors).to.be.ofSize(3);
+		expect(errors[0].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
+		expect(errors[0].message).to.be.eq('Password needs to contain at least 4 characters, but it has 3 characters.');
+
+		expect(errors[1].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
+		expect(errors[1].message).to.be.eq('This is a top-10 common password.\nAdd another word or two. Uncommon words are better.');
+
+		expect(errors[2].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
+		expect(errors[2].message).to.be.eq('Provided password has been breached before.');
 	});
 
-	it('sends activation link via email if account is not considered activated at the registration', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
-		// @ts-ignore
-		const activationToken = JSON.parse(
-			AuthenticationEngineDefaultOptions['side-channels'].email.client.outboxFor(defaultRegistrationInfo.email)[0].html as string
-		);
-		expect(activationToken.token.length).to.be.equal(AuthenticationEngineDefaultOptions.tokensLength!);
+	it('activates account', async () => {
+		/* REGISTER */
+		const accountToBeRegistered = { ...buildAccountToBeRegistered(), disabledUntil: AccountStatus.DISABLED_UNTIL_ACTIVATION };
+		await AuthEngineInstance.register(accountToBeRegistered);
 
-		await AuthEngineInstance.activateAccount(activationToken.token); // this will cancel scheduleDeletion account timer
+		/* GET TOKEN FROM EMAIL */
+		const emails = EmailSenderInstance.client.outboxFor(accountToBeRegistered.email, 'sendActivateAccountToken');
+		expect(emails).to.be.ofSize(1);
+
+		/* CHECK STORAGES */
+		const activationToken = emails[0];
+		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).to.eventually.be.deep.equal(accountToBeRegistered); // temp storage
+		await expect(AccountRepositoryMongo.readByUsername(accountToBeRegistered.username)).to.eventually.be.eq(null); // not in permanent storage
+
+		/* ACTIVATE ACCOUNT */
+		await AuthEngineInstance.activateAccount(activationToken);
+		expect(accountToBeRegistered.disabledUntil).to.be.eq(AccountStatus.ENABLED);
+
+		/* CHECK STORAGES */
+		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).to.eventually.be.equal(null); // deleted from temp storage, prevent replay attack
+		await expect(AccountRepositoryMongo.readById((accountToBeRegistered as AccountWithTotpSecret).id)).to.eventually.be.deep.equal(accountToBeRegistered);
 	});
 
+	/*
 	it('activates account using token sent via email at the registration', async () => {
 		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
 		// @ts-ignore
@@ -197,7 +218,7 @@ describe('Account registration spec', () => {
 		} catch (e) {
 			expect(e).to.not.be.instanceOf(Exception);
 			expect(e).to.haveOwnProperty('message', 'Canceling deletion of unactivated account was configured to fail');
-			const authStatus = await AuthEngineInstance.authenticate(validAuthRequest);
+			const authStatus = await AuthEngineInstance.authenticate(authenticationContext);
 			expect(authStatus.error!.hard).to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 			return;
 		}
@@ -265,5 +286,5 @@ describe('Account registration spec', () => {
 			expect(hasActiveTimers()).to.be.eq(false);
 			expect(hasAnySessions()).to.be.eq(false);
 		}
-	});
+	}); */
 });

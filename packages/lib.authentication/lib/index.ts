@@ -1,7 +1,7 @@
 export type { TwoFactorAuthStrategy } from './2fa/interface';
 export { EmailTwoFactorAuthStrategy, EmailTwoFactorAuthStrategyOptions, SendEmailWithToken } from './2fa/email';
 export { SmsTwoFactorAuthStrategy, SmsTwoFactorAuthStrategyOptions, SendSmsWithToken } from './2fa/sms';
-export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, RegisterResponse, AccountWithTotpSecret } from './2fa/totp';
+export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, OnTwoFactorEnabledHookResult, AccountWithTotpSecret } from './2fa/totp';
 
 export type { AuthenticationStatus } from './authentication/step';
 
@@ -14,7 +14,7 @@ export { PasswordStrengthValidator } from './managers/password/strength/strength
 export type { PasswordHashing } from './managers/password/index';
 
 export type { BaseContext, ChangePasswordContext, SetTwoFactorAuthenticationContext, AuthenticationContext } from './types/contexts';
-export type { AccountStatus } from './types/enums';
+export { AccountStatus } from './types/enums';
 export type { OnForgottenPasswordChangedHook, OnPasswordChangedHook, OnAccountDisabledHook } from './types/hooks';
 export type { AccountModel, FailedAuthenticationModel, SuccessfulAuthenticationModel, UserCredentials } from './types/models';
 export type {
@@ -30,6 +30,6 @@ export type { FailedAuthenticationAttemptSession, AuthenticationSession } from '
 export type { SmsSender, EmailSender } from './types/side-channels';
 
 export { AuthenticationEngine } from './engine';
-export type { AuthenticationEngineOptions } from './engine';
+export type { AuthenticationEngineOptions, AccountToBeRegistered } from './engine';
 
 export { ErrorCodes } from './error';

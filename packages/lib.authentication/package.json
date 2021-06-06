@@ -57,7 +57,8 @@
         "keypair": "1",
         "mongodb-memory-server": "6",
         "mongoose": "5",
-        "object-hash": "2"
+        "object-hash": "2",
+        "unixtime": "0"
     },
     "peerDependencies": {
         "chai": "4",

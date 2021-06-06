@@ -1,3 +1,4 @@
+/*
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { string } from '@marin/lib.utils';
@@ -24,3 +25,4 @@ describe('Account Status spec', () => {
 		expect(accountNotFoundErr).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
 	});
 });
+*/

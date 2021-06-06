@@ -1,3 +1,4 @@
+/*
 import { assert, AssertionError, expect } from 'chai';
 import { Jwt } from '@marin/lib.jwt';
 import { AuthenticationEngineOptions, AuthenticationEngine } from '../lib';
@@ -5,13 +6,13 @@ import { AuthenticationStatus } from '../lib/authentication/step';
 import { HashingAlgorithms, PasswordHasher } from './fixtures/password-hasher';
 import { AuthenticationContext } from '../lib/types/contexts';
 
-/**
+/!**
  * Checks if provided jwt was invalidated, i.e. blacklisted
  * Intended for usage by test cases.
  *
  * @param token
  * @param jwt
- */
+ *!/
 async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> {
 	let jwtValidateError;
 	try {
@@ -27,13 +28,13 @@ async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> 
 	expect(jwtValidateError.message.substr(jwtValidateError.message.length - 11)).to.be.eq('blacklisted');
 }
 
-/**
+/!**
  * Checks that authentication was successful and returns authentication status in case of success,
  * having the authentication JsonWebToken
  *
  * @param authEngine
  * @param authRequest
- */
+ *!/
 async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthenticationContext): Promise<AuthenticationStatus> {
 	const authStatus = await authEngine.authenticate(authRequest);
 
@@ -53,3 +54,4 @@ function createAuthEnginesWithDifferentPasswordHashingAlg(baseConfig: Authentica
 }
 
 export { checkIfJWTWasInvalidated, validateSuccessfulLogin, createAuthEnginesWithDifferentPasswordHashingAlg };
+*/

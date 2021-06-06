@@ -6,7 +6,7 @@ const FailedAuthAttemptSessionMemoryRepository: FailedAuthAttemptSessionReposito
 		MemoryCache.set(`failed-auth:${username}`, session, { expiresAfter: ttl });
 	},
 	read: async (username) => {
-		return MemoryCache.get(`failed-auth:${username}`);
+		return MemoryCache.get(`failed-auth:${username}`) || null;
 	},
 	delete: async (username) => {
 		MemoryCache.del(`failed-auth:${username}`);

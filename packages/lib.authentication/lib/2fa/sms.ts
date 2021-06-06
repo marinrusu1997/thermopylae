@@ -17,8 +17,8 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		this.options = options;
 	}
 
-	public async beforeRegister(): Promise<undefined> {
-		return undefined;
+	public async onTwoFactorAuthEnabled(): Promise<null> {
+		return null;
 	}
 
 	public async sendAuthenticationToken(

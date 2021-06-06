@@ -6,7 +6,7 @@ const ActivateAccountSessionMemoryRepository: ActivateAccountSessionRepository<A
 		MemoryCache.set(`act-acc:${token}`, account, { expiresAfter: ttl });
 	},
 	read: async (token) => {
-		return MemoryCache.get(`act-acc:${token}`);
+		return MemoryCache.get(`act-acc:${token}`) || null;
 	},
 	delete: async (token) => {
 		MemoryCache.del(`act-acc:${token}`);

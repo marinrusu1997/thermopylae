@@ -11,12 +11,12 @@ import type { AccountModel } from '../types/models';
 import type { SecretEncryptionOptions } from '../helpers/secret-encryptor';
 import type { TwoFactorAuthStrategy } from './interface';
 
-interface AccountWithTotpSecret extends AccountModel {
-	totpSecret: string;
+interface OnTwoFactorEnabledHookResult {
+	totpSecretQRImageUrl: string;
 }
 
-interface RegisterResponse {
-	totpSecretQRImageUrl: string;
+interface AccountWithTotpSecret extends AccountModel {
+	totpSecret: string;
 }
 
 interface TotpTwoFactorAuthStrategyOptions {
@@ -55,9 +55,9 @@ class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> implement
 		this.serviceName = options.serviceName;
 	}
 
-	public async beforeRegister(account: Account): Promise<RegisterResponse> {
+	public async onTwoFactorAuthEnabled(account: Readonly<Account>, update: Partial<Account>): Promise<OnTwoFactorEnabledHookResult> {
 		const totpSecret = this.authenticator.generateSecret(this.totpSecretLength);
-		account.totpSecret = this.totpEncryptor.encrypt(totpSecret);
+		update.totpSecret = this.totpEncryptor.encrypt(totpSecret);
 
 		const otpAuth = this.authenticator.keyuri(account.username, this.serviceName, totpSecret);
 		return {
@@ -78,4 +78,4 @@ class TotpTwoFactorAuthStrategy<Account extends AccountWithTotpSecret> implement
 	}
 }
 
-export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, AccountWithTotpSecret, RegisterResponse };
+export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, AccountWithTotpSecret, OnTwoFactorEnabledHookResult };

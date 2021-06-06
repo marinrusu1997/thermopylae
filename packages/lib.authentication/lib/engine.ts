@@ -79,6 +79,8 @@ import { TokenManager } from './managers/token';
 // 3. call to external api service have been pwned to check password
 // this can be done via Chain of Responsibility design pattern
 
+type AccountToBeRegistered<Account extends AccountModel> = RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil'>;
+
 interface AuthenticationEngineOptions<Account extends AccountModel> {
 	readonly thresholds: {
 		readonly maxFailedAuthAttempts: Threshold;
@@ -208,23 +210,21 @@ class AuthenticationEngine<Account extends AccountModel> {
 		return result;
 	}
 
-	public async register<TwoFactorAuthPolicyResult extends Record<string, any> = Record<string, any>>(
-		account: RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil' | 'mfa'>
-	): Promise<TwoFactorAuthPolicyResult | undefined> {
+	public async register(account: AccountToBeRegistered<Account>): Promise<void> {
 		await this.passwordsManager.hashAndStoreOnAccount(account.passwordHash, account as Account);
 
-		const result = await this.options['2fa-strategy'].beforeRegister(account as Account);
+		account.mfa = false;
 
 		if (account.disabledUntil === AccountStatus.ENABLED) {
 			await this.options.repositories.account.insert(account as Account);
-			return result as TwoFactorAuthPolicyResult;
+			return;
 		}
 
 		if (account.disabledUntil === AccountStatus.DISABLED_UNTIL_ACTIVATION) {
 			const activateToken = await uidSafe(this.options.tokensLength);
 			await this.options.repositories.activateAccountSession.insert(activateToken, account as Account, this.options.ttl.activateAccountSession);
 			await this.options.email.sender.sendActivateAccountToken(account.email, activateToken);
-			return result as TwoFactorAuthPolicyResult;
+			return;
 		}
 
 		throw createException(
@@ -235,7 +235,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 	public async activateAccount(activateAccountToken: string): Promise<void> {
 		const unactivatedAccount = await this.options.repositories.activateAccountSession.read(activateAccountToken);
-		if (!unactivatedAccount) {
+		if (unactivatedAccount == null) {
 			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by token ${activateAccountToken} not found.`);
 		}
 
@@ -255,11 +255,17 @@ class AuthenticationEngine<Account extends AccountModel> {
 	 * @param accountId		Account id.
 	 * @param enabled		Whether it's enabled or not.
 	 * @param context		Operation context. @fixme detail it
+	 *
+	 * @returns				@fixme
 	 */
-	public async setTwoFactorAuthEnabled(accountId: string, enabled: boolean, context?: SetTwoFactorAuthenticationContext): Promise<void> {
-		if (context != null) {
-			const account = await this.accountManager.readById(accountId);
+	public async setTwoFactorAuthEnabled(
+		accountId: string,
+		enabled: boolean,
+		context?: SetTwoFactorAuthenticationContext
+	): Promise<Record<string, any> | null> {
+		const account = await this.accountManager.readById(accountId);
 
+		if (context != null) {
 			if (!(await this.verifyPassword(context.password, account, context))) {
 				throw createException(
 					ErrorCodes.INCORRECT_PASSWORD,
@@ -268,7 +274,17 @@ class AuthenticationEngine<Account extends AccountModel> {
 			}
 		}
 
-		await this.options.repositories.account.setTwoFactorAuthEnabled(accountId, enabled);
+		const update: Partial<Account> = {};
+		let hookResult: Record<string, any> | null = null;
+
+		if (enabled) {
+			hookResult = await this.options['2fa-strategy'].onTwoFactorAuthEnabled(account, update);
+		}
+		update.mfa = enabled;
+
+		await this.options.repositories.account.update(accountId, update);
+
+		return hookResult;
 	}
 
 	/**
@@ -423,4 +439,4 @@ class AuthenticationEngine<Account extends AccountModel> {
 	}
 }
 
-export { AuthenticationEngine, AuthenticationEngineOptions };
+export { AuthenticationEngine, AuthenticationEngineOptions, AccountToBeRegistered };

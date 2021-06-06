@@ -8,7 +8,7 @@ class AuthenticationSessionRepositoryHolder {
 
 	private readonly authenticationContext: AuthenticationContext;
 
-	private session: AuthenticationSession | null;
+	private session: AuthenticationSession | null | undefined;
 
 	private sessionWasReadFromRepository: boolean;
 

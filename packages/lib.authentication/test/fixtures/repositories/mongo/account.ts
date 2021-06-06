@@ -13,75 +13,92 @@ const AccountSchema = new mongoose.Schema({
 	pubKey: String,
 	totpSecret: String
 });
+AccountSchema.virtual('id').get(function getter() {
+	// @ts-ignore
+	return String(this._id);
+});
+
 function model(): mongoose.Model<mongoose.Document> {
 	return getMongoModel('account', AccountSchema);
 }
 
 const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 	insert: async (account) => {
-		if (await model().exists({ username: account.username })) {
-			throw new Error(`Account with username ${account.username} already exists.`);
-		}
-
 		const accountModel = await model().create(account);
 		account.id = String(accountModel._id);
 	},
 
 	readById: async (id) => {
-		const accountModel = await model().findById(id).exec();
-		if (!accountModel) {
+		const document = (await model().findById(id).exec()) as any;
+		if (!document) {
 			return null;
 		}
 
-		accountModel.id = String(accountModel._id);
-		return accountModel as unknown as AccountWithTotpSecret;
+		const accountModel = document.toObject({ virtuals: true }) as AccountWithTotpSecret;
+		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
+		delete (accountModel as any)._id;
+		delete (accountModel as any).__v;
+
+		return accountModel;
 	},
 
 	readByUsername: async (username) => {
-		const accountModel = await model().find({ username }).exec();
-		if (!accountModel.length) {
+		const documents = await model().find({ username }).exec();
+		if (!documents.length) {
 			return null;
 		}
-		if (accountModel.length > 1) {
+		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for username ${username}`);
 		}
 
-		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
+		delete (accountModel as any)._id;
+		delete (accountModel as any).__v;
+
+		return accountModel;
 	},
 
 	readByEmail: async (email) => {
-		const accountModel = await model().find({ email }).exec();
-		if (!accountModel.length) {
+		const documents = await model().find({ email }).exec();
+		if (!documents.length) {
 			return null;
 		}
-		if (accountModel.length > 1) {
+		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for email ${email}.`);
 		}
 
-		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
+		delete (accountModel as any)._id;
+		delete (accountModel as any).__v;
+
+		return accountModel;
 	},
 
 	readByTelephone: async (telephone) => {
-		const accountModel = await model().find({ telephone }).exec();
-		if (!accountModel.length) {
+		const documents = await model().find({ telephone }).exec();
+		if (!documents.length) {
 			return null;
 		}
-		if (accountModel.length > 1) {
+		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for telephone ${telephone}.`);
 		}
 
-		accountModel[0].id = String(accountModel[0]._id);
-		return accountModel[0] as unknown as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
+		delete (accountModel as any)._id;
+		delete (accountModel as any).__v;
+
+		return accountModel;
+	},
+
+	update: async (_id, update) => {
+		await model().updateOne({ _id }, update).exec();
 	},
 
 	setDisabledUntil: async (_id, disabledUntil) => {
 		await model().updateOne({ _id }, { disabledUntil }).exec();
-	},
-
-	setTwoFactorAuthEnabled: async (_id, mfa) => {
-		await model().updateOne({ _id }, { mfa }).exec();
 	},
 
 	changePassword: async (_id, passwordHash, _salt, passwordAlg) => {

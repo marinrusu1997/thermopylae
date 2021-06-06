@@ -6,7 +6,7 @@ const AuthenticationSessionMemoryRepository: AuthenticationSessionRepository = {
 		MemoryCache.set(`auth:${username}:${deviceId}`, session, { expiresAfter: ttl });
 	},
 	read: async (username, deviceId) => {
-		return MemoryCache.get(`auth:${username}:${deviceId}`);
+		return MemoryCache.get(`auth:${username}:${deviceId}`) || null;
 	},
 	delete: async (username, deviceId) => {
 		MemoryCache.del(`auth:${username}:${deviceId}`);

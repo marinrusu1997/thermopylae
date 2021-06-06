@@ -29,7 +29,7 @@ const hashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	memoryCost: 8192,
 	parallelism: 4,
 	timeCost: 1,
-	saltLength: 5
+	saltLength: 8
 });
 
 const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
@@ -69,7 +69,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 			currentAlgorithm: hashingAlgorithm
 		},
 		encryption: false,
-		strength: [new PasswordLengthValidator(12, 4_096), new PasswordStrengthValidator(['thermopylae']), new PwnedPasswordValidator(2)],
+		strength: [new PasswordLengthValidator(4, 4_096), new PasswordStrengthValidator(['thermopylae']), new PwnedPasswordValidator(1)],
 		similarity: 0.8
 	},
 	email: {
@@ -80,7 +80,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 	'2fa-strategy': new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>({
 		serviceName: 'thermopylae',
 		totp: {
-			secretLength: 10,
+			secretLength: 5,
 			encryption: {
 				algorithm: 'aes-128-ccm',
 				secret: 'totp-secret',
@@ -95,7 +95,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 			}
 		}
 	}),
-	tokensLength: 10
+	tokensLength: 15
 };
 
 // trigger automatic clean up after each test (will be done at the first import)

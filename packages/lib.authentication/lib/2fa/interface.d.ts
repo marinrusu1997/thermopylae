@@ -7,13 +7,14 @@ import type { AuthenticationContext } from '../types/contexts';
  */
 interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	/**
-	 * Hook used by strategy in order to attach metadata to account before it's registered.
+	 * Hook used by strategy in order to attach metadata to account when multi factor auth is enabled.
 	 *
 	 * @param account	User account.
+	 * @param update	Fields that need to be updated on user account.
 	 *
-	 * @returns			Result to be returned to user.
+	 * @returns			Result of the hook.
 	 */
-	beforeRegister(account: Account): Promise<Record<string, any> | undefined>;
+	onTwoFactorAuthEnabled(account: Readonly<Account>, update: Partial<Account>): Promise<Record<string, any> | null>;
 
 	/**
 	 * Send authentication token via side channel.

@@ -26,7 +26,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @returns				Account entity or null when not found.
 	 */
-	readById(accountId: string): Promise<Account | null>;
+	readById(accountId: string): Promise<Account | null | undefined>;
 
 	/**
 	 * Read account from repository by his username.
@@ -35,7 +35,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @returns			Account entity or null when not found.
 	 */
-	readByUsername(username: string): Promise<Account | null>;
+	readByUsername(username: string): Promise<Account | null | undefined>;
 
 	/**
 	 * Read account from repository by his email.
@@ -44,7 +44,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @returns			Account entity or null when not found.
 	 */
-	readByEmail(email: string): Promise<Account | null>;
+	readByEmail(email: string): Promise<Account | null | undefined>;
 
 	/**
 	 * Read account from repository by his telephone number.
@@ -53,7 +53,17 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @returns			Account entity or null when not found.
 	 */
-	readByTelephone(telephone: string): Promise<Account | null>;
+	readByTelephone(telephone: string): Promise<Account | null | undefined>;
+
+	/**
+	 * Update account.
+	 *
+	 * @param accountId		Account id.
+	 * @param update		Fields that needs to be updated.
+	 *
+	 * @throws {Error}		When account is not found or any other error is encountered.
+	 */
+	update(accountId: string, update: Partial<Account>): Promise<void>;
 
 	/**
 	 * Change account enable status.
@@ -64,16 +74,6 @@ interface AccountRepository<Account extends AccountModel> {
 	 * @throws {Error}		When account is not found or any other error is encountered.
 	 */
 	setDisabledUntil(accountId: string, until: UnixTimestamp): Promise<void>;
-
-	/**
-	 * Change account two factor auth status.
-	 *
-	 * @param accountId		Account id.
-	 * @param enabled		Whether two factor auth is enabled.
-	 *
-	 * @throws {Error}		When account is not found or any other error is encountered.
-	 */
-	setTwoFactorAuthEnabled(accountId: string, enabled: boolean): Promise<void>;
 
 	/**
 	 * Change account password.
@@ -159,7 +159,7 @@ interface AuthenticationSessionRepository {
 	 *
 	 * @returns		User authentication session or `null` when not found.
 	 */
-	read(username: string, deviceId: string): Promise<AuthenticationSession | null>;
+	read(username: string, deviceId: string): Promise<AuthenticationSession | null | undefined>;
 
 	/**
 	 * Delete *on going* user authentication session.
@@ -191,7 +191,7 @@ interface FailedAuthAttemptSessionRepository {
 	 *
 	 * @returns		Failed authentication attempts session or `null` when not found.
 	 */
-	read(username: string): Promise<FailedAuthenticationAttemptSession | null>;
+	read(username: string): Promise<FailedAuthenticationAttemptSession | null | undefined>;
 
 	/**
 	 * Replace failed authentication attempts session. <br/>
@@ -232,7 +232,7 @@ interface ActivateAccountSessionRepository<Account extends AccountModel> {
 	 *
 	 * @returns			Account that needs to be activated or `null` when token was not valid.
 	 */
-	read(token: string): Promise<Account | null>;
+	read(token: string): Promise<Account | null | undefined>;
 
 	/**
 	 * Delete session.
