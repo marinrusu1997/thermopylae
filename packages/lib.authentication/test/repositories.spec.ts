@@ -1,14 +1,13 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
+import { chrono } from '@thermopylae/lib.utils';
 import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
-// @ts-ignore
-import unixtime from 'unixtime';
 import { AccountStatus, AccountWithTotpSecret, FailedAuthenticationModel } from '../lib';
 import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
 import { FailedAuthenticationAttemptsRepositoryMongo } from './fixtures/repositories/mongo/failed-auth';
 import { SuccessfulAuthenticationsRepositoryMongo } from './fixtures/repositories/mongo/successful-auth';
 
-describe('repositories spec', () => {
+describe('Repositories spec', () => {
 	const location: HTTPRequestLocation = {
 		countryCode: 'US',
 		regionCode: 'CA',
@@ -69,7 +68,7 @@ describe('repositories spec', () => {
 	});
 
 	it('failed authentication', async () => {
-		const now = unixtime();
+		const now = chrono.unixTime();
 
 		const attempt1: FailedAuthenticationModel = {
 			id: undefined!,
@@ -105,7 +104,7 @@ describe('repositories spec', () => {
 	});
 
 	it('successful authentication', async () => {
-		const now = unixtime();
+		const now = chrono.unixTime();
 		await SuccessfulAuthenticationsRepositoryMongo.insert({
 			id: undefined!,
 			accountId: '1',

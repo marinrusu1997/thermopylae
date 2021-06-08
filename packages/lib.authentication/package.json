@@ -46,6 +46,7 @@
     "devDependencies": {
         "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
         "@types/mongoose": "5",
         "@types/node-fetch": "2",
@@ -57,8 +58,7 @@
         "keypair": "1",
         "mongodb-memory-server": "6",
         "mongoose": "5",
-        "object-hash": "2",
-        "unixtime": "0"
+        "object-hash": "2"
     },
     "peerDependencies": {
         "chai": "4",

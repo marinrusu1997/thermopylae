@@ -54,7 +54,7 @@ class PasswordsManager<Account extends AccountModel> {
 
 	public async isSame(plain: string, hash: string, salt: string | undefined, algorithmId: number): Promise<boolean> {
 		hash = this.encryptor.decrypt(hash);
-		return this.hashing.algorithms.get(algorithmId)!.verify(hash, plain, salt);
+		return this.hashing.algorithms.get(algorithmId)!.verify(plain, hash, salt);
 	}
 }
 

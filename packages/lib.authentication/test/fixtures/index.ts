@@ -1,5 +1,6 @@
 import { after, afterEach, before } from 'mocha';
 import { argon2id } from 'argon2';
+import { createHash, randomBytes } from 'crypto';
 import {
 	AccountWithTotpSecret,
 	Argon2PasswordHashingAlgorithm,
@@ -38,7 +39,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		failedAuthAttemptsRecaptcha: 2
 	},
 	ttl: {
-		authenticationSession: 10,
+		authenticationSession: 1,
 		failedAuthAttemptsSession: 10,
 		activateAccountSession: 5,
 		forgotPasswordSession: 5,
@@ -82,9 +83,9 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		totp: {
 			secretLength: 5,
 			encryption: {
-				algorithm: 'aes-128-ccm',
-				secret: 'totp-secret',
-				iv: null
+				algorithm: 'aes-256-ctr',
+				secret: createHash('sha256').update('7hiufha809273509ujhifou909i6jg').digest('base64').substr(0, 32),
+				iv: randomBytes(16).toString('hex').slice(0, 16)
 			},
 			authenticator: {
 				algorithm: 'sha1',

@@ -4,6 +4,7 @@ import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepos
 import type { EmailSender } from '../../types/side-channels';
 import type { AuthenticationContext } from '../../types/contexts';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
+import { getCurrentTimestamp } from '../../utils';
 
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly emailSender: EmailSender;
@@ -27,14 +28,31 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<AuthenticationStepOutput> {
+		let index = 0;
+		let promises: Array<Promise<unknown>>;
+
 		if (
 			authenticationContext.device &&
 			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
 		) {
-			await this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authenticationContext);
+			promises = new Array<Promise<unknown>>(4);
+			promises[index++] = this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authenticationContext);
+		} else {
+			promises = new Array<Promise<unknown>>(3);
 		}
 
-		await Promise.all([this.failedAuthAttemptSessionRepository.delete(account.username), authenticationSessionRepositoryHolder.delete()]);
+		promises[index++] = this.failedAuthAttemptSessionRepository.delete(account.username);
+		promises[index++] = authenticationSessionRepositoryHolder.delete();
+		promises[index++] = this.successfulAuthenticationsRepository.insert({
+			id: undefined!,
+			accountId: account.id,
+			ip: authenticationContext.ip,
+			device: authenticationContext.device,
+			location: authenticationContext.location,
+			authenticatedAt: getCurrentTimestamp()
+		});
+
+		await Promise.all(promises);
 
 		return {
 			done: { authenticated: true }

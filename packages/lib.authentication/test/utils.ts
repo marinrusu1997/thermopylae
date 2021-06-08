@@ -1,57 +1,18 @@
-/*
-import { assert, AssertionError, expect } from 'chai';
-import { Jwt } from '@marin/lib.jwt';
-import { AuthenticationEngineOptions, AuthenticationEngine } from '../lib';
-import { AuthenticationStatus } from '../lib/authentication/step';
-import { HashingAlgorithms, PasswordHasher } from './fixtures/password-hasher';
-import { AuthenticationContext } from '../lib/types/contexts';
+import { expect } from '@thermopylae/lib.unit-test';
+import { AuthenticationStatus } from '../lib';
 
-/!**
- * Checks if provided jwt was invalidated, i.e. blacklisted
- * Intended for usage by test cases.
- *
- * @param token
- * @param jwt
- *!/
-async function checkIfJWTWasInvalidated(token: string, jwt: Jwt): Promise<void> {
-	let jwtValidateError;
-	try {
-		await jwt.validate(token);
-		assert(false, `Authorization was made, even if token ${token} needed to be invalidated!`);
-	} catch (e) {
-		if (e instanceof AssertionError) {
-			throw e;
-		}
-		jwtValidateError = e;
-	}
-	expect(jwtValidateError).to.be.instanceOf(Error).and.to.haveOwnProperty('name', 'JsonWebTokenError');
-	expect(jwtValidateError.message.substr(jwtValidateError.message.length - 11)).to.be.eq('blacklisted');
-}
-
-/!**
- * Checks that authentication was successful and returns authentication status in case of success,
- * having the authentication JsonWebToken
- *
- * @param authEngine
- * @param authRequest
- *!/
-async function validateSuccessfulLogin(authEngine: AuthenticationEngine, authRequest: AuthenticationContext): Promise<AuthenticationStatus> {
-	const authStatus = await authEngine.authenticate(authRequest);
-
-	expect(authStatus.token).to.not.be.eq(undefined);
-	expect(authStatus.token).to.be.an('string');
-	expect(authStatus.error).to.be.eq(undefined);
+function validateSuccessfulLogin(authStatus: AuthenticationStatus): void | never {
+	expect(authStatus.token).to.be.eq(undefined);
 	expect(authStatus.nextStep).to.be.eq(undefined);
-
-	return authStatus;
+	expect(authStatus.error).to.be.eq(undefined);
+	expect(authStatus.authenticated).to.be.eq(true);
 }
 
-function createAuthEnginesWithDifferentPasswordHashingAlg(baseConfig: AuthenticationEngineOptions): Array<AuthenticationEngine> {
+/* function createAuthEnginesWithDifferentPasswordHashingAlg(baseConfig: AuthenticationEngineOptions): Array<AuthenticationEngine> {
 	return [
 		new AuthenticationEngine({ ...baseConfig, passwordHasher: new PasswordHasher(HashingAlgorithms.BCRYPT) }),
 		new AuthenticationEngine({ ...baseConfig, passwordHasher: new PasswordHasher(HashingAlgorithms.ARGON2) })
 	];
-}
+} */
 
-export { checkIfJWTWasInvalidated, validateSuccessfulLogin, createAuthEnginesWithDifferentPasswordHashingAlg };
-*/
+export { validateSuccessfulLogin };

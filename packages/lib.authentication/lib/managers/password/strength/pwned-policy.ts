@@ -27,9 +27,11 @@ class PwnedPasswordValidator<Account extends AccountModel> implements PasswordSt
 		}
 
 		const breachedPasswords = (await response.text()).split('\n');
+		let entry: string;
+		let howOften: string;
 
 		for (let i = 0; i < breachedPasswords.length; i += 1) {
-			const [entry, howOften] = breachedPasswords[i].split(':');
+			[entry, howOften] = breachedPasswords[i].split(':');
 			if (entry === suffix && Number(howOften) >= this.breachThreshold) {
 				throw createException(ErrorCodes.WEAK_PASSWORD, 'Provided password has been breached before.', password);
 			}

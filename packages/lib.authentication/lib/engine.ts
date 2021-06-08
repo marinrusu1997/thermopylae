@@ -27,7 +27,7 @@ import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager } from './managers/password';
 import type { PasswordHashing } from './managers/password';
 import type { EmailSender, SmsSender } from './types/side-channels';
-import type { AccountModel, FailedAuthenticationModel } from './types/models';
+import type { AccountModel, FailedAuthenticationModel, SuccessfulAuthenticationModel } from './types/models';
 import { ChallengeResponseStep } from './authentication/steps/challenge-response-step';
 import type { ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
 import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
@@ -236,7 +236,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 	public async activateAccount(activateAccountToken: string): Promise<void> {
 		const unactivatedAccount = await this.options.repositories.activateAccountSession.read(activateAccountToken);
 		if (unactivatedAccount == null) {
-			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by token ${activateAccountToken} not found.`);
+			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Activate account session identified by token '${activateAccountToken}' not found.`);
 		}
 
 		unactivatedAccount.disabledUntil = AccountStatus.ENABLED;
@@ -296,8 +296,25 @@ class AuthenticationEngine<Account extends AccountModel> {
 	 * @param startingFrom			Starting timestamp.
 	 * @param endingTo				Ending timestamp.
 	 */
-	public getFailedAuthAttempts(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<FailedAuthenticationModel>> {
+	public getFailedAuthentications(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<FailedAuthenticationModel>> {
 		return this.options.repositories.failedAuthenticationAttempts.readRange(accountId, startingFrom, endingTo);
+	}
+
+	/**
+	 * Get successful authentications into user account.
+	 * > **Important!** This method has authorization implications.
+	 * > It needs to be called only by authenticated users for their account or by admin.
+	 *
+	 * @param accountId				Account id.
+	 * @param startingFrom			Starting timestamp.
+	 * @param endingTo				Ending timestamp.
+	 */
+	public getSuccessfulAuthentications(
+		accountId: string,
+		startingFrom?: UnixTimestamp,
+		endingTo?: UnixTimestamp
+	): Promise<Array<SuccessfulAuthenticationModel>> {
+		return this.options.repositories.successfulAuthentications.readRange(accountId, startingFrom, endingTo);
 	}
 
 	public async verifyPassword(password: string, account: Account, context: BaseContext): Promise<boolean> {

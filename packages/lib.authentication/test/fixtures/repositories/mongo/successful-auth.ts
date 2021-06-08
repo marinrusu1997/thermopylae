@@ -19,6 +19,30 @@ const SuccessfulAuthenticationsRepositoryMongo: SuccessfulAuthenticationsReposit
 		const doc = await model().create(successfulAuthentication);
 		successfulAuthentication.id = String(doc._id);
 	},
+
+	readRange: async (accountId, startingFrom, endingTo) => {
+		const documentQuery = model().find({ accountId });
+		if (startingFrom || endingTo) {
+			documentQuery.where('authenticatedAt');
+			if (startingFrom) {
+				documentQuery.gte(startingFrom);
+			}
+			if (endingTo) {
+				documentQuery.lte(endingTo);
+			}
+		}
+
+		const docs = await documentQuery.exec();
+
+		return docs.map((doc) => {
+			const failedAuthentication = doc.toObject({ virtuals: true }) as SuccessfulAuthenticationModel;
+			delete (failedAuthentication as any)._id;
+			delete (failedAuthentication as any).__v;
+
+			return failedAuthentication;
+		});
+	},
+
 	authBeforeFromThisDevice: async (accountId, device) => {
 		const prevAuthentications = (await model().find({ accountId }).exec()) as unknown as SuccessfulAuthenticationModel[];
 		if (prevAuthentications.length === 0) {

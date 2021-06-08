@@ -125,6 +125,17 @@ interface SuccessfulAuthenticationsRepository {
 	insert(authentication: SuccessfulAuthenticationModel): Promise<void>;
 
 	/**
+	 * Read multiple {@link SuccessfulAuthenticationModel} based on a date range.
+	 *
+	 * @param accountId			Account id.
+	 * @param startingFrom		Starting timestamp.
+	 * @param endingTo			Ending timestamp.
+	 *
+	 * @returns					List of successful authentications.
+	 */
+	readRange(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<SuccessfulAuthenticationModel>>;
+
+	/**
 	 * Detect whether user made a successful authentication attempt before from this `device`.
 	 *
 	 * @param accountId		Account id.

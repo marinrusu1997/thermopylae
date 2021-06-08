@@ -23,6 +23,7 @@ const FailedAuthenticationAttemptsRepositoryMongo: FailedAuthenticationAttemptsR
 		const failedAuthModel = await model().create(failedAuthentication);
 		failedAuthentication.id = String(failedAuthModel._id);
 	},
+
 	readRange: async (accountId, startingFrom, endingTo) => {
 		const documentQuery = model().find({ accountId });
 		if (startingFrom || endingTo) {

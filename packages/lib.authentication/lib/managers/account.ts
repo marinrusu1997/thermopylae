@@ -41,7 +41,7 @@ class AccountManager<Account extends AccountModel> {
 	public async readByUsername(username: string): Promise<Account> {
 		const account = await this.accountRepository.readByUsername(username);
 		if (account == null) {
-			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with username ${username} doesn't exist.`);
+			throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with username '${username}' doesn't exist.`);
 		}
 
 		await this.ensureNotDisabled(account);
