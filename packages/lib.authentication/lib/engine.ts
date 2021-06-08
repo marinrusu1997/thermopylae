@@ -37,7 +37,7 @@ import type { AuthenticationContext, BaseContext, ChangePasswordContext, SetTwoF
 import type { PasswordStrengthPolicyValidator } from './managers/password/strength/policy';
 import { SecretEncryptor } from './helpers/secret-encryptor';
 import type { SecretEncryptionOptions } from './helpers/secret-encryptor';
-import { TwoFactorAuthStrategy } from './2fa/interface';
+import { TwoFactorAuthStrategy } from './authentication/2fa/interface';
 import { AuthenticationSessionRepositoryHolder } from './helpers/authentication-session-repository-holder';
 import { FailedAuthenticationsManager } from './managers/failed-authentications';
 import { TokenManager } from './managers/token';

@@ -1,7 +1,7 @@
-export type { TwoFactorAuthStrategy } from './2fa/interface';
-export { EmailTwoFactorAuthStrategy, EmailTwoFactorAuthStrategyOptions, SendEmailWithToken } from './2fa/email';
-export { SmsTwoFactorAuthStrategy, SmsTwoFactorAuthStrategyOptions, SendSmsWithToken } from './2fa/sms';
-export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, OnTwoFactorEnabledHookResult, AccountWithTotpSecret } from './2fa/totp';
+export type { TwoFactorAuthStrategy } from './authentication/2fa/interface';
+export { EmailTwoFactorAuthStrategy, EmailTwoFactorAuthStrategyOptions, SendEmailWithToken } from './authentication/2fa/email';
+export { SmsTwoFactorAuthStrategy, SmsTwoFactorAuthStrategyOptions, SendSmsWithToken } from './authentication/2fa/sms';
+export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, OnTwoFactorEnabledHookResult, AccountWithTotpSecret } from './authentication/2fa/totp';
 
 export type { AuthenticationStatus } from './authentication/step';
 

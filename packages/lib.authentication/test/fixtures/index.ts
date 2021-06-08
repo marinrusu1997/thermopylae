@@ -8,7 +8,8 @@ import {
 	PasswordLengthValidator,
 	PasswordStrengthValidator,
 	PwnedPasswordValidator,
-	TotpTwoFactorAuthStrategy
+	TotpTwoFactorAuthStrategy,
+	TotpTwoFactorAuthStrategyOptions
 } from '../../lib';
 import { AccountRepositoryMongo } from './repositories/mongo/account';
 import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth';
@@ -33,14 +34,34 @@ const hashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	saltLength: 8
 });
 
+const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = {
+	serviceName: 'thermopylae',
+	totp: {
+		secretLength: 5,
+		encryption: {
+			algorithm: 'aes-256-ctr',
+			secret: createHash('sha256').update('7hiufha809273509ujhifou909i6jg').digest('base64').substr(0, 32),
+			iv: randomBytes(16).toString('hex').slice(0, 16)
+		},
+		authenticator: {
+			algorithm: 'sha1',
+			encoding: 'base64',
+			step: 10,
+			window: 1,
+			digits: 6
+		}
+	}
+};
+Object.freeze(TotpDefaultOptions);
+
 const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
 	thresholds: {
 		maxFailedAuthAttempts: 3,
 		failedAuthAttemptsRecaptcha: 2
 	},
 	ttl: {
-		authenticationSession: 1,
-		failedAuthAttemptsSession: 10,
+		authenticationSession: 2,
+		failedAuthAttemptsSession: 5,
 		activateAccountSession: 5,
 		forgotPasswordSession: 5,
 		accountDisableTimeout: 5
@@ -78,26 +99,10 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		sender: EmailSenderInstance
 	},
 	smsSender: SmsSenderInstance,
-	'2fa-strategy': new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>({
-		serviceName: 'thermopylae',
-		totp: {
-			secretLength: 5,
-			encryption: {
-				algorithm: 'aes-256-ctr',
-				secret: createHash('sha256').update('7hiufha809273509ujhifou909i6jg').digest('base64').substr(0, 32),
-				iv: randomBytes(16).toString('hex').slice(0, 16)
-			},
-			authenticator: {
-				algorithm: 'sha1',
-				encoding: 'utf8',
-				step: 10,
-				window: 1,
-				digits: 6
-			}
-		}
-	}),
+	'2fa-strategy': new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>(TotpDefaultOptions),
 	tokensLength: 15
 };
+Object.freeze(AuthenticationEngineDefaultOptions);
 
 // trigger automatic clean up after each test (will be done at the first import)
 afterEach(async () => {
@@ -114,4 +119,4 @@ afterEach(async () => {
 before(connectToMongoDatabase);
 after(dropMongoDatabase);
 
-export { AuthenticationEngineDefaultOptions };
+export { AuthenticationEngineDefaultOptions, TotpDefaultOptions };

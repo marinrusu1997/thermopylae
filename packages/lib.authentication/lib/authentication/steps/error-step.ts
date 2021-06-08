@@ -60,14 +60,22 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 			};
 		}
 
+		let nextStep: AuthenticationStepName;
+		if (previousAuthenticationStepName === AuthenticationStepName.TWO_FACTOR_AUTH_CHECK) {
+			const authenticationSession = await authenticationSessionRepositoryHolder.get();
+
+			if (authenticationSession['2fa-token'] != null) {
+				nextStep = AuthenticationStepName.TWO_FACTOR_AUTH_CHECK;
+			} else {
+				nextStep = AuthenticationStepName.PASSWORD;
+			}
+		} else {
+			nextStep = previousAuthenticationStepName;
+		}
+
 		return {
 			done: {
-				// two factor tokens are generated only after successful password validation,
-				// therefore this cycle must be repeated, as we don't know whether provided token is invalid or the stored one expired
-				nextStep:
-					previousAuthenticationStepName === AuthenticationStepName.TWO_FACTOR_AUTH_CHECK
-						? AuthenticationStepName.PASSWORD
-						: previousAuthenticationStepName,
+				nextStep,
 				error: {
 					soft: createException(ErrorCodes.INCORRECT_CREDENTIALS, errorMessage)
 				}

@@ -1,6 +1,6 @@
-import type { AccountModel } from '../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../types/contexts';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
+import type { AuthenticationContext } from '../../types/contexts';
 
 /**
  * Represents 2 Factor Authentication strategy.

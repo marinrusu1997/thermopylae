@@ -19,6 +19,10 @@ class AuthenticationSessionRepositoryHolder {
 		this.sessionWasReadFromRepository = false;
 	}
 
+	public get sessionId(): string {
+		return this.authenticationContext.deviceId;
+	}
+
 	public async get(): Promise<AuthenticationSession> {
 		if (this.session != null) {
 			return this.session;

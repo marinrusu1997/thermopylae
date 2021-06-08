@@ -26,7 +26,10 @@ class DispatchStep<Account extends AccountModel> implements AuthenticationStep<A
 		}
 
 		// configuration error, user input not validated properly, allowed to throw
-		throw createException(ErrorCodes.UNKNOWN, `Can't resolve next step to move from ${AuthenticationStepName.DISPATCH}.`);
+		throw createException(
+			ErrorCodes.MISCONFIGURATION,
+			`Can't resolve next step to move from ${AuthenticationStepName.DISPATCH}. Authentication context needs to be validated to contain at least one authentication related property.`
+		);
 	}
 }
 

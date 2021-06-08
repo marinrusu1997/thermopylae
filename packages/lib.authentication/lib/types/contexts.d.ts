@@ -1,5 +1,6 @@
 import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { BinaryToTextEncoding } from 'crypto';
+import { RequireAtLeastOne } from '@thermopylae/core.declarations';
 
 interface BaseContext {
 	readonly ip: string;
@@ -7,19 +8,20 @@ interface BaseContext {
 	readonly location?: HTTPRequestLocation;
 }
 
-interface AuthenticationContext extends BaseContext {
+interface AuthenticationContextInterface extends BaseContext {
 	readonly username: string;
-	readonly password?: string;
 	readonly deviceId: string;
+	readonly password?: string;
 	readonly '2fa-token'?: string;
-	readonly recaptcha?: string;
 	readonly generateChallenge?: boolean;
 	readonly responseForChallenge?: {
 		readonly signature: string | Buffer;
 		readonly signAlgorithm: string;
 		readonly signEncoding: BinaryToTextEncoding;
 	};
+	readonly recaptcha?: string;
 }
+type AuthenticationContext = RequireAtLeastOne<AuthenticationContextInterface, 'password' | '2fa-token' | 'generateChallenge' | 'responseForChallenge'>;
 
 interface SetTwoFactorAuthenticationContext extends BaseContext {
 	readonly password: string;

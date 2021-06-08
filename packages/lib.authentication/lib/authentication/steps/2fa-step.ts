@@ -2,7 +2,7 @@ import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
 import type { EmailSender } from '../../types/side-channels';
-import type { TwoFactorAuthStrategy } from '../../2fa/interface';
+import type { TwoFactorAuthStrategy } from '../2fa/interface';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
@@ -21,11 +21,6 @@ class TwoFactorAuthStep<Account extends AccountModel> implements AuthenticationS
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<AuthenticationStepOutput> {
-		if (authenticationContext['2fa-token'] == null) {
-			// received invalid token or someone is trying to use same token twice -> treat as error
-			return { nextStep: AuthenticationStepName.ERROR };
-		}
-
 		if (await this.twoFactorAuthStrategy.isAuthenticationTokenValid(account, authenticationContext, authenticationSessionRepositoryHolder)) {
 			return { nextStep: AuthenticationStepName.AUTHENTICATED };
 		}

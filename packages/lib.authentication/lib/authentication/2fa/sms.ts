@@ -1,7 +1,8 @@
-import { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
+import { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { TwoFactorAuthStrategy } from './interface';
-import type { AccountModel } from '../types/models';
-import type { AuthenticationContext } from '../types/contexts';
+import type { AccountModel } from '../../types/models';
+import type { AuthenticationContext } from '../../types/contexts';
+import { createException, ErrorCodes } from '../../error';
 
 type SendSmsWithToken = (telephone: string, token: string) => Promise<void>;
 
@@ -26,8 +27,15 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void> {
-		const token = SmsTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
+		if (authenticationSession['2fa-token'] != null) {
+			throw createException(
+				ErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
+				`Two factor authentication token was issued already for authentication session with id '${authenticationSessionRepositoryHolder.sessionId}' belonging to account with id '${account.id}'.`
+			);
+		}
+
+		const token = SmsTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
 
 		await this.options.sendSms(account.telephone!, token);
 		authenticationSession['2fa-token'] = token;

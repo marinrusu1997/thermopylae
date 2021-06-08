@@ -8,7 +8,7 @@ const SuccessfulAuthenticationSchema = new mongoose.Schema({
 	ip: { type: String, required: true },
 	device: Object,
 	location: Object,
-	authenticatedAt: { type: Number, required: true, unique: true }
+	authenticatedAt: { type: Number, required: true }
 });
 function model(): mongoose.Model<mongoose.Document> {
 	return getMongoModel('successful-authentication', SuccessfulAuthenticationSchema);
