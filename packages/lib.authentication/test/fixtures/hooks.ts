@@ -3,7 +3,7 @@ import { AccountWithTotpSecret, OnAccountDisabledHook, OnForgottenPasswordChange
 const OnAccountDisabledHookMock: { calls: string[]; hook: OnAccountDisabledHook<AccountWithTotpSecret> } = {
 	calls: [],
 	hook: async (account) => {
-		OnAccountDisabledHookMock.calls.push(account.id);
+		OnAccountDisabledHookMock.calls.push(JSON.stringify(account));
 	}
 };
 

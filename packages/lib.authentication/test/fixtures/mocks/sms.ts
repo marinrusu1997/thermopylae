@@ -1,11 +1,11 @@
-import { SmsSender } from '../../../lib';
+import { AccountWithTotpSecret, SmsSender } from '../../../lib';
 
 class SmsClientMock {
-	private readonly outbox: Map<string, Map<keyof SmsSender, Array<string>>> = new Map();
+	private readonly outbox: Map<string, Map<keyof SmsSender<AccountWithTotpSecret>, Array<string>>> = new Map();
 
 	public deliveryWillFail = false;
 
-	send(to: string, type: keyof SmsSender, body: string): void {
+	send(to: string, type: keyof SmsSender<AccountWithTotpSecret>, body: string): void {
 		if (this.deliveryWillFail) {
 			throw new Error('SMS mock client was configured to fail sms delivery');
 		}
@@ -25,7 +25,7 @@ class SmsClientMock {
 		sms.push(body);
 	}
 
-	outboxFor(userTelephone: string, type: keyof SmsSender): Array<string> {
+	outboxFor(userTelephone: string, type: keyof SmsSender<AccountWithTotpSecret>): Array<string> {
 		const smsByType = this.outbox.get(userTelephone);
 		if (smsByType == null) {
 			return [];

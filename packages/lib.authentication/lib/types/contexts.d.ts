@@ -31,7 +31,6 @@ interface ChangePasswordContext extends BaseContext {
 	readonly accountId: string;
 	readonly oldPassword: string;
 	readonly newPassword: string;
-	readonly sessionId: number;
 }
 
 export { AuthenticationContext, ChangePasswordContext, SetTwoFactorAuthenticationContext, BaseContext };

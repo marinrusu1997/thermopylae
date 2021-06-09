@@ -1,63 +1,43 @@
-/*
 import { describe, it } from 'mocha';
-import { expect } from 'chai';
-import { hostname } from 'os';
-import { chrono, string } from '@marin/lib.utils';
-import Exception from '@marin/lib.error';
-import AuthenticationEngineDefaultOptions from './fixtures';
-import { AuthenticationEngine, ErrorCodes } from '../lib';
-import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
-import { AuthenticationContext } from '../lib/types/contexts';
+import { expect } from '@thermopylae/lib.unit-test';
+import { Exception } from '@thermopylae/lib.exception';
+import { AuthenticationEngineDefaultOptions } from './fixtures';
+import { AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
+import { buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
+import { EmailSenderInstance } from './fixtures/senders/email';
+import { OnPasswordChangedHookMock } from './fixtures/hooks';
 
 describe('Change password spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
-	const defaultRegistrationInfo = {
-		username: 'username',
-		password: 'auirg7q85y1298huwityh289',
-		email: 'user@product.com',
-		telephone: '+568425666',
-		role: ACCOUNT_ROLES.MODERATOR // need long active sessions
-	};
+	it.only('changes password and then logs in with updated one', async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		const oldPassword = account.passwordHash;
+		await AuthEngineInstance.register(account);
 
-	const validAuthRequest: AuthenticationContext = {
-		username: defaultRegistrationInfo.username,
-		password: defaultRegistrationInfo.password,
-		ip: '158.56.89.230',
-		device: hostname(),
-		location: {
-			countryCode: 'US',
-			regionCode: 'CA',
-			city: 'Los Angeles',
-			postalCode: '90067',
-			timeZone: 'America/Los_Angeles',
-			latitude: 34.0577507019043,
-			longitude: -118.41380310058594
-		}
-	};
-
-	it('changes password and then logs in with updated one', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		await AuthEngineInstance.authenticate(validAuthRequest);
-		const activeSessions = await AuthEngineInstance.getActiveSessions(accountId);
-
+		/* CHANGE PASSWORD */
 		const newPassword = '42asdaffM!asd85';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
+		});
 
-		// authorization needs to be done at the upper layers
-		expect(
-			await AuthEngineInstance.changePassword({
-				accountId,
-				sessionId: activeSessions[0].authenticatedAtUNIX,
-				oldPassword: defaultRegistrationInfo.password,
-				newPassword
-			})
-		).to.be.eq(0);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyPasswordChanged')).to.be.ofSize(1);
+		expect(OnPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
 
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
+		/* AUTHENTICATE WITH OLD PASSWORD (FAILURE) */
+		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
+		expect(authStatus!.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
+	/*
 	it('changes password after new hashing algorithm is used', async () => {
 		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
 
@@ -222,5 +202,5 @@ describe('Change password spec', () => {
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 		expect(err).to.haveOwnProperty('message', 'The password must contain at least one number.');
 	});
+	 */
 });
-*/

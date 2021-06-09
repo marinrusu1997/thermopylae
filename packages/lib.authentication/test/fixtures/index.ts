@@ -25,8 +25,9 @@ import { EmailSenderInstance } from './senders/email';
 import { SmsSenderInstance } from './senders/sms';
 import { OnAccountDisabledHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
+import { BcryptPasswordHashingAlgorithm } from './password/bcrypt';
 
-const hashingAlgorithm = new Argon2PasswordHashingAlgorithm({
+const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	type: argon2id,
 	hashLength: 5,
 	memoryCost: 8192,
@@ -95,9 +96,12 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 	},
 	password: {
 		hashing: {
-			algorithms: new Map([[0, hashingAlgorithm]]),
+			algorithms: new Map([
+				[0, argon2PasswordHashingAlgorithm],
+				[1, new BcryptPasswordHashingAlgorithm()]
+			]),
 			currentAlgorithmId: 0,
-			currentAlgorithm: hashingAlgorithm
+			currentAlgorithm: argon2PasswordHashingAlgorithm
 		},
 		encryption: false,
 		strength: [new PasswordLengthValidator(4, 4_096), new PasswordStrengthValidator(ThermopylaeUserInputsProvider), new PwnedPasswordValidator(1)],

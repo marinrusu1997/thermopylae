@@ -1,25 +1,30 @@
 import { AuthenticationContext, ChangePasswordContext } from './contexts';
+import { AccountModel } from './models';
 
-interface EmailSender {
-	notifyMultiFactorAuthenticationFailed(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
+interface EmailSender<Account extends AccountModel> {
+	notifyMultiFactorAuthenticationFailed(account: Account, authenticationContext: AuthenticationContext): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyAccountDisabled(emailAddress: string, cause: string): Promise<void>;
+	notifyAccountDisabled(account: Account, cause: string): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyAuthenticationFromDifferentDevice(emailAddress: string, authenticationContext: AuthenticationContext): Promise<void>;
+	notifyAdminAboutAccountDisabling(adminEmail: string, account: Account, cause: string): Promise<void>;
 	/**
 	 * Needs to be sent with high priority.
 	 */
-	notifyPasswordChanged(emailAddress: string, changePasswordContext: ChangePasswordContext): Promise<void>;
-	sendActivateAccountToken(emailAddress: string, token: string): Promise<void>;
-	sendForgotPasswordToken(emailAddress: string, token: string): Promise<void>;
+	notifyAuthenticationFromDifferentDevice(account: Account, authenticationContext: AuthenticationContext): Promise<void>;
+	/**
+	 * Needs to be sent with high priority.
+	 */
+	notifyPasswordChanged(account: Account, changePasswordContext: ChangePasswordContext): Promise<void>;
+	sendActivateAccountToken(account: Account, token: string): Promise<void>;
+	sendForgotPasswordToken(account: Account, token: string): Promise<void>;
 }
 
-interface SmsSender {
-	sendForgotPasswordToken(telephone: string, token: string): Promise<void>;
+interface SmsSender<Account extends AccountModel> {
+	sendForgotPasswordToken(account: Account, token: string): Promise<void>;
 }
 
 export { EmailSender, SmsSender };

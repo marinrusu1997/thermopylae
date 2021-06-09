@@ -9,9 +9,9 @@ import type { AuthenticationContext } from '../../types/contexts';
 class TwoFactorAuthStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>;
 
-	private readonly emailSender: EmailSender;
+	private readonly emailSender: EmailSender<Account>;
 
-	public constructor(twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>, emailSender: EmailSender) {
+	public constructor(twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>, emailSender: EmailSender<Account>) {
 		this.emailSender = emailSender;
 		this.twoFactorAuthStrategy = twoFactorAuthStrategy;
 	}
@@ -25,7 +25,7 @@ class TwoFactorAuthStep<Account extends AccountModel> implements AuthenticationS
 			return { nextStep: AuthenticationStepName.AUTHENTICATED };
 		}
 
-		await this.emailSender.notifyMultiFactorAuthenticationFailed(account.email, authenticationContext);
+		await this.emailSender.notifyMultiFactorAuthenticationFailed(account, authenticationContext);
 		return { nextStep: AuthenticationStepName.ERROR };
 	}
 }

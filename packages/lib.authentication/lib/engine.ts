@@ -119,9 +119,9 @@ interface AuthenticationEngineOptions<Account extends AccountModel> {
 	};
 	readonly email: {
 		readonly admin: string;
-		readonly sender: EmailSender;
+		readonly sender: EmailSender<Account>;
 	};
-	readonly smsSender: SmsSender;
+	readonly smsSender: SmsSender<Account>;
 	readonly '2fa-strategy': TwoFactorAuthStrategy<Account>;
 	readonly tokensLength: number;
 }
@@ -223,7 +223,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		if (account.disabledUntil === AccountStatus.DISABLED_UNTIL_ACTIVATION) {
 			const activateToken = await uidSafe(this.options.tokensLength);
 			await this.options.repositories.activateAccountSession.insert(activateToken, account as Account, this.options.ttl.activateAccountSession);
-			await this.options.email.sender.sendActivateAccountToken(account.email, activateToken);
+			await this.options.email.sender.sendActivateAccountToken(account as Account, activateToken);
 			return;
 		}
 
@@ -340,7 +340,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 	 *
 	 * @param changePasswordContext			Change password context.
 	 */
-	public async changePassword(changePasswordContext: ChangePasswordContext): Promise<void> {
+	public async changePassword<Context extends ChangePasswordContext>(changePasswordContext: Context): Promise<void> {
 		const account = await this.accountManager.readById(changePasswordContext.accountId);
 
 		if (!(await this.verifyPassword(changePasswordContext.oldPassword, account, changePasswordContext))) {
@@ -361,7 +361,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 		await this.passwordsManager.changeAndStoreOnAccount(changePasswordContext.newPassword, account);
-		await this.options.email.sender.notifyPasswordChanged(account.email, changePasswordContext);
+		await this.options.email.sender.notifyPasswordChanged(account, changePasswordContext);
 
 		await this.options.hooks.onPasswordChanged(account, changePasswordContext);
 	}
@@ -379,7 +379,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		try {
 			if (sideChannel === 'email') {
 				await this.options.email.sender.sendForgotPasswordToken(
-					account.email,
+					account,
 					account.pubKey ? publicEncrypt(account.pubKey, Buffer.from(sessionToken)).toString('utf8') : sessionToken
 				);
 			} else if (sideChannel === 'sms') {
@@ -391,7 +391,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 				}
 
 				await this.options.smsSender.sendForgotPasswordToken(
-					account.telephone,
+					account,
 					account.pubKey ? publicEncrypt(account.pubKey, Buffer.from(sessionToken)).toString('utf8') : sessionToken
 				);
 			} else {

@@ -7,14 +7,14 @@ import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authen
 import { getCurrentTimestamp } from '../../utils';
 
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
-	private readonly emailSender: EmailSender;
+	private readonly emailSender: EmailSender<Account>;
 
 	private readonly successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository;
 
 	private readonly failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository;
 
 	public constructor(
-		emailSender: EmailSender,
+		emailSender: EmailSender<Account>,
 		successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository,
 		failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository
 	) {
@@ -36,7 +36,7 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
 		) {
 			promises = new Array<Promise<unknown>>(4);
-			promises[index++] = this.emailSender.notifyAuthenticationFromDifferentDevice(account.email, authenticationContext);
+			promises[index++] = this.emailSender.notifyAuthenticationFromDifferentDevice(account, authenticationContext);
 		} else {
 			promises = new Array<Promise<unknown>>(3);
 		}

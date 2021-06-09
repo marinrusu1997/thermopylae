@@ -10,7 +10,7 @@ import type { OnAccountDisabledHook } from '../types/hooks';
 class AccountManager<Account extends AccountModel> {
 	private readonly adminEmail: string;
 
-	private readonly emailSender: EmailSender;
+	private readonly emailSender: EmailSender<Account>;
 
 	private readonly accountRepository: AccountRepository<Account>;
 
@@ -18,7 +18,7 @@ class AccountManager<Account extends AccountModel> {
 
 	public constructor(
 		adminEmail: string,
-		emailSender: EmailSender,
+		emailSender: EmailSender<Account>,
 		accountRepository: AccountRepository<Account>,
 		onAccountDisabledHook: OnAccountDisabledHook<Account>
 	) {
@@ -73,13 +73,15 @@ class AccountManager<Account extends AccountModel> {
 	}
 
 	public async disable(account: Account, until: UnixTimestamp | AccountStatus.DISABLED_UNTIL_ACTIVATION, cause: string): Promise<void> {
+		account.disabledUntil = until;
+
 		// best effort, we must take at least one of these actions, because it's clearly
 		// that something bad happened in the system, if account needs to be disabled
 		await Promise.all([
 			this.accountRepository.setDisabledUntil(account.id, until),
 			this.onAccountDisabledHook(account),
-			this.emailSender.notifyAccountDisabled(this.adminEmail, `${cause} Account id: ${account.id}`),
-			this.emailSender.notifyAccountDisabled(account.email, cause)
+			this.emailSender.notifyAdminAboutAccountDisabling(this.adminEmail, account, cause),
+			this.emailSender.notifyAccountDisabled(account, cause)
 		]);
 	}
 

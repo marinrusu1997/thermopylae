@@ -3,21 +3,12 @@ import { expect } from '@thermopylae/lib.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono } from '@thermopylae/lib.utils';
 import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
-import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
+import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthenticationEngineDefaultOptions } from './fixtures';
 import { EmailSenderInstance } from './fixtures/senders/email';
 import { ActivateAccountSessionMemoryRepository } from './fixtures/repositories/memory/activate-account-session';
 import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-
-function buildAccountToBeRegistered(): AccountToBeRegistered<AccountWithTotpSecret> {
-	return {
-		username: 'username',
-		passwordHash: 'auirg7q85y1298huwityh289',
-		email: 'user@product.com',
-		telephone: '+568425666',
-		disabledUntil: AccountStatus.ENABLED
-	};
-}
+import { buildAccountToBeRegistered } from './utils';
 
 describe('Register spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
