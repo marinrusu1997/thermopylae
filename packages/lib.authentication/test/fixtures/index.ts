@@ -9,7 +9,8 @@ import {
 	PasswordStrengthValidator,
 	PwnedPasswordValidator,
 	TotpTwoFactorAuthStrategy,
-	TotpTwoFactorAuthStrategyOptions
+	TotpTwoFactorAuthStrategyOptions,
+	UserInputsProvider
 } from '../../lib';
 import { AccountRepositoryMongo } from './repositories/mongo/account';
 import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth';
@@ -54,6 +55,14 @@ const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = {
 };
 Object.freeze(TotpDefaultOptions);
 
+const ThermopylaeUserInputsProvider: UserInputsProvider<AccountWithTotpSecret> = (account) => {
+	if (account.telephone == null) {
+		return ['thermopylae', account.username, account.email];
+	}
+
+	return ['thermopylae', account.username, account.email, account.telephone];
+};
+
 const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
 	thresholds: {
 		maxFailedAuthAttempts: 3,
@@ -64,7 +73,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		failedAuthAttemptsSession: 5,
 		activateAccountSession: 5,
 		forgotPasswordSession: 5,
-		accountDisableTimeout: 5
+		accountDisableTimeout: 1
 	},
 	repositories: {
 		account: AccountRepositoryMongo,
@@ -91,7 +100,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 			currentAlgorithm: hashingAlgorithm
 		},
 		encryption: false,
-		strength: [new PasswordLengthValidator(4, 4_096), new PasswordStrengthValidator(['thermopylae']), new PwnedPasswordValidator(1)],
+		strength: [new PasswordLengthValidator(4, 4_096), new PasswordStrengthValidator(ThermopylaeUserInputsProvider), new PwnedPasswordValidator(1)],
 		similarity: 0.8
 	},
 	email: {

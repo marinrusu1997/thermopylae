@@ -1,4 +1,4 @@
-import type { HttpDevice, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { HttpDevice, HTTPRequestLocation, UnixTimestamp } from '@thermopylae/core.declarations';
 
 /**
  * Session which holds the current authentication made by user from a concrete device
@@ -19,6 +19,7 @@ interface FailedAuthenticationAttemptSession {
 	detectedAt: UnixTimestamp;
 	ip: string;
 	device?: HttpDevice;
+	location?: HTTPRequestLocation;
 	counter: number;
 }
 

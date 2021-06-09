@@ -10,7 +10,7 @@ export { Argon2PasswordHashingAlgorithm } from './managers/password/hash/argon2'
 export type { PasswordStrengthPolicyValidator } from './managers/password/strength/policy';
 export { PasswordLengthValidator } from './managers/password/strength/length-policy';
 export { PwnedPasswordValidator } from './managers/password/strength/pwned-policy';
-export { PasswordStrengthValidator } from './managers/password/strength/strength-policy';
+export { PasswordStrengthValidator, UserInputsProvider } from './managers/password/strength/strength-policy';
 export type { PasswordHashing } from './managers/password/index';
 
 export type { BaseContext, ChangePasswordContext, SetTwoFactorAuthenticationContext, AuthenticationContext } from './types/contexts';

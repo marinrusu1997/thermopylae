@@ -1,6 +1,6 @@
-import type { Seconds, Threshold } from '@thermopylae/core.declarations';
+import type { PartialSome, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { getCurrentTimestamp } from '../utils';
-import type { AccountModel } from '../types/models';
+import type { AccountModel, FailedAuthenticationModel } from '../types/models';
 import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../types/repositories';
 import type { AccountManager } from './account';
 import type { BaseContext } from '../types/contexts';
@@ -43,12 +43,19 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionRepository.read(account.username);
 		if (failedAuthAttemptSession == null) {
-			failedAuthAttemptSession = { detectedAt: currentTimestamp, ip: context.ip, device: context.device, counter: 1 };
+			failedAuthAttemptSession = {
+				ip: context.ip,
+				device: context.device,
+				location: context.location,
+				detectedAt: currentTimestamp,
+				counter: 1
+			};
 			await this.failedAuthAttemptSessionRepository.insert(account.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 		} else {
-			failedAuthAttemptSession.detectedAt = currentTimestamp;
 			failedAuthAttemptSession.ip = context.ip;
 			failedAuthAttemptSession.device = context.device;
+			failedAuthAttemptSession.location = context.location;
+			failedAuthAttemptSession.detectedAt = currentTimestamp;
 			failedAuthAttemptSession.counter += 1;
 
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsAccountDisableThreshold) {
@@ -58,19 +65,16 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 		}
 
 		if (failedAuthAttemptSession.counter >= this.failedAuthAttemptsAccountDisableThreshold) {
+			(failedAuthAttemptSession as unknown as FailedAuthenticationModel).accountId = account.id;
+			delete (failedAuthAttemptSession as PartialSome<FailedAuthenticationAttemptSession, 'counter'>).counter;
+
 			await Promise.all([
 				await this.accountManager.disable(
 					account,
 					currentTimestamp + this.accountDisableTimeout,
 					`Threshold of failed authentication attempts was reached (${failedAuthAttemptSession.counter} attempts).`
 				),
-				this.failedAuthenticationAttemptsRepository.insert({
-					id: undefined!, // will be set by repo
-					accountId: account.id,
-					detectedAt: currentTimestamp,
-					ip: failedAuthAttemptSession.ip,
-					device: failedAuthAttemptSession.device
-				}),
+				this.failedAuthenticationAttemptsRepository.insert(failedAuthAttemptSession as unknown as FailedAuthenticationModel),
 				this.failedAuthAttemptSessionRepository.delete(account.username)
 			]);
 

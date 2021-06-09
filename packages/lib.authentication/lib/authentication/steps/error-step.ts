@@ -33,6 +33,8 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 		const failedAuthAttemptSession = await this.failedAuthenticationsManager.incrementSession(account, authenticationContext);
 
 		if (failedAuthAttemptSession == null) {
+			await authenticationSessionRepositoryHolder.delete(true); // this is a dead end for auth, so we need to remove this session
+
 			return {
 				done: {
 					error: {

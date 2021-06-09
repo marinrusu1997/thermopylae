@@ -3,22 +3,17 @@ import { createException, ErrorCodes } from '../../../error';
 import type { PasswordStrengthPolicyValidator } from './policy';
 import type { AccountModel } from '../../../types/models';
 
-class PasswordStrengthValidator<Account extends AccountModel> implements PasswordStrengthPolicyValidator<Account> {
-	private readonly userInputs: string[];
+type UserInputsProvider<Account extends AccountModel> = (account: Account) => string[];
 
-	public constructor(userInputs: string[] = []) {
-		this.userInputs = userInputs;
+class PasswordStrengthValidator<Account extends AccountModel> implements PasswordStrengthPolicyValidator<Account> {
+	private readonly userInputsProvider: UserInputsProvider<Account>;
+
+	public constructor(userInputs: UserInputsProvider<Account>) {
+		this.userInputsProvider = userInputs;
 	}
 
 	public async validate(password: string, account: Account): Promise<void | never> {
-		let userInputs: string[];
-		if (account.telephone == null) {
-			userInputs = [...this.userInputs, account.username, account.email];
-		} else {
-			userInputs = [...this.userInputs, account.username, account.email, account.telephone];
-		}
-
-		const result = zxcvbn(password, userInputs);
+		const result = zxcvbn(password, this.userInputsProvider(account));
 		if (result.score < 3) {
 			throw createException(
 				ErrorCodes.WEAK_PASSWORD,
@@ -28,4 +23,4 @@ class PasswordStrengthValidator<Account extends AccountModel> implements Passwor
 	}
 }
 
-export { PasswordStrengthValidator };
+export { PasswordStrengthValidator, UserInputsProvider };

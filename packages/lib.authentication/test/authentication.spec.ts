@@ -1,10 +1,11 @@
 import { describe, it } from 'mocha';
 import { assert, expect } from '@thermopylae/lib.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono } from '@thermopylae/lib.utils';
+import { array, chrono } from '@thermopylae/lib.utils';
 import { createSign } from 'crypto';
 // @ts-ignore
 import keypair from 'keypair';
+import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import {
 	AccountStatus,
 	AccountToBeRegistered,
@@ -13,6 +14,7 @@ import {
 	AuthenticationEngine,
 	AuthenticationStatus,
 	ErrorCodes,
+	FailedAuthenticationModel,
 	SuccessfulAuthenticationModel,
 	TotpTwoFactorAuthStrategy
 } from '../lib';
@@ -671,78 +673,85 @@ describe.only('Authenticate spec', function suite() {
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
+
+	it('stores failed auth attempts after account was disabled when failure threshold reached (only the last one ip and device)', async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
+
+		/* BUILD IP & DEVICE_ID POOLS */
+		const POOL_SIZE = 50;
+		const ipPool = new Array<string>(POOL_SIZE);
+		for (let i = 0; i < POOL_SIZE; i++) {
+			ipPool[i] = `ip${i}`;
+		}
+
+		/* TRIGGER ACCOUNT DISABLE */
+		let lastIp: string | undefined;
+		let authStatus: AuthenticationStatus = {};
+		let authenticationTime: UnixTimestamp = 0;
+		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
+			lastIp = array.randomElement(ipPool);
+			authenticationTime = chrono.unixTime();
+			authStatus = await AuthEngineInstance.authenticate({
+				...GlobalAuthenticationContext,
+				password: 'invalid',
+				ip: lastIp
+			});
+		}
+		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+
+		/* READ FAILED AUTHENTICATIONS */
+		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(account.id);
+		expect(failedAuthAttempts).to.be.ofSize(1);
+
+		expect(failedAuthAttempts[0]).to.be.deep.eq({
+			id: failedAuthAttempts[0].id,
+			accountId: account.id,
+			ip: lastIp,
+			device: GlobalAuthenticationContext.device,
+			location: GlobalAuthenticationContext.location,
+			detectedAt: failedAuthAttempts[0].detectedAt
+		} as FailedAuthenticationModel);
+		expect(failedAuthAttempts[0].detectedAt).to.be.within(authenticationTime - 1, authenticationTime + 1);
+	});
+
+	it("enables account on next authentication after it's disable timeout expires", async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
+
+		/* TRIGGER ACCOUNT DISABLE */
+		let authStatus: AuthenticationStatus = {};
+		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
+			authStatus = await AuthEngineInstance.authenticate({
+				...GlobalAuthenticationContext,
+				password: 'invalid'
+			});
+		}
+		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+			null,
+			undefined
+		]);
+
+		/* TRY AUTHENTICATE WITH DISABLED ACCOUNT (SHOULD FAIL) */
+		let err: Exception | null = null;
+		try {
+			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+
+		/* AUTHENTICATE AFTER LOCKOUT EXPIRES */
+		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);
+
+		authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
+		validateSuccessfulLogin(authStatus);
+	});
+
 	/*
-
-it('stores failed auth attempts after account was disabled when failure threshold reached (only the last one ip and device)', async () => {
-    const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
-
-    const POOL_SIZE = 100;
-    const ipPool = [];
-    const devicePool = [];
-    for (let i = 0; i < POOL_SIZE; i++) {
-        ipPool.push(`ip${i}`);
-        devicePool.push(`device${i}`);
-    }
-
-    let lastIp;
-    let lastDevice;
-    for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
-        lastIp = ipPool[number.generateArbitrary(0, POOL_SIZE)];
-        lastDevice = devicePool[number.generateArbitrary(0, POOL_SIZE)];
-        await AuthEngineInstance.authenticate({
-            ...validAuthRequest,
-            password: 'invalid',
-            ip: lastIp,
-            device: lastDevice
-        });
-    }
-
-    const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(accountId);
-    expect(failedAuthAttempts.length).to.be.eq(1);
-
-    expect(failedAuthAttempts[0].ip).to.be.eq(lastIp);
-    expect(failedAuthAttempts[0].device).to.be.eq(lastDevice);
-});
-
-it('disables account on reached failure threshold, even if storing failed auth attempts or deleting failed auth attempts session failed', async () => {
-    failureWillBeGeneratedForEntityOperation(ENTITIES_OP.FAILED_AUTH_ATTEMPTS_CREATE);
-    failureWillBeGeneratedForSessionOperation(SESSIONS_OP.FAILED_AUTH_ATTEMPTS_SESSION_DELETE);
-
-    const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true, enableMultiFactorAuth: true });
-
-    for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
-        await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
-    }
-
-    const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(accountId);
-    expect(failedAuthAttempts.length).to.be.eq(0);
-
-    const authStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
-    expect(authStatus.token).to.be.eq(undefined);
-    expect(authStatus.nextStep).to.be.eq(undefined);
-    expect(authStatus.error!.soft).to.be.eq(undefined);
-    expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-    expect(authStatus.error!.hard).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
-});
-
-it('schedules account enabling when failed auth attempts threshold has been reached', async () => {
-    const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-    for (let i = 0; i < AuthenticationEngineConfig.thresholds!.maxFailedAuthAttempts!; i++) {
-        await AuthEngineInstance.authenticate({ ...validAuthRequest, password: 'invalid' });
-    }
-
-    const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(accountId);
-    expect(failedAuthAttempts.length).to.be.eq(1);
-
-    const expectedFailAuthStatus = await AuthEngineInstance.authenticate({ ...validAuthRequest });
-    expect(expectedFailAuthStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-
-    await chrono.sleep(chrono.minutesToSeconds(AuthenticationEngineConfig.thresholds!.enableAccountAfterAuthFailureDelayMinutes!) * 1000);
-
-    await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
-}).timeout(5000);
-
 it('schedules account enabling when failed auth attempts threshold has been reached only after disabling succeeded', async () => {
     failureWillBeGeneratedForEntityOperation(ENTITIES_OP.ACCOUNT_DISABLE);
 

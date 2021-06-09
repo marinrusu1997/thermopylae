@@ -38,13 +38,13 @@ class AuthenticationSessionRepositoryHolder {
 		return this.session;
 	}
 
-	public async delete(): Promise<void> {
-		if (this.sessionWasReadFromRepository) {
+	public async delete(forced = false): Promise<void> {
+		if (this.sessionWasReadFromRepository || forced) {
 			await this.repository.delete(this.authenticationContext.username, this.authenticationContext.deviceId);
-
-			this.session = null;
-			this.sessionWasReadFromRepository = false;
 		}
+
+		this.session = null;
+		this.sessionWasReadFromRepository = false;
 	}
 
 	public async flush(sessionTtl: Seconds): Promise<void> {
