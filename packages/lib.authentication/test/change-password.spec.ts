@@ -1,16 +1,20 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
+import { chrono, string } from '@thermopylae/lib.utils';
+import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
+import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
 import { buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
 import { EmailSenderInstance } from './fixtures/senders/email';
-import { OnPasswordChangedHookMock } from './fixtures/hooks';
+import { OnAccountDisabledHookMock, OnPasswordChangedHookMock } from './fixtures/hooks';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
 
-describe('Change password spec', () => {
+describe('Change password spec', function suite() {
+	this.timeout(10_000); // @fixme remove when having proper net
+
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
-	it.only('changes password and then logs in with updated one', async () => {
+	it('changes password and then logs in with updated one', async () => {
 		/* REGISTER */
 		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
 		const oldPassword = account.passwordHash;
@@ -37,170 +41,239 @@ describe('Change password spec', () => {
 		validateSuccessfulLogin(authStatus);
 	});
 
-	/*
-	it('changes password after new hashing algorithm is used', async () => {
-		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
+	it('changes password that was hashed with an algorithm that differs from the current one', async () => {
+		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).to.be.equalTo([0, 1]);
+		expect(AuthenticationEngineDefaultOptions.password.hashing.currentAlgorithmId).to.be.eq(0);
 
-		// Register and Authenticate with AUTH ENGINE which uses HASHING ALG 1
-		const accountId = await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
-		await validateSuccessfulLogin(authEngineHashAlg1, validAuthRequest);
-		const activeSessions = await authEngineHashAlg1.getActiveSessions(accountId);
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		const oldPassword = account.passwordHash;
+		await AuthEngineInstance.register(account);
 
-		// Change password with AUTH ENGINE which uses HASHING ALG 2
-		const newPassword = string.generateStringOfLength(30);
-		await authEngineHashAlg2.changePassword({
-			accountId,
-			sessionId: activeSessions[0].authenticatedAtUNIX,
-			oldPassword: defaultRegistrationInfo.password,
-			newPassword
+		/* HASH WITH ANOTHER ALGORITHM */
+		const hash = await AuthenticationEngineDefaultOptions.password.hashing.algorithms.get(1)!.hash(oldPassword);
+		await AccountRepositoryMongo.changePassword(account.id, hash.passwordHash, hash.passwordSalt, 1);
+
+		/* CHANGE PASSWORD */
+		const newPassword = '8ujig05nf!/th89u|}//76ujhtg';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
 		});
 
-		// Login with AUTH ENGINE which uses HASHING ALG 1
-		await validateSuccessfulLogin(authEngineHashAlg1, { ...validAuthRequest, password: newPassword });
-
-		// Login with AUTH ENGINE which uses HASHING ALG 2
-		await validateSuccessfulLogin(authEngineHashAlg2, { ...validAuthRequest, password: newPassword });
-	});
-
-	it('invalidates all sessions, excepting the one from where password was changed', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		const authStatus1 = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(authStatus1.error).to.be.eq(undefined);
-
-		await chrono.sleep(1000);
-		const authStatus2 = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(authStatus2.error).to.be.eq(undefined);
-
-		await chrono.sleep(1000);
-		const authStatus3 = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(authStatus3.error).to.be.eq(undefined);
-
-		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
-		expect(activeSessionsBeforeChangePassword.length).to.be.eq(3);
-
-		const newPassword = '42asdaffM!asd88';
-		expect(
-			await AuthEngineInstance.changePassword({
-				accountId,
-				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
-				oldPassword: defaultRegistrationInfo.password,
-				newPassword
-			})
-		).to.be.eq(2); // 2 sessions were invalidated
-
-		const activeSessionsAfterChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
-		expect(activeSessionsAfterChangePassword.length).to.be.eq(1);
-		expect(activeSessionsAfterChangePassword[0].authenticatedAtUNIX).to.be.eq(activeSessionsBeforeChangePassword[0].authenticatedAtUNIX);
-
-		expect(await AuthenticationEngineDefaultOptions.jwt.instance.validate(authStatus1.token!)).to.not.be.eq(undefined);
-		await checkIfJWTWasInvalidated(authStatus2.token!, AuthenticationEngineDefaultOptions.jwt.instance);
-		await checkIfJWTWasInvalidated(authStatus3.token!, AuthenticationEngineDefaultOptions.jwt.instance);
-	}).timeout(3000);
-
-	it('does not invalidate other sessions if explicitly instructed not to do so', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		await AuthEngineInstance.authenticate(validAuthRequest);
-		await chrono.sleep(1000);
-		await AuthEngineInstance.authenticate(validAuthRequest);
-
-		const activeSessionsBeforeChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
-
-		const newPassword = '42asdaffM!asd88';
-		expect(
-			await AuthEngineInstance.changePassword({
-				accountId,
-				sessionId: activeSessionsBeforeChangePassword[0].authenticatedAtUNIX,
-				oldPassword: defaultRegistrationInfo.password,
-				newPassword,
-				logAllOtherSessionsOut: false
-			})
-		).to.be.eq(0); // no sessions were invalidated
-
-		const activeSessionsAfterChangePassword = await AuthEngineInstance.getActiveSessions(accountId);
-		expect(activeSessionsAfterChangePassword.length).to.be.eq(activeSessionsBeforeChangePassword.length);
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
 	it('fails to change password if provided account id is not valid', async () => {
-		let accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		accountId = string.replaceAt('0', accountId.length - 1, accountId);
 		let err;
+		const accountId = string.random({ length: 12 });
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'does not matter', newPassword: 'does not matter' });
+			await AuthEngineInstance.changePassword({
+				accountId,
+				oldPassword: 'does not matter',
+				newPassword: 'does not matter',
+				ip: '127.0.0.1'
+			});
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
-		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} not found. `);
+		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} doesn't exist.`);
 	});
 
 	it('fails to change password if account is disabled', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		await AuthEngineInstance.disableAccount(accountId, 'Suspicious activity detected');
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
+		await AuthEngineInstance.disableAccount(account.id, AccountStatus.DISABLED_UNTIL_ACTIVATION, 'test purposes');
+
+		/* CHANGE PASSWORD */
 		let err;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
+			await AuthEngineInstance.changePassword({
+				accountId: account.id,
+				oldPassword: 'does not matter',
+				newPassword: 'does not matter',
+				ip: '127.0.0.1'
+			});
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
+		expect(err).to.haveOwnProperty('message', `Account with id ${account.id} is disabled until it won't be activated.`);
 	});
 
 	it('fails to change password if the old one provided is not valid', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		let err;
-		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'invalid', newPassword: 'does not matter' });
-		} catch (e) {
-			err = e;
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		let oldPassword = account.passwordHash;
+		await AuthEngineInstance.register(account);
+
+		/* FAIL TO CHANGE PASSWORD UNTIL ACCOUNT MIGHT BE DISABLED */
+		let err: Exception | null = null;
+		for (let i = 1; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
+			err = null;
+
+			try {
+				await AuthEngineInstance.changePassword({
+					accountId: account.id,
+					oldPassword: 'invalid',
+					newPassword: 'does not matter',
+					ip: '127.0.0.1'
+				});
+			} catch (e) {
+				err = e;
+			}
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
+			expect(err).to.haveOwnProperty('message', `Can't change password for account with id ${account.id}, because old passwords doesn't match.`);
 		}
-		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
-		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
+
+		/* CHANGE PASSWORD */
+		let newPassword = 'u52ufji598!/.0t99kot';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
+		});
+		oldPassword = newPassword;
+
+		/* FAIL TO CHANGE PASSWORD UNTIL ACCOUNT IS DISABLED */
+		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
+			err = null;
+
+			try {
+				await AuthEngineInstance.changePassword({
+					accountId: account.id,
+					oldPassword: 'invalid',
+					newPassword: 'does not matter',
+					ip: '127.0.0.1'
+				});
+			} catch (e) {
+				err = e;
+			}
+		}
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.haveOwnProperty(
+			'message',
+			`Password verification for account with id ${account.id} failed too many times, therefore account was disabled.`
+		);
+		expect(OnAccountDisabledHookMock.calls).to.be.ofSize(1); // sessions were invalidated
+
+		/* WAIT ACCOUNT ENABLE */
+		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);
+
+		/* CHANGE PASSWORD */
+		newPassword = '8ujig05nf!/th89u|}//76ujhtg';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
+		});
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
-	it('fails to change password if the new one is the same as the old one', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		let err;
+	it('fails to change password if the new one is the same (or almost same) as the old one', async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		const oldPassword = account.passwordHash;
+		await AuthEngineInstance.register(account);
+
+		/* CHANGE WITH SAME PASSWORD */
+		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.changePassword({
-				accountId,
-				sessionId: 0,
-				oldPassword: defaultRegistrationInfo.password,
-				newPassword: defaultRegistrationInfo.password
+				accountId: account.id,
+				oldPassword,
+				newPassword: oldPassword,
+				ip: '127.0.0.1'
 			});
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SIMILAR_PASSWORDS);
-		expect(err).to.haveOwnProperty('message', 'New password is same as the old one. ');
-	});
+		expect(err).to.haveOwnProperty(
+			'message',
+			`Can't change password for account with id ${account.id}, because new password is too similar with the old one.`
+		);
 
-	it('when provided old and new passwords are the same, will trigger an error only after ensuring that they are also equal to the stored one', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		let err;
+		/* CHANGE WITH SIMILAR PASSWORD */
+		err = null;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: 'same', newPassword: 'same' });
+			await AuthEngineInstance.changePassword({
+				accountId: account.id,
+				oldPassword,
+				newPassword: `${oldPassword}.`,
+				ip: '127.0.0.1'
+			});
 		} catch (e) {
 			err = e;
 		}
-		// will try to validate firstly against stored one, thus preventing false positives in the following scenario:
-		// old = 'same', new = 'same', stored = 'valid'
-		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
-		expect(err).to.haveOwnProperty('message', "Old passwords doesn't match. ");
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SIMILAR_PASSWORDS);
+		expect(err).to.haveOwnProperty(
+			'message',
+			`Can't change password for account with id ${account.id}, because new password is too similar with the old one.`
+		);
+
+		/* CHANGE PASSWORD */
+		const newPassword = '8ujig05nf!/th89u|}//76ujhtg';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
+		});
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
 	it('fails to change password if the new one is weak', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-		let err;
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		const oldPassword = account.passwordHash;
+		await AuthEngineInstance.register(account);
+
+		/* CHANGE WITH WEAK PASSWORD */
+		let err: Exception | null = null;
 		try {
-			await AuthEngineInstance.changePassword({ accountId, sessionId: 0, oldPassword: defaultRegistrationInfo.password, newPassword: 'Weak-password' });
+			await AuthEngineInstance.changePassword({
+				accountId: account.id,
+				oldPassword,
+				newPassword: string.random({ length: PasswordLengthValidatorOptions.minLength - 1 }),
+				ip: '127.0.0.1'
+			});
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
-		expect(err).to.haveOwnProperty('message', 'The password must contain at least one number.');
+		expect(err).to.haveOwnProperty(
+			'message',
+			`Password needs to contain at least ${PasswordLengthValidatorOptions.minLength} characters, but it has ${
+				PasswordLengthValidatorOptions.minLength - 1
+			} characters.`
+		);
+
+		/* CHANGE PASSWORD */
+		const newPassword = '8ujig05nf!/th89u|}//76ujhtg';
+		await AuthEngineInstance.changePassword({
+			accountId: account.id,
+			oldPassword,
+			newPassword,
+			ip: '127.0.0.1'
+		});
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
-	 */
 });

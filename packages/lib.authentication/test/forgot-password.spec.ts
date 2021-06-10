@@ -1,278 +1,295 @@
-/*
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { hostname } from 'os';
-import Exception from '@marin/lib.error';
-import { chrono, string } from '@marin/lib.utils';
-import { AuthenticationEngine, ErrorCodes } from '../lib';
-import AuthenticationEngineDefaultOptions from './fixtures';
-import { ACCOUNT_ROLES } from './fixtures/jwt';
-import { SIDE_CHANNEL } from '../lib/types/requests';
-import { EmailMockInstance } from './fixtures/mocks/email';
-import { SmsMockInstance } from './fixtures/mocks/sms';
-import memcache, { failureWillBeGeneratedForSessionOperation, SESSIONS_OP } from './fixtures/memcache-entities';
-import { checkIfJWTWasInvalidated, createAuthEnginesWithDifferentPasswordHashingAlg, validateSuccessfulLogin } from './utils';
+import { Exception } from '@thermopylae/lib.exception';
+import { chrono, string } from '@thermopylae/lib.utils';
+import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
+import { AuthenticationEngineDefaultOptions, ForgotPasswordTokenEncryption, PasswordLengthValidatorOptions } from './fixtures';
+import { AccountKeyPair, buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
 import { AuthenticationStepName } from '../lib/types/enums';
-import { ENTITIES_OP, failureWillBeGeneratedForEntityOperation } from './fixtures/mongo-entities';
-import { AuthenticationContext } from '../lib/types/contexts';
+import { EmailSenderInstance } from './fixtures/senders/email';
+import { OnForgottenPasswordChangedHookMock } from './fixtures/hooks';
+import { SmsSenderInstance } from './fixtures/senders/sms';
+import { MemoryCache } from './fixtures/memory-cache';
 
-describe('forgot password spec', () => {
+describe('forgot password spec', function suite() {
+	this.timeout(10_000); // @fixme remove when having proper net
+
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
-	const defaultRegistrationInfo = {
-		username: 'username',
-		password: 'auirg7q85y1298huwityh289',
-		email: 'user@product.com',
-		telephone: '+568425666',
-		role: ACCOUNT_ROLES.MODERATOR // needing increased duration of session
-	};
+	it('recovers forgotten password via email (token is not encrypted)', async () => {
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-	const validAuthRequest: AuthenticationContext = {
-		username: defaultRegistrationInfo.username,
-		password: defaultRegistrationInfo.password,
-		ip: '158.56.89.230',
-		device: hostname(),
-		location: {
-			countryCode: 'US',
-			regionCode: 'CA',
-			city: 'Los Angeles',
-			postalCode: '90067',
-			timeZone: 'America/Los_Angeles',
-			latitude: 34.0577507019043,
-			longitude: -118.41380310058594
-		}
-	};
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
 
-	it('recovers forgotten password via email side channel, removes session and logs out from all devices', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
 
-		// log in from some devices
-		await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
-		await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
-		await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
-		expect((await AuthEngineInstance.getActiveSessions(accountId)).length).to.be.eq(3);
-
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.EMAIL });
-		const forgotPasswordToken = JSON.parse(EmailMockInstance.outboxFor(defaultRegistrationInfo.email)[0].html as string).token;
+		/* CHANGE FORGOTTEN PASSWORD */
 		const newPassword = 'asdD!45][#ddg85j';
-		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
+		await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 
-		// check forgot password session was deleted
-		expect(await AuthenticationEngineDefaultOptions.repositories.forgotPasswordSession.read(forgotPasswordToken)).to.be.eq(null);
-
-		// check logged out from all devices
-		expect((await AuthEngineInstance.getActiveSessions(accountId)).length).to.be.eq(0);
+		// sessions were logged out
+		expect(OnForgottenPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
 
 		// check old password is no longer valid
-		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(oldCredentialsAuthStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
-		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-		expect(oldCredentialsAuthStatus.token).to.be.eq(undefined);
+		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
+		expect(authStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.authenticated).to.be.eq(undefined);
 
 		// check new credentials are valid
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
-	});
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 
-	it('recovers forgotten password via sms side channel', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const newPassword = 'asdD!45][#ddg85j';
-		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
-
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
-	});
-
-	it('recovers forgotten password via sms side channel after a new password hashing algorithm is used by the system', async () => {
-		const [authEngineHashAlg1, authEngineHashAlg2] = createAuthEnginesWithDifferentPasswordHashingAlg(AuthenticationEngineDefaultOptions);
-
-		// Register with AUTH ENGINE which uses HASHING ALG 1
-		await authEngineHashAlg1.register(defaultRegistrationInfo, { enabled: true });
-
-		// Change forgotten password with AUTH ENGINE which uses HASHING ALG 2
-		await authEngineHashAlg2.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const newPassword = string.generateStringOfLength(30);
-		await authEngineHashAlg2.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
-
-		// Login with AUTH ENGINE which uses HASHING ALG 1
-		await validateSuccessfulLogin(authEngineHashAlg1, { ...validAuthRequest, password: newPassword });
-
-		// Login with AUTH ENGINE which uses HASHING ALG 2
-		await validateSuccessfulLogin(authEngineHashAlg2, { ...validAuthRequest, password: newPassword });
-	});
-
-	it('changes forgotten password if validation was ok, even if deletion of forgot password session might fail', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const newPassword = 'asdD!45][#ddg85j';
-
-		failureWillBeGeneratedForSessionOperation(SESSIONS_OP.FORGOT_PASSWORD_SESSION_DELETE);
-
-		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
-
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
-	});
-
-	it('changes forgotten password if validation was ok, even if logout from all devices might fail', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
-
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const newPassword = 'asdD!45][#ddg85j';
-
-		failureWillBeGeneratedForEntityOperation(ENTITIES_OP.ACTIVE_USER_SESSION_DELETE_ALL);
-
-		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
-
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
-	});
-
-	it('prevents user enumeration by responding positive on invalid username', async () => {
-		await AuthEngineInstance.createForgotPasswordSession({ username: 'non-existing', '2fa-channel': SIDE_CHANNEL.SMS });
-		expect(SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0]).to.be.eq(undefined);
-		expect(EmailMockInstance.outboxFor(defaultRegistrationInfo.email)[0]).to.be.eq(undefined);
-	});
-
-	it("doesn't create forgot password session if account is disabled", async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: false });
-
-		let err;
+		/* CAN'T REUSE SAME TOKEN TWICE */
+		let err: Exception | null = null;
 		try {
-			await AuthEngineInstance.createForgotPasswordSession({
-				username: defaultRegistrationInfo.username,
-				'2fa-channel': SIDE_CHANNEL.EMAIL
-			});
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 		} catch (e) {
 			err = e;
 		}
-
-		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} is disabled. `);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by token '${forgotPasswordToken}' doesn't exist.`);
 	});
 
-	it('aborts the create forgot password session if token delivery fails', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+	it('recovers forgotten password via email (token is encrypted)', async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-		EmailMockInstance.deliveryWillFail(true);
-		let err;
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByUsername', account.username, 'email');
+
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
+
+		/* CHANGE FORGOTTEN PASSWORD */
+		const newPassword = 'asdD!45][#ddg85j';
+		await AuthEngineInstance.changeForgottenPassword(ForgotPasswordTokenEncryption.decrypt(AccountKeyPair.private, forgotPasswordToken), newPassword);
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
+	});
+
+	it('recovers forgotten password via sms (token is not encrypted)', async () => {
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
+
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByTelephone', account.telephone!, 'sms');
+
+		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		const forgotPasswordToken = SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')[0];
+
+		/* CHANGE FORGOTTEN PASSWORD */
+		const newPassword = 'asdD!45][#ddg85j';
+		await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
+
+		// sessions were logged out
+		expect(OnForgottenPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
+
+		// check old password is no longer valid
+		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
+		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
+		expect(authStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.token).to.be.eq(undefined);
+		expect(authStatus.authenticated).to.be.eq(undefined);
+
+		// check new credentials are valid
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
+
+		/* CAN'T REUSE SAME TOKEN TWICE */
+		let err: Exception | null = null;
 		try {
-			await AuthEngineInstance.createForgotPasswordSession({
-				username: defaultRegistrationInfo.username,
-				'2fa-channel': SIDE_CHANNEL.EMAIL
-			});
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 		} catch (e) {
 			err = e;
 		}
-		expect(err).to.haveOwnProperty('message', 'Email client was configured to fail mail delivery');
-		expect(memcache.keys().length).to.be.eq(0); // session was deleted
-
-		SmsMockInstance.deliveryWillFail(true);
-		try {
-			await AuthEngineInstance.createForgotPasswordSession({
-				username: defaultRegistrationInfo.username,
-				'2fa-channel': SIDE_CHANNEL.SMS
-			});
-		} catch (e) {
-			err = e;
-		}
-		expect(err).to.haveOwnProperty('message', 'SMS mock client was configured to fail sms delivery');
-		expect(memcache.keys().length).to.be.eq(0); // session was deleted
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by token '${forgotPasswordToken}' doesn't exist.`);
 	});
 
-	it('fails to create forgot password session when providing unknown side channel for token delivery', async () => {
-		let unknownSideChannelErr;
+	it('recovers forgotten password via sms (token is encrypted)', async () => {
+		/* REGISTER */
+		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-		const sideChannel = string.generateStringOfLength(10);
-		try {
-			await AuthEngineInstance.createForgotPasswordSession({
-				username: 'does not matter',
-				// @ts-ignore, for testing purposes
-				'2fa-channel': sideChannel
-			});
-		} catch (e) {
-			unknownSideChannelErr = e;
-		}
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByUsername', account.username, 'sms');
 
-		expect(unknownSideChannelErr).to.be.instanceOf(Exception);
-		expect(unknownSideChannelErr).to.haveOwnProperty('code', ErrorCodes.UNKNOWN_SIDE_CHANNEL);
+		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		const forgotPasswordToken = SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')[0];
 
-		const errMsg = `Side-Channel ${sideChannel} is UNKNOWN. Allowed side-channels are: ${[SIDE_CHANNEL.EMAIL, SIDE_CHANNEL.SMS].join(', ')}`;
-		expect(unknownSideChannelErr).to.haveOwnProperty('message', errMsg);
+		/* CHANGE FORGOTTEN PASSWORD */
+		const newPassword = 'asdD!45][#ddg85j';
+		await AuthEngineInstance.changeForgottenPassword(ForgotPasswordTokenEncryption.decrypt(AccountKeyPair.private, forgotPasswordToken), newPassword);
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
 	it('fails to change forgotten password when providing invalid token', async () => {
 		let err;
 		try {
-			await AuthEngineInstance.changeForgottenPassword({ token: 'invalid', newPassword: 'does not matter' });
+			await AuthEngineInstance.changeForgottenPassword('invalid-token', 'does not matter');
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
-		expect(err).to.haveOwnProperty('message', `Forgot password session identified by provided token invalid not found. `);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by token '${'invalid-token'}' doesn't exist.`);
+	});
+
+	it('fails to change forgotten password when the account was meanwhile disabled', async () => {
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
+
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
+
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		let forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
+
+		/* DISABLE ACCOUNT */
+		const disableUntil = chrono.unixTime() + 1;
+		await AuthEngineInstance.disableAccount(account.id, disableUntil, 'testing');
+
+		/* CHANGE FORGOTTEN PASSWORD ON DISABLED ACCOUNT */
+		let err;
+		try {
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, 'does not matter');
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(err).to.haveOwnProperty('message', `Account with id ${account.id} is disabled until ${disableUntil}.`);
+
+		// one time token was invalidated
+		err = null;
+		try {
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, 'does not matter');
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by token '${forgotPasswordToken}' doesn't exist.`);
+
+		/* CHANGE FORGOTTEN PASSWORD ON ENABLED ACCOUNT */
+		await chrono.sleep(1100);
+		EmailSenderInstance.client.clearOutboxFor(account.email);
+
+		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		[forgotPasswordToken] = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken');
+
+		const newPassword = 'asdD!45][#ddg85j';
+		await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
+
+		/* AUTHENTICATE WITH NEW PASSWORD */
+		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
+		validateSuccessfulLogin(authStatus);
 	});
 
 	it('fails to change forgotten password when providing new weak password', async () => {
-		await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
+		/* CREATE FORGOT PASSWORD SESSION */
+		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
 
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
+
+		/* CHANGE FORGOTTEN PASSWORD (WEAK PASSWORD) */
 		let err;
 		try {
-			await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword: 'weak' });
+			const newPassword = string.random({ length: PasswordLengthValidatorOptions.minLength - 1 });
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 		} catch (e) {
 			err = e;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 		expect(err).to.haveOwnProperty(
 			'message',
-			'The password must be at least 10 characters long..\nThe password must contain at least one uppercase letter..\nThe password must contain at least one number..\nThe password must contain at least one special character.'
+			`Password needs to contain at least ${PasswordLengthValidatorOptions.minLength} characters, but it has ${
+				PasswordLengthValidatorOptions.minLength - 1
+			} characters.`
 		);
+
+		// one time token was invalidated
+		err = null;
+		try {
+			await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, 'does not matter');
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Forgot password session identified by token '${forgotPasswordToken}' doesn't exist.`);
 	});
 
-	it('recovers forged account by using forgot password functionality', async () => {
-		const accountId = await AuthEngineInstance.register(defaultRegistrationInfo, { enabled: true });
+	it('aborts the create forgot password session if token delivery fails', async () => {
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-		// valid user authenticated
-		const firstAccountOwnerAuthStatus = await validateSuccessfulLogin(AuthEngineInstance, validAuthRequest);
+		/* EMAIL SEND WILL FAIL */
+		EmailSenderInstance.client.deliveryWillFail = true;
 
-		await chrono.sleep(1000);
+		/* CREATE FORGOT PASSWORD SESSION */
+		let err;
+		try {
+			await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Error).and.to.haveOwnProperty('message', 'Email client was configured to fail mail delivery');
+		expect(MemoryCache.size).to.be.eq(0); // session was deleted cuz of delivery exception
 
-		// bad guy logged into user account using his credentials
-		const forgedAuthStatus = await AuthEngineInstance.authenticate(validAuthRequest);
-		const forgedActiveSessions = await AuthEngineInstance.getActiveSessions(accountId);
-		const forgedNewPassword = '22kk~!Mahfiiffd2';
-		expect(
-			await AuthEngineInstance.changePassword({
-				accountId,
-				sessionId: forgedActiveSessions[1].authenticatedAtUNIX, // invalidate all, except the last one
-				oldPassword: defaultRegistrationInfo.password,
-				newPassword: forgedNewPassword
-			})
-		).to.be.eq(1); // invalidated first session of the user
+		/* SMS SEND WILL FAIL */
+		SmsSenderInstance.client.deliveryWillFail = true;
 
-		// user session was invalidated after password change
-		await checkIfJWTWasInvalidated(firstAccountOwnerAuthStatus.token!, AuthenticationEngineDefaultOptions.jwt.instance);
+		/* CREATE FORGOT PASSWORD SESSION */
+		err = null;
+		try {
+			await AuthEngineInstance.createForgotPasswordSession('readByTelephone', account.telephone!, 'sms');
+		} catch (e) {
+			err = e;
+		}
+		expect(err).to.be.instanceOf(Error).and.to.haveOwnProperty('message', 'SMS mock client was configured to fail sms delivery');
 
-		// user tries to recover account using forgot password procedure
-		await AuthEngineInstance.createForgotPasswordSession({ username: defaultRegistrationInfo.username, '2fa-channel': SIDE_CHANNEL.SMS });
-		const forgotPasswordToken = SmsMockInstance.outboxFor(defaultRegistrationInfo.telephone)[0];
-		const newPassword = 'asdD!45][#ddg85j';
-		await AuthEngineInstance.changeForgottenPassword({ token: forgotPasswordToken, newPassword });
+		expect(MemoryCache.size).to.be.eq(0); // session was deleted cuz of delivery exception
+	});
 
-		// after recovering his account password, session of the bad guy is invalidated
-		await checkIfJWTWasInvalidated(forgedAuthStatus.token!, AuthenticationEngineDefaultOptions.jwt.instance);
+	it('fails to create forgot password session when providing unknown side channel for token delivery', async () => {
+		/* REGISTER */
+		const account = { ...buildAccountToBeRegistered(), pubKey: undefined } as AccountWithTotpSecret;
+		await AuthEngineInstance.register(account);
 
-		// valid user can authenticate with his new password
-		await validateSuccessfulLogin(AuthEngineInstance, { ...validAuthRequest, password: newPassword });
+		/* CREATE FORGOT PASSWORD SESSION */
+		const sideChannel = 'push-notifications';
+		let unknownSideChannelErr;
+		try {
+			await AuthEngineInstance.createForgotPasswordSession('readByUsername', account.username, sideChannel as any);
+		} catch (e) {
+			unknownSideChannelErr = e;
+		}
 
-		// bad guy can't log with old credentials
-		const oldCredentialsAuthStatus = await AuthEngineInstance.authenticate(validAuthRequest);
-		expect(oldCredentialsAuthStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(unknownSideChannelErr).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', CoreErrorCodes.UNKNOWN);
+		expect(unknownSideChannelErr).to.haveOwnProperty(
+			'message',
+			`Can't send forgot password token for account with id '${account.id}', because side channel type '${sideChannel}' is unknown.`
+		);
+
+		expect(MemoryCache.size).to.be.eq(0); // session was deleted cuz of unknown side channel exception
 	});
 });
-*/

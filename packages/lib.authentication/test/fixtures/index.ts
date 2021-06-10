@@ -1,6 +1,6 @@
 import { after, afterEach, before } from 'mocha';
 import { argon2id } from 'argon2';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, privateDecrypt, publicEncrypt, randomBytes } from 'crypto';
 import {
 	AccountWithTotpSecret,
 	Argon2PasswordHashingAlgorithm,
@@ -64,6 +64,22 @@ const ThermopylaeUserInputsProvider: UserInputsProvider<AccountWithTotpSecret> =
 	return ['thermopylae', account.username, account.email, account.telephone];
 };
 
+const PasswordLengthValidatorOptions = {
+	minLength: 4,
+	maxLength: 4_096
+};
+Object.freeze(PasswordLengthValidatorOptions);
+
+const ForgotPasswordTokenEncryption = {
+	encrypt: async (pubKey: string, token: string) => {
+		return publicEncrypt(pubKey, Buffer.from(token)).toString('base64');
+	},
+	decrypt: (privateKey: string, token: string) => {
+		return privateDecrypt(privateKey, Buffer.from(token, 'base64')).toString('utf8');
+	}
+};
+Object.freeze(ForgotPasswordTokenEncryption);
+
 const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
 	thresholds: {
 		maxFailedAuthAttempts: 3,
@@ -104,8 +120,13 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 			currentAlgorithm: argon2PasswordHashingAlgorithm
 		},
 		encryption: false,
-		strength: [new PasswordLengthValidator(4, 4_096), new PasswordStrengthValidator(ThermopylaeUserInputsProvider), new PwnedPasswordValidator(1)],
-		similarity: 0.8
+		strength: [
+			new PasswordLengthValidator(PasswordLengthValidatorOptions.minLength, PasswordLengthValidatorOptions.maxLength),
+			new PasswordStrengthValidator(ThermopylaeUserInputsProvider),
+			new PwnedPasswordValidator(1)
+		],
+		similarity: 0.8,
+		forgotPasswordTokenEncrypt: ForgotPasswordTokenEncryption.encrypt
 	},
 	email: {
 		admin: 'admin@thermopylae.io',
@@ -132,4 +153,4 @@ afterEach(async () => {
 before(connectToMongoDatabase);
 after(dropMongoDatabase);
 
-export { AuthenticationEngineDefaultOptions, TotpDefaultOptions };
+export { AuthenticationEngineDefaultOptions, TotpDefaultOptions, PasswordLengthValidatorOptions, ForgotPasswordTokenEncryption };

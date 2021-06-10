@@ -24,7 +24,8 @@ function generateTotp(secret: string): string {
 }
 
 /* ACCOUNT REGISTER */
-const accountKeyPair = keypair();
+const AccountKeyPair = keypair();
+Object.freeze(AccountKeyPair);
 
 function buildAccountToBeRegistered(): AccountToBeRegistered<AccountWithTotpSecret> {
 	return {
@@ -33,7 +34,7 @@ function buildAccountToBeRegistered(): AccountToBeRegistered<AccountWithTotpSecr
 		email: 'user@product.com',
 		telephone: '+568425666',
 		disabledUntil: AccountStatus.ENABLED,
-		pubKey: accountKeyPair.public
+		pubKey: AccountKeyPair.public
 	};
 }
 
@@ -41,7 +42,7 @@ function buildAccountToBeRegistered(): AccountToBeRegistered<AccountWithTotpSecr
 function signChallengeNonce(nonce: string, privateKey?: string): string {
 	return createSign('RSA-SHA512')
 		.update(nonce)
-		.sign(privateKey || accountKeyPair.private, 'base64');
+		.sign(privateKey || AccountKeyPair.private, 'base64');
 }
 
 const GlobalAuthenticationContext: AuthenticationContext = {
@@ -86,4 +87,4 @@ function validateSuccessfulLogin(authStatus: AuthenticationStatus): void | never
 	expect(authStatus.authenticated).to.be.eq(true);
 }
 
-export { validateSuccessfulLogin, generateTotp, buildAccountToBeRegistered, signChallengeNonce, GlobalAuthenticationContext };
+export { validateSuccessfulLogin, generateTotp, buildAccountToBeRegistered, signChallengeNonce, GlobalAuthenticationContext, AccountKeyPair };

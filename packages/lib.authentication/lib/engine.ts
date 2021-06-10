@@ -2,7 +2,6 @@ import { ErrorCodes as CoreErrorCodes, RequireSome, Seconds, Threshold, UnixTime
 
 import uidSafe from 'uid-safe';
 import { compareTwoStrings } from 'string-similarity';
-import { publicEncrypt } from 'crypto';
 import { createException, ErrorCodes } from './error';
 import type { AuthenticationStatus } from './authentication/step';
 import type {
@@ -81,6 +80,8 @@ import { TokenManager } from './managers/token';
 
 type AccountToBeRegistered<Account extends AccountModel> = RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil'>;
 
+type EncryptForgotPasswordToken = (pubKey: string, token: string) => Promise<string>;
+
 interface AuthenticationEngineOptions<Account extends AccountModel> {
 	readonly thresholds: {
 		readonly maxFailedAuthAttempts: Threshold;
@@ -116,6 +117,7 @@ interface AuthenticationEngineOptions<Account extends AccountModel> {
 		readonly encryption: SecretEncryptionOptions | false;
 		readonly strength: PasswordStrengthPolicyValidator<Account>[];
 		readonly similarity: Threshold;
+		readonly forgotPasswordTokenEncrypt: EncryptForgotPasswordToken;
 	};
 	readonly email: {
 		readonly admin: string;
@@ -329,6 +331,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 				`Password verification for account with id ${account.id} failed too many times, therefore account was disabled.`
 			);
 		}
+		await this.failedAuthenticationsManager.deleteSession(account);
 
 		return true;
 	}
@@ -349,9 +352,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 				`Can't change password for account with id ${account.id}, because old passwords doesn't match.`
 			);
 		}
-		await this.failedAuthenticationsManager.deleteSession(account);
 
-		// now that we know that old password is correct, we can safely check for equality with the new one
 		if (compareTwoStrings(changePasswordContext.oldPassword, changePasswordContext.newPassword) >= this.options.password.similarity) {
 			throw createException(
 				ErrorCodes.SIMILAR_PASSWORDS,
@@ -359,13 +360,20 @@ class AuthenticationEngine<Account extends AccountModel> {
 			);
 		}
 
-		// additional checks are not made, as we rely on authenticate step, e.g. for disabled accounts all sessions are invalidated
 		await this.passwordsManager.changeAndStoreOnAccount(changePasswordContext.newPassword, account);
-		await this.options.email.sender.notifyPasswordChanged(account, changePasswordContext);
-
 		await this.options.hooks.onPasswordChanged(account, changePasswordContext);
+
+		await this.options.email.sender.notifyPasswordChanged(account, changePasswordContext);
 	}
 
+	/**
+	 * @fixme When account not found err is thrown, REST API should not respond with error, in order to prevent user enumeration,
+	 * i.e it should respond with ok (something like token was sent to specified email, even if account doesn't exist)
+	 *
+	 * @param accountUniqueFieldName
+	 * @param accountUniqueFieldValue
+	 * @param sideChannel
+	 */
 	public async createForgotPasswordSession(
 		accountUniqueFieldName: `readBy${Capitalize<Extract<keyof Account, 'username' | 'email' | 'telephone'>>}`,
 		accountUniqueFieldValue: string,
@@ -380,7 +388,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 			if (sideChannel === 'email') {
 				await this.options.email.sender.sendForgotPasswordToken(
 					account,
-					account.pubKey ? publicEncrypt(account.pubKey, Buffer.from(sessionToken)).toString('utf8') : sessionToken
+					account.pubKey ? await this.options.password.forgotPasswordTokenEncrypt(account.pubKey, sessionToken) : sessionToken
 				);
 			} else if (sideChannel === 'sms') {
 				if (account.telephone == null) {
@@ -392,12 +400,12 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 				await this.options.smsSender.sendForgotPasswordToken(
 					account,
-					account.pubKey ? publicEncrypt(account.pubKey, Buffer.from(sessionToken)).toString('utf8') : sessionToken
+					account.pubKey ? await this.options.password.forgotPasswordTokenEncrypt(account.pubKey, sessionToken) : sessionToken
 				);
 			} else {
 				throw createException(
 					CoreErrorCodes.UNKNOWN,
-					`Can't send forgot password token for account with id ${account.id}, because side channel type is unknown.`
+					`Can't send forgot password token for account with id '${account.id}', because side channel type '${sideChannel}' is unknown.`
 				);
 			}
 		} catch (e) {
@@ -408,7 +416,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 	public async changeForgottenPassword(token: string, newPassword: string): Promise<void> {
 		if (!(await this.options.repositories.forgotPasswordSession.exists(token))) {
-			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Forgot password session identified by token ${token} doesn't exist.`);
+			throw createException(ErrorCodes.SESSION_NOT_FOUND, `Forgot password session identified by token '${token}' doesn't exist.`);
 		}
 		// prevent replay attacks
 		await this.options.repositories.forgotPasswordSession.delete(token);

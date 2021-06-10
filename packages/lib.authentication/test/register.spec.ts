@@ -1,10 +1,10 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono } from '@thermopylae/lib.utils';
+import { chrono, string } from '@thermopylae/lib.utils';
 import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
+import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
 import { EmailSenderInstance } from './fixtures/senders/email';
 import { ActivateAccountSessionMemoryRepository } from './fixtures/repositories/memory/activate-account-session';
 import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
@@ -50,7 +50,10 @@ describe('Register spec', () => {
 		const errors = new Array<Exception>();
 
 		try {
-			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: 'sho' });
+			await AuthEngineInstance.register({
+				...buildAccountToBeRegistered(),
+				passwordHash: string.random({ length: PasswordLengthValidatorOptions.minLength - 1 })
+			});
 		} catch (e) {
 			errors.push(e);
 		}
@@ -69,7 +72,11 @@ describe('Register spec', () => {
 
 		expect(errors).to.be.ofSize(3);
 		expect(errors[0].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
-		expect(errors[0].message).to.be.eq('Password needs to contain at least 4 characters, but it has 3 characters.');
+		expect(errors[0].message).to.be.eq(
+			`Password needs to contain at least ${PasswordLengthValidatorOptions.minLength} characters, but it has ${
+				PasswordLengthValidatorOptions.minLength - 1
+			} characters.`
+		);
 
 		expect(errors[1].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
 		expect(errors[1].message).to.be.eq('This is a top-10 common password.\nAdd another word or two. Uncommon words are better.');

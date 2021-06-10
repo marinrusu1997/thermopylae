@@ -19,7 +19,7 @@ interface AccountModel {
 	telephone?: string;
 	disabledUntil: UnixTimestamp | AccountStatus;
 	mfa?: boolean;
-	pubKey?: string | Buffer;
+	pubKey?: string;
 }
 
 interface AuthenticationModelBase {
