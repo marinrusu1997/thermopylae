@@ -1,4 +1,12 @@
 import { AccountWithTotpSecret, OnAccountDisabledHook, OnForgottenPasswordChangedHook, OnPasswordChangedHook } from '../../lib';
+import { OnAuthenticationFromDifferentContextHook } from '../../lib/types/hooks';
+
+const OnAuthFromDifferentContextHookMock: { calls: string[]; hook: OnAuthenticationFromDifferentContextHook<AccountWithTotpSecret> } = {
+	calls: [],
+	hook: async (account) => {
+		OnAuthFromDifferentContextHookMock.calls.push(account.id);
+	}
+};
 
 const OnAccountDisabledHookMock: { calls: string[]; hook: OnAccountDisabledHook<AccountWithTotpSecret> } = {
 	calls: [],
@@ -21,4 +29,4 @@ const OnForgottenPasswordChangedHookMock: { calls: string[]; hook: OnForgottenPa
 	}
 };
 
-export { OnForgottenPasswordChangedHookMock, OnAccountDisabledHookMock, OnPasswordChangedHookMock };
+export { OnForgottenPasswordChangedHookMock, OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnPasswordChangedHookMock };

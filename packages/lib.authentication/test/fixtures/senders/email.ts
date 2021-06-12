@@ -16,10 +16,6 @@ class EmailSenderMock implements EmailSender<AccountWithTotpSecret> {
 		this.client.send(adminEmail, 'notifyAdminAboutAccountDisabling', JSON.stringify({ account, cause }));
 	}
 
-	public async notifyAuthenticationFromDifferentDevice(account: AccountWithTotpSecret, authenticationContext: AuthenticationContext): Promise<void> {
-		this.client.send(account.email, 'notifyAuthenticationFromDifferentDevice', JSON.stringify(authenticationContext));
-	}
-
 	public async notifyMultiFactorAuthenticationFailed(account: AccountWithTotpSecret, authenticationContext: AuthenticationContext): Promise<void> {
 		this.client.send(account.email, 'notifyMultiFactorAuthenticationFailed', JSON.stringify(authenticationContext));
 	}

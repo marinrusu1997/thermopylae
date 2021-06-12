@@ -23,7 +23,7 @@ import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from '.
 import { MemoryCache } from './memory-cache';
 import { EmailSenderInstance } from './senders/email';
 import { SmsSenderInstance } from './senders/sms';
-import { OnAccountDisabledHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
+import { OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
 import { challengeResponseValidator, recaptchaValidator } from './validators';
 import { BcryptPasswordHashingAlgorithm } from './password/bcrypt';
 
@@ -102,6 +102,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		forgotPasswordSession: ForgotPasswordSessionMemoryRepository
 	},
 	hooks: {
+		onAuthenticationFromDifferentContext: OnAuthFromDifferentContextHookMock.hook,
 		onAccountDisabled: OnAccountDisabledHookMock.hook,
 		onForgottenPasswordChanged: OnForgottenPasswordChangedHookMock.hook,
 		onPasswordChanged: OnPasswordChangedHookMock.hook
@@ -144,6 +145,7 @@ afterEach(async () => {
 	MemoryCache.clear();
 	EmailSenderInstance.client.reset();
 	SmsSenderInstance.client.reset();
+	OnAuthFromDifferentContextHookMock.calls.length = 0;
 	OnAccountDisabledHookMock.calls.length = 0;
 	OnForgottenPasswordChangedHookMock.calls.length = 0;
 	OnPasswordChangedHookMock.calls.length = 0;

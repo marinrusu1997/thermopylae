@@ -2,6 +2,7 @@ export type { TwoFactorAuthStrategy } from './authentication/2fa/interface';
 export { EmailTwoFactorAuthStrategy, EmailTwoFactorAuthStrategyOptions, SendEmailWithToken } from './authentication/2fa/email';
 export { SmsTwoFactorAuthStrategy, SmsTwoFactorAuthStrategyOptions, SendSmsWithToken } from './authentication/2fa/sms';
 export { TotpTwoFactorAuthStrategy, TotpTwoFactorAuthStrategyOptions, OnTwoFactorEnabledHookResult, AccountWithTotpSecret } from './authentication/2fa/totp';
+export { PushNotificationsAuthStrategy } from './authentication/2fa/push-notifications';
 
 export type { AuthenticationStatus } from './authentication/step';
 
@@ -15,7 +16,7 @@ export type { PasswordHashing } from './managers/password/index';
 
 export type { BaseContext, ChangePasswordContext, SetTwoFactorAuthenticationContext, AuthenticationContext } from './types/contexts';
 export { AccountStatus } from './types/enums';
-export type { OnForgottenPasswordChangedHook, OnPasswordChangedHook, OnAccountDisabledHook } from './types/hooks';
+export type { OnForgottenPasswordChangedHook, OnPasswordChangedHook, OnAccountDisabledHook, OnAuthenticationFromDifferentContextHook } from './types/hooks';
 export type { AccountModel, FailedAuthenticationModel, SuccessfulAuthenticationModel, UserCredentials } from './types/models';
 export type {
 	ForgotPasswordSessionRepository,

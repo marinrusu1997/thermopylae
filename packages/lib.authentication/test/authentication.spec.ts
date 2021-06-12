@@ -21,6 +21,7 @@ import { EmailSenderInstance } from './fixtures/senders/email';
 import { FailedAuthAttemptSessionMemoryRepository } from './fixtures/repositories/memory/failed-auth-session';
 import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session';
 import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
+import { OnAuthFromDifferentContextHookMock } from './fixtures/hooks';
 
 describe('Authenticate spec', function suite() {
 	this.timeout(10_000); // @fixme remove when having proper net
@@ -204,7 +205,7 @@ describe('Authenticate spec', function suite() {
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': generateTotp(account.totpSecret) });
 		validateSuccessfulLogin(authStatus);
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyAuthenticationFromDifferentDevice')).to.be.ofSize(0); // first auth evar, trust me
+		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar, trust me
 
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);
 		expect(successfulAuthentications).to.be.ofSize(1);
@@ -234,7 +235,7 @@ describe('Authenticate spec', function suite() {
 		/* AUTHENTICATE FROM ONE DEVICE */
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 		validateSuccessfulLogin(authStatus);
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyAuthenticationFromDifferentDevice')).to.be.ofSize(0); // first auth evar
+		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar
 
 		/* AUTHENTICATE FROM ANOTHER DEVICE */
 		const authContext: AuthenticationContext = {
@@ -252,7 +253,7 @@ describe('Authenticate spec', function suite() {
 		};
 		authStatus = await AuthEngineInstance.authenticate(authContext);
 		validateSuccessfulLogin(authStatus);
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyAuthenticationFromDifferentDevice')).to.be.equalTo([JSON.stringify(authContext)]);
+		expect(OnAuthFromDifferentContextHookMock.calls).to.be.equalTo([account.id]);
 
 		/* GET SUCCESSFUL AUTHENTICATIONS */
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);

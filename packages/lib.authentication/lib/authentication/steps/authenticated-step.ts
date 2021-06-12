@@ -1,26 +1,26 @@
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
 import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
-import type { EmailSender } from '../../types/side-channels';
 import type { AuthenticationContext } from '../../types/contexts';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
+import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks';
 import { getCurrentTimestamp } from '../../utils';
 
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
-	private readonly emailSender: EmailSender<Account>;
+	private readonly onAuthFromDifferentContextHook: OnAuthenticationFromDifferentContextHook<Account>;
 
 	private readonly successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository;
 
 	private readonly failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository;
 
 	public constructor(
-		emailSender: EmailSender<Account>,
+		onAuthFromDifferentContextHook: OnAuthenticationFromDifferentContextHook<Account>,
 		successfulAuthenticationsRepository: SuccessfulAuthenticationsRepository,
 		failedAuthAttemptSessionRepository: FailedAuthAttemptSessionRepository
 	) {
-		this.emailSender = emailSender;
 		this.successfulAuthenticationsRepository = successfulAuthenticationsRepository;
 		this.failedAuthAttemptSessionRepository = failedAuthAttemptSessionRepository;
+		this.onAuthFromDifferentContextHook = onAuthFromDifferentContextHook;
 	}
 
 	public async process(
@@ -36,7 +36,7 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
 		) {
 			promises = new Array<Promise<unknown>>(4);
-			promises[index++] = this.emailSender.notifyAuthenticationFromDifferentDevice(account, authenticationContext);
+			promises[index++] = this.onAuthFromDifferentContextHook(account, authenticationContext);
 		} else {
 			promises = new Array<Promise<unknown>>(3);
 		}

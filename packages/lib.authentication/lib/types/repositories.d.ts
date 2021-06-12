@@ -141,7 +141,7 @@ interface SuccessfulAuthenticationsRepository {
 	 * @param accountId		Account id.
 	 * @param device		Device from where authentication has been made.
 	 *
-	 * @returns			Whether authentication has been made before.
+	 * @returns				Whether authentication has been made before.
 	 */
 	authBeforeFromThisDevice(accountId: string, device: HttpDevice): Promise<boolean>;
 }

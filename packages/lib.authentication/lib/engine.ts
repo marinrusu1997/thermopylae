@@ -31,7 +31,7 @@ import { ChallengeResponseStep } from './authentication/steps/challenge-response
 import type { ChallengeResponseValidator } from './authentication/steps/challenge-response-step';
 import { GenerateChallengeStep } from './authentication/steps/generate-challenge-step';
 import { AccountManager } from './managers/account';
-import type { OnAccountDisabledHook, OnForgottenPasswordChangedHook, OnPasswordChangedHook } from './types/hooks';
+import type { OnAccountDisabledHook, OnAuthenticationFromDifferentContextHook, OnForgottenPasswordChangedHook, OnPasswordChangedHook } from './types/hooks';
 import type { AuthenticationContext, BaseContext, ChangePasswordContext, SetTwoFactorAuthenticationContext } from './types/contexts';
 import type { PasswordStrengthPolicyValidator } from './managers/password/strength/policy';
 import { SecretEncryptor } from './helpers/secret-encryptor';
@@ -40,8 +40,6 @@ import { TwoFactorAuthStrategy } from './authentication/2fa/interface';
 import { AuthenticationSessionRepositoryHolder } from './helpers/authentication-session-repository-holder';
 import { FailedAuthenticationsManager } from './managers/failed-authentications';
 import { TokenManager } from './managers/token';
-
-// @fixme minimize as much as possible number of interactions between app and DB/Redis
 
 // @fixme we can also do password verification by using SECURITY DEFINED DATABASE FUNCTIONS to prevent SQLi
 //		1. we store password hashes + salts in a different table, and prevent the application to read from it
@@ -54,29 +52,11 @@ import { TokenManager } from './managers/token';
 //		2. when we do normal way, they will call argon2 from NodeJS process
 // @fixme take care with error handling
 
-// @fixme when issuing tokens for password reset, account activation, etc, encode them with the following scheme
-// userid:token (it would be nice if they weren't separated, so that attacker can't guess user id from token)
-// this is a protection against brute force attacks
-
 // @fixme compare all tokens using constant time string comparison (e.g. password hashes, some tokens, etc)
 // https://snyk.io/blog/node-js-timing-attack-ccc-ctf/ (npm packages can be found in the Summary section)
 
 // @fixme also for tokens, it would be recommended to use HMAC, and secret to be kept outside of the db
 // this way if tokens are leaked, they are useless without that secret
-
-// @fixme we need multiple 2nd factor auth strategies (sms, google, push notifications, qr codes etc.)
-// https://venturebeat.com/2017/09/24/a-guide-to-common-types-of-two-factor-authentication/
-// consider to encrypt totp secrets before storing them https://security.stackexchange.com/questions/181184/storing-totp-secret-in-database-plaintext-or-encrypted
-// with sms we can use something custom
-// qr code example https://davidwalsh.name/2fa
-
-// @fixme implement 2fa with push notifications https://www.npmjs.com/package/node-pushnotifications
-
-// @fixme when we get to password strength, we can have multiple policies that follow common interface
-// 1. owasp or that stuff from https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2
-// 2. local test against most common passwords https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials
-// 3. call to external api service have been pwned to check password
-// this can be done via Chain of Responsibility design pattern
 
 type AccountToBeRegistered<Account extends AccountModel> = RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil'>;
 
@@ -104,6 +84,7 @@ interface AuthenticationEngineOptions<Account extends AccountModel> {
 		readonly activateAccountSession: ActivateAccountSessionRepository<Account>;
 	};
 	readonly hooks: {
+		readonly onAuthenticationFromDifferentContext: OnAuthenticationFromDifferentContextHook<Account>;
 		readonly onAccountDisabled: OnAccountDisabledHook<Account>;
 		readonly onPasswordChanged: OnPasswordChangedHook<Account>;
 		readonly onForgottenPasswordChanged: OnForgottenPasswordChangedHook<Account>;
@@ -185,7 +166,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		this.authenticationOrchestrator.register(
 			AuthenticationStepName.AUTHENTICATED,
 			new AuthenticatedStep(
-				this.options.email.sender,
+				this.options.hooks.onAuthenticationFromDifferentContext,
 				this.options.repositories.successfulAuthentications,
 				this.options.repositories.failedAuthAttemptSession
 			)

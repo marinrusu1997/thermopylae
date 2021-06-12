@@ -1,5 +1,5 @@
 import type { AccountModel } from './models';
-import type { ChangePasswordContext } from './contexts';
+import type { AuthenticationContext, ChangePasswordContext } from './contexts';
 
 /**
  * Hook called when account was disabled. <br/>
@@ -27,4 +27,13 @@ type OnPasswordChangedHook<Account extends AccountModel> = (account: Account, ch
  */
 type OnForgottenPasswordChangedHook<Account extends AccountModel> = (account: Account) => Promise<void>;
 
-export { OnAccountDisabledHook, OnPasswordChangedHook, OnForgottenPasswordChangedHook };
+/**
+ * Hook called when authentication has been made from a context that differs from the previous ones.
+ * > **Important!** The main purpose of this hook is to send a notification to user about this via email, sms, push notifications etc.
+ *
+ * @param account                   Account on which authentication has been made.
+ * @param authenticationContext     Authentication context.
+ */
+type OnAuthenticationFromDifferentContextHook<Account extends AccountModel> = (account: Account, authenticationContext: AuthenticationContext) => Promise<void>;
+
+export { OnAccountDisabledHook, OnPasswordChangedHook, OnForgottenPasswordChangedHook, OnAuthenticationFromDifferentContextHook };
