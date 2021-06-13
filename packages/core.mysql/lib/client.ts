@@ -7,6 +7,7 @@ import {
 	QueryError
 	// eslint-disable-next-line import/extensions
 } from 'mysql2/promise';
+import { escape } from 'mysql2';
 import { logger } from './logger';
 import { createException } from './error';
 import { PoolClusterConfig, PoolClusterConnectionsManager } from './connections/cluster';
@@ -74,8 +75,19 @@ class MySQLClient {
 	 *
 	 * @param type	Type of the connection.
 	 */
-	public getConnection(type = QueryType.READ): Promise<PoolConnection> {
+	public getConnection(type: QueryType): Promise<PoolConnection> {
 		return this.connections!.getConnection(type);
+	}
+
+	/**
+	 * Escapes value before being part of SQL query.
+	 *
+	 * @param value		Value to be escaped.
+	 *
+	 * @returns			String escaped value.
+	 */
+	public escape(value: any): string {
+		return escape(value);
 	}
 
 	private static configurePool(pool: Pool, sessionVariablesQueries?: Array<string>): void {

@@ -31,12 +31,12 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.logger": "0",
         "mysql2": "2"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {

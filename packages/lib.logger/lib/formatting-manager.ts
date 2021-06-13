@@ -291,20 +291,20 @@ class FormattingManager {
 		this.formatters.set(
 			DefaultFormatters.LABEL_STYLE,
 			format((info) => {
-				info.label = this.formattedLabels[info.label];
+				info['label'] = this.formattedLabels[info['label']];
 				return info;
 			})()
 		);
 		this.formatters.set(
 			DefaultFormatters.LABEL_FILTER,
 			format((info) => {
-				return this.ignoredLabels.has(info.label) ? false : info;
+				return this.ignoredLabels.has(info['label']) ? false : info;
 			})()
 		);
 		this.formatters.set(
 			DefaultFormatters.LABEL_LOG_LEVEL_FILTER,
 			format((info) =>
-				FormattingManager.LOG_LEVEL_TO_NUMBER[info.level] < FormattingManager.LOG_LEVEL_TO_NUMBER[this.levelForLabel[info.label]] ? false : info
+				FormattingManager.LOG_LEVEL_TO_NUMBER[info.level] < FormattingManager.LOG_LEVEL_TO_NUMBER[this.levelForLabel[info['label']]] ? false : info
 			)()
 		);
 		this.formatters.set(
@@ -334,14 +334,14 @@ class FormattingManager {
 	}
 
 	private static defineFormattedLevels(levels: FormattedLevels): void {
-		levels.debug = 'debug';
-		levels.info = 'info';
-		levels.notice = 'info';
-		levels.warning = chalk.underline('warning');
-		levels.error = chalk.bold('error');
-		levels.crit = chalk.underline(chalk.bold('crit'));
-		levels.alert = chalk.underline(chalk.bold('alert'));
-		levels.emerg = chalk.underline(chalk.bold('emerg'));
+		levels['debug'] = 'debug';
+		levels['info'] = 'info';
+		levels['notice'] = 'info';
+		levels['warning'] = chalk.underline('warning');
+		levels['error'] = chalk.bold('error');
+		levels['crit'] = chalk.underline(chalk.bold('crit'));
+		levels['alert'] = chalk.underline(chalk.bold('alert'));
+		levels['emerg'] = chalk.underline(chalk.bold('emerg'));
 	}
 
 	private static defineFormattedLabels(formattedLabels: FormattedLabels): void {
@@ -359,6 +359,7 @@ class FormattingManager {
 		formattedLabels[Library.UNIT_TEST] = chalk.italic(chalk.bgKeyword('blue')(Library.UNIT_TEST));
 		formattedLabels[Library.UTILS] = chalk.italic(chalk.bgKeyword('orange')(Library.UTILS));
 
+		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('fuchsia')(CoreModule.AUTHENTICATION));
 		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('olive')(CoreModule.USER_SESSION_COMMONS));
 		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
 		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_USER_SESSION));

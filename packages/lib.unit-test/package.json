@@ -28,6 +28,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@rauschma/stringio": "1",
         "@thermopylae/lib.logger": "0",
         "@thermopylae/lib.utils": "0",
         "@types/chai-arrays": "2",
@@ -40,13 +41,15 @@
         "dockerode": "3",
         "json-schema-typed": "7",
         "mocker-data-generator": "2",
+        "mysql": "2",
         "netmap": "1"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/deep-freeze": "0",
-        "@types/dockerode": "3"
+        "@types/dockerode": "3",
+        "@types/mysql": "2"
     },
     "peerDependencies": {
         "chai": "4",

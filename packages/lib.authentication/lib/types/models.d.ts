@@ -18,7 +18,7 @@ interface AccountModel {
 	email: string;
 	telephone?: string;
 	disabledUntil: UnixTimestamp | AccountStatus;
-	mfa?: boolean;
+	mfa: boolean;
 	pubKey?: string;
 }
 

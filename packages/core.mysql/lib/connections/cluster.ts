@@ -1,5 +1,5 @@
+import { createPoolCluster } from 'mysql2';
 import {
-	createPoolCluster,
 	PoolCluster,
 	PoolClusterOptions,
 	PoolConnection,
@@ -55,8 +55,7 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 		this.poolCluster = createPoolCluster(options.cluster);
 
 		for (let i = clusterNodeNames.length - 1; i >= 0; i--) {
-			// @ts-ignore
-			this.poolCluster.add(clusterNodeNames[i], options.poolCluster.nodes[clusterNodeNames[i]]);
+			this.poolCluster.add(clusterNodeNames[i], options.nodes[clusterNodeNames[i]] as any);
 		}
 
 		this.poolCluster.on('online', (nodeId: number) => logger.notice(`Node with id ${nodeId} is online.`));

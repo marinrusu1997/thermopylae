@@ -13,7 +13,8 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM"
     ],
 
     "removeComments": false,

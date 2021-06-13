@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/core.adapter.express",
     "packages/core.adapter.fastify",
+    "packages/core.authentication",
     "packages/core.cookie-session",
     "packages/core.declarations",
     "packages/core.jwt-session",

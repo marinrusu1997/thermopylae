@@ -1,11 +1,11 @@
 {
-    "name": "@thermopylae/lib.authentication",
-    "description": "Authentication library.",
+    "name": "@thermopylae/core.authentication",
+    "description": "Core authentication module for HTTP interface.",
     "keywords": [
-        "library"
+        "core"
     ],
     "version": "0.0.1",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
@@ -31,36 +31,22 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@otplib/core": "12",
-        "@otplib/plugin-crypto": "12",
-        "@otplib/plugin-thirty-two": "12",
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.mysql": "0",
+        "@thermopylae/core.redis": "0",
+        "@thermopylae/lib.authentication": "0",
         "@thermopylae/lib.exception": "0",
-        "argon2": "0",
-        "node-fetch": "2",
-        "qrcode": "1",
-        "string-similarity": "4",
-        "uid-safe": "2",
-        "zxcvbn": "4"
+        "@thermopylae/lib.logger": "0",
+        "farmhash": "3",
+        "fast-json-stable-stringify": "2"
     },
     "devDependencies": {
-        "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",
-        "@types/bcrypt": "5",
-        "@types/mongoose": "5",
-        "@types/node-fetch": "2",
-        "@types/object-hash": "2",
-        "@types/qrcode": "1",
-        "@types/string-similarity": "4",
-        "@types/uid-safe": "2",
-        "@types/zxcvbn": "4",
-        "bcrypt": "5",
-        "keypair": "1",
-        "mongodb-memory-server": "6",
-        "mongoose": "5",
-        "object-hash": "2"
+        "@types/faker": "5",
+        "dotenv": "10",
+        "faker": "5"
     },
     "peerDependencies": {
         "chai": "4",
