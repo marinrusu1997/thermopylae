@@ -8,7 +8,7 @@ interface PasswordHash {
 
 interface PasswordHashingAlgorithm {
 	hash(password: string): Promise<PasswordHash>;
-	verify(plain: string, hash: string, salt?: string): Promise<boolean>;
+	verify(plain: string, hash: string, salt?: string | null): Promise<boolean>;
 }
 
 export { PasswordHash, PasswordHashingAlgorithm };

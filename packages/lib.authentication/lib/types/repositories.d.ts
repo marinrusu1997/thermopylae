@@ -85,7 +85,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @throws {Error}				When account is not found or any other error is encountered.
 	 */
-	changePassword(accountId: string, passwordHash: string, salt: string | undefined, hashingAlg: number): Promise<void>;
+	changePassword(accountId: string, passwordHash: string, salt: string | undefined | null, hashingAlg: number): Promise<void>;
 }
 
 /**

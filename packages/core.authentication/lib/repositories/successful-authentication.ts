@@ -5,10 +5,6 @@ import stringify from 'fast-json-stable-stringify';
 import farmhash from 'farmhash';
 import { TableNames } from './constants';
 
-// @fixme test with null | undefined device and location
-// @fixme test with different account id
-// @fixme test readRange with different combinations
-
 class SuccessfulAuthenticationsMysqlRepository implements SuccessfulAuthenticationsRepository {
 	public async insert(authentication: SuccessfulAuthenticationModel): Promise<void> {
 		const connection = await MySqlClientInstance.getConnection(QueryType.WRITE);
@@ -27,7 +23,7 @@ class SuccessfulAuthenticationsMysqlRepository implements SuccessfulAuthenticati
 
 			const [results] = await connection.query<ResultSetHeader>(
 				`INSERT INTO ${TableNames.SuccessfulAuthentication} (accountId, ip, deviceId, location, authenticatedAt) VALUES (${authentication.accountId}, '${authentication.ip}', ?, ?, ${authentication.authenticatedAt});`,
-				[deviceHash, JSON.stringify(authentication.location)]
+				[deviceHash, authentication.location ? JSON.stringify(authentication.location) : authentication.location]
 			);
 
 			authentication.id = String(results.insertId);
@@ -57,9 +53,9 @@ class SuccessfulAuthenticationsMysqlRepository implements SuccessfulAuthenticati
 	}
 
 	public async readRange(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<SuccessfulAuthenticationModel>> {
-		let sql = `SELECT sa.id, sa.accountId, sa.ip, ad.json, sa.location, sa.authenticatedAt FROM ${TableNames.SuccessfulAuthentication} sa LEFT JOIN ${
-			TableNames.Device
-		} ad ON sa.deviceId = ad.id WHERE sa.accountId = ${MySqlClientInstance.escape(accountId)}`;
+		let sql = `SELECT sa.id, sa.accountId, sa.ip, ad.json AS device, sa.location, sa.authenticatedAt FROM ${
+			TableNames.SuccessfulAuthentication
+		} sa LEFT JOIN ${TableNames.Device} ad ON sa.deviceId = ad.id WHERE sa.accountId = ${MySqlClientInstance.escape(accountId)}`;
 
 		if (startingFrom) {
 			sql += ` AND sa.authenticatedAt >= ${startingFrom}`;
@@ -71,9 +67,17 @@ class SuccessfulAuthenticationsMysqlRepository implements SuccessfulAuthenticati
 
 		const connection = await MySqlClientInstance.getConnection(QueryType.READ);
 		try {
-			const [results, fields] = await connection.query(sql);
-			console.log(results, fields); // @fixme
-			return [];
+			const [results] = await connection.query<RowDataPacket[]>(sql);
+
+			let i = results.length;
+			while (i--) {
+				results[i]['id'] = String(results[i]['id']);
+				results[i]['accountId'] = String(results[i]['accountId']);
+				results[i]['device'] = JSON.parse(results[i]['device']);
+				results[i]['location'] = JSON.parse(results[i]['location']);
+			}
+
+			return results as SuccessfulAuthenticationModel[];
 		} finally {
 			connection.release();
 		}

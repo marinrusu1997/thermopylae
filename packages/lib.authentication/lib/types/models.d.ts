@@ -13,13 +13,13 @@ interface AccountModel {
 	/**
 	 * Optional, might be encoded in the password hash.
 	 */
-	passwordSalt?: string;
+	passwordSalt?: string | null;
 	passwordAlg: number;
 	email: string;
-	telephone?: string;
+	telephone?: string | null;
 	disabledUntil: UnixTimestamp | AccountStatus;
 	mfa: boolean;
-	pubKey?: string;
+	pubKey?: string | null;
 }
 
 interface AuthenticationModelBase {
