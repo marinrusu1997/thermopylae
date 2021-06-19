@@ -7,7 +7,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { AccountMySqlRepository } from '../../lib';
 
-describe.only(`${AccountMySqlRepository.name} spec`, function suite() {
+describe(`${AccountMySqlRepository.name} spec`, function suite() {
 	this.timeout(2_500);
 
 	const accountRepository = new AccountMySqlRepository();

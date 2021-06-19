@@ -12,7 +12,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 		try {
 			const [results] = await connection.execute<ResultSetHeader>(
 				`INSERT INTO ${TableNames.Account} (username, passwordHash, passwordSalt, passwordAlg, email, telephone, disabledUntil, mfa, pubKey, totpSecret) VALUES (?, '${account.passwordHash}', ?, '${account.passwordAlg}', ?, ?, ${account.disabledUntil}, ${account.mfa}, ?, ?);`,
-				[account.username, account.passwordSalt, account.email, account.telephone, account.pubKey, account.totpSecret]
+				[account.username, account.passwordSalt || null, account.email, account.telephone || null, account.pubKey || null, account.totpSecret]
 			);
 
 			account.id = String(results.insertId);
