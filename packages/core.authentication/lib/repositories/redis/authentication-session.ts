@@ -1,7 +1,7 @@
 import { AuthenticationSession, AuthenticationSessionRepository } from '@thermopylae/lib.authentication';
 import { ErrorCodes, Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
-import { createException } from '../error';
+import { createException } from '../../error';
 
 class AuthenticationSessionRedisRepository implements AuthenticationSessionRepository {
 	private readonly prefix: string;

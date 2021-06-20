@@ -5,7 +5,7 @@ import { AuthenticationSession } from '@thermopylae/lib.authentication';
 import { chrono } from '@thermopylae/lib.utils';
 import { AuthenticationSessionRedisRepository } from '../../lib';
 
-describe.only(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
+describe(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
 	const authenticationSessionRedisRepository = new AuthenticationSessionRedisRepository('auth-sess');
 
 	it('reads inserted session', async () => {

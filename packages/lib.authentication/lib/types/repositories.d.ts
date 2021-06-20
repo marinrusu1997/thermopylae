@@ -186,14 +186,14 @@ interface AuthenticationSessionRepository {
  */
 interface FailedAuthAttemptSessionRepository {
 	/**
-	 * Insert session. <br/>
-	 * In case user was inserted already, it needs to be replaced.
+	 * Insert/Replaces session.
 	 *
 	 * @param username		Account username.
 	 * @param session		Failed authentication attempts session.
-	 * @param ttl			Session ttl in seconds.
+	 * @param ttl			Session ttl in seconds. <br/>
+	 * 						In case session is already present, when replacing it, ttl needs to be reset too.
 	 */
-	insert(username: string, session: FailedAuthenticationAttemptSession, ttl: Seconds): Promise<void>;
+	upsert(username: string, session: FailedAuthenticationAttemptSession, ttl: Seconds): Promise<void>;
 
 	/**
 	 * Read failed authentication attempts session.
@@ -203,15 +203,6 @@ interface FailedAuthAttemptSessionRepository {
 	 * @returns		Failed authentication attempts session or `null` when not found.
 	 */
 	read(username: string): Promise<FailedAuthenticationAttemptSession | null | undefined>;
-
-	/**
-	 * Replace failed authentication attempts session. <br/>
-	 * In case old session isn't present, it should create it.
-	 *
-	 * @param username		Account username.
-	 * @param session		Updated failed authentication attempts session.
-	 */
-	replace(username: string, session: FailedAuthenticationAttemptSession): Promise<void>;
 
 	/**
 	 * Delete failed authentication attempts session.

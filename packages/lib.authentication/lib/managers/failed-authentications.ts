@@ -50,7 +50,7 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 				detectedAt: currentTimestamp,
 				counter: 1
 			};
-			await this.failedAuthAttemptSessionRepository.insert(account.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
+			await this.failedAuthAttemptSessionRepository.upsert(account.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 		} else {
 			failedAuthAttemptSession.ip = context.ip;
 			failedAuthAttemptSession.device = context.device;
@@ -60,7 +60,7 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 
 			if (failedAuthAttemptSession.counter <= this.failedAuthAttemptsAccountDisableThreshold) {
 				// update only in case it will not be deleted later by reached threshold
-				await this.failedAuthAttemptSessionRepository.replace(account.username, failedAuthAttemptSession);
+				await this.failedAuthAttemptSessionRepository.upsert(account.username, failedAuthAttemptSession, this.failedAuthAttemptSessionTtl);
 			}
 		}
 

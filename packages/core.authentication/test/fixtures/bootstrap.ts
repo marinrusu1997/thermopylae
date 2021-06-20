@@ -88,6 +88,7 @@ before(async function boot() {
 
 beforeEach(async () => {
 	await truncateMySqlTables();
+	await RedisClientInstance.client.flushall();
 });
 
 after(async function testEnvCleaner(): Promise<void> {

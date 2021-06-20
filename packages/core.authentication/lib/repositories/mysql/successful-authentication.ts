@@ -3,7 +3,7 @@ import type { HttpDevice, UnixTimestamp } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, QueryType, ResultSetHeader, RowDataPacket } from '@thermopylae/core.mysql';
 import stringify from 'fast-json-stable-stringify';
 import farmhash from 'farmhash';
-import { TableNames } from './constants';
+import { TableNames } from '../constants';
 
 class SuccessfulAuthenticationsMysqlRepository implements SuccessfulAuthenticationsRepository {
 	public async insert(authentication: SuccessfulAuthenticationModel): Promise<void> {

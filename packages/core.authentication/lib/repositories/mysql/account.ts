@@ -2,8 +2,8 @@ import { AccountRepository, AccountWithTotpSecret } from '@thermopylae/lib.authe
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, QueryType, ResultSetHeader, RowDataPacket } from '@thermopylae/core.mysql';
 import { ErrorCodes } from '@thermopylae/core.declarations';
-import { TableNames } from './constants';
-import { createException } from '../error';
+import { TableNames } from '../constants';
+import { createException } from '../../error';
 
 class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret> {
 	public async insert(account: AccountWithTotpSecret): Promise<void> {
