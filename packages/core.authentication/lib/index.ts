@@ -5,3 +5,9 @@ export { AuthenticationSessionRedisRepository } from './repositories/redis/authe
 export { FailedAuthenticationAttemptsSessionRedisRepository } from './repositories/redis/failed-authentications-session';
 export { ActivateAccountSessionRedisRepository } from './repositories/redis/activate-account-session';
 export { ForgotPasswordSessionRedisRepository } from './repositories/redis/forgot-password-session';
+
+export type { BeforeAccountRegistration, OnSuccessfulAuthentication } from './hooks';
+
+export { initLogger } from './logger';
+
+export { AuthenticationMiddleware } from './middleware';
