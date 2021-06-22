@@ -1,6 +1,5 @@
 import { chrono } from '@thermopylae/lib.utils';
 import fetch from 'node-fetch';
-import { logger } from '../logger';
 import type { IpLocation, IpLocationsRepository } from './index';
 
 /**
@@ -39,6 +38,17 @@ interface IpstackRepositoryOptions {
 	 * Weight of the repo.
 	 */
 	readonly weight: number;
+	/**
+	 * Hooks.
+	 */
+	readonly hooks: {
+		/**
+		 * Hook called when ip retrieval fails with an error.
+		 *
+		 * @param err	Error that was thrown.
+		 */
+		onIpRetrievalError: (err: Error) => void;
+	};
 }
 
 /**
@@ -94,7 +104,7 @@ class IpstackRepository implements IpLocationsRepository {
 					this.availableAt = chrono.unixTime(chrono.firstDayOfNextMonth());
 				}
 
-				logger.error(`Failed to retrieve location for ip ${ip} from ipstack.`, error);
+				this.options.hooks.onIpRetrievalError(error);
 			}
 		} else if (this.availableAt < chrono.unixTime()) {
 			try {
@@ -105,7 +115,7 @@ class IpstackRepository implements IpLocationsRepository {
 				// false positive, out guess failed, can happen when there is a delay between our time and service time
 				// IMPORTANT: DO NOT CHANGE AVAILABILITY TIMESTAMP, it will be reset on next retry
 
-				logger.error(`Failed to retrieve location for ip ${ip} from ipstack. `, error);
+				this.options.hooks.onIpRetrievalError(error);
 			}
 		}
 
@@ -120,7 +130,6 @@ class IpstackRepository implements IpLocationsRepository {
 			throw location.error;
 		}
 
-		logger.debug(`ipstack found location of the ${ip}`);
 		return {
 			REPOSITORY_ID: this.id,
 			countryCode: location.country_code,

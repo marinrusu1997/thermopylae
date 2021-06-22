@@ -36,7 +36,7 @@
         "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.jwt-user-session": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "cookie": "0"
     },
     "devDependencies": {

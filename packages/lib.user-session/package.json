@@ -37,7 +37,7 @@
     },
     "devDependencies": {
         "@thermopylae/lib.cache": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.user-session.commons": "0",
         "@thermopylae/module-builder": "0",

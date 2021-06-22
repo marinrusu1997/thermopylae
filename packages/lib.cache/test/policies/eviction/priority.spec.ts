@@ -3,7 +3,7 @@ import colors from 'colors';
 import { expect } from '@thermopylae/lib.unit-test';
 import { chrono, number, string } from '@thermopylae/lib.utils';
 import { CacheEntryPriority, PrioritizedCacheEntry, PRIORITY_SYM, PriorityEvictionPolicy } from '../../../lib/policies/eviction/priority';
-import { EsMapCacheBackend } from '../../../lib/backend/es-map';
+import { EsMapCacheBackend } from '../../../lib';
 
 describe(`${colors.magenta(PriorityEvictionPolicy.name)} spec`, () => {
 	describe(`${PriorityEvictionPolicy.prototype.onSet.name.magenta} spec`, () => {

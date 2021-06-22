@@ -11,7 +11,7 @@ import {
 	ConnectionDetails,
 	bootRedisContainer
 } from '@thermopylae/lib.unit-test';
-import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
+import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, initLogger as initMySqlLogger } from '@thermopylae/core.mysql';
 import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';

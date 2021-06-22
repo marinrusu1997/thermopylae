@@ -1,38 +1,13 @@
 {
+    "extends": "../../node_modules/@thermopylae/module-builder/lib/configs/tsconfig.json",
     "compilerOptions": {
-        "incremental": true,
-        "target": "esnext",
-        "module": "commonjs",
-        "allowJs": false,
-        "declaration": true,
-        "outDir": "dist",
-        "composite": true,
+        "rootDir": ".",
         "tsBuildInfoFile": "build/tsbuildinfo",
-        "removeComments": false,
-        "strict": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "strictBindCallApply": true,
-        "strictPropertyInitialization": true,
-        "noImplicitThis": true,
-        "alwaysStrict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "rootDir": "."
+        "outDir": "dist",
+        "module": "commonjs"
     },
     "include": [
         "lib/**/*.ts",
         "test/**/*.ts"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "build"
     ]
 }

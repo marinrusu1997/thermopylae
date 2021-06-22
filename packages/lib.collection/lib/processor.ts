@@ -25,14 +25,14 @@ class Processor<Document extends DocumentContract<Document>> {
 		const { indexes } = this.storage; // they are expensive to compute
 
 		update = createUpdate(update, { skipValidate: this.skipQueryValidation });
-		const updatedIndexes = update.getUpdatedFields().filter((field: string) => indexes.includes(field)) as Array<IndexedKey<Document>>;
+		const updatedIndexes = update['getUpdatedFields']().filter((field: string) => indexes.includes(field)) as Array<IndexedKey<Document>>;
 
 		// this code was duplicated for speed
 		if (updatedIndexes.length) {
 			for (const match of matches) {
 				const snapshot = Processor.snapshotIndexableProperties(match, updatedIndexes);
 
-				update.apply(match);
+				update['apply'](match);
 
 				for (const updatedIndex of updatedIndexes) {
 					const newValue = dotprop.get(match, updatedIndex) as IndexValue;
@@ -44,7 +44,7 @@ class Processor<Document extends DocumentContract<Document>> {
 		}
 
 		for (const match of matches) {
-			update.apply(match);
+			update['apply'](match);
 		}
 	}
 

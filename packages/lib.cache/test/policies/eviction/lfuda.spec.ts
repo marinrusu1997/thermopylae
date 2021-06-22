@@ -1,9 +1,8 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { array, number } from '@thermopylae/lib.utils';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
-import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
+import { LFUDAEvictionPolicy } from '../../../lib';
 import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
 import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
@@ -116,7 +115,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 			expect(EVICTED_KEYS).to.satisfy((keys: string[]) => keys.includes('c') || keys.includes('d'));
 		} catch (e) {
 			const message = ['Test Context:', `${'GET_ORDER'.magenta}: ${GET_ORDER.map((v) => `'${v}'`)}`];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});

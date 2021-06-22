@@ -2,11 +2,9 @@
     "name": "@thermopylae/lib.heap",
     "description": "Binary heap.",
     "keywords": [
-        "thermopylae",
-        "library",
-        "heap"
+        "library"
     ],
-    "version": "0.0.1601789834",
+    "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -36,14 +34,14 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "lodash.isfunction": "3"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0",

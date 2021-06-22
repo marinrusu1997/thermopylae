@@ -2,7 +2,7 @@ import { describe, it, afterEach } from 'mocha';
 import colors from 'colors';
 import { expect } from '@thermopylae/lib.unit-test';
 import { CacheEntryWithDependencies, KeysDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies';
-import { EsMapCacheBackend } from '../../../lib/backend/es-map';
+import { EsMapCacheBackend } from '../../../lib';
 import { DEPENDENCIES_SYM, DEPENDENTS_SYM } from '../../../lib/data-structures/dependency-graph';
 
 describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {

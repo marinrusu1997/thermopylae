@@ -1,7 +1,7 @@
-<h1 align="center">@thermopylae/lib.logger</h1>
+<h1 align="center">@thermopylae/core.logger</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1604216964-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/node-%3E%3D%2014-blue.svg" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+  <img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
 <a href="http:/localhost:8080/doc" target="_blank">
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 </a>
@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Logger for backend services.
+> Logger for core Thermopylae modules.
 
 ### 🏠 [Homepage](http://localhost:8080)
 
@@ -18,7 +18,7 @@
 ## Install
 
 ```sh
-npm install @thermopylae/lib.logger
+npm install @thermopylae/core.logger
 ```
 
 ## Run tests

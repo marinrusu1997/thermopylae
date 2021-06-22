@@ -22,7 +22,7 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 			arr.push(key);
 		}
 
-		this.map = new Map<V, K[]>([...tempMap].sort((a, b) => ((a[0] as unknown) as number) - ((b[0] as unknown) as number)));
+		this.map = new Map<V, K[]>([...tempMap].sort((a, b) => (a[0] as unknown as number) - (b[0] as unknown as number)));
 
 		const keys = this.map.keys();
 		this.iter = { bucketsIter: keys, bucket: keys.next(), bucketElementsCount: 0 };

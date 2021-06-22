@@ -4,7 +4,7 @@ import { expect } from '@thermopylae/lib.unit-test';
 import { chrono } from '@thermopylae/lib.utils';
 import { ExpirableSlidingCacheEntry, SlidingReactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding-reactive';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
-import { EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
+import { EntryValidity } from '../../../lib';
 
 describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
 	it('should work', async () => {

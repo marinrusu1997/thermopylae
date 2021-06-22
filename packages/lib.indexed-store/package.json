@@ -2,12 +2,9 @@
     "name": "@thermopylae/lib.indexed-store",
     "description": "Storage for records that might be indexed by multiple keys.",
     "keywords": [
-        "thermopylae",
-        "library",
-        "indexing",
-        "storage"
+        "library"
     ],
-    "version": "0.0.1601789522",
+    "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
@@ -53,7 +50,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "license": "ISC",
     "type": "commonjs"

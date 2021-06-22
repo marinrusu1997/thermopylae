@@ -3,7 +3,7 @@ import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { Exception } from '@thermopylae/lib.exception';
 import { ArcEvictionPolicy, EvictableCacheEntry, SEGMENT_TYPE_SYM } from '../../../lib/policies/eviction/arc';
-import { EntryPoolCacheBackend } from '../../../lib/backend/entry-pool';
+import { EntryPoolCacheBackend } from '../../../lib';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 
 describe(`${colors.magenta(ArcEvictionPolicy.name)} spec`, () => {

@@ -2,13 +2,10 @@ import { describe, it } from 'mocha';
 import colors from 'colors';
 import range from 'lodash.range';
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { expect } from '@thermopylae/lib.unit-test';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
-import { ProactiveExpirationPolicy } from '../../../lib/policies/expiration/proactive';
-import { IntervalGarbageCollector, IntervalGarbageCollectorOptions } from '../../../lib/garbage-collectors/interval-gc';
-import { EsMapCacheBackend } from '../../../lib/backend/es-map';
+import { ProactiveExpirationPolicy, IntervalGarbageCollector, IntervalGarbageCollectorOptions, EsMapCacheBackend } from '../../../lib';
 
 describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarbageCollector.name.magenta} spec`, () => {
 	describe(`${ProactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
@@ -59,7 +56,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 					`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 				];
 
-				UnitTestLogger.info(message.join('\n'));
+				logger.info(message.join('\n'));
 			}
 
 			for (const [key, entry] of BACKEND) {
@@ -201,7 +198,7 @@ describe(`${colors.magenta(ProactiveExpirationPolicy.name)} with ${IntervalGarba
 					`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 				];
 
-				UnitTestLogger.info(message.join('\n'));
+				logger.info(message.join('\n'));
 			}
 
 			for (const [key, entry] of BACKEND) {

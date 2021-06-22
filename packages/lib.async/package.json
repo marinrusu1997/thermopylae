@@ -2,14 +2,12 @@
     "name": "@thermopylae/lib.async",
     "description": "Utilities for async operations and concurrency",
     "keywords": [
-        "thermopylae",
-        "library",
-        "async",
-        "concurrency"
+        "library"
     ],
-    "version": "0.0.1593351821",
+    "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
+    "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
@@ -50,9 +48,8 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "license": "ISC",
-    "exports": "./dist/index.js",
     "type": "commonjs"
 }

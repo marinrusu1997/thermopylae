@@ -1,4 +1,4 @@
-import { LoggerInstance, WinstonLogger } from '@thermopylae/lib.logger';
+import { LoggerInstance, WinstonLogger } from '@thermopylae/core.logger';
 import { Client } from '@thermopylae/core.declarations';
 
 /**

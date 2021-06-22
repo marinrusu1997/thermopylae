@@ -17,7 +17,7 @@ let DockerodeInstance: Dockerode;
 function getDockerodeInstance(): Dockerode {
 	if (DockerodeInstance == null) {
 		DockerodeInstance = new Dockerode({
-			socketPath: process.env.DOCKER_SOCKET_PATH || '/var/run/docker.sock'
+			socketPath: process.env['DOCKER_SOCKET_PATH'] || '/var/run/docker.sock'
 		});
 	}
 	return DockerodeInstance;

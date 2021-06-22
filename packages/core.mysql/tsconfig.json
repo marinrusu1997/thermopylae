@@ -4,10 +4,6 @@
         "rootDir": ".",
         "tsBuildInfoFile": "build/tsbuildinfo",
         "outDir": "dist",
-        "lib": [
-            "ESNext",
-            "DOM"
-        ],
         "module": "commonjs"
     },
     "include": [

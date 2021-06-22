@@ -15,6 +15,7 @@
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
+        "readme": "gulp readme",
         "test": "gulp test",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",
@@ -28,8 +29,9 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@rauschma/stringio": "1",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "@thermopylae/lib.utils": "0",
         "@types/chai-arrays": "2",
         "@types/chai-as-promised": "7",
@@ -45,7 +47,6 @@
         "netmap": "1"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/module-builder": "0",
         "@types/deep-freeze": "0",
         "@types/dockerode": "3",

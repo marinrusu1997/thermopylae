@@ -1,7 +1,6 @@
 import { chrono } from '@thermopylae/lib.utils';
 import fetch from 'node-fetch';
 import type { IpLocation, IpLocationsRepository } from './index';
-import { logger } from '../logger';
 
 /**
  * @private
@@ -20,6 +19,23 @@ interface IpLocateRepositoryOptions {
 	 * Weight of the repo.
 	 */
 	readonly weight: number;
+	/**
+	 * Hooks.
+	 */
+	readonly hooks: {
+		/**
+		 * Hook called when ip retrieval fails with an error.
+		 *
+		 * @param err	Error that was thrown.
+		 */
+		onIpRetrievalError: (err: Error) => void;
+		/**
+		 * Hook called when rate limit was reached.
+		 *
+		 * @param rateLimitReset	Date-time when rate limit will be reset.
+		 */
+		onRateLimitExceeded: (rateLimitReset: Date) => void;
+	};
 }
 
 /**
@@ -70,14 +86,14 @@ class IpLocateRepository implements IpLocationsRepository {
 			try {
 				location = await this.retrieve(ip);
 			} catch (e) {
-				logger.error(`Failed to retrieve location for ip ${ip} from iplocate.`, e);
+				this.options.hooks.onIpRetrievalError(e);
 			}
 		} else if (this.availableAt < chrono.unixTime()) {
 			try {
 				location = await this.retrieve(ip);
 				this.availableAt = AVAILABLE_NOW;
 			} catch (e) {
-				logger.error(`Failed to retrieve location for ip ${ip} from iplocate.`, e);
+				this.options.hooks.onIpRetrievalError(e);
 			}
 		}
 
@@ -93,14 +109,12 @@ class IpLocateRepository implements IpLocationsRepository {
 		});
 
 		if (response.headers.get('X-RateLimit-Remaining') === '0') {
-			const rateLimitReset = response.headers.get('X-RateLimit-Reset')!;
-			logger.warning(`Rate limit for iplocate exceeded and will reset at ${rateLimitReset}.`);
-
-			this.availableAt = chrono.unixTime(new Date(rateLimitReset));
+			const rateLimitReset = new Date(response.headers.get('X-RateLimit-Reset')!);
+			this.options.hooks.onRateLimitExceeded(rateLimitReset);
+			this.availableAt = chrono.unixTime(rateLimitReset);
 		}
 
 		const location = await response.json();
-		logger.debug(`iplocate found location of the ${ip}`);
 
 		return {
 			REPOSITORY_ID: this.id,

@@ -1,17 +1,14 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
 import { Nullable } from '@thermopylae/core.declarations';
 import colors from 'colors';
 import range from 'lodash.range';
 // @ts-ignore
 import gc from 'js-gc';
-import { LFUEvictionPolicy } from '../../../lib/policies/eviction/lfu';
+import { LFUEvictionPolicy, GDSFEvictionPolicy, LFUDAEvictionPolicy } from '../../../lib';
 import { ReverseMap } from '../../utils';
 import { BaseLFUEvictionPolicy, EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
-import { LFUDAEvictionPolicy } from '../../../lib/policies/eviction/lfuda';
 import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
 import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
@@ -75,7 +72,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						expect(policy.size).to.be.eq(CAPACITY); // ...and number of req nodes remained the same
 					} catch (e) {
 						const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
-						UnitTestLogger.info(message.join('\n'));
+						logger.info(message.join('\n'));
 						throw e;
 					}
 				});
@@ -185,7 +182,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'ENTRIES_SORTED_BY_FREQ'.magenta}\t: ${JSON.stringify([...ENTRIES_SORTED_BY_FREQ])}`,
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
-						UnitTestLogger.info(message.join('\n'));
+						logger.info(message.join('\n'));
 						throw e;
 					}
 				});
@@ -248,7 +245,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'ADDITIONAL_ENTRIES'.magenta}\t: ${JSON.stringify([...ADDITIONAL_ENTRIES])}`,
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
-						UnitTestLogger.info(message.join('\n'));
+						logger.info(message.join('\n'));
 						throw e;
 					}
 				});
@@ -334,7 +331,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'KEYS_TO_DELETE'.magenta}\t\t: ${JSON.stringify(KEYS_TO_DELETE)}`,
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
-						UnitTestLogger.info(message.join('\n'));
+						logger.info(message.join('\n'));
 						throw e;
 					}
 				});

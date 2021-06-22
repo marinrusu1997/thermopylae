@@ -2,11 +2,9 @@
     "name": "@thermopylae/lib.exception",
     "description": "General purpose exception.",
     "keywords": [
-        "thermopylae",
-        "library",
-        "exception"
+        "library"
     ],
-    "version": "0.0.1601789191",
+    "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "license": "ISC",
     "main": "dist/index.js",
@@ -37,7 +35,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "devDependencies": {
         "@thermopylae/module-builder": "0"

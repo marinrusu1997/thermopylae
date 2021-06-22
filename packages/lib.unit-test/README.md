@@ -1,7 +1,7 @@
 <h1 align="center">@thermopylae/lib.unit-test</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1604217724-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/node-%3E%3D%2014-blue.svg" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+  <img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
 <a href="http:/localhost:8080/doc" target="_blank">
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 </a>
@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Unit tests environment
+> Unit tests environment.
 
 ### 🏠 [Homepage](http://localhost:8080)
 

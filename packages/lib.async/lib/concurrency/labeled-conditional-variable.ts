@@ -263,7 +263,6 @@ class LabeledConditionalVariable<Label = string, Result = any> {
 			default:
 				LabeledConditionalVariable.throwInvalidAwaiterRole(role);
 		}
-		return ''; // actually never gets executed, just to calm down eslint
 	}
 
 	private static throwInvalidAwaiterRole(role: AwaiterRole): never {

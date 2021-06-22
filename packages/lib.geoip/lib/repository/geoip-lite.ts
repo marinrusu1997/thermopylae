@@ -1,5 +1,4 @@
 import type { IpLocation, IpLocationsRepository } from './index';
-import { logger } from '../logger';
 
 /**
  * @private
@@ -57,7 +56,6 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 			return null;
 		}
 
-		logger.debug(`geoip-lite found location of the ${ip}`);
 		return {
 			REPOSITORY_ID: this.id,
 			countryCode: geo.country,

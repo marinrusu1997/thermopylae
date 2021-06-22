@@ -14,11 +14,6 @@ class Exception extends Error {
 	public readonly code: string;
 
 	/**
-	 * Detailed explanation of the error.
-	 */
-	public readonly message!: string;
-
-	/**
 	 * Error origin. Might contain a nested {@link Error} or additional data that caused this error.
 	 */
 	public readonly origin?: any;
@@ -31,7 +26,7 @@ class Exception extends Error {
 	 * @param message	Error message.
 	 * @param origin	Error origin.
 	 */
-	constructor(emitter: string, code: string, message?: string, origin?: any) {
+	public constructor(emitter: string, code: string, message?: string, origin?: any) {
 		super(message);
 		Error.captureStackTrace(this, Exception);
 

@@ -31,7 +31,6 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/lib.logger": "0",
         "nodemailer": "6"
     },
     "devDependencies": {
@@ -51,7 +50,7 @@
         ]
     },
     "engines": {
-        "node": ">= 14"
+        "node": ">= 16"
     },
     "license": "ISC",
     "type": "commonjs"

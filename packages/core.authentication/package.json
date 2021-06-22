@@ -36,7 +36,7 @@
         "@thermopylae/core.redis": "0",
         "@thermopylae/lib.authentication": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "farmhash": "3",
         "fast-json-stable-stringify": "2"
     },

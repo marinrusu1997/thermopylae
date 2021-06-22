@@ -1,5 +1,5 @@
-import { LoggerInstance } from '@thermopylae/lib.logger';
-import type { WinstonLogger } from '@thermopylae/lib.logger';
+import { LoggerInstance } from '@thermopylae/core.logger';
+import type { WinstonLogger } from '@thermopylae/core.logger';
 import { CoreModule } from '@thermopylae/core.declarations';
 
 /**

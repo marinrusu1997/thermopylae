@@ -35,7 +35,7 @@
         "@thermopylae/core.redis": "0",
         "@thermopylae/core.user-session.commons": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "@thermopylae/lib.user-session": "0",
         "cookie": "0"
     },

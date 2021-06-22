@@ -1,4 +1,4 @@
-<h1 align="center">@thermopylae/lib.email</h1>
+<h1 align="center">@thermopylae/core.authentication</h1>
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Email client.
+> Core authentication module for HTTP interface.
 
 ### 🏠 [Homepage](http://localhost:8080)
 
@@ -18,7 +18,7 @@
 ## Install
 
 ```sh
-npm install @thermopylae/lib.email
+npm install @thermopylae/core.authentication
 ```
 
 ## Run tests

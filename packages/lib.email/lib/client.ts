@@ -1,20 +1,37 @@
 import { Transporter, createTransport, SendMailOptions } from 'nodemailer';
 import { EmailTransportOptions, EmailTransportDefaults, SentMessageInfo } from './types';
-import { getLogger } from './logger';
+import { OnTransportError, OnTransportIdle } from './hooks';
+
+interface EmailClientOptions {
+	/**
+	 * Email transport options.
+	 */
+	transport: {
+		/**
+		 * Options for [nodemailer SMTP transport](https://nodemailer.com/smtp/).
+		 */
+		options: EmailTransportOptions;
+		/**
+		 * Defaults for [nodemailer SMTP transport](https://nodemailer.com/smtp/).
+		 */
+		defaults?: EmailTransportDefaults;
+	};
+	hooks: {
+		onTransportError: OnTransportError;
+		onTransportIdle: OnTransportIdle;
+	};
+}
 
 class EmailClient {
 	private transport: Transporter | null;
 
 	/**
-	 * Init email client.
-	 *
-	 * @param options	Options for [nodemailer SMTP transport](https://nodemailer.com/smtp/).
-	 * @param defaults	Defaults for [nodemailer SMTP transport](https://nodemailer.com/smtp/).
+	 * @param options	Options for email client.
 	 */
-	public constructor(options: EmailTransportOptions, defaults?: EmailTransportDefaults) {
-		this.transport = createTransport(options, defaults);
-		this.transport.on('error', (err) => getLogger().error('Error occurred in email transport.', err));
-		this.transport.on('idle', () => getLogger().info('Email transport is idle.'));
+	public constructor(options: EmailClientOptions) {
+		this.transport = createTransport(options.transport.options, options.transport.defaults);
+		this.transport.on('error', options.hooks.onTransportError);
+		this.transport.on('idle', options.hooks.onTransportIdle);
 	}
 
 	/**
@@ -37,4 +54,4 @@ class EmailClient {
 	}
 }
 
-export { EmailClient, SendMailOptions };
+export { EmailClient, EmailClientOptions, SendMailOptions };

@@ -1,9 +1,8 @@
 import { before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
 import type { ObjMap } from '@thermopylae/core.declarations';
 import { config as dotEnvConfig } from 'dotenv';
-import { GeoIpLiteRepository, GeoIpLocator, initLogger, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';
+import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';
 import { IpRepositoryMock } from './mock/ip-repository';
 
 describe('geoip spec', () => {
@@ -15,23 +14,35 @@ describe('geoip spec', () => {
 			throw dotEnv.error;
 		}
 
-		LoggerInstance.console.createTransport({ level: 'debug' });
-		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, true);
-		initLogger();
-
 		repositories.push(new GeoIpLiteRepository(1));
 		repositories.push(
 			new IpstackRepository({
-				apiKey: process.env.IPSTACK_ACCESS_KEY!,
+				apiKey: process.env['IPSTACK_ACCESS_KEY']!,
 				lang: 'en',
 				proto: 'http',
-				weight: 2
+				weight: 2,
+				hooks: {
+					onIpRetrievalError(err) {
+						// eslint-disable-next-line no-console
+						console.error(err);
+					}
+				}
 			})
 		);
 		repositories.push(
 			new IpLocateRepository({
-				apiKey: process.env.IP_LOCATE_ACCESS_KEY,
-				weight: 3
+				apiKey: process.env['IP_LOCATE_ACCESS_KEY'],
+				weight: 3,
+				hooks: {
+					onIpRetrievalError(err) {
+						// eslint-disable-next-line no-console
+						console.error(err);
+					},
+					onRateLimitExceeded(rateLimitReset) {
+						// eslint-disable-next-line no-console
+						console.info('Rate limit reset at ', rateLimitReset);
+					}
+				}
 			})
 		);
 	});
@@ -87,12 +98,12 @@ describe('geoip spec', () => {
 
 		for (const [ip, locationOptions] of ipToCountry) {
 			const location = (await geoip.locate(ip))!;
-			expect(locationOptions.countryCode).to.include(location.countryCode);
-			expect(locationOptions.regionCode).to.include(location.regionCode);
-			expect(locationOptions.city).to.include(location.city);
-			expect(locationOptions.timezone).to.include(location.timezone);
-			expect(locationOptions.latitude).to.include(location.latitude);
-			expect(locationOptions.longitude).to.include(location.longitude);
+			expect(locationOptions['countryCode']).to.include(location.countryCode);
+			expect(locationOptions['regionCode']).to.include(location.regionCode);
+			expect(locationOptions['city']).to.include(location.city);
+			expect(locationOptions['timezone']).to.include(location.timezone);
+			expect(locationOptions['latitude']).to.include(location.latitude);
+			expect(locationOptions['longitude']).to.include(location.longitude);
 		}
 	}).timeout(5000);
 

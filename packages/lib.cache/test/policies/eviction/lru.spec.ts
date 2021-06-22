@@ -1,6 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
 import range from 'lodash.range';
 import colors from 'colors';
@@ -92,7 +91,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			expect(retrievedEntriesIndexes).to.be.equalTo(evictedKeysThatWereRetrievedIndexes); // they were removed in the same order they were retrieved
 		} catch (e) {
 			const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});
@@ -154,7 +153,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			expect(keysEvictedByPolicy).to.be.containingAllOf(range(CAPACITY, CAPACITY * 2).map(String));
 		} catch (e) {
 			const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});

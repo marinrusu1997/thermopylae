@@ -1,11 +1,8 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { EsMapCacheBackend } from '../../lib/backend/es-map';
+import { EsMapCacheBackend, EntryValidity, PolicyPerKeyCache, CacheEvent } from '../../lib';
 import { PolicyMock } from './mocks/policy';
-import { EntryValidity } from '../../lib/contracts/cache-replacement-policy';
-import { PolicyPerKeyCache } from '../../lib/caches/policy-per-key';
 import { NOT_FOUND_VALUE } from '../../lib/constants';
-import { CacheEvent } from '../../lib/contracts/cache';
 
 const enum PolicyTag {
 	EXPIRATION,

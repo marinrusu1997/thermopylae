@@ -34,7 +34,7 @@
         "@thermopylae/core.declarations": "0",
         "@thermopylae/core.redis": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/lib.logger": "0",
+        "@thermopylae/core.logger": "0",
         "avsc": "5",
         "fast-json-stringify": "2",
         "lodash.clonedeep": "4"

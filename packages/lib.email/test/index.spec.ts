@@ -1,6 +1,5 @@
 import { describe, it, before } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { LoggerInstance } from '@thermopylae/lib.logger';
 import { config as dotEnvConfig } from 'dotenv';
 import fs from 'fs';
 import { EmailClient } from '../lib';
@@ -9,35 +8,45 @@ let defaultEmailClient: EmailClient;
 
 describe('email client spec', () => {
 	before(async () => {
-		LoggerInstance.console.createTransport({ level: 'crit' });
-
 		const dotEnv = dotEnvConfig();
 		if (dotEnv.error) {
 			throw dotEnv.error;
 		}
 
-		const clientId = process.env.CLIENT_ID;
-		const clientSecret = process.env.CLIENT_SECRET;
-		const refreshToken = process.env.REFRESH_TOKEN;
-		const accessToken = process.env.ACCESS_TOKEN;
-		const user = process.env.USER_EMAIL;
+		const clientId = process.env['CLIENT_ID'];
+		const clientSecret = process.env['CLIENT_SECRET'];
+		const refreshToken = process.env['REFRESH_TOKEN'];
+		const accessToken = process.env['ACCESS_TOKEN'];
+		const user = process.env['USER_EMAIL'];
 
-		defaultEmailClient = new EmailClient(
-			{
-				service: 'gmail',
-				auth: {
-					type: 'OAuth2',
-					user,
-					clientId,
-					clientSecret,
-					refreshToken,
-					accessToken
+		defaultEmailClient = new EmailClient({
+			transport: {
+				options: {
+					service: 'gmail',
+					auth: {
+						type: 'OAuth2',
+						user,
+						clientId,
+						clientSecret,
+						refreshToken,
+						accessToken
+					}
+				},
+				defaults: {
+					from: user
 				}
 			},
-			{
-				from: user
+			hooks: {
+				onTransportError(err) {
+					// eslint-disable-next-line no-console
+					console.error(err);
+				},
+				onTransportIdle() {
+					// eslint-disable-next-line no-console
+					console.info('Transport idle.');
+				}
 			}
-		);
+		});
 	});
 
 	it('sends email with text content', async () => {

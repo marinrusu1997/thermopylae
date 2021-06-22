@@ -12,7 +12,7 @@ import { ErrorCodes, Library } from '@thermopylae/core.declarations';
  * @returns		Exception to be thrown.
  */
 function createException(code: ErrorCodes, message: string): Exception {
-	return new Exception(Library.INDEXED_STORE, (code as unknown) as string, message);
+	return new Exception(Library.INDEXED_STORE, code, message);
 }
 
 export { createException, ErrorCodes };

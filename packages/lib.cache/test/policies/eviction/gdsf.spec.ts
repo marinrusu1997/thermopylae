@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { array, number, string } from '@thermopylae/lib.utils';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { GDSFEvictionPolicy } from '../../../lib/policies/eviction/gdsf';
+import { GDSFEvictionPolicy } from '../../../lib';
 import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
@@ -100,7 +99,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				'\n',
 				`${'EVICTED_KEYS'.magenta}\t\t\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});

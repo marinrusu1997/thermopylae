@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
-import { EntryPoolCacheBackend } from '../../lib/backend/entry-pool';
+import { EntryPoolCacheBackend } from '../../lib';
 import { CacheEntry } from '../../lib/contracts/commons';
 
 describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {

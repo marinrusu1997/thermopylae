@@ -1,4 +1,4 @@
-import { CompareFunction } from '@thermopylae/core.declarations';
+import { Comparator } from '@thermopylae/core.declarations';
 import isFunction from 'lodash.isfunction';
 import { defaultCompare, ArrayEqualsPredicate } from './utils';
 
@@ -8,11 +8,11 @@ import { defaultCompare, ArrayEqualsPredicate } from './utils';
  * Binary heap.
  */
 class Heap<T = number> {
-	private readonly compare: CompareFunction<T>;
+	private readonly compare: Comparator<T>;
 
 	private readonly nodes: Array<T>;
 
-	constructor(comparator?: CompareFunction<T>) {
+	constructor(comparator?: Comparator<T>) {
 		this.compare = comparator || defaultCompare;
 		this.nodes = [];
 	}

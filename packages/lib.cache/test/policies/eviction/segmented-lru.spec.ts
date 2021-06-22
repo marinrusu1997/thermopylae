@@ -1,6 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import { array, number, string } from '@thermopylae/lib.utils';
 import colors from 'colors';
 import range from 'lodash.range';
@@ -81,7 +80,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				`${'ENTRIES_IN_CACHE'.magenta}\t: ${JSON.stringify([...ENTRIES_IN_CACHE])}`,
 				`${'HOPS'.magenta}\t\t: ${HOPS}`
 			];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});
@@ -157,7 +156,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				'',
 				`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});
@@ -285,7 +284,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				'',
 				`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
-			UnitTestLogger.info(message.join('\n'));
+			logger.info(message.join('\n'));
 			throw e;
 		}
 	});

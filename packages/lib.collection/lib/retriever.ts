@@ -74,7 +74,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 		}
 
 		query = createQuery(query, { skipValidate: this.skipQueryValidation });
-		return (doc) => (query as ObjMap).matches(doc);
+		return (doc) => (query as ObjMap)['matches'](doc);
 	}
 
 	private static inferIndexedProperty<DocumentType>(

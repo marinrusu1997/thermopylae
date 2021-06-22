@@ -1,9 +1,8 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/lib.unit-test';
 import colors from 'colors';
 import { Comparator } from '@thermopylae/core.declarations';
 import { array, number } from '@thermopylae/lib.utils';
-import { UnitTestLogger } from '@thermopylae/lib.unit-test/dist/logger';
 import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/data-structures/heap';
 
 interface HeapDataNode extends HeapNode {
@@ -84,7 +83,7 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 					`${'REMAINED_SORTED_ELEMENTS'.magenta}\t: ${JSON.stringify(REMAINED_SORTED_ELEMENTS)}`
 				];
 
-				UnitTestLogger.info(message.join('\n'));
+				logger.info(message.join('\n'));
 				throw e;
 			}
 		});
@@ -128,7 +127,7 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 					`${'SORTED_ELEMENTS_AFTER_REPLACE'.magenta}: ${JSON.stringify(SORTED_ELEMENTS_AFTER_REPLACE)}`
 				];
 
-				UnitTestLogger.info(message.join('\n'));
+				logger.info(message.join('\n'));
 				throw e;
 			}
 		});

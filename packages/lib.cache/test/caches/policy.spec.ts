@@ -1,10 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/lib.unit-test';
-import { PolicyBasedCache } from '../../lib/caches/policy-based';
-import { EsMapCacheBackend } from '../../lib/backend/es-map';
+import { PolicyBasedCache, EsMapCacheBackend, EntryValidity, CacheEvent } from '../../lib';
 import { PolicyMock } from './mocks/policy';
-import { EntryValidity } from '../../lib/contracts/cache-replacement-policy';
-import { CacheEvent } from '../../lib/contracts/cache';
 
 describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCache.prototype.get.name.magenta} spec`, () => {
