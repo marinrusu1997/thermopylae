@@ -1,6 +1,6 @@
 import { describe, it, before } from 'mocha';
 import { expect, logger, initLogger } from '@thermopylae/lib.unit-test';
-import { LoggerInstance, OutputFormat } from '@thermopylae/lib.logger';
+import { LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { setTimeout } from 'timers/promises';
 import { RenewSessionHooks, UserSessionManager, UserSessionManagerOptions } from '../lib';

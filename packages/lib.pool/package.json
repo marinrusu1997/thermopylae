@@ -2,12 +2,9 @@
     "name": "@thermopylae/lib.pool",
     "description": "Resources pool.",
     "keywords": [
-        "thermopylae",
-        "library",
-        "resources",
-        "pool"
+        "library"
     ],
-    "version": "0.0.1602346274",
+    "version": "0.0.1",
     "author": "Rusu Marin dimarusu2000@gmail.com",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
@@ -31,12 +28,12 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "@types/yallist": "3",
         "yallist": "4"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/lib.utils": "0",
         "@thermopylae/module-builder": "0"
@@ -51,7 +48,7 @@
         ]
     },
     "engines": {
-        "node": ">=14"
+        "node": ">= 16"
     },
     "license": "ISC",
     "type": "commonjs"

@@ -28,6 +28,7 @@
         "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver"
     },
     "dependencies": {
+        "@thermopylae/core.declarations": "0",
         "@otplib/core": "12",
         "@otplib/plugin-crypto": "12",
         "@otplib/plugin-thirty-two": "12",
@@ -38,7 +39,6 @@
         "uuid": "8"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/lodash.clone": "4",

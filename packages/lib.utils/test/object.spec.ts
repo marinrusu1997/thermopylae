@@ -60,7 +60,7 @@ describe('object spec', () => {
 		it('checks correctly that an object is empty', () => {
 			expect(isEmpty({})).to.be.eq(true);
 			expect(isEmpty({ key: 'val' })).to.be.eq(false);
-			expect(isEmpty((new Date() as unknown) as Record<string, unknown>)).to.be.eq(false);
+			expect(isEmpty(new Date() as unknown as Record<string, unknown>)).to.be.eq(false);
 		});
 	});
 
@@ -164,7 +164,7 @@ describe('object spec', () => {
 			const arrClone = traverse(arr, processor, true) as Array<any>; // just to ease checks bellow without ts errors
 			expect(arrClone).to.not.be.eq(arr); // cloned array
 			expect(arrClone[5]).to.not.be.eq(arr[5]); // deep cloned
-			expect(arrClone[5].str).to.be.eq((arr[5] as ObjMap).str); // deep cloned with internal str key
+			expect(arrClone[5].str).to.be.eq((arr[5] as ObjMap)['str']); // deep cloned with internal str key
 
 			expect(arrClone[0]).to.be.eq('processedValue');
 			expect(arrClone[1]).to.be.eq('processedValue');
@@ -210,10 +210,10 @@ describe('object spec', () => {
 
 		function checkObjectIsSorted(sorted: ObjMap): void {
 			expect(Object.keys(sorted)).to.be.equalTo(['a', 'b', 'c', 'd', 'e']);
-			expect(Object.keys(sorted.b)).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted.c)).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted.c.b)).to.be.equalTo(['a', 'b', 'c']);
-			expect(Object.keys(sorted.c.b.c)).to.be.equalTo(['a']);
+			expect(Object.keys(sorted['b'])).to.be.equalTo(['a', 'b']);
+			expect(Object.keys(sorted['c'])).to.be.equalTo(['a', 'b']);
+			expect(Object.keys(sorted['c'].b)).to.be.equalTo(['a', 'b', 'c']);
+			expect(Object.keys(sorted['c'].b.c)).to.be.equalTo(['a']);
 		}
 
 		it('sorts an object (array sort disabled)', () => {
@@ -221,8 +221,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted.b.b).to.be.equalTo([2, '1', '2']);
-			expect(Object.keys(sorted.c.b.b[2])).to.be.equalTo(['b', 'a']);
+			expect(sorted['b'].b).to.be.equalTo([2, '1', '2']);
+			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['b', 'a']);
 		});
 
 		it('sorts an object (array sort enabled)', () => {
@@ -230,8 +230,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted.b.b).to.be.equalTo(['1', '2', 2]);
-			expect(Object.keys(sorted.c.b.b[2])).to.be.equalTo(['a', 'b']);
+			expect(sorted['b'].b).to.be.equalTo(['1', '2', 2]);
+			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['a', 'b']);
 		});
 	});
 
