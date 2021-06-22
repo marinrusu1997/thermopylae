@@ -385,7 +385,7 @@ describe('Authenticate spec', function suite() {
 
 		/* AUTHENTICATIONS */
 		async function authenticateAfterSoftErrorInRecaptchaStep() {
-			let authStatus: AuthenticationStatus = {};
+			let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 
 			let recaptchaThreshold = AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha;
 			while (recaptchaThreshold--) {
@@ -415,7 +415,7 @@ describe('Authenticate spec', function suite() {
 		account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
 
 		/* TRIGGER RECAPTCHA */
-		let authStatus: AuthenticationStatus = {};
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 
 		let recaptchaThreshold = AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha;
 		while (recaptchaThreshold--) {
@@ -438,7 +438,7 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* TRIGGER ACCOUNT DISABLE */
-		let authStatus: AuthenticationStatus;
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret>;
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 		}
@@ -460,7 +460,7 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* TRIGGER RECAPTCHA */
-		let authStatus: AuthenticationStatus = {};
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha; i++) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 		}
@@ -496,7 +496,7 @@ describe('Authenticate spec', function suite() {
 		account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
 
 		/* TRIGGER RECAPTCHA */
-		let authStatus: AuthenticationStatus = {};
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha; i++) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 		}
@@ -539,7 +539,7 @@ describe('Authenticate spec', function suite() {
 
 		/* TRIGGER ACCOUNT DISABLE */
 		let lastIp: string | undefined;
-		let authStatus: AuthenticationStatus = {};
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 		let authenticationTime: UnixTimestamp = 0;
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
 			lastIp = array.randomElement(ipPool);
@@ -573,7 +573,7 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* TRIGGER ACCOUNT DISABLE */
-		let authStatus: AuthenticationStatus = {};
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
 			authStatus = await AuthEngineInstance.authenticate({
 				...GlobalAuthenticationContext,

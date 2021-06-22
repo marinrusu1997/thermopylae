@@ -1,0 +1,70 @@
+{
+    "name": "@thermopylae/demo.express",
+    "description": "Demo application of the Thermopylae framework using ExpressJS.",
+    "keywords": [
+        "demo"
+    ],
+    "version": "0.0.1",
+    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "main": "dist/index.js",
+    "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+        "build": "gulp build",
+        "doc": "gulp doc",
+        "readme": "gulp readme",
+        "test": "gulp test",
+        "report": "gulp report",
+        "coverage": "gulp coverage",
+        "coverage:show": "gulp coverageShow",
+        "debug": "gulp debug",
+        "clean": "gulp clean",
+        "purge": "gulp purge",
+        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
+        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
+        "precommit": "npm run lint",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "dependencies": {
+        "@thermopylae/core.adapter.express": "0",
+        "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.jwt-session": "0",
+        "@thermopylae/core.logger": "0",
+        "@thermopylae/lib.api-validator": "0",
+        "@thermopylae/lib.authentication": "0",
+        "@thermopylae/lib.exception": "0",
+        "@thermopylae/lib.geoip": "0",
+        "@thermopylae/lib.jwt-user-session": "0",
+        "deep-freeze": "0",
+        "express": "4",
+        "express-async-handler": "1",
+        "express-request-id": "1",
+        "express-unless": "^0.5.0",
+        "farmhash": "3"
+    },
+    "devDependencies": {
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0",
+        "@types/deep-freeze": "0",
+        "@types/express-unless": "^0.5.1"
+    },
+    "peerDependencies": {
+        "chai": "4",
+        "mocha": "8"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "eslint"
+        ]
+    },
+    "engines": {
+        "node": ">= 16"
+    },
+    "license": "ISC",
+    "type": "commonjs"
+}

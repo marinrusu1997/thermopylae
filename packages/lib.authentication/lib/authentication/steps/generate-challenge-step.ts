@@ -16,7 +16,7 @@ class GenerateChallengeStep<Account extends AccountModel> implements Authenticat
 		_account: Account,
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 		// not checking if a nonce was generated already, it's maybe failed because of network error and needs to be regenerated
 		const nonce = await safeUid(this.nonceSize);

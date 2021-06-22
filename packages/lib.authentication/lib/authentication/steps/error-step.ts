@@ -29,7 +29,7 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder,
 		previousAuthenticationStepName: AuthenticationStepName
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		const failedAuthAttemptSession = await this.failedAuthenticationsManager.incrementSession(account, authenticationContext);
 
 		if (failedAuthAttemptSession == null) {

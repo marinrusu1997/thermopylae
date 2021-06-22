@@ -16,7 +16,7 @@ class PasswordStep<Account extends AccountModel> implements AuthenticationStep<A
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		if (!(await this.passwordsManager.isSame(authenticationContext.password!, account.passwordHash, account.passwordSalt, account.passwordAlg))) {
 			return { nextStep: AuthenticationStepName.ERROR };
 		}

@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-AUTHENTICATE",
+  "type": "object",
+  "title": "The authenticate method schema.",
+  "description": "Schema for validating user input when invoking authenticate method of AuthService.",
+  "properties": {
+    "username": {
+      "$ref": "../core/credentials.json#/properties/username"
+    },
+    "password": {
+      "$ref": "../core/credentials.json#/properties/password"
+    },
+    "2fa-token": {
+      "type": "string",
+      "pattern": "^[0-9]{6,8}$"
+    },
+    "recaptcha": {
+      "type": "string",
+      "maxLength": 50
+    }
+  },
+  "required": [
+    "username"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "2fa-token": true
+        }
+      },
+      "then": {
+        "properties": {
+          "password": false,
+          "recaptcha": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "recaptcha": true
+        }
+      },
+      "then": {
+        "properties": {
+          "password": true,
+          "2fa-token": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "2fa-token": false,
+          "recaptcha": false
+        }
+      },
+      "then": {
+        "required": [
+          "password"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": false
+}

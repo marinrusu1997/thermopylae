@@ -24,7 +24,7 @@ class ChallengeResponseStep<Account extends AccountModel> implements Authenticat
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 
 		if (!authenticationSession.challengeResponseNonce) {

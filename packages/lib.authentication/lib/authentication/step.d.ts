@@ -4,19 +4,19 @@ import type { AuthenticationStepName } from '../types/enums';
 import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../types/contexts';
 
-interface AuthenticationStatus {
+interface AuthenticationStatus<Account extends AccountModel> {
 	token?: string;
 	nextStep?: string;
 	error?: {
 		hard?: Exception;
 		soft?: Exception;
 	};
-	authenticated?: boolean;
+	authenticated?: Account;
 }
 
-interface AuthenticationStepOutput {
+interface AuthenticationStepOutput<Account extends AccountModel> {
 	nextStep?: AuthenticationStepName;
-	done?: AuthenticationStatus;
+	done?: AuthenticationStatus<Account>;
 }
 
 interface AuthenticationStep<Account extends AccountModel> {
@@ -25,7 +25,7 @@ interface AuthenticationStep<Account extends AccountModel> {
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder,
 		previousAuthenticationStepName: AuthenticationStepName
-	): Promise<AuthenticationStepOutput>;
+	): Promise<AuthenticationStepOutput<Account>>;
 }
 
 export { AuthenticationStatus, AuthenticationStepOutput, AuthenticationStep };

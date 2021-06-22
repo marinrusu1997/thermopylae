@@ -13,6 +13,8 @@
     "packages/core.mysql",
     "packages/core.redis",
     "packages/core.user-session.commons",
+    "packages/demo.express",
+    "packages/lib.api-validator",
     "packages/lib.async",
     "packages/lib.authentication",
     "packages/lib.cache",

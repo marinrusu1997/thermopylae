@@ -24,14 +24,14 @@ class AuthenticationOrchestrator<Account extends AccountModel> {
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStatus> {
+	): Promise<AuthenticationStatus<Account>> {
 		let currentStepName: AuthenticationStepName | undefined = this.startStepName;
 		let currentStep: AuthenticationStep<Account> = this.steps.get(currentStepName)!;
 		let prevStepName = AuthenticationStepName.UNKNOWN;
 
 		// eslint-disable-next-line no-constant-condition
 		while (true) {
-			const output: AuthenticationStepOutput = await currentStep.process(
+			const output: AuthenticationStepOutput<Account> = await currentStep.process(
 				account,
 				authenticationContext,
 				authenticationSessionRepositoryHolder,
@@ -46,8 +46,8 @@ class AuthenticationOrchestrator<Account extends AccountModel> {
 			} else if (output.done) {
 				return output.done;
 			} else {
-				// configuration error, allowed to throw
-				throw createException(ErrorCodes.INVALID, 'Expected done or next step');
+				// configuration error
+				throw createException(ErrorCodes.MISCONFIGURATION, 'Expected done or next step');
 			}
 		}
 	}

@@ -80,11 +80,13 @@ const GlobalAuthenticationContext: AuthenticationContext = {
 Object.freeze(GlobalAuthenticationContext);
 
 /* ASSERTIONS */
-function validateSuccessfulLogin(authStatus: AuthenticationStatus): void | never {
+function validateSuccessfulLogin(authStatus: AuthenticationStatus<AccountWithTotpSecret>): void | never {
 	expect(authStatus.token).to.be.eq(undefined);
 	expect(authStatus.nextStep).to.be.eq(undefined);
 	expect(authStatus.error).to.be.eq(undefined);
-	expect(authStatus.authenticated).to.be.eq(true);
+	expect(authStatus.authenticated).to.not.be.eq(null);
+	expect(Array.isArray(authStatus.authenticated)).to.be.eq(false);
+	expect(typeof authStatus.authenticated).to.be.eq('object');
 }
 
 export { validateSuccessfulLogin, generateTotp, buildAccountToBeRegistered, signChallengeNonce, GlobalAuthenticationContext, AccountKeyPair };

@@ -180,7 +180,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		}
 	}
 
-	public async authenticate(authenticationContext: AuthenticationContext): Promise<AuthenticationStatus> {
+	public async authenticate(authenticationContext: AuthenticationContext): Promise<AuthenticationStatus<Account>> {
 		const account = await this.accountManager.readByUsername(authenticationContext.username);
 		const authenticationSessionRepositoryHolder = new AuthenticationSessionRepositoryHolder(
 			this.options.repositories.authenticationSession,

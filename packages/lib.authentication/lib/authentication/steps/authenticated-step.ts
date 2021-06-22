@@ -27,7 +27,7 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		let index = 0;
 		let promises: Array<Promise<unknown>>;
 
@@ -55,7 +55,7 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 		await Promise.all(promises);
 
 		return {
-			done: { authenticated: true }
+			done: { authenticated: account }
 		};
 	}
 }

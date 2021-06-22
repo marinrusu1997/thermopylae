@@ -6,7 +6,7 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationContext } from '../../types/contexts';
 
 class DispatchStep<Account extends AccountModel> implements AuthenticationStep<Account> {
-	public async process(_account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput> {
+	public async process(_account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput<Account>> {
 		// generate challenge has the highest priority, needs to be used before checking response
 		if (authenticationContext.generateChallenge) {
 			return { nextStep: AuthenticationStepName.GENERATE_CHALLENGE };
@@ -25,7 +25,7 @@ class DispatchStep<Account extends AccountModel> implements AuthenticationStep<A
 			return { nextStep: AuthenticationStepName.PASSWORD };
 		}
 
-		// configuration error, user input not validated properly, allowed to throw
+		// configuration error, user input not validated properly
 		throw createException(
 			ErrorCodes.MISCONFIGURATION,
 			`Can't resolve next step to move from ${AuthenticationStepName.DISPATCH}. Authentication context needs to be validated to contain at least one authentication related property.`

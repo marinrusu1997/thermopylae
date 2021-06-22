@@ -17,7 +17,7 @@ class RecaptchaStep<Account extends AccountModel> implements AuthenticationStep<
 		account: Account,
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
-	): Promise<AuthenticationStepOutput> {
+	): Promise<AuthenticationStepOutput<Account>> {
 		if (authenticationContext.recaptcha == null) {
 			return { nextStep: AuthenticationStepName.ERROR };
 		}

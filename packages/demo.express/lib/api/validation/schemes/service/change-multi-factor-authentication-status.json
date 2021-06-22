@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-CHANGE_MULTI_FACTOR_AUTHENTICATION_STATUS",
+  "type": "object",
+  "title": "AuthService change multi factor authentication status method",
+  "description": "Method used by the users in order to change multi factor authentication status.",
+  "properties": {
+    "status": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "accountId": {
+      "$ref": "../core/core.json#/definitions/id"
+    }
+  },
+  "required": [
+    "status",
+    "accountId"
+  ]
+}
