@@ -2,14 +2,14 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core
 import { HttpStatusCode, ObjMap, Mutable, Library, ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { AccountWithTotpSecret, AuthenticationContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import { Exception } from '@thermopylae/lib.exception';
 import handler from 'express-async-handler';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import farmhash from 'farmhash';
-import { Exception } from '@thermopylae/lib.exception';
 import { apiRouter } from '../router';
 import { API_SCHEMA } from '../schema';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../singletons';
-import { SERVICE_NAME, ServiceMethod } from '../../constants';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
+import { SERVICE_NAME, ServiceMethod } from '../../app/constants';
 import { jsonBody } from '../middleware/json-body';
 import { ipLocation } from '../middleware/ip-location';
 import { userAgent } from '../middleware/user-agent';

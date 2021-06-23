@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#CONFIG-EMAIL",
+  "type": "object",
+  "title": "The email config validation schema.",
+  "properties": {
+    "transport": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "object",
+          "properties": {
+            "service": {
+              "type": "string"
+            },
+            "auth": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "OAuth2"
+                },
+                "user": {
+                  "$ref": "../core/core.json#/definitions/email"
+                },
+                "clientId": {
+                  "type": "string"
+                },
+                "clientSecret": {
+                  "type": "string"
+                },
+                "refreshToken": {
+                  "type": "string"
+                },
+                "accessToken": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "user",
+                "clientId",
+                "clientSecret",
+                "refreshToken",
+                "accessToken"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "service",
+            "auth"
+          ],
+          "additionalProperties": false
+        },
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "$ref": "../core/core.json#/definitions/email"
+            }
+          },
+          "required": [
+            "from"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "options",
+        "defaults"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "transport"
+  ],
+  "additionalProperties": false
+}

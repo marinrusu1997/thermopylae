@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#CONFIG-ENV_VARS",
+  "type": "object",
+  "title": "The environment variables validation schema.",
+  "properties": {
+    "CONFIG_FILES_PATH": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "CONFIG_FILES_PATH"
+  ]
+}

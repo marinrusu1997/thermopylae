@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
 // eslint-disable-next-line node/no-extraneous-import, import/no-extraneous-dependencies
 import { ParsedQs } from 'qs';
-import { REQUEST_SESSION_SYM } from './constants';
+import { REQUEST_SESSION_SYM } from './app/constants';
 
 interface RequestWithUserSession<
 	P = Record<string, string>,

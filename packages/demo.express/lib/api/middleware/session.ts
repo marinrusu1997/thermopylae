@@ -3,8 +3,8 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import unless, { Options } from 'express-unless';
 import { API_SCHEMA } from '../schema';
-import { JWT_USER_SESSION_MIDDLEWARE } from '../../singletons';
-import { REQUEST_SESSION_SYM } from '../../constants';
+import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
+import { REQUEST_SESSION_SYM } from '../../app/constants';
 import { logger } from '../../logger';
 
 const UnlessOptions: Options = {
@@ -17,7 +17,9 @@ const UnlessOptions: Options = {
 		}))
 };
 
-const requireAuthentication: RequestHandler = unless(
+// @fixme validate presence of headers or cookies in request
+
+const requiresAuthentication: RequestHandler = unless(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const request = new ExpressRequestAdapter(req);
@@ -41,4 +43,4 @@ const requireAuthentication: RequestHandler = unless(
 	UnlessOptions
 );
 
-export { requireAuthentication };
+export { requiresAuthentication };

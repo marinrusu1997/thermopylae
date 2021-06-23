@@ -1,6 +1,6 @@
 import { Exception } from '@thermopylae/lib.exception';
 import { ErrorCodes } from '@thermopylae/core.declarations';
-import { SERVICE_NAME } from './constants';
+import { SERVICE_NAME } from './app/constants';
 
 /**
  * @private

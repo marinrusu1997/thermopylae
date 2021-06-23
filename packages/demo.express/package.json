@@ -32,26 +32,36 @@
     },
     "dependencies": {
         "@thermopylae/core.adapter.express": "0",
+        "@thermopylae/core.authentication": "0",
         "@thermopylae/core.declarations": "0",
         "@thermopylae/core.jwt-session": "0",
+        "@thermopylae/core.user-session.commons": "0",
         "@thermopylae/core.logger": "0",
+        "@thermopylae/core.mysql": "0",
+        "@thermopylae/core.redis": "0",
         "@thermopylae/lib.api-validator": "0",
         "@thermopylae/lib.authentication": "0",
+        "@thermopylae/lib.email": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.geoip": "0",
         "@thermopylae/lib.jwt-user-session": "0",
+        "@thermopylae/lib.sms": "0",
         "deep-freeze": "0",
         "express": "4",
         "express-async-handler": "1",
         "express-request-id": "1",
         "express-unless": "^0.5.0",
-        "farmhash": "3"
+        "farmhash": "3",
+        "jsonfile": "^6.1.0",
+        "node-fetch": "^2.6.1"
     },
     "devDependencies": {
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/deep-freeze": "0",
-        "@types/express-unless": "^0.5.1"
+        "@types/express-unless": "^0.5.1",
+        "@types/jsonfile": "^6.0.0",
+        "@types/node-fetch": "^2.5.10"
     },
     "peerDependencies": {
         "chai": "4",

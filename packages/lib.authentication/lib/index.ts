@@ -7,7 +7,7 @@ export { PushNotificationsAuthStrategy } from './authentication/2fa/push-notific
 export type { AuthenticationStatus } from './authentication/step';
 
 export type { PasswordHash, PasswordHashingAlgorithm } from './managers/password/hash';
-export { Argon2PasswordHashingAlgorithm } from './managers/password/hash/argon2';
+export { Argon2PasswordHashingAlgorithm, Argon2PasswordHashingOptions } from './managers/password/hash/argon2';
 export type { PasswordStrengthPolicyValidator } from './managers/password/strength/policy';
 export { PasswordLengthValidator } from './managers/password/strength/length-policy';
 export { PwnedPasswordValidator } from './managers/password/strength/pwned-policy';

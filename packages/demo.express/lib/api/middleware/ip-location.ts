@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
 import { LOCATION_SYM } from '@thermopylae/core.adapter.express';
 import { logger } from '../../logger';
-import { GEOIP_LOCATOR } from '../../singletons';
+import { GEOIP_LOCATOR } from '../../app/singletons';
 
 const ipLocation: RequestHandler = async (req, _res, next) => {
 	try {

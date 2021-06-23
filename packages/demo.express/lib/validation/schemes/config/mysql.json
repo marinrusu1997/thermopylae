@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#CONFIG-MYSQL",
+  "type": "object",
+  "title": "The mysql connection options schema.",
+  "definitions": {
+    "ConnectionOptions": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "database": {
+          "type": "string"
+        },
+        "charset": {
+          "type": "string"
+        },
+        "host": {
+          "$ref": "../core/core.json#/definitions/ip"
+        },
+        "port": {
+          "$ref": "../core/core.json#/definitions/port"
+        },
+        "localAddress":  {
+          "$ref": "../core/core.json#/definitions/ip"
+        },
+        "socketPath": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "connectTimeout": {
+          "type": "integer",
+          "minimum": 5
+        },
+        "insecureAuth": {
+          "type": "boolean"
+        },
+        "supportBigNumbers": {
+          "type": "boolean"
+        },
+        "bigNumberStrings": {
+          "type": "boolean"
+        },
+        "dateStrings": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "array",
+              "items": {
+                "enum": ["TIMESTAMP", "DATETIME", "DATE"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          ]
+        },
+        "debug": {
+          "type": "boolean"
+        },
+        "trace": {
+          "type": "boolean"
+        },
+        "multipleStatements": {
+          "type": "boolean"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "user",
+        "password",
+        "database"
+      ],
+      "oneOf": [
+        {
+          "required": ["host", "port"]
+        },
+        {
+          "required": ["socketPath"]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "PoolOptions": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/ConnectionOptions"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "acquireTimeout": {
+              "type": "integer",
+              "minimum": 5
+            },
+            "waitForConnections": {
+              "type": "boolean"
+            },
+            "connectionLimit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "queueLimit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "enableKeepAlive": {
+              "type": "boolean"
+            },
+            "keepAliveInitialDelay": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PoolClusterOptions": {
+      "type": "object",
+      "properties": {
+        "canRetry": {
+          "type": "boolean"
+        },
+        "removeNodeErrorCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "restoreNodeTimeout": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultSelector": {
+          "enum": [
+            "RR",
+            "RANDOM",
+            "ORDER"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PoolClusterNodes": {
+      "type": "object",
+      "patternProperties": {
+        "^(?:MASTER|SLAVE)": {
+          "$ref": "#/definitions/PoolOptions"
+        }
+      },
+      "minProperties": 1
+    }
+  },
+  "properties": {
+    "pool": {
+      "$ref": "#/definitions/PoolOptions"
+    },
+    "poolCluster": {
+      "type": "object",
+      "properties": {
+        "cluster": {
+          "$ref": "#/definitions/PoolClusterOptions"
+        },
+        "nodes": {
+          "$ref": "#/definitions/PoolClusterNodes"
+        }
+      },
+      "required": [
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "sessionVariablesQueries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "pool"
+      ]
+    },
+    {
+      "required": [
+        "poolCluster"
+      ]
+    }
+  ],
+  "additionalProperties": false
+}

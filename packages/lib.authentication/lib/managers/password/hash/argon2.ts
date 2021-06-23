@@ -6,12 +6,12 @@ import type { PasswordHash, PasswordHashingAlgorithm } from './index';
 /**
  * [Documentation](https://github.com/ranisalt/node-argon2/wiki/Options).
  */
-type HashingOptions = Readonly<Omit<RequireSome<Options, 'hashLength' | 'memoryCost' | 'parallelism' | 'type'>, 'raw' | 'version' | 'salt'>>;
+type Argon2PasswordHashingOptions = Readonly<Omit<RequireSome<Options, 'hashLength' | 'memoryCost' | 'parallelism' | 'type'>, 'raw' | 'version' | 'salt'>>;
 
 class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
-	private readonly hashingOptions: HashingOptions;
+	private readonly hashingOptions: Argon2PasswordHashingOptions;
 
-	public constructor(hashingOptions: HashingOptions) {
+	public constructor(hashingOptions: Argon2PasswordHashingOptions) {
 		this.hashingOptions = hashingOptions;
 	}
 
@@ -26,4 +26,4 @@ class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 	}
 }
 
-export { Argon2PasswordHashingAlgorithm };
+export { Argon2PasswordHashingAlgorithm, Argon2PasswordHashingOptions };

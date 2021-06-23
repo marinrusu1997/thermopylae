@@ -1,4 +1,4 @@
-import { Client, CoreModule, ErrorCodes, Library, Nullable } from '@thermopylae/core.declarations';
+import { Client, CoreModule, ErrorCodes, Nullable } from '@thermopylae/core.declarations';
 import { Format } from 'logform';
 import { format } from 'winston';
 // eslint-disable-next-line import/extensions
@@ -51,7 +51,7 @@ interface DefaultRecipeOptions {
 	/**
 	 * Formatters that don't need to be included in the pipeline.
 	 */
-	readonly skippedFormatters?: ReadonlySet<DefaultFormatters>;
+	readonly skippedFormatters?: ReadonlySet<DefaultFormatters.TIMESTAMP | DefaultFormatters.ERRORS | DefaultFormatters.ALIGN | string>;
 }
 
 type Formatter = DefaultFormatters | string;
@@ -345,29 +345,13 @@ class FormattingManager {
 	}
 
 	private static defineFormattedLabels(formattedLabels: FormattedLabels): void {
-		formattedLabels[Library.ASYNC] = chalk.italic(chalk.bgKeyword('silver')(Library.ASYNC));
-		formattedLabels[Library.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('gray')(Library.AUTHENTICATION));
-		formattedLabels[Library.CACHE] = chalk.italic(chalk.bgKeyword('white')(Library.CACHE));
-		formattedLabels[Library.USER_SESSION] = chalk.italic(chalk.bgKeyword('maroon')(Library.USER_SESSION));
-		formattedLabels[Library.INDEXED_STORE] = chalk.italic(chalk.bgKeyword('red')(Library.INDEXED_STORE));
-		formattedLabels[Library.COLLECTION] = chalk.italic(chalk.bgKeyword('purple')(Library.COLLECTION));
-		formattedLabels[Library.HEAP] = chalk.italic(chalk.bgKeyword('fuchsia')(Library.HEAP));
-		formattedLabels[Library.GEO_IP] = chalk.italic(chalk.bgKeyword('lime')(Library.GEO_IP));
-		formattedLabels[Library.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('green')(Library.JWT_USER_SESSION));
-		formattedLabels[Library.POOL] = chalk.italic(chalk.bgKeyword('olive')(Library.POOL));
-		formattedLabels[Library.SMS_CLIENT] = chalk.italic(chalk.bgKeyword('navy')(Library.SMS_CLIENT));
-		formattedLabels[Library.UNIT_TEST] = chalk.italic(chalk.bgKeyword('blue')(Library.UNIT_TEST));
-		formattedLabels[Library.UTILS] = chalk.italic(chalk.bgKeyword('orange')(Library.UTILS));
-
 		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('fuchsia')(CoreModule.AUTHENTICATION));
 		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('olive')(CoreModule.USER_SESSION_COMMONS));
 		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
 		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_USER_SESSION));
 
 		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('silver')(Client.MYSQL));
-		formattedLabels[Client.SMS] = chalk.italic(chalk.bgKeyword('maroon')(Client.SMS));
 		formattedLabels[Client.REDIS] = chalk.italic(chalk.bgKeyword('gray')(Client.REDIS));
-		formattedLabels[Client.EMAIL] = chalk.italic(chalk.bgKeyword('purple')(Client.EMAIL));
 	}
 }
 
