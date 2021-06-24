@@ -1,8 +1,11 @@
-import { Seconds, Threshold, RequireAtLeastOne } from '@thermopylae/core.declarations';
+import { Seconds, Threshold, RequireAtLeastOne, PublicPrivateKeys } from '@thermopylae/core.declarations';
 import { Argon2PasswordHashingOptions, TotpTwoFactorAuthStrategyOptions } from '@thermopylae/lib.authentication';
 import { DefaultFormatters, GraylogEndpoint, GraylogLoggingChannel, OutputFormat } from '@thermopylae/core.logger';
 // eslint-disable-next-line import/extensions,node/no-extraneous-import,import/no-extraneous-dependencies
 import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
+// eslint-disable-next-line node/no-extraneous-import
+import type { Algorithm } from 'jsonwebtoken';
+import type { UserSessionOptions } from '@thermopylae/core.jwt-session';
 
 interface GeoIpConfig {
 	readonly GEOIP_LITE: {
@@ -85,6 +88,45 @@ interface LoggerConfig {
 	};
 }
 
+interface JwtUserSessionMiddlewareConfig {
+	jwt: {
+		secret: string | PublicPrivateKeys;
+		invalidationOptions: {
+			refreshTokenLength: number;
+			refreshTokenTtl: Seconds;
+			refreshTokensStorage: {
+				keyPrefix: {
+					sessions: string;
+					sessionId: string;
+				};
+				concurrentSessions: number;
+			};
+		};
+		signOptions: {
+			algorithm: Algorithm;
+			expiresIn: Seconds;
+			audience: string;
+			issuer: string;
+		};
+		verifyOptions: {
+			algorithms: Algorithm[];
+			audience: string;
+			issuer: string;
+		};
+	};
+	session: UserSessionOptions;
+}
+
+interface AppConfig {
+	listen: {
+		host: string;
+		port: number;
+	};
+	api: {
+		basePath: string;
+	};
+}
+
 interface AuthenticationEngineConfig {
 	readonly thresholds: {
 		readonly maxFailedAuthAttempts: Threshold;
@@ -121,4 +163,4 @@ interface AuthenticationEngineConfig {
 	readonly tokensLength: number;
 }
 
-export { GeoIpConfig, EmailConfig, LoggerConfig, AuthenticationEngineConfig };
+export { GeoIpConfig, EmailConfig, LoggerConfig, JwtUserSessionMiddlewareConfig, AuthenticationEngineConfig, AppConfig };

@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#location",
   "type": "object",
   "title": "The ip based location schema.",
   "description": "Location used to detect from where network traffic is coming from.",

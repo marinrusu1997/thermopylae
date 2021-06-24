@@ -11,7 +11,10 @@ import {
 } from '@thermopylae/lib.authentication';
 import { SmsClient } from '@thermopylae/lib.sms';
 import { EmailClient } from '@thermopylae/lib.email';
-import { JwtUserSessionMiddleware, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
+import { JwtUserSessionMiddleware, InvalidAccessTokensMemCache, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
+import { UserSessionRedisStorage, initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
+// eslint-disable-next-line import/extensions
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
 import {
 	AccountMySqlRepository,
 	FailedAuthenticationsMysqlRepository,
@@ -22,34 +25,38 @@ import {
 	ForgotPasswordSessionRedisRepository,
 	initLogger as initCoreAuthenticationLogger
 } from '@thermopylae/core.authentication';
-import { initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
 import { ErrorCodes } from '@thermopylae/core.declarations';
 import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
 import { LoggerInstance } from '@thermopylae/core.logger';
 import { publicEncrypt } from 'crypto';
+import express from 'express';
+import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
+import addRequestId from 'express-request-id';
+import helmet from 'helmet';
+import process from 'process';
 import { Config } from '../config';
-import { EnvironmentVariables } from './constants';
+import { EnvironmentVariables, SERVICE_NAME } from './constants';
 import { createException } from '../error';
 import { initLogger, logger } from '../logger';
-
-// eslint-disable-next-line import/no-mutable-exports
-let API_VALIDATOR: ApiValidator;
-
-// eslint-disable-next-line import/no-mutable-exports
-let GEOIP_LOCATOR: GeoIpLocator;
-
-// eslint-disable-next-line import/no-mutable-exports
-let AUTHENTICATION_ENGINE: AuthenticationEngine<AccountWithTotpSecret>;
-
-// eslint-disable-next-line import/no-mutable-exports
-let JWT_USER_SESSION_MIDDLEWARE: JwtUserSessionMiddleware;
-
-// eslint-disable-next-line import/no-mutable-exports
-let SMS_CLIENT: SmsClient;
-
-// eslint-disable-next-line import/no-mutable-exports
-let EMAIL_CLIENT: EmailClient;
+import { apiRouter } from '../api/router';
+import { morganMiddleware } from '../api/middleware/morgan';
+import {
+	API_VALIDATOR,
+	EMAIL_CLIENT,
+	initApiServer,
+	initApiValidator,
+	initAuthenticationEngine,
+	initEmailClient,
+	initGeoipLocator,
+	initJwtUserSessionMiddleware,
+	initSmsClient,
+	JWT_USER_SESSION_MIDDLEWARE,
+	SERVER,
+	SMS_CLIENT
+} from './singletons';
+import { serverError } from '../api/middleware/server-error';
 
 let bootstrapPerformed = false;
 
@@ -59,8 +66,8 @@ async function bootstrap() {
 	}
 
 	/* INIT API VALIDATOR */
-	API_VALIDATOR = new ApiValidator();
-	await API_VALIDATOR.init('validation/schemes', ['core']);
+	initApiValidator(new ApiValidator());
+	await API_VALIDATOR.init('./validation/schemes', ['core']);
 
 	/* VALIDATE ENVIRONMENT */
 	await API_VALIDATOR.validate('CONFIG', 'ENV_VARS', process.env);
@@ -75,7 +82,7 @@ async function bootstrap() {
 	}
 
 	LoggerInstance.formatting.setDefaultRecipe(loggingConfig.formatting.format, {
-		colorize: loggingConfig.formatting.colorize,
+		colorize: loggingConfig.formatting.colorize ? { [SERVICE_NAME]: 'gray' } : false,
 		ignoredLabels: loggingConfig.formatting.ignoredLabels != null ? new Set(loggingConfig.formatting.ignoredLabels) : undefined,
 		levelForLabel: loggingConfig.formatting.levelForLabel,
 		skippedFormatters: loggingConfig.formatting.skippedFormatters != null ? new Set(loggingConfig.formatting.skippedFormatters) : undefined
@@ -104,261 +111,303 @@ async function bootstrap() {
 	initMysqlClientLogger();
 	initRedisClientLogger();
 
+	logger.debug('Logging initialized.');
+
 	/* INIT GEOIP */
 	const geoipConfig = await config.getGeoIpConfig();
-	GEOIP_LOCATOR = new GeoIpLocator([
-		new GeoIpLiteRepository(geoipConfig.GEOIP_LITE.weight),
-		new IpLocateRepository({
-			...geoipConfig.IPLOCATE,
-			hooks: {
-				onIpRetrievalError(err) {
-					logger.error('IpLocate failed to retrieve ip.', err);
-				},
-				onRateLimitExceeded(rateLimitReset) {
-					logger.notice(`Rate limit for IpLocate was exceeded and will be reset on ${rateLimitReset}.`);
+	initGeoipLocator(
+		new GeoIpLocator([
+			new GeoIpLiteRepository(geoipConfig.GEOIP_LITE.weight),
+			new IpLocateRepository({
+				...geoipConfig.IPLOCATE,
+				hooks: {
+					onIpRetrievalError(err) {
+						logger.error('IpLocate failed to retrieve ip.', err);
+					},
+					onRateLimitExceeded(rateLimitReset) {
+						logger.notice(`Rate limit for IpLocate was exceeded and will be reset on ${rateLimitReset}.`);
+					}
 				}
-			}
-		}),
-		new IpstackRepository({
-			...geoipConfig.IPSTACK,
+			}),
+			new IpstackRepository({
+				...geoipConfig.IPSTACK,
+				hooks: {
+					onIpRetrievalError(err) {
+						logger.error('IpStack failed to retrieve ip.', err);
+					}
+				}
+			})
+		])
+	);
+
+	logger.debug('GeoIp initialized.');
+
+	/* INIT SMS */
+	initSmsClient(new SmsClient(await config.getSmsConfig()));
+	logger.debug('Sms client initialized.');
+
+	/* INIT EMAIL */
+	initEmailClient(
+		new EmailClient({
+			...(await config.getEmailConfig()),
 			hooks: {
-				onIpRetrievalError(err) {
-					logger.error('IpStack failed to retrieve ip.', err);
+				onTransportError(err) {
+					logger.error('Error occurred on email transport.', err);
+				},
+				onTransportIdle() {
+					logger.notice('Email transport is idle.');
 				}
 			}
 		})
-	]);
-
-	/* INIT SMS */
-	SMS_CLIENT = new SmsClient(await config.getSmsConfig());
-
-	/* INIT EMAIL */
-	EMAIL_CLIENT = new EmailClient({
-		...(await config.getEmailConfig()),
-		hooks: {
-			onTransportError(err) {
-				logger.error('Error occurred on email transport.', err);
-			},
-			onTransportIdle() {
-				logger.notice('Email transport is idle.');
-			}
-		}
-	});
+	);
+	logger.debug('Email client initialized.');
 
 	/* INIT AUTHENTICATION ENGINE */
 	const authEngineConfig = await config.getAuthenticationEngineConfig();
 	const hashingAlgorithm = new Argon2PasswordHashingAlgorithm(authEngineConfig.password.hashing);
 
-	AUTHENTICATION_ENGINE = new AuthenticationEngine<AccountWithTotpSecret>({
-		thresholds: authEngineConfig.thresholds,
-		ttl: authEngineConfig.ttl,
-		repositories: {
-			account: new AccountMySqlRepository(),
-			successfulAuthentications: new SuccessfulAuthenticationsMysqlRepository(),
-			failedAuthenticationAttempts: new FailedAuthenticationsMysqlRepository(),
-			authenticationSession: new AuthenticationSessionRedisRepository(authEngineConfig.repositories.authenticationSessionKeyPrefix),
-			failedAuthAttemptSession: new FailedAuthenticationAttemptsSessionRedisRepository(authEngineConfig.repositories.failedAuthAttemptsSessionKeyPrefix),
-			forgotPasswordSession: new ForgotPasswordSessionRedisRepository(authEngineConfig.repositories.forgotPasswordSessionKeyPrefix),
-			activateAccountSession: new ActivateAccountSessionRedisRepository(authEngineConfig.repositories.activateAccountSessionKeyPrefix)
-		},
-		password: {
-			hashing: {
-				algorithms: new Map([[0, hashingAlgorithm]]),
-				currentAlgorithmId: 0,
-				currentAlgorithm: hashingAlgorithm
+	initAuthenticationEngine(
+		new AuthenticationEngine<AccountWithTotpSecret>({
+			thresholds: authEngineConfig.thresholds,
+			ttl: authEngineConfig.ttl,
+			repositories: {
+				account: new AccountMySqlRepository(),
+				successfulAuthentications: new SuccessfulAuthenticationsMysqlRepository(),
+				failedAuthenticationAttempts: new FailedAuthenticationsMysqlRepository(),
+				authenticationSession: new AuthenticationSessionRedisRepository(authEngineConfig.repositories.authenticationSessionKeyPrefix),
+				failedAuthAttemptSession: new FailedAuthenticationAttemptsSessionRedisRepository(
+					authEngineConfig.repositories.failedAuthAttemptsSessionKeyPrefix
+				),
+				forgotPasswordSession: new ForgotPasswordSessionRedisRepository(authEngineConfig.repositories.forgotPasswordSessionKeyPrefix),
+				activateAccountSession: new ActivateAccountSessionRedisRepository(authEngineConfig.repositories.activateAccountSessionKeyPrefix)
 			},
-			encryption: false,
-			strength: [
-				new PasswordLengthValidator(authEngineConfig.password.minLength, authEngineConfig.password.maxLength),
-				new PasswordStrengthValidator((account) => {
-					const userInputs = [account.id, account.email, account.username, account.totpSecret];
-					if (account.telephone) {
-						userInputs.push(account.telephone);
-					}
-					return userInputs;
-				}),
-				new PwnedPasswordValidator(authEngineConfig.password.breachThreshold)
-			],
-			similarity: authEngineConfig.password.similarity,
-			forgotPasswordTokenEncrypt: async (pubKey, token) => {
-				return publicEncrypt(pubKey, Buffer.from(token)).toString('base64');
-			}
-		},
-		hooks: {
-			onAuthenticationFromDifferentContext: async (account, authenticationContext) => {
-				try {
-					await EMAIL_CLIENT.send({
-						to: account.email,
-						subject: 'Authentication from different context',
-						text: `Authentication was performed from different context: ${JSON.stringify(authenticationContext)}.`
-					});
-				} catch (e) {
-					logger.error(`Failed to send notification about authentication from different context via email for account with id '${account.id}'.`, e);
+			password: {
+				hashing: {
+					algorithms: new Map([[0, hashingAlgorithm]]),
+					currentAlgorithmId: 0,
+					currentAlgorithm: hashingAlgorithm
+				},
+				encryption: false,
+				strength: [
+					new PasswordLengthValidator(authEngineConfig.password.minLength, authEngineConfig.password.maxLength),
+					new PasswordStrengthValidator((account) => {
+						const userInputs = [account.id, account.email, account.username, account.totpSecret];
+						if (account.telephone) {
+							userInputs.push(account.telephone);
+						}
+						return userInputs;
+					}),
+					new PwnedPasswordValidator(authEngineConfig.password.breachThreshold)
+				],
+				similarity: authEngineConfig.password.similarity,
+				forgotPasswordTokenEncrypt: async (pubKey, token) => {
+					return publicEncrypt(pubKey, Buffer.from(token)).toString('base64');
 				}
 			},
-			onAccountDisabled: async (account) => {
-				try {
-					const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
-					logger.info(`Deleted ${deletedSessions} user sessions after account with id '${account.id}' was disabled.`);
-				} catch (e) {
-					logger.error(`Failed to invalidate all of the user sessions for account with id '${account.id}' after it was disabled.`, e);
-				}
-			},
-			onPasswordChanged: async (account) => {
-				try {
-					const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
-					logger.info(`Deleted ${deletedSessions} user sessions after password has been changed for account with id '${account.id}'.`);
-				} catch (e) {
-					logger.error(`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's password has been changed.`, e);
-				}
-			},
-			onForgottenPasswordChanged: async (account) => {
-				try {
-					const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
-					logger.info(`Deleted ${deletedSessions} user sessions after forgotten password has been changed for account with id '${account.id}'.`);
-				} catch (e) {
-					logger.error(
-						`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's forgotten password has been changed.`,
-						e
-					);
-				}
-			}
-		},
-		validators: {
-			recaptcha: async (authenticationContext) => {
-				try {
-					const googleResponse = await (
-						await fetch(
-							`https://www.google.com/recaptcha/api/siteverify?secret=${authEngineConfig.recaptcha.secretKey}&response=${authenticationContext.recaptcha}`,
-							{
-								method: 'POST'
-							}
-						)
-					).json();
-
-					if (googleResponse.success !== true) {
-						return false;
-					}
-
-					if (googleResponse.score < authEngineConfig.recaptcha.score) {
-						return false;
-					}
-
-					if (googleResponse.action !== '') {
-						logger.crit(
-							`FIXME recaptcha action. Google response: ${JSON.stringify(googleResponse)}. Authentication context: ${JSON.stringify(
-								authenticationContext
-							)}`
+			hooks: {
+				onAuthenticationFromDifferentContext: async (account, authenticationContext) => {
+					try {
+						await EMAIL_CLIENT.send({
+							to: account.email,
+							subject: 'Authentication from different context',
+							text: `Authentication was performed from different context: ${JSON.stringify(authenticationContext)}.`
+						});
+					} catch (e) {
+						logger.error(
+							`Failed to send notification about authentication from different context via email for account with id '${account.id}'.`,
+							e
 						);
-						return false;
 					}
-
-					if (googleResponse.hostname !== authEngineConfig.recaptcha.hostname) {
-						logger.warning(
-							`Attempt to resolve google captcha from a hostname different than the one from config. Ip: ${
-								authenticationContext.ip
-							}, device: ${JSON.stringify(authenticationContext.device)}, location: ${JSON.stringify(authenticationContext.location)}.`
+				},
+				onAccountDisabled: async (account) => {
+					try {
+						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
+						logger.info(`Deleted ${deletedSessions} user sessions after account with id '${account.id}' was disabled.`);
+					} catch (e) {
+						logger.error(`Failed to invalidate all of the user sessions for account with id '${account.id}' after it was disabled.`, e);
+					}
+				},
+				onPasswordChanged: async (account) => {
+					try {
+						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
+						logger.info(`Deleted ${deletedSessions} user sessions after password has been changed for account with id '${account.id}'.`);
+					} catch (e) {
+						logger.error(
+							`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's password has been changed.`,
+							e
 						);
+					}
+				},
+				onForgottenPasswordChanged: async (account) => {
+					try {
+						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
+						logger.info(`Deleted ${deletedSessions} user sessions after forgotten password has been changed for account with id '${account.id}'.`);
+					} catch (e) {
+						logger.error(
+							`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's forgotten password has been changed.`,
+							e
+						);
+					}
+				}
+			},
+			validators: {
+				recaptcha: async (authenticationContext) => {
+					try {
+						const googleResponse = await (
+							await fetch(
+								`https://www.google.com/recaptcha/api/siteverify?secret=${authEngineConfig.recaptcha.secretKey}&response=${authenticationContext.recaptcha}`,
+								{
+									method: 'POST'
+								}
+							)
+						).json();
+
+						if (googleResponse.success !== true) {
+							return false;
+						}
+
+						if (googleResponse.score < authEngineConfig.recaptcha.score) {
+							return false;
+						}
+
+						if (googleResponse.action !== '') {
+							logger.crit(
+								`FIXME recaptcha action. Google response: ${JSON.stringify(googleResponse)}. Authentication context: ${JSON.stringify(
+									authenticationContext
+								)}`
+							);
+							return false;
+						}
+
+						if (googleResponse.hostname !== authEngineConfig.recaptcha.hostname) {
+							logger.warning(
+								`Attempt to resolve google captcha from a hostname different than the one from config. Ip: ${
+									authenticationContext.ip
+								}, device: ${JSON.stringify(authenticationContext.device)}, location: ${JSON.stringify(authenticationContext.location)}.`
+							);
+							return false;
+						}
+
+						return true;
+					} catch (e) {
+						logger.error('Failed to validate recaptcha token.', e);
 						return false;
 					}
-
-					return true;
-				} catch (e) {
-					logger.error('Failed to validate recaptcha token.', e);
-					return false;
 				}
-			}
-		},
-		email: {
-			admin: authEngineConfig.adminEmail,
-			sender: {
-				notifyPasswordChanged: async (account, changePasswordContext) => {
-					try {
-						await EMAIL_CLIENT.send({
-							to: account.email,
-							subject: 'Password changed',
-							text: `Password has been changed from ip: ${changePasswordContext.ip}, device: ${JSON.stringify(
-								changePasswordContext.device
-							)}, location: ${JSON.stringify(changePasswordContext.location)}.`
-						});
-					} catch (e) {
-						logger.error(`Failed to send notification about password change via email for account with id '${account.id}'.`, e);
+			},
+			email: {
+				admin: authEngineConfig.adminEmail,
+				sender: {
+					notifyPasswordChanged: async (account, changePasswordContext) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: account.email,
+								subject: 'Password changed',
+								text: `Password has been changed from ip: ${changePasswordContext.ip}, device: ${JSON.stringify(
+									changePasswordContext.device
+								)}, location: ${JSON.stringify(changePasswordContext.location)}.`
+							});
+						} catch (e) {
+							logger.error(`Failed to send notification about password change via email for account with id '${account.id}'.`, e);
+						}
+					},
+					notifyAdminAboutAccountDisabling: async (adminEmail, account, cause) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: adminEmail,
+								subject: 'Account disabled',
+								text: `Account with id '${account.id}' has been disabled, because ${cause}`
+							});
+						} catch (e) {
+							logger.error(`Failed to notify admin about account disabling via email for account with id '${account.id}'.`, e);
+						}
+					},
+					notifyAccountDisabled: async (account, cause) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: account.email,
+								subject: 'Account disabled',
+								text: `Your account has been disabled, because ${cause}`
+							});
+						} catch (e) {
+							logger.error(`Failed to notify about account disabling via email for account with id '${account.id}'.`, e);
+						}
+					},
+					notifyMultiFactorAuthenticationFailed: async (account, authenticationContext) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: account.email,
+								subject: 'Multi factor authentication failed',
+								text: `Context ip: ${authenticationContext.ip}, device: ${JSON.stringify(
+									authenticationContext.device
+								)}, location: ${JSON.stringify(authenticationContext.location)}.`
+							});
+						} catch (e) {
+							logger.error(`Failed to notify about multi factor authentication failure via email for account with id '${account.id}'.`, e);
+						}
+					},
+					sendForgotPasswordToken: async (account, token) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: account.email,
+								subject: 'Forgot password token',
+								text: token
+							});
+						} catch (e) {
+							logger.error(`Failed to send forgot password token via email for account with id '${account.id}'.`, e);
+						}
+					},
+					sendActivateAccountToken: async (account, token) => {
+						try {
+							await EMAIL_CLIENT.send({
+								to: account.email,
+								subject: 'Activate account token',
+								text: token
+							});
+						} catch (e) {
+							logger.error(`Failed to send activate account token via email for account with id '${account.id}'.`, e);
+						}
 					}
-				},
-				notifyAdminAboutAccountDisabling: async (adminEmail, account, cause) => {
-					try {
-						await EMAIL_CLIENT.send({
-							to: adminEmail,
-							subject: 'Account disabled',
-							text: `Account with id '${account.id}' has been disabled, because ${cause}`
-						});
-					} catch (e) {
-						logger.error(`Failed to notify admin about account disabling via email for account with id '${account.id}'.`, e);
-					}
-				},
-				notifyAccountDisabled: async (account, cause) => {
-					try {
-						await EMAIL_CLIENT.send({
-							to: account.email,
-							subject: 'Account disabled',
-							text: `Your account has been disabled, because ${cause}`
-						});
-					} catch (e) {
-						logger.error(`Failed to notify about account disabling via email for account with id '${account.id}'.`, e);
-					}
-				},
-				notifyMultiFactorAuthenticationFailed: async (account, authenticationContext) => {
-					try {
-						await EMAIL_CLIENT.send({
-							to: account.email,
-							subject: 'Multi factor authentication failed',
-							text: `Context ip: ${authenticationContext.ip}, device: ${JSON.stringify(authenticationContext.device)}, location: ${JSON.stringify(
-								authenticationContext.location
-							)}.`
-						});
-					} catch (e) {
-						logger.error(`Failed to notify about multi factor authentication failure via email for account with id '${account.id}'.`, e);
-					}
-				},
+				}
+			},
+			smsSender: {
 				sendForgotPasswordToken: async (account, token) => {
 					try {
-						await EMAIL_CLIENT.send({
-							to: account.email,
-							subject: 'Forgot password token',
-							text: token
-						});
+						await SMS_CLIENT.send(account.telephone!, `Forgot password token: ${token}`);
 					} catch (e) {
-						logger.error(`Failed to send forgot password token via email for account with id '${account.id}'.`, e);
-					}
-				},
-				sendActivateAccountToken: async (account, token) => {
-					try {
-						await EMAIL_CLIENT.send({
-							to: account.email,
-							subject: 'Activate account token',
-							text: token
-						});
-					} catch (e) {
-						logger.error(`Failed to send activate account token via email for account with id '${account.id}'.`, e);
+						logger.error(`Failed to send forgot password token via sms for account with id '${account.id}'.`, e);
 					}
 				}
-			}
-		},
-		smsSender: {
-			sendForgotPasswordToken: async (account, token) => {
-				try {
-					await SMS_CLIENT.send(account.telephone!, `Forgot password token: ${token}`);
-				} catch (e) {
-					logger.error(`Failed to send forgot password token via sms for account with id '${account.id}'.`, e);
-				}
-			}
-		},
-		'2fa-strategy': new TotpTwoFactorAuthStrategy(authEngineConfig['2faStrategy']),
-		tokensLength: authEngineConfig.tokensLength
-	});
+			},
+			'2fa-strategy': new TotpTwoFactorAuthStrategy(authEngineConfig['2faStrategy']),
+			tokensLength: authEngineConfig.tokensLength
+		})
+	);
+	logger.debug('Authentication engine initialized.');
 
 	/* INIT JWT USER SESSION MIDDLEWARE */
-	// @FIXME
+	const jwtConfig = await config.getJwtUserSessionMiddlewareConfig();
+	initJwtUserSessionMiddleware(
+		new JwtUserSessionMiddleware({
+			jwt: {
+				secret: jwtConfig.jwt.secret,
+				invalidationOptions: {
+					refreshTokenLength: jwtConfig.jwt.invalidationOptions.refreshTokenLength,
+					refreshTokenTtl: jwtConfig.jwt.invalidationOptions.refreshTokenTtl,
+					refreshTokensStorage: new UserSessionRedisStorage({
+						keyPrefix: jwtConfig.jwt.invalidationOptions.refreshTokensStorage.keyPrefix,
+						concurrentSessions: jwtConfig.jwt.invalidationOptions.refreshTokensStorage.concurrentSessions,
+						serializer: AVRO_SERIALIZER
+					}),
+					invalidAccessTokensCache: new InvalidAccessTokensMemCache()
+				},
+				signOptions: jwtConfig.jwt.signOptions,
+				verifyOptions: jwtConfig.jwt.verifyOptions
+			},
+			session: jwtConfig.session
+		})
+	);
+	logger.debug('Jwt user session middleware initialized.');
 
 	/* CONNECT TO DATABASES */
 	await RedisClientInstance.connect(await config.getRedisConfig());
@@ -369,7 +418,82 @@ async function bootstrap() {
 		throw e;
 	}
 
+	/* INIT APP */
+	const appConfig = await config.getAppConfig();
+
+	const app = express();
+	app.set('trust proxy', 1);
+	app.use(bodyParser.json());
+	app.use(cookieParser());
+	app.use(
+		addRequestId({
+			setHeader: false
+		})
+	);
+	app.use(helmet.hidePoweredBy());
+	app.use(appConfig.api.basePath, apiRouter);
+	app.use(morganMiddleware);
+	app.use(serverError);
+
+	await new Promise<void>((resolve) => {
+		initApiServer(
+			app.listen(appConfig.listen.port, appConfig.listen.host, () => {
+				logger.info(`Express server listening on http://${appConfig.listen.host}:${appConfig.listen.port}`);
+				resolve();
+			})
+		);
+	});
+
+	/* CONFIGURE PROCESS LISTENERS */
+	process.on('SIGINT', shutdown);
+	process.on('SIGTERM', shutdown);
+	process.on('multipleResolves', (type, _promise, value) => {
+		logger.alert(`Multiple resolves detected. Type: ${type}. Value: ${JSON.stringify(value)} .`);
+	});
+	process.on('uncaughtException', async (error) => {
+		logger.crit(`Caught uncaught exception. Shutting down.`, error);
+		await shutdown();
+	});
+	process.on('unhandledRejection', async (reason) => {
+		logger.crit(`Caught unhandled rejection. Shutting down.`, reason);
+		await shutdown();
+	});
+	process.on('warning', (warning) => {
+		logger.warning(`NodeJs process warning.`, warning);
+	});
+
 	bootstrapPerformed = true;
 }
 
-export { bootstrap, API_VALIDATOR, GEOIP_LOCATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE, SMS_CLIENT, EMAIL_CLIENT };
+async function shutdown(): Promise<void> {
+	/* STOP API SERVER */
+	await new Promise<void>((resolve) => {
+		SERVER.close((err) => {
+			if (err) {
+				logger.error('Failed to close api server.', err);
+				return;
+			}
+
+			logger.info('Express server closed');
+			resolve();
+		});
+	});
+
+	/* CLOSE MYSQL CONNECTION */
+	try {
+		await MySqlClientInstance.shutdown();
+		logger.info('Mysql client successful shutdown.');
+	} catch (e) {
+		logger.error('Failed to shutdown mysql client.', e);
+	}
+
+	/* CLOSE REDIS CONNECTION */
+	try {
+		await RedisClientInstance.disconnect();
+		logger.info('Redis client successful disconnect.');
+	} catch (e) {
+		logger.error('Failed to disconnect redis client.', e);
+	}
+}
+
+export { bootstrap };

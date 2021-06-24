@@ -57,6 +57,5 @@
         "node": ">= 16"
     },
     "license": "ISC",
-    "type": "commonjs",
-    "exports": "./dist/index.js"
+    "type": "commonjs"
 }

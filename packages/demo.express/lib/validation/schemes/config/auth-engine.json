@@ -67,23 +67,23 @@
       "properties": {
         "activateAccountSessionKeyPrefix": {
           "type": "string",
-          "minimum": 1,
-          "maximum": 10
+          "minLength": 1,
+          "maxLength": 10
         },
         "authenticationSessionKeyPrefix": {
           "type": "string",
-          "minimum": 1,
-          "maximum": 10
+          "minLength": 1,
+          "maxLength": 10
         },
         "failedAuthAttemptsSessionKeyPrefix": {
           "type": "string",
-          "minimum": 1,
-          "maximum": 10
+          "minLength": 1,
+          "maxLength": 10
         },
         "forgotPasswordSessionKeyPrefix": {
           "type": "string",
-          "minimum": 1,
-          "maximum": 10
+          "minLength": 1,
+          "maxLength": 10
         }
       },
       "required": [
@@ -285,7 +285,7 @@
         },
         "serviceName": {
           "type": "string",
-          "minimum": 2
+          "minLength": 2
         }
       },
       "required": [

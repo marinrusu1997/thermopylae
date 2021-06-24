@@ -94,7 +94,8 @@ function buildWithDeclarationsFileFactory(module, gulp) {
   return function buildWithDeclarationFiles(done) {
     const buildModuleTask = buildFactory(module, gulp);
     const copyDeclarationFiles = () => gulp.src(['lib/**/*.d.ts']).pipe(gulp.dest('dist'));
-    const buildTask = gulp.series(buildModuleTask, copyDeclarationFiles);
+    const copyJsonFiles = () => gulp.src(['lib/**/*.json']).pipe(gulp.dest('dist'));
+    const buildTask = gulp.series(buildModuleTask, copyDeclarationFiles, copyJsonFiles);
     buildTask();
     done();
   };

@@ -18,8 +18,8 @@ type ApiMethod =
 const API_SCHEMA: Record<ApiMethod, { path: string; method: HttpVerb & keyof Express; requiresNoAuthentication?: string }> = deepFreeze({
 	authenticate: {
 		method: 'post',
-		path: '/session/user',
-		requiresNoAuthentication: '/session/user[/]?$'
+		path: '/authenticate',
+		requiresNoAuthentication: '/authenticate[/]?$'
 	},
 	register: {
 		method: 'post',

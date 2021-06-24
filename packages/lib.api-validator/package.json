@@ -31,15 +31,16 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/lib.utils": "0",
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/lib.utils": "0",
         "ajv": "8",
+        "ajv-formats": "2",
         "ajv-i18n": "4",
         "xss": "1"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "0",
-        "@thermopylae/lib.unit-test": "0"
+        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/module-builder": "0"
     },
     "peerDependencies": {
         "chai": "4",

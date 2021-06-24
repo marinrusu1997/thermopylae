@@ -16,6 +16,7 @@
 
 # environment
 .env
+.config
 
 # dependencies
 /node_modules

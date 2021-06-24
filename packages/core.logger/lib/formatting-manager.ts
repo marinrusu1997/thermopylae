@@ -36,9 +36,11 @@ const enum DefaultFormatters {
  */
 interface DefaultRecipeOptions {
 	/**
-	 * Whether output needs to be colored.
+	 * Whether output needs to be colored. <br/>
+	 * Passing `true` will colorize only {@link Client} and {@link CoreModule} labels.
+	 * If you need additional labels to be colorized, pass an object having label as key and color as value.
 	 */
-	readonly colorize?: boolean;
+	readonly colorize?: boolean | Record<string, string>;
 	/**
 	 * Logs that contain these labels will be ignored and not printed.
 	 */
@@ -202,6 +204,13 @@ class FormattingManager {
 			FormattingManager.defineFormattedLabels(this.formattedLabels);
 			FormattingManager.defineFormattedLevels(this.formattedLevels);
 
+			if (typeof options.colorize === 'object') {
+				// eslint-disable-next-line guard-for-in
+				for (const label in options.colorize) {
+					FormattingManager.defineFormattedLabel(this.formattedLabels, label, options.colorize[label]);
+				}
+			}
+
 			order.push(DefaultFormatters.LABEL_STYLE);
 			order.push(DefaultFormatters.LEVEL_STYLE);
 			order.push(DefaultFormatters.COLORIZE);
@@ -352,6 +361,10 @@ class FormattingManager {
 
 		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('silver')(Client.MYSQL));
 		formattedLabels[Client.REDIS] = chalk.italic(chalk.bgKeyword('gray')(Client.REDIS));
+	}
+
+	private static defineFormattedLabel(formattedLabels: FormattedLabels, label: string, color: string): void {
+		formattedLabels[label] = chalk.italic(chalk.bgKeyword(color)(label));
 	}
 }
 

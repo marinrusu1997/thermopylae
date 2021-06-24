@@ -28,8 +28,7 @@
       },
       "required": [
         "level"
-      ],
-      "additionalProperties": false
+      ]
     }
   },
   "properties": {
@@ -67,8 +66,7 @@
               "required": [
                 "consoleWarnLevels",
                 "stderrLevels"
-              ],
-              "additionalProperties": false
+              ]
             }
           ]
         },
@@ -142,8 +140,7 @@
                 "auditFile",
                 "frequency",
                 "extension"
-              ],
-              "additionalProperties": false
+              ]
             }
           ]
         },

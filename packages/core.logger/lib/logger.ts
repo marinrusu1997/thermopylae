@@ -51,9 +51,7 @@ class Logger {
 		const logger = createLogger({
 			levels: winston.config.syslog.levels,
 			format: this.formatting.formatterFor(module),
-			transports,
-			exceptionHandlers: transports,
-			exitOnError: true
+			transports
 		});
 
 		Object.freeze(logger);

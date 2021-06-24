@@ -35,6 +35,29 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 65535
+    },
+
+    "PublicPrivateKeys": {
+      "type": "object",
+      "properties": {
+        "private": {
+          "type": "string",
+          "minLength": 10
+        },
+        "public": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "required": [
+        "private",
+        "public"
+      ],
+      "additionalProperties": false
+    },
+    "HttpHeader": {
+      "type": "string",
+      "pattern": "^[a-z-]+$"
     }
   }
 }

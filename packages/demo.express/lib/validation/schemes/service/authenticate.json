@@ -28,7 +28,8 @@
       "if": {
         "properties": {
           "2fa-token": true
-        }
+        },
+        "required": ["2fa-token"]
       },
       "then": {
         "properties": {
@@ -41,7 +42,8 @@
       "if": {
         "properties": {
           "recaptcha": true
-        }
+        },
+        "required": ["recaptcha"]
       },
       "then": {
         "properties": {

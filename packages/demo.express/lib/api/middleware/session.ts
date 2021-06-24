@@ -3,9 +3,9 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import unless, { Options } from 'express-unless';
 import { API_SCHEMA } from '../schema';
-import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
 import { REQUEST_SESSION_SYM } from '../../app/constants';
 import { logger } from '../../logger';
+import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
 
 const UnlessOptions: Options = {
 	useOriginalUrl: true,

@@ -66,6 +66,9 @@
       "type": "integer",
       "minimum": 1000
     },
+    "prefix": {
+      "type": "string"
+    },
     "attachDebugListeners": {
       "oneOf": [
         {

@@ -5,6 +5,7 @@ import { promisify } from 'util';
 import Ajv, { ErrorObject } from 'ajv';
 // eslint-disable-next-line import/extensions
 import AjvLocalizeEn from 'ajv-i18n/localize/en';
+import addFormats from 'ajv-formats';
 import { FilterXSS } from 'xss';
 
 const readDir = promisify(readdir);
@@ -31,6 +32,7 @@ class ApiValidator {
 		this.validator = new Ajv({
 			loadSchema: (uri) => fs.readJsonFromFile(`${validationSchemasDir}/${uri}`)
 		});
+		addFormats(this.validator as any);
 
 		let servicesSchemasDirs = await readDir(validationSchemasDir);
 		if (excludeDirs && excludeDirs.length !== 0) {

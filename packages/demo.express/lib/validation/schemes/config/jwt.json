@@ -1,0 +1,327 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#CONFIG-JWT",
+  "type": "object",
+  "title": "The jwt config validation schema.",
+  "definitions": {
+    "JwtAlgorithm": {
+      "enum": [
+        "HS256",
+        "HS384",
+        "HS512",
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+        "ES512",
+        "PS256",
+        "PS384",
+        "PS512"
+      ]
+    },
+    "JwtAudience": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 3
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "JwtIssuer": {
+      "type": "string",
+      "minLength": 3
+    },
+    "UserSessionRedisStorageOptions": {
+      "type": "object",
+      "properties": {
+        "keyPrefix": {
+          "type": "object",
+          "properties": {
+            "sessions": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 10
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 10
+            }
+          },
+          "required": [
+            "sessions",
+            "sessionId"
+          ],
+          "additionalProperties": false
+        },
+        "concurrentSessions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [
+        "keyPrefix",
+        "concurrentSessions"
+      ],
+      "additionalProperties": false
+    },
+    "InvalidationStrategyOptions": {
+      "type": "object",
+      "properties": {
+        "refreshTokenLength": {
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 100
+        },
+        "refreshTokenTtl": {
+          "type": "integer",
+          "minimum": 3600,
+          "maximum": 86400
+        },
+        "refreshTokensStorage": {
+          "$ref": "#/definitions/UserSessionRedisStorageOptions"
+        }
+      },
+      "required": [
+        "refreshTokenLength",
+        "refreshTokenTtl",
+        "refreshTokensStorage"
+      ],
+      "additionalProperties": false
+    },
+    "SignOptions": {
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "$ref": "#/definitions/JwtAlgorithm"
+        },
+        "expiresIn": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 900
+        },
+        "audience": {
+          "$ref": "#/definitions/JwtAudience"
+        },
+        "issuer": {
+          "$ref": "#/definitions/JwtIssuer"
+        }
+      },
+      "required": [
+        "algorithm",
+        "expiresIn",
+        "audience",
+        "issuer"
+      ],
+      "additionalProperties": false
+    },
+    "VerifyOptions": {
+      "type": "object",
+      "properties": {
+        "algorithms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JwtAlgorithm"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "audience": {
+          "$ref": "#/definitions/JwtAudience"
+        },
+        "issuer": {
+          "$ref": "#/definitions/JwtIssuer"
+        }
+      },
+      "required": [
+        "algorithms",
+        "audience",
+        "issuer"
+      ],
+      "additionalProperties": false
+    },
+    "JwtManagerOptions": {
+      "type": "object",
+      "properties": {
+        "secret": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "../core/core.json#/definitions/PublicPrivateKeys"
+            }
+          ]
+        },
+        "invalidationOptions": {
+          "$ref": "#/definitions/InvalidationStrategyOptions"
+        },
+        "signOptions": {
+          "$ref": "#/definitions/SignOptions"
+        },
+        "verifyOptions": {
+          "$ref": "#/definitions/VerifyOptions"
+        }
+      },
+      "required": [
+        "secret",
+        "invalidationOptions",
+        "signOptions",
+        "verifyOptions"
+      ],
+      "additionalProperties": false
+    },
+    "UserSessionCookiesOptions": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "object",
+          "properties": {
+            "signature": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 10
+            },
+            "payload": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 10
+            },
+            "refresh": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 10
+            }
+          },
+          "required": [
+            "signature",
+            "payload",
+            "refresh"
+          ],
+          "additionalProperties": false
+        },
+        "path": {
+          "type": "object",
+          "properties": {
+            "access": {
+              "type": "string"
+            },
+            "refresh": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "refresh"
+          ],
+          "additionalProperties": false
+        },
+        "sameSite": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "lax",
+                "strict",
+                "none"
+              ]
+            }
+          ]
+        },
+        "domain": {
+          "type": "string"
+        },
+        "persistentAccessToken": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "sameSite",
+        "persistentAccessToken"
+      ],
+      "additionalProperties": false
+    },
+    "UserSessionOptions": {
+      "type": "object",
+      "properties": {
+        "cookies": {
+          "$ref": "#/definitions/UserSessionCookiesOptions"
+        },
+        "headers": {
+          "type": "object",
+          "properties": {
+            "access":  {
+              "$ref": "../core/core.json#/definitions/HttpHeader"
+            },
+            "refresh": {
+              "$ref": "../core/core.json#/definitions/HttpHeader"
+            }
+          },
+          "required": [
+            "access",
+            "refresh"
+          ],
+          "additionalProperties": false
+        },
+        "deliveryOfJwtPayloadViaCookie": {
+          "type": "boolean"
+        },
+        "csrfHeader": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "$ref": "../core/core.json#/definitions/HttpHeader"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 5
+            }
+          },
+          "required": [
+            "name",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        "cache-control": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cookies",
+        "headers",
+        "deliveryOfJwtPayloadViaCookie",
+        "csrfHeader",
+        "cache-control"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "jwt": {
+      "$ref": "#/definitions/JwtManagerOptions"
+    },
+    "session": {
+      "$ref": "#/definitions/UserSessionOptions"
+    }
+  },
+  "required": [
+    "jwt",
+    "session"
+  ],
+  "additionalProperties": false
+}
