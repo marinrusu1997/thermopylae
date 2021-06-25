@@ -56,8 +56,6 @@ const validateRequestBody: RequestHandler = handler(
 	}
 );
 
-const JWT_PAYLOAD = {};
-
 const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>) => {
 	const request = new ExpressRequestAdapter(req);
 	const response = new ExpressResponseAdapter(res);
@@ -72,12 +70,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 		const authenticationStatus = await AUTHENTICATION_ENGINE.authenticate(authContext);
 
 		if (authenticationStatus.authenticated != null) {
-			await JWT_USER_SESSION_MIDDLEWARE.create(
-				request,
-				response,
-				JWT_PAYLOAD,
-				{ subject: authenticationStatus.authenticated.id } // @fixme check global settings
-			);
+			await JWT_USER_SESSION_MIDDLEWARE.create(request, response, {}, { subject: authenticationStatus.authenticated.id });
 			logger.info(`Created new user session for account with id '${authenticationStatus.authenticated.id}'.`);
 
 			delete (authenticationStatus.authenticated as Partial<AccountWithTotpSecret>).totpSecret;

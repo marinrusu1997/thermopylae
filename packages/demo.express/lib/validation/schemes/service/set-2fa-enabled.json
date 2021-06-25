@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-SET_TWO_FACTOR_AUTH_ENABLED",
+  "type": "object",
+  "title": "The set two factor auth enabled method schema.",
+  "description": "Method used by the users in order to change multi factor authentication status.",
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "password": {
+      "$ref": "../core/credentials.json#/properties/password"
+    }
+  },
+  "required": [
+    "enabled",
+    "password"
+  ],
+  "additionalProperties": false
+}

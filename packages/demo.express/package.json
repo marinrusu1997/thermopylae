@@ -55,6 +55,7 @@
         "express-unless": "0",
         "farmhash": "3",
         "helmet": "^4.6.0",
+        "is-string-int": "^1.0.1",
         "jsonfile": "6",
         "morgan": "^1.10.0",
         "node-fetch": "2"

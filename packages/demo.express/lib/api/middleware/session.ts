@@ -17,8 +17,6 @@ const UnlessOptions: Options = {
 		}))
 };
 
-// @fixme validate presence of headers or cookies in request
-
 const requiresAuthentication: RequestHandler = unless(
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {

@@ -6,9 +6,8 @@ type ApiMethod =
 	| 'authenticate'
 	| 'register'
 	| 'activateAccount'
-	| 'changeMultiFactorAuthenticationStatus'
-	| 'getActiveSessions'
-	| 'getFailedAuthenticationAttempts'
+	| 'setTwoFactorAuthEnabled'
+	| 'getFailedAuthentications'
 	| 'changePassword'
 	| 'createForgotPasswordSession'
 	| 'changeForgottenPassword'
@@ -23,25 +22,21 @@ const API_SCHEMA: Record<ApiMethod, { path: string; method: HttpVerb & keyof Exp
 	},
 	register: {
 		method: 'post',
-		path: '/account',
-		requiresNoAuthentication: '/account[/]?$'
+		path: '/register',
+		requiresNoAuthentication: '/register[/]?$'
 	},
 	activateAccount: {
-		method: 'post',
+		method: 'put',
 		path: '/account/activate',
 		requiresNoAuthentication: '/account/activate[/]?$'
 	},
-	changeMultiFactorAuthenticationStatus: {
+	setTwoFactorAuthEnabled: {
 		method: 'put',
-		path: '/multi_factor'
+		path: '/two/factor'
 	},
-	getActiveSessions: {
+	getFailedAuthentications: {
 		method: 'get',
-		path: '/session/user/active'
-	},
-	getFailedAuthenticationAttempts: {
-		method: 'get',
-		path: '/failed_attempts'
+		path: '/failed/attempts'
 	},
 	changePassword: {
 		method: 'put',

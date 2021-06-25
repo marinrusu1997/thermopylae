@@ -206,7 +206,14 @@ class AuthenticationEngine<Account extends AccountModel> {
 		if (account.disabledUntil === AccountStatus.DISABLED_UNTIL_ACTIVATION) {
 			const activateToken = await uidSafe(this.options.tokensLength);
 			await this.options.repositories.activateAccountSession.insert(activateToken, account as Account, this.options.ttl.activateAccountSession);
-			await this.options.email.sender.sendActivateAccountToken(account as Account, activateToken);
+
+			try {
+				await this.options.email.sender.sendActivateAccountToken(account as Account, activateToken);
+			} catch (e) {
+				await this.options.repositories.activateAccountSession.delete(activateToken);
+				throw e;
+			}
+
 			return;
 		}
 

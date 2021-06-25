@@ -57,6 +57,7 @@ import {
 	SMS_CLIENT
 } from './singletons';
 import { serverError } from '../api/middleware/server-error';
+import { requiresAuthentication } from '../api/middleware/session';
 
 let bootstrapPerformed = false;
 
@@ -365,7 +366,8 @@ async function bootstrap() {
 								text: token
 							});
 						} catch (e) {
-							logger.error(`Failed to send activate account token via email for account with id '${account.id}'.`, e);
+							e.message = `Failed to send activate account token via email. ${e.message}`;
+							throw e;
 						}
 					}
 				}
@@ -431,9 +433,9 @@ async function bootstrap() {
 		})
 	);
 	app.use(helmet.hidePoweredBy());
-	app.use(appConfig.api.basePath, apiRouter);
-	app.use(morganMiddleware);
+	app.use(appConfig.api.basePath, requiresAuthentication, apiRouter);
 	app.use(serverError);
+	app.use(morganMiddleware);
 
 	await new Promise<void>((resolve) => {
 		initApiServer(

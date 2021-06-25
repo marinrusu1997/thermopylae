@@ -41,10 +41,10 @@
       "type": "boolean"
     },
     "password": {
-      "$ref": "../core/credentials.json#/properties/password"
+      "type": "string"
     },
     "user": {
-      "$ref": "../core/credentials.json#/properties/username"
+      "type": "string"
     },
     "db": {
       "type": "number",

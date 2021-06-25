@@ -1,5 +1,7 @@
 const enum ServiceMethod {
-	AUTHENTICATE = 'AUTHENTICATE'
+	AUTHENTICATE = 'AUTHENTICATE',
+	REGISTER = 'REGISTER',
+	SET_TWO_FACTOR_AUTH_ENABLED = 'SET_TWO_FACTOR_AUTH_ENABLED'
 }
 
 const enum EnvironmentVariables {

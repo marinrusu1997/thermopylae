@@ -1,10 +1,12 @@
-import { ConnectionType, RedisClientOptions, DebuggableEventType } from '@thermopylae/core.redis';
+import { ConnectionType, DebuggableEventType, RedisClientOptions } from '@thermopylae/core.redis';
 import { MySQLClientOptions } from '@thermopylae/core.mysql';
-import { ApiValidator } from '@thermopylae/lib.api-validator';
+import { ApiValidator, ValidationError } from '@thermopylae/lib.api-validator';
 import { SmsClientOptions } from '@thermopylae/lib.sms';
 import { readFile } from 'jsonfile';
 import path from 'path';
+import { ErrorCodes } from '@thermopylae/core.declarations';
 import { AppConfig, AuthenticationEngineConfig, EmailConfig, GeoIpConfig, JwtUserSessionMiddlewareConfig, LoggerConfig } from './typings';
+import { createException } from '../error';
 
 const enum ConfigName {
 	REDIS = 'REDIS',
@@ -29,17 +31,44 @@ class Config {
 	}
 
 	public async getRedisConfig(): Promise<Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>> {
-		const config = {
-			[ConnectionType.REGULAR]: (await this.validator.validate(
+		let regularOptions: RedisClientOptions;
+		let subscriberOptions: RedisClientOptions;
+
+		try {
+			regularOptions = (await this.validator.validate(
 				'CONFIG',
 				ConfigName.REDIS,
 				await readFile(path.join(this.basePath, 'redis', 'regular.json'))
-			)) as RedisClientOptions,
-			[ConnectionType.SUBSCRIBER]: (await this.validator.validate(
+			)) as RedisClientOptions;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(
+					ErrorCodes.INVALID,
+					`Redis config for ${ConnectionType.REGULAR} connection is not valid. ${this.validator.joinErrors(e.errors, 'text')}`
+				);
+			}
+			throw e;
+		}
+
+		try {
+			subscriberOptions = (await this.validator.validate(
 				'CONFIG',
 				ConfigName.REDIS,
 				await readFile(path.join(this.basePath, 'redis', 'subscriber.json'))
-			)) as RedisClientOptions
+			)) as RedisClientOptions;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(
+					ErrorCodes.INVALID,
+					`Redis config for ${ConnectionType.SUBSCRIBER} connection is not valid. ${this.validator.joinErrors(e.errors, 'text')}`
+				);
+			}
+			throw e;
+		}
+
+		const config = {
+			[ConnectionType.REGULAR]: regularOptions,
+			[ConnectionType.SUBSCRIBER]: subscriberOptions
 		};
 
 		// @ts-ignore
@@ -53,43 +82,99 @@ class Config {
 	}
 
 	public async getMysqlConfig(): Promise<MySQLClientOptions> {
-		return (await this.validator.validate('CONFIG', ConfigName.MYSQL, await readFile(path.join(this.basePath, 'mysql.json')))) as MySQLClientOptions;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.MYSQL, await readFile(path.join(this.basePath, 'mysql.json')))) as MySQLClientOptions;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Mysql config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getGeoIpConfig(): Promise<GeoIpConfig> {
-		return (await this.validator.validate('CONFIG', ConfigName.GEOIP, await readFile(path.join(this.basePath, 'geoip.json')))) as GeoIpConfig;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.GEOIP, await readFile(path.join(this.basePath, 'geoip.json')))) as GeoIpConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `GeoIP config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getEmailConfig(): Promise<EmailConfig> {
-		return (await this.validator.validate('CONFIG', ConfigName.EMAIL, await readFile(path.join(this.basePath, 'email.json')))) as EmailConfig;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.EMAIL, await readFile(path.join(this.basePath, 'email.json')))) as EmailConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Email config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getSmsConfig(): Promise<SmsClientOptions> {
-		return (await this.validator.validate('CONFIG', ConfigName.SMS, await readFile(path.join(this.basePath, 'sms.json')))) as SmsClientOptions;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.SMS, await readFile(path.join(this.basePath, 'sms.json')))) as SmsClientOptions;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Sms config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getLoggingConfig(): Promise<LoggerConfig> {
-		return (await this.validator.validate('CONFIG', ConfigName.LOGGER, await readFile(path.join(this.basePath, 'logger.json')))) as LoggerConfig;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.LOGGER, await readFile(path.join(this.basePath, 'logger.json')))) as LoggerConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Logging config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getJwtUserSessionMiddlewareConfig(): Promise<JwtUserSessionMiddlewareConfig> {
-		return (await this.validator.validate(
-			'CONFIG',
-			ConfigName.JWT,
-			await readFile(path.join(this.basePath, 'jwt.json'))
-		)) as JwtUserSessionMiddlewareConfig;
+		try {
+			return (await this.validator.validate(
+				'CONFIG',
+				ConfigName.JWT,
+				await readFile(path.join(this.basePath, 'jwt.json'))
+			)) as JwtUserSessionMiddlewareConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Jwt user session middleware config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getAppConfig(): Promise<AppConfig> {
-		return (await this.validator.validate('CONFIG', ConfigName.APP, await readFile(path.join(this.basePath, 'app.json')))) as AppConfig;
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.APP, await readFile(path.join(this.basePath, 'app.json')))) as AppConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `App config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 
 	public async getAuthenticationEngineConfig(): Promise<AuthenticationEngineConfig> {
-		return (await this.validator.validate(
-			'CONFIG',
-			ConfigName.AUTHENTICATION_ENGINE,
-			await readFile(path.join(this.basePath, 'authentication.json'))
-		)) as AuthenticationEngineConfig;
+		try {
+			return (await this.validator.validate(
+				'CONFIG',
+				ConfigName.AUTHENTICATION_ENGINE,
+				await readFile(path.join(this.basePath, 'authentication.json'))
+			)) as AuthenticationEngineConfig;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID, `Authentication engine config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
 	}
 }
 
