@@ -123,7 +123,11 @@ interface AppConfig {
 		port: number;
 	};
 	api: {
-		basePath: string;
+		path: {
+			base: string;
+			authentication: string;
+			session: string;
+		};
 	};
 }
 

@@ -1,7 +1,8 @@
-import { Request } from 'express';
+import { Express, Request } from 'express';
 import { IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
 // eslint-disable-next-line node/no-extraneous-import, import/no-extraneous-dependencies
 import { ParsedQs } from 'qs';
+import type { HttpVerb } from '@thermopylae/core.declarations';
 import { REQUEST_SESSION_SYM } from './app/constants';
 
 interface RequestWithUserSession<
@@ -14,4 +15,13 @@ interface RequestWithUserSession<
 	readonly [REQUEST_SESSION_SYM]?: IssuedJwtPayload;
 }
 
-export { RequestWithUserSession };
+type ApiSchema<ServiceMethod extends string> = Record<
+	ServiceMethod,
+	{
+		path: string;
+		verb: HttpVerb & keyof Express;
+		requiresSession: boolean;
+	}
+>;
+
+export { RequestWithUserSession, ApiSchema };

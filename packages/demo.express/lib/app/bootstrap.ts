@@ -30,17 +30,19 @@ import { RedisClientInstance, initLogger as initRedisClientLogger } from '@therm
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
 import { LoggerInstance } from '@thermopylae/core.logger';
 import { publicEncrypt } from 'crypto';
-import express from 'express';
+import express, { Router } from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import addRequestId from 'express-request-id';
 import helmet from 'helmet';
 import process from 'process';
+import path from 'path';
+import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
 import { Config } from '../config';
-import { EnvironmentVariables, SERVICE_NAME } from './constants';
+import { EnvironmentVariables, ROUTER_OPTIONS, SERVICE_NAME } from './constants';
 import { createException } from '../error';
 import { initLogger, logger } from '../logger';
-import { apiRouter } from '../api/router';
+import { authenticationRouter } from '../api/routes/authentication/router';
 import { morganMiddleware } from '../api/middleware/morgan';
 import {
 	API_VALIDATOR,
@@ -58,6 +60,10 @@ import {
 } from './singletons';
 import { serverError } from '../api/middleware/server-error';
 import { requiresAuthentication } from '../api/middleware/session';
+import { stringifyOperationContext } from '../utils';
+import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema';
+import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema';
+import { userSessionRouter } from '../api/routes/session/router';
 
 let bootstrapPerformed = false;
 
@@ -83,7 +89,7 @@ async function bootstrap() {
 	}
 
 	LoggerInstance.formatting.setDefaultRecipe(loggingConfig.formatting.format, {
-		colorize: loggingConfig.formatting.colorize ? { [SERVICE_NAME]: 'gray' } : false,
+		colorize: loggingConfig.formatting.colorize ? { [SERVICE_NAME]: 'olive' } : false,
 		ignoredLabels: loggingConfig.formatting.ignoredLabels != null ? new Set(loggingConfig.formatting.ignoredLabels) : undefined,
 		levelForLabel: loggingConfig.formatting.levelForLabel,
 		skippedFormatters: loggingConfig.formatting.skippedFormatters != null ? new Set(loggingConfig.formatting.skippedFormatters) : undefined
@@ -211,7 +217,7 @@ async function bootstrap() {
 						await EMAIL_CLIENT.send({
 							to: account.email,
 							subject: 'Authentication from different context',
-							text: `Authentication was performed from different context: ${JSON.stringify(authenticationContext)}.`
+							text: `Authentication was performed from different context. ${stringifyOperationContext(authenticationContext)}`
 						});
 					} catch (e) {
 						logger.error(
@@ -282,9 +288,9 @@ async function bootstrap() {
 
 						if (googleResponse.hostname !== authEngineConfig.recaptcha.hostname) {
 							logger.warning(
-								`Attempt to resolve google captcha from a hostname different than the one from config. Ip: ${
-									authenticationContext.ip
-								}, device: ${JSON.stringify(authenticationContext.device)}, location: ${JSON.stringify(authenticationContext.location)}.`
+								`Attempt to resolve google captcha from a hostname different than the one from config. ${stringifyOperationContext(
+									authenticationContext
+								)}`
 							);
 							return false;
 						}
@@ -304,9 +310,7 @@ async function bootstrap() {
 							await EMAIL_CLIENT.send({
 								to: account.email,
 								subject: 'Password changed',
-								text: `Password has been changed from ip: ${changePasswordContext.ip}, device: ${JSON.stringify(
-									changePasswordContext.device
-								)}, location: ${JSON.stringify(changePasswordContext.location)}.`
+								text: `Password has been changed. ${stringifyOperationContext(changePasswordContext)}`
 							});
 						} catch (e) {
 							logger.error(`Failed to send notification about password change via email for account with id '${account.id}'.`, e);
@@ -339,9 +343,7 @@ async function bootstrap() {
 							await EMAIL_CLIENT.send({
 								to: account.email,
 								subject: 'Multi factor authentication failed',
-								text: `Context ip: ${authenticationContext.ip}, device: ${JSON.stringify(
-									authenticationContext.device
-								)}, location: ${JSON.stringify(authenticationContext.location)}.`
+								text: stringifyOperationContext(authenticationContext)
 							});
 						} catch (e) {
 							logger.error(`Failed to notify about multi factor authentication failure via email for account with id '${account.id}'.`, e);
@@ -355,7 +357,8 @@ async function bootstrap() {
 								text: token
 							});
 						} catch (e) {
-							logger.error(`Failed to send forgot password token via email for account with id '${account.id}'.`, e);
+							e.message = `Failed to send forgot password token via email for account with id '${account.id}'.'. ${e.message}`;
+							throw e;
 						}
 					},
 					sendActivateAccountToken: async (account, token) => {
@@ -377,7 +380,8 @@ async function bootstrap() {
 					try {
 						await SMS_CLIENT.send(account.telephone!, `Forgot password token: ${token}`);
 					} catch (e) {
-						logger.error(`Failed to send forgot password token via sms for account with id '${account.id}'.`, e);
+						e.message = `Failed to send forgot password token via sms for account with id '${account.id}'. ${e.message}`;
+						throw e;
 					}
 				}
 			},
@@ -409,6 +413,17 @@ async function bootstrap() {
 			session: jwtConfig.session
 		})
 	);
+	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.SESSION_INVALIDATED, () => {
+		logger.crit(
+			'JWT session was invalidated. Reminder in case app is run in cluster mode, it needs to send event to other nodes, so that they can invalidate this session.'
+		);
+	});
+	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.ALL_SESSIONS_INVALIDATED, () => {
+		logger.crit(
+			'All JWT session were invalidated. Reminder in case app is run in cluster mode, it needs to send event to other nodes, so that they can invalidate this session.'
+		);
+	});
+
 	logger.debug('Jwt user session middleware initialized.');
 
 	/* CONNECT TO DATABASES */
@@ -433,7 +448,27 @@ async function bootstrap() {
 		})
 	);
 	app.use(helmet.hidePoweredBy());
-	app.use(appConfig.api.basePath, requiresAuthentication, apiRouter);
+
+	// setup routes
+	const unlessOptions = {
+		useOriginalUrl: true,
+		path: new Array<string>()
+	};
+	for (const serviceMethod of Object.values(AUTHENTICATION_API_SCHEMA)) {
+		if (!serviceMethod.requiresSession) {
+			unlessOptions.path.push(path.join(appConfig.api.path.base, appConfig.api.path.authentication, serviceMethod.path));
+		}
+	}
+	for (const serviceMethod of Object.values(SESSION_API_SCHEMA)) {
+		if (!serviceMethod.requiresSession) {
+			unlessOptions.path.push(path.join(appConfig.api.path.base, appConfig.api.path.session, serviceMethod.path));
+		}
+	}
+	const apiRouter = Router(ROUTER_OPTIONS);
+	apiRouter.use(appConfig.api.path.authentication, authenticationRouter);
+	apiRouter.use(appConfig.api.path.session, userSessionRouter);
+	app.use(appConfig.api.path.base, requiresAuthentication(unlessOptions), apiRouter);
+
 	app.use(serverError);
 	app.use(morganMiddleware);
 
@@ -469,17 +504,15 @@ async function bootstrap() {
 
 async function shutdown(): Promise<void> {
 	/* STOP API SERVER */
-	await new Promise<void>((resolve) => {
-		SERVER.close((err) => {
-			if (err) {
-				logger.error('Failed to close api server.', err);
-				return;
-			}
-
-			logger.info('Express server closed');
-			resolve();
+	try {
+		await new Promise<void>((resolve, reject) => {
+			SERVER.close((err) => (err ? reject(err) : resolve()));
 		});
-	});
+
+		logger.info('Express server closed');
+	} catch (e) {
+		logger.error('Failed to close api server.', e);
+	}
 
 	/* CLOSE MYSQL CONNECTION */
 	try {

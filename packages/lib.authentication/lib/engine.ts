@@ -366,7 +366,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		accountUniqueFieldName: `readBy${Capitalize<Extract<keyof Account, 'username' | 'email' | 'telephone'>>}`,
 		accountUniqueFieldValue: string,
 		sideChannel: 'email' | 'sms'
-	): Promise<void> {
+	): Promise<Account> {
 		const account = await this.accountManager[accountUniqueFieldName](accountUniqueFieldValue);
 
 		const sessionToken = await this.tokenManager.issueEncodedWithAccountId(account.id);
@@ -396,6 +396,8 @@ class AuthenticationEngine<Account extends AccountModel> {
 					`Can't send forgot password token for account with id '${account.id}', because side channel type '${sideChannel}' is unknown.`
 				);
 			}
+
+			return account;
 		} catch (e) {
 			await this.options.repositories.forgotPasswordSession.delete(sessionToken);
 			throw e;

@@ -6,10 +6,11 @@ import { Exception } from '@thermopylae/lib.exception';
 import handler from 'express-async-handler';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import farmhash from 'farmhash';
-import { SERVICE_NAME, ServiceMethod } from '../../app/constants';
-import { logger } from '../../logger';
-import { createException } from '../../error';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
+import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { logger } from '../../../../logger';
+import { createException } from '../../../../error';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
+import { stringifyOperationContext } from '../../../../utils';
 
 const enum ErrorCodes {
 	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
@@ -87,7 +88,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 
 		if (authenticationStatus.nextStep) {
 			if (authenticationStatus.error && authenticationStatus.error.soft) {
-				logger.error(`Authentication failed. Context: ${JSON.stringify(authContext)}.`, authenticationStatus.error.soft);
+				logger.error(`Authentication failed. ${stringifyOperationContext(authContext)}`, authenticationStatus.error.soft);
 
 				res.status(HttpStatusCode.Unauthorized).send({
 					nextStep: authenticationStatus.nextStep,
@@ -107,7 +108,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 		}
 
 		if (authenticationStatus.error && authenticationStatus.error.hard) {
-			logger.error(`Authentication failed. Context: ${JSON.stringify(authContext)}.`, authenticationStatus.error.hard);
+			logger.error(`Authentication failed. ${stringifyOperationContext(authContext)}`, authenticationStatus.error.hard);
 
 			if (authenticationStatus.error.hard.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
 				res.status(HttpStatusCode.Locked).send({
@@ -129,7 +130,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 		);
 	} catch (e) {
 		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Authentication failed. Context: ${JSON.stringify(authContext)}.`, e);
+			logger.error(`Authentication failed. ${stringifyOperationContext(authContext)}`, e);
 
 			if (e.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
 				res.status(HttpStatusCode.Locked).send({

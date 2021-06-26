@@ -4,18 +4,18 @@ import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
 import isStringInt from 'is-string-int';
 import handler from 'express-async-handler';
 import { FailedAuthenticationModel } from '@thermopylae/lib.authentication';
-import { AUTHENTICATION_ENGINE } from '../../app/singletons';
-import { RequestWithUserSession } from '../../typings';
-import { REQUEST_SESSION_SYM } from '../../app/constants';
+import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
+import { RequestWithUserSession } from '../../../../typings';
+import { REQUEST_SESSION_SYM } from '../../../../app/constants';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
 interface RequestQuery {
-	from?: string | number;
-	to?: string | number;
-	[param: string]: string | number | undefined; // for typings
+	from?: string;
+	to?: string;
+	[param: string]: string | undefined; // for typings
 }
 
 type ResponseBody =
@@ -32,7 +32,7 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 	res: Response<ResponseBody>,
 	next: NextFunction
 ) => {
-	if (req.query.from != null && (!isStringInt(req.query.from) || (req.query.from = Number(req.query.from)) <= 0)) {
+	if (req.query.from != null && (!isStringInt(req.query.from) || ((req.query.from as unknown as number) = Number(req.query.from)) <= 0)) {
 		res.status(HttpStatusCode.BadRequest).send({
 			error: {
 				code: ErrorCodes.INVALID_INPUT,
@@ -42,7 +42,7 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 		return;
 	}
 
-	if (req.query.to != null && (!isStringInt(req.query.to) || (req.query.to = Number(req.query.to)) <= 0)) {
+	if (req.query.to != null && (!isStringInt(req.query.to) || ((req.query.to as unknown as number) = Number(req.query.to)) <= 0)) {
 		res.status(HttpStatusCode.BadRequest).send({
 			error: {
 				code: ErrorCodes.INVALID_INPUT,

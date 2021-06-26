@@ -4,8 +4,8 @@ import { HttpStatusCode, Library, ObjMap, PartialSome } from '@thermopylae/core.
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../app/singletons';
-import { SERVICE_NAME, ServiceMethod } from '../../app/constants';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
+import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT',

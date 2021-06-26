@@ -23,12 +23,29 @@
     "api": {
       "type": "object",
       "properties": {
-        "basePath": {
-          "type": "string"
+        "path": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string"
+            },
+            "authentication": {
+              "type": "string"
+            },
+            "session": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "base",
+            "authentication",
+            "session"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
-        "basePath"
+        "path"
       ],
       "additionalProperties": false
     }

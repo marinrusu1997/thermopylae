@@ -5,11 +5,12 @@ import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ExpressRequestAdapter } from '@thermopylae/core.adapter.express';
 import { SetTwoFactorAuthenticationContext, ErrorCodes as AuthenticationErrorCodes, OnTwoFactorEnabledHookResult } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../app/singletons';
-import { logger } from '../../logger';
-import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../app/constants';
-import { createException } from '../../error';
-import { RequestWithUserSession } from '../../typings';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
+import { logger } from '../../../../logger';
+import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { createException } from '../../../../error';
+import { RequestWithUserSession } from '../../../../typings';
+import { stringifyOperationContext } from '../../../../utils';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -68,7 +69,7 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 		}
 	} catch (e) {
 		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Set two factor authentication enabled failed. Context: ${JSON.stringify(context)}.`, e);
+			logger.error(`Set two factor authentication enabled failed. ${stringifyOperationContext(context)}.`, e);
 
 			let httpResponseStatus: number;
 			switch (e.code) {

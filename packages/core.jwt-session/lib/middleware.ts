@@ -349,20 +349,48 @@ class JwtUserSessionMiddleware {
 	 * @param payload				JWT Access Token payload. <br/>
 	 * 								This parameter is optional and can be omitted when deletion is made by admin who doesn't have access token of the user.
 	 * @param unsetSessionCookies	Whether to unset session cookies in the `res` after session deletion. <br/>
-	 * 								This is valid only for requests made from browser devices and when `payload` param is provided. <br/>
+	 * 								This is valid only for requests made from browser devices. <br/>
 	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 */
 	public async delete(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<void> {
 		const [refreshToken, clientType] = this.getRefreshTokenFromRequest(req);
 		await this.jwtSessionManager.deleteOne(subject, refreshToken, payload);
 
-		if (unsetSessionCookies && clientType === 'browser' && payload) {
+		if (unsetSessionCookies && clientType === 'browser') {
 			res.header('set-cookie', this.invalidationCookies.refresh);
 			res.header('set-cookie', this.invalidationCookies.signature);
 			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
 				res.header('set-cookie', this.invalidationCookies.payload);
 			}
 		}
+	}
+
+	/**
+	 * Delete all user sessions.
+	 *
+	 * @param req					Incoming HTTP request.
+	 * @param res					Outgoing HTTP response.
+	 * @param subject				Subject, sessions of which needs to be deleted.
+	 * @param payload				JWT Access Token payload. <br/>
+	 * 								This parameter is optional and can be omitted when deletion is made by admin who doesn't have access token of the user.
+	 * @param unsetSessionCookies	Whether to unset session cookies in the `res` after session deletion. <br/>
+	 * 								This is valid only for requests made from browser devices. <br/>
+	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 *
+	 * @returns						Number of deleted sessions.
+	 */
+	public async deleteAll(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<number> {
+		const numberOfDeletedSessions = await this.jwtSessionManager.deleteAll(subject, payload);
+
+		if (unsetSessionCookies && req.device && req.device.client && req.device.client.type === 'browser') {
+			res.header('set-cookie', this.invalidationCookies.refresh);
+			res.header('set-cookie', this.invalidationCookies.signature);
+			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
+				res.header('set-cookie', this.invalidationCookies.payload);
+			}
+		}
+
+		return numberOfDeletedSessions;
 	}
 
 	private getRefreshTokenFromRequest(req: HttpRequest): [string, ClientType | null] {

@@ -1,7 +1,13 @@
+import { RouterOptions } from 'express';
+
 const enum ServiceMethod {
 	AUTHENTICATE = 'AUTHENTICATE',
 	REGISTER = 'REGISTER',
-	SET_TWO_FACTOR_AUTH_ENABLED = 'SET_TWO_FACTOR_AUTH_ENABLED'
+	SET_TWO_FACTOR_AUTH_ENABLED = 'SET_TWO_FACTOR_AUTH_ENABLED',
+	CHANGE_PASSWORD = 'CHANGE_PASSWORD',
+	CREATE_FORGOT_PASSWORD_SESSION = 'CREATE_FORGOT_PASSWORD_SESSION',
+	CHANGE_FORGOTTEN_PASSWORD = 'CHANGE_FORGOTTEN_PASSWORD',
+	REFRESH_USER_SESSION = 'REFRESH_USER_SESSION'
 }
 
 const enum EnvironmentVariables {
@@ -12,4 +18,11 @@ const SERVICE_NAME = 'AUTH_SERVICE';
 
 const REQUEST_SESSION_SYM = Symbol('REQUEST_SESSION_SYM');
 
-export { SERVICE_NAME, REQUEST_SESSION_SYM, ServiceMethod, EnvironmentVariables };
+const ROUTER_OPTIONS: RouterOptions = {
+	caseSensitive: true,
+	mergeParams: false,
+	strict: true
+};
+Object.freeze(ROUTER_OPTIONS);
+
+export { SERVICE_NAME, REQUEST_SESSION_SYM, ROUTER_OPTIONS, ServiceMethod, EnvironmentVariables };

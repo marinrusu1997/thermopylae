@@ -1,21 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#AUTH_SERVICE-GET_FAILED_AUTH_ATTEMPTS",
+  "$id": "#AUTH_SERVICE-REFRESH_USER_SESSION",
   "type": "object",
   "properties": {
     "accountId": {
       "$ref": "../core/core.json#/definitions/id"
-    },
-    "startingFrom": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "endingTo": {
-      "type": "integer",
-      "minimum": 0
     }
   },
   "required": [
     "accountId"
-  ]
+  ],
+  "additionalProperties": false
 }

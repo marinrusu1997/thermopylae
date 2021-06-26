@@ -354,12 +354,12 @@ class FormattingManager {
 	}
 
 	private static defineFormattedLabels(formattedLabels: FormattedLabels): void {
-		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('fuchsia')(CoreModule.AUTHENTICATION));
-		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('olive')(CoreModule.USER_SESSION_COMMONS));
+		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('lime')(CoreModule.AUTHENTICATION));
+		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('purple')(CoreModule.USER_SESSION_COMMONS));
 		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
-		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('aqua')(CoreModule.COOKIE_USER_SESSION));
+		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('orange')(CoreModule.COOKIE_USER_SESSION));
 
-		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('silver')(Client.MYSQL));
+		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('maroon')(Client.MYSQL));
 		formattedLabels[Client.REDIS] = chalk.italic(chalk.bgKeyword('gray')(Client.REDIS));
 	}
 
