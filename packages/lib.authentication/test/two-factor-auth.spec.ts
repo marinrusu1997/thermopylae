@@ -95,7 +95,7 @@ describe('Two Factor Authentication spec', function suite() {
 			expect(authStatus.authenticated).to.be.eq(undefined);
 			expect(authStatus.token).to.be.eq(undefined);
 			expect(authStatus.error).to.not.be.eq(undefined);
-			expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
+			expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(authStatus.error!.soft).to.haveOwnProperty(
 				'message',
 				`Credentials are not valid. Remaining attempts (${

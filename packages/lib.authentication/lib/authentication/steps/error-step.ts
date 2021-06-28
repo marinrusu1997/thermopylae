@@ -49,14 +49,19 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 		if (failedAuthAttemptSession.counter >= this.recaptchaThreshold) {
 			const authenticationSession = await authenticationSessionRepositoryHolder.get();
 			authenticationSession.recaptchaRequired = true;
-			// when intercepted, this will allow at the upper levels to send to client svg captcha, depends on chosen implementation
+
 			return {
 				done: {
 					// ternary is needed in order to inform client that it's time to use captcha
 					nextStep:
 						previousAuthenticationStepName === AuthenticationStepName.PASSWORD ? AuthenticationStepName.RECAPTCHA : previousAuthenticationStepName,
 					error: {
-						soft: createException(ErrorCodes.RECAPTCHA_THRESHOLD_REACHED, errorMessage)
+						soft: createException(
+							previousAuthenticationStepName === AuthenticationStepName.RECAPTCHA
+								? ErrorCodes.INCORRECT_RECAPTCHA
+								: ErrorCodes.INCORRECT_CREDENTIALS,
+							errorMessage
+						)
 					}
 				}
 			};

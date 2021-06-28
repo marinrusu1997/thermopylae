@@ -152,6 +152,7 @@ interface AuthenticationEngineConfig {
 	readonly recaptcha: {
 		readonly secretKey: string;
 		readonly score: number;
+		readonly action: string;
 		readonly hostname: string;
 	};
 	readonly password: {

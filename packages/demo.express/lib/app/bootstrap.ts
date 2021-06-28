@@ -35,6 +35,8 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import addRequestId from 'express-request-id';
 import helmet from 'helmet';
+import fetch from 'node-fetch';
+import cors from 'cors'; // @fixme remove and from package.json
 import process from 'process';
 import path from 'path';
 import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
@@ -270,27 +272,25 @@ async function bootstrap() {
 						).json();
 
 						if (googleResponse.success !== true) {
+							logger.warning("Google recaptcha wasn't solved.");
 							return false;
 						}
 
 						if (googleResponse.score < authEngineConfig.recaptcha.score) {
+							logger.warning(`Google captcha has a score that's below the one from config. Given score: '${googleResponse.score}'.`);
 							return false;
 						}
 
-						if (googleResponse.action !== '') {
-							logger.crit(
-								`FIXME recaptcha action. Google response: ${JSON.stringify(googleResponse)}. Authentication context: ${JSON.stringify(
-									authenticationContext
-								)}`
+						if (googleResponse.action !== authEngineConfig.recaptcha.action) {
+							logger.warning(
+								`Attempt to resolve google captcha with an action different than the one from config. Given action: '${googleResponse.action}'.`
 							);
 							return false;
 						}
 
 						if (googleResponse.hostname !== authEngineConfig.recaptcha.hostname) {
 							logger.warning(
-								`Attempt to resolve google captcha from a hostname different than the one from config. ${stringifyOperationContext(
-									authenticationContext
-								)}`
+								`Attempt to resolve google captcha from a hostname different than the one from config. Given hostname: '${googleResponse.hostname}'.`
 							);
 							return false;
 						}
@@ -440,6 +440,7 @@ async function bootstrap() {
 
 	const app = express();
 	app.set('trust proxy', 1);
+	app.use(cors({ origin: 'http://localhost:63342', credentials: true })); // @fixme remove this
 	app.use(bodyParser.json());
 	app.use(cookieParser());
 	app.use(
@@ -448,6 +449,7 @@ async function bootstrap() {
 		})
 	);
 	app.use(helmet.hidePoweredBy());
+	app.use(morganMiddleware);
 
 	// setup routes
 	const unlessOptions = {
@@ -470,7 +472,6 @@ async function bootstrap() {
 	app.use(appConfig.api.path.base, requiresAuthentication(unlessOptions), apiRouter);
 
 	app.use(serverError);
-	app.use(morganMiddleware);
 
 	await new Promise<void>((resolve) => {
 		initApiServer(

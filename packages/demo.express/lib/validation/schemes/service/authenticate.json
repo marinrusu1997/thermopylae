@@ -17,7 +17,7 @@
     },
     "recaptcha": {
       "type": "string",
-      "maxLength": 50
+      "maxLength": 450
     }
   },
   "required": [

@@ -13,11 +13,7 @@ import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } fro
 import { stringifyOperationContext } from '../../../../utils';
 
 const enum ErrorCodes {
-	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
-	INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
-	INVALID_INPUT = 'INVALID_INPUT',
-	RECAPTCHA_THRESHOLD_REACHED = 'RECAPTCHA_THRESHOLD_REACHED',
-	TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY = 'TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY'
+	INVALID_INPUT = 'INVALID_INPUT'
 }
 
 interface RequestBody {
@@ -32,7 +28,7 @@ interface ResponseBody {
 	nextStep?: string;
 	token?: string;
 	error?: {
-		code: ErrorCodes;
+		code: ErrorCodes | AuthenticationErrorCodes;
 		message: string | ObjMap;
 	};
 }
@@ -93,10 +89,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 				res.status(HttpStatusCode.Unauthorized).send({
 					nextStep: authenticationStatus.nextStep,
 					error: {
-						code:
-							authenticationStatus.error.soft.code === AuthenticationErrorCodes.RECAPTCHA_THRESHOLD_REACHED
-								? ErrorCodes.RECAPTCHA_THRESHOLD_REACHED
-								: ErrorCodes.INVALID_CREDENTIALS,
+						code: authenticationStatus.error.soft.code as AuthenticationErrorCodes,
 						message: 'Authentication error.'
 					}
 				});
@@ -113,7 +106,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 			if (authenticationStatus.error.hard.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
 				res.status(HttpStatusCode.Locked).send({
 					error: {
-						code: ErrorCodes.ACCOUNT_DISABLED,
+						code: AuthenticationErrorCodes.ACCOUNT_DISABLED,
 						message: 'Authentication on disable.'
 					}
 				});
@@ -135,7 +128,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 			if (e.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
 				res.status(HttpStatusCode.Locked).send({
 					error: {
-						code: ErrorCodes.ACCOUNT_DISABLED,
+						code: AuthenticationErrorCodes.ACCOUNT_DISABLED,
 						message: 'Authentication on disable.'
 					}
 				});
@@ -145,7 +138,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 			if (e.code === AuthenticationErrorCodes.ACCOUNT_NOT_FOUND) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
-						code: ErrorCodes.INVALID_CREDENTIALS,
+						code: AuthenticationErrorCodes.INCORRECT_CREDENTIALS,
 						message: 'Credentials are not valid.'
 					}
 				});
@@ -155,7 +148,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 			if (e.code === AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
-						code: ErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
+						code: AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
 						message: 'Two factor authentication token was issued already. Provide it or wait until it expires, then request a new one.'
 					}
 				});

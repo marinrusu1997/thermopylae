@@ -5,7 +5,7 @@ type ApiMethod = 'refreshUserSession' | 'getActiveUserSessions' | 'logout' | 'lo
 const API_SCHEMA: ApiSchema<ApiMethod> = {
 	refreshUserSession: {
 		verb: 'put',
-		path: '/renew',
+		path: '/refresh',
 		requiresSession: false
 	},
 	getActiveUserSessions: {

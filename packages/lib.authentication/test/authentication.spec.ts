@@ -300,7 +300,7 @@ describe('Authenticate spec', function suite() {
 			AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha;
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, deviceId: 'device2', password: 'invalid' });
-			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.RECAPTCHA_THRESHOLD_REACHED);
+			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(status.nextStep).to.be.eq(AuthenticationStepName.RECAPTCHA);
 			numberOfAuthAttempts += 1;
 		}
@@ -327,7 +327,7 @@ describe('Authenticate spec', function suite() {
 
 			if (authStatus.error!.soft) {
 				expect(authStatus.error!.soft).to.be.instanceOf(Exception);
-				expect(authStatus.error!.soft!.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.RECAPTCHA_THRESHOLD_REACHED]);
+				expect(authStatus.error!.soft!.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.INCORRECT_RECAPTCHA]);
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 
 				continue;

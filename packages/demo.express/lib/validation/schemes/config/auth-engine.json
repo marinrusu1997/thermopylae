@@ -105,13 +105,19 @@
           "minimum": 0,
           "maximum": 1
         },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
         "hostname": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
         "secretKey",
         "score",
+        "action",
         "hostname"
       ],
       "additionalProperties": false
