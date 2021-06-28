@@ -28,8 +28,9 @@ describe(`${AccountMySqlRepository.name} spec`, function suite() {
 				totpSecret: null!,
 				pubKey: null
 			};
-			await accountRepository.insert(account);
+			const duplicatedFields = await accountRepository.insert(account);
 			expect(typeof account.id).to.be.eq('string');
+			expect(duplicatedFields).to.be.eq(null);
 
 			/* READ IT BY ID */
 			const readAccount = await accountRepository.readById(account.id);
@@ -58,6 +59,166 @@ describe(`${AccountMySqlRepository.name} spec`, function suite() {
 			const readAccount = await accountRepository.readById(account.id);
 			expect(readAccount).to.be.deep.eq(account);
 		});
+
+		it('returns duplicated fields', async () => {
+			/* INSERT ACCOUNT */
+			const account: AccountWithTotpSecret = {
+				id: undefined!,
+				username: faker.internet.userName(),
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: faker.internet.email(),
+				telephone: faker.phone.phoneNumber(),
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+			let duplicatedFields = await accountRepository.insert(account);
+			expect(typeof account.id).to.be.eq('string');
+			expect(duplicatedFields).to.be.eq(null);
+
+			/* INSERT DUPLICATE ACCOUNT */
+			duplicatedFields = await accountRepository.insert(account);
+			expect(duplicatedFields).to.be.equalTo(['username']);
+
+			account.username = 'notduplicate';
+			duplicatedFields = await accountRepository.insert(account);
+			expect(duplicatedFields).to.be.equalTo(['email']);
+
+			account.email = 'notduplicate';
+			duplicatedFields = await accountRepository.insert(account);
+			expect(duplicatedFields).to.be.equalTo(['telephone']);
+
+			/* INSERT NOT DUPLICATE ACCOUNT */
+			account.telephone = 'notduplicate';
+			duplicatedFields = await accountRepository.insert(account);
+			expect(typeof account.id).to.be.eq('string');
+			expect(duplicatedFields).to.be.eq(null);
+		});
+	});
+
+	describe(`${AccountMySqlRepository.prototype.isDuplicate.name} spec`, () => {
+		it('returns duplicated fields', async () => {
+			/* INSERT ACCOUNT */
+			const account: AccountWithTotpSecret = {
+				id: undefined!,
+				username: faker.internet.userName(),
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: faker.internet.email(),
+				telephone: faker.phone.phoneNumber(),
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+			let duplicatedFields = await accountRepository.isDuplicate(account); // when no acc
+			expect(duplicatedFields).to.be.eq(null);
+
+			duplicatedFields = await accountRepository.insert(account);
+			expect(typeof account.id).to.be.eq('string');
+			expect(duplicatedFields).to.be.eq(null);
+
+			/* CHECK FOR DUPLICATES */
+			duplicatedFields = await accountRepository.isDuplicate(account);
+			expect(duplicatedFields).to.be.equalTo(['username', 'email', 'telephone']);
+
+			account.username = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(account);
+			expect(duplicatedFields).to.be.equalTo(['email', 'telephone']);
+
+			account.email = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(account);
+			expect(duplicatedFields).to.be.equalTo(['telephone']);
+
+			account.telephone = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(account);
+			expect(duplicatedFields).to.be.eq(null);
+		});
+
+		it('returns duplicated fields (multiple accounts in the repo)', async () => {
+			/* INSERT ACCOUNTS */
+			const firstAccount: AccountWithTotpSecret = {
+				id: undefined!,
+				username: faker.internet.userName(),
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: faker.internet.email(),
+				telephone: faker.phone.phoneNumber(),
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+			await accountRepository.insert(firstAccount);
+			expect(typeof firstAccount.id).to.be.eq('string');
+
+			const secondAccount: AccountWithTotpSecret = {
+				id: undefined!,
+				username: faker.internet.userName(),
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: faker.internet.email(),
+				telephone: faker.phone.phoneNumber(),
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+			await accountRepository.insert(secondAccount);
+			expect(typeof secondAccount.id).to.be.eq('string');
+
+			const thirdAccount: AccountWithTotpSecret = {
+				id: undefined!,
+				username: faker.internet.userName(),
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: faker.internet.email(),
+				telephone: faker.phone.phoneNumber(),
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+			await accountRepository.insert(thirdAccount);
+			expect(typeof thirdAccount.id).to.be.eq('string');
+
+			/* CHECK FOR DUPLICATES */
+			const duplicateAccount: AccountWithTotpSecret = {
+				id: undefined!,
+				username: firstAccount.username,
+				passwordHash: faker.internet.password(),
+				passwordSalt: faker.datatype.string(10),
+				passwordAlg: faker.datatype.number(9),
+				email: secondAccount.email,
+				telephone: thirdAccount.telephone,
+				disabledUntil: array.randomElement([AccountStatus.DISABLED_UNTIL_ACTIVATION, AccountStatus.ENABLED, chrono.unixTime()]),
+				mfa: faker.datatype.boolean(),
+				totpSecret: faker.datatype.string(10),
+				pubKey: faker.datatype.string(50)
+			};
+
+			let duplicatedFields = await accountRepository.isDuplicate(duplicateAccount);
+			expect(duplicatedFields).to.be.equalTo(['username', 'email', 'telephone']);
+
+			duplicateAccount.username = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(duplicateAccount);
+			expect(duplicatedFields).to.be.equalTo(['email', 'telephone']);
+
+			duplicateAccount.email = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(duplicateAccount);
+			expect(duplicatedFields).to.be.equalTo(['telephone']);
+
+			duplicateAccount.telephone = 'notduplicate';
+			duplicatedFields = await accountRepository.isDuplicate(duplicateAccount);
+			expect(duplicatedFields).to.be.eq(null);
+		}).timeout(5_000);
 	});
 
 	describe(`${AccountMySqlRepository.prototype.readById.name} spec`, () => {

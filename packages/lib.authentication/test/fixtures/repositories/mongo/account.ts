@@ -24,8 +24,33 @@ function model(): mongoose.Model<mongoose.Document> {
 
 const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 	insert: async (account) => {
+		const duplicatedFields = await AccountRepositoryMongo.isDuplicate(account);
+		if (duplicatedFields != null) {
+			return duplicatedFields;
+		}
+
 		const accountModel = await model().create(account);
 		account.id = String(accountModel._id);
+
+		return null;
+	},
+
+	isDuplicate: async (account) => {
+		const duplicatedFields: (keyof AccountWithTotpSecret)[] = [];
+		const uniqueFields: (keyof AccountWithTotpSecret)[] = ['username', 'email', 'telephone'];
+		for (const field of uniqueFields) {
+			if (
+				(
+					await model()
+						.find({ [field]: account[field] })
+						.exec()
+				).length > 0
+			) {
+				duplicatedFields.push(field);
+			}
+		}
+
+		return duplicatedFields.length !== 0 ? duplicatedFields : null;
 	},
 
 	readById: async (id) => {

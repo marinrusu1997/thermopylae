@@ -18,7 +18,7 @@ interface RequestQuery {
 
 interface ResponseBody {
 	error?: {
-		code: ErrorCodes;
+		code: ErrorCodes | AuthenticationErrorCodes;
 		message: string | ObjMap;
 	};
 }
@@ -46,16 +46,28 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, never, RequestQu
 		await AUTHENTICATION_ENGINE.activateAccount(req.query.token);
 		res.status(HttpStatusCode.NoContent).send();
 	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION && e.code === AuthenticationErrorCodes.SESSION_NOT_FOUND) {
+		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
 			logger.error(`Account activation failed. Request origin: ${req.ip}.`, e);
 
-			res.status(HttpStatusCode.BadRequest).send({
-				error: {
-					code: ErrorCodes.INVALID_TOKEN,
-					message: 'Activation token is not valid.'
-				}
-			});
-			return;
+			if (e.code === AuthenticationErrorCodes.SESSION_NOT_FOUND) {
+				res.status(HttpStatusCode.BadRequest).send({
+					error: {
+						code: ErrorCodes.INVALID_TOKEN,
+						message: 'Activation token is not valid.'
+					}
+				});
+				return;
+			}
+
+			if (e.code === AuthenticationErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS) {
+				res.status(HttpStatusCode.Conflict).send({
+					error: {
+						code: e.code,
+						message: e.origin
+					}
+				});
+				return;
+			}
 		}
 		throw e;
 	}

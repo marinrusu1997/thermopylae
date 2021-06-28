@@ -45,7 +45,7 @@
         "forgotPasswordSession": {
           "type": "integer",
           "minimum": 300,
-          "maximum": 600
+          "maximum": 900
         },
         "accountDisableTimeout": {
           "type": "integer",

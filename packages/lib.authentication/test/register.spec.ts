@@ -32,19 +32,43 @@ describe('Register spec', () => {
 		expect(accountToBeRegistered.mfa).to.be.eq(account.mfa);
 	});
 
-	it('fails to register new account if it is registered already', async () => {
-		await AuthEngineInstance.register(buildAccountToBeRegistered());
+	it('fails to register new account if it is registered already (account is enabled)', async () => {
+		const account = buildAccountToBeRegistered();
+		account.disabledUntil = AccountStatus.ENABLED;
 
-		let err: Error | null = null;
+		await AuthEngineInstance.register(account);
+
+		let err: Exception | null = null;
 		try {
-			await AuthEngineInstance.register(buildAccountToBeRegistered());
+			await AuthEngineInstance.register(account);
 		} catch (e) {
 			err = e;
 		}
 
-		expect(err).to.not.be.eq(null);
-		expect(err!.message).to.be.eq('E11000 duplicate key error dup key: { : "username" }');
-	});
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
+		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
+		expect(err!.origin).to.be.equalTo(['username', 'email', 'telephone']);
+	}).timeout(4000);
+
+	it('fails to register new account if it is registered already (account is disabled)', async () => {
+		const account = buildAccountToBeRegistered();
+
+		account.disabledUntil = AccountStatus.ENABLED;
+		await AuthEngineInstance.register(account);
+
+		let err: Exception | null = null;
+		try {
+			account.disabledUntil = AccountStatus.DISABLED_UNTIL_ACTIVATION;
+			account.telephone = '+4078562326';
+			await AuthEngineInstance.register(account);
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
+		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
+		expect(err!.origin).to.be.equalTo(['username', 'email']);
+	}).timeout(4000);
 
 	it('fails to register new account if provided password is too weak', async () => {
 		const errors = new Array<Exception>();
@@ -136,4 +160,50 @@ describe('Register spec', () => {
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Activate account session identified by token 'invalid-token' not found.`);
 	});
+
+	it("doesn't activate account if it has duplicated fields", async () => {
+		const account = buildAccountToBeRegistered();
+
+		/* REGISTER VALID ACCOUNT */
+		account.disabledUntil = AccountStatus.ENABLED;
+		await AuthEngineInstance.register(account);
+
+		/* REGISTER UNACTIVATED ACCOUNT */
+		account.disabledUntil = AccountStatus.DISABLED_UNTIL_ACTIVATION;
+		account.username = 'dummyusername';
+		account.email = 'dummy@dummy.com';
+		account.telephone = '+4078562326';
+		await AuthEngineInstance.register(account);
+
+		/* GET TOKEN FROM EMAIL */
+		const emails = EmailSenderInstance.client.outboxFor(account.email, 'sendActivateAccountToken');
+		expect(emails).to.be.ofSize(1);
+		const activationToken = emails[0];
+
+		/* MEANWHILE FIRST ACCOUNT CHANGES IT'S EMAIL */
+		await AccountRepositoryMongo.update(account.id!, { email: account.email });
+
+		/* TRY TO ACTIVATE TEMPORARY ACCOUNT (EXPECT DUPLICATE) */
+		let err: Exception | null = null;
+		try {
+			await AuthEngineInstance.activateAccount(activationToken);
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
+		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
+		expect(err!.origin).to.be.equalTo(['email']);
+
+		/* TRY TO ACTIVATE TEMPORARY ACCOUNT (EXPECT INVALID TOKEN) */
+		err = null;
+		try {
+			await AuthEngineInstance.activateAccount(activationToken);
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
+		expect(err).to.haveOwnProperty('message', `Activate account session identified by token '${activationToken}' not found.`);
+	}).timeout(4000);
 });

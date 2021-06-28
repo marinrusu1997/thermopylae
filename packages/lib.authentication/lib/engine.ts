@@ -199,11 +199,27 @@ class AuthenticationEngine<Account extends AccountModel> {
 		account.mfa = false;
 
 		if (account.disabledUntil === AccountStatus.ENABLED) {
-			await this.options.repositories.account.insert(account as Account);
+			const duplicatedFields = await this.options.repositories.account.insert(account as Account);
+			if (duplicatedFields != null) {
+				throw createException(
+					ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS,
+					"Account can't be registered, because it has duplicated fields.",
+					duplicatedFields
+				);
+			}
 			return;
 		}
 
 		if (account.disabledUntil === AccountStatus.DISABLED_UNTIL_ACTIVATION) {
+			const duplicatedFields = await this.options.repositories.account.isDuplicate(account as Account);
+			if (duplicatedFields != null) {
+				throw createException(
+					ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS,
+					"Account can't be registered, because it has duplicated fields.",
+					duplicatedFields
+				);
+			}
+
 			const activateToken = await uidSafe(this.options.tokensLength);
 			await this.options.repositories.activateAccountSession.insert(activateToken, account as Account, this.options.ttl.activateAccountSession);
 
@@ -231,10 +247,18 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 		unactivatedAccount.disabledUntil = AccountStatus.ENABLED;
 
-		await Promise.all([
+		const [, duplicatedFields] = await Promise.all([
 			this.options.repositories.activateAccountSession.delete(activateAccountToken), // prevent replay
 			this.options.repositories.account.insert(unactivatedAccount)
 		]);
+
+		if (duplicatedFields != null) {
+			throw createException(
+				ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS,
+				"Account can't be registered, because it has duplicated fields.",
+				duplicatedFields
+			);
+		}
 	}
 
 	/**

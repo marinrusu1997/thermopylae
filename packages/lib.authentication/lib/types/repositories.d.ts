@@ -15,9 +15,10 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @param account	Account that needs to be inserted.
 	 *
-	 * @throws {Error}	When account is inserted already or any other error is encountered.
+	 * @returns 		`null` or `undefined` when account was inserted successfully. <br/>
+	 * 					When account has duplicated fields, their names need to be returned inside of array.
 	 */
-	insert(account: Account): Promise<void>;
+	insert(account: Account): Promise<(keyof Account)[] | null | undefined>;
 
 	/**
 	 * Read account from repository by his id.
@@ -86,6 +87,16 @@ interface AccountRepository<Account extends AccountModel> {
 	 * @throws {Error}				When account is not found or any other error is encountered.
 	 */
 	changePassword(accountId: string, passwordHash: string, salt: string | undefined | null, hashingAlg: number): Promise<void>;
+
+	/**
+	 * Detect whether an account having same values for unique fields exists in the repository.
+	 *
+	 * @param account		Account that needs to be checked whether it has duplicated fields.
+	 *
+	 * @returns 			`null` or `undefined` when account was inserted successfully. <br/>
+	 * 						When account has duplicated fields, their names need to be returned inside of array.
+	 */
+	isDuplicate(account: Account): Promise<(keyof Account)[] | null | undefined>;
 }
 
 /**

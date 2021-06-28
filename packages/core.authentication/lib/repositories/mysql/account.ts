@@ -6,7 +6,23 @@ import { TableNames } from '../constants';
 import { createException } from '../../error';
 
 class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret> {
-	public async insert(account: AccountWithTotpSecret): Promise<void> {
+	private static readonly DUPLICATED_FIELD_REGEXP = new RegExp(`for key '${TableNames.Account}\\.(username|email|telephone)'$`);
+
+	private static readonly IS_DUPLICATE_EXISTS = {
+		USERNAME: `EXISTS(SELECT * FROM ${TableNames.Account} WHERE username=?)`,
+		EMAIL: `EXISTS(SELECT * FROM ${TableNames.Account} WHERE email=?)`,
+		TELEPHONE: `EXISTS(SELECT * FROM ${TableNames.Account} WHERE telephone=?)`
+	};
+
+	public static readonly IS_DUPLICATE_SQL_QUERY = `SELECT ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.USERNAME}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.EMAIL}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.TELEPHONE};`;
+
+	public static readonly READ_BY_USERNAME_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE username=?;`;
+
+	public static readonly READ_BY_EMAIL_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE email=?;`;
+
+	public static readonly READ_BY_TELEPHONE_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE telephone=?;`;
+
+	public async insert(account: AccountWithTotpSecret): Promise<(keyof AccountWithTotpSecret)[] | null | undefined> {
 		const connection = await MySqlClientInstance.getConnection(QueryType.WRITE);
 
 		try {
@@ -16,6 +32,17 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			);
 
 			account.id = String(results.insertId);
+
+			return null;
+		} catch (e) {
+			if (e.code === 'ER_DUP_ENTRY') {
+				const match = AccountMySqlRepository.DUPLICATED_FIELD_REGEXP.exec(e.message);
+				if (match != null && typeof match[1] === 'string') {
+					return [match[1] as keyof AccountWithTotpSecret];
+				}
+			}
+
+			throw e;
 		} finally {
 			connection.release();
 		}
@@ -44,7 +71,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 		const connection = await MySqlClientInstance.getConnection(QueryType.READ);
 
 		try {
-			const [results] = await connection.execute<RowDataPacket[]>(`SELECT * FROM ${TableNames.Account} WHERE username=?;`, [username]);
+			const [results] = await connection.execute<RowDataPacket[]>(AccountMySqlRepository.READ_BY_USERNAME_SQL_QUERY, [username]);
 
 			if (results.length !== 1) {
 				return null;
@@ -63,7 +90,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 		const connection = await MySqlClientInstance.getConnection(QueryType.READ);
 
 		try {
-			const [results] = await connection.execute<RowDataPacket[]>(`SELECT * FROM ${TableNames.Account} WHERE email=?;`, [email]);
+			const [results] = await connection.execute<RowDataPacket[]>(AccountMySqlRepository.READ_BY_EMAIL_SQL_QUERY, [email]);
 
 			if (results.length !== 1) {
 				return null;
@@ -82,7 +109,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 		const connection = await MySqlClientInstance.getConnection(QueryType.READ);
 
 		try {
-			const [results] = await connection.execute<RowDataPacket[]>(`SELECT * FROM ${TableNames.Account} WHERE telephone=?;`, [telephone]);
+			const [results] = await connection.execute<RowDataPacket[]>(AccountMySqlRepository.READ_BY_TELEPHONE_SQL_QUERY, [telephone]);
 
 			if (results.length !== 1) {
 				return null;
@@ -148,6 +175,37 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			if (results.affectedRows !== 1) {
 				throw createException(ErrorCodes.NOT_FOUND, `Account with id '${accountId}' not found.`);
 			}
+		} finally {
+			connection.release();
+		}
+	}
+
+	public async isDuplicate(account: AccountWithTotpSecret): Promise<(keyof AccountWithTotpSecret)[] | null | undefined> {
+		const connection = await MySqlClientInstance.getConnection(QueryType.READ);
+
+		try {
+			const [results] = await connection.execute<RowDataPacket[]>(AccountMySqlRepository.IS_DUPLICATE_SQL_QUERY, [
+				account.username,
+				account.email,
+				account.telephone
+			]);
+
+			const duplicatedFields = new Array<keyof AccountWithTotpSecret>();
+
+			// eslint-disable-next-line no-template-curly-in-string
+			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.USERNAME] === 1) {
+				duplicatedFields.push('username');
+			}
+			// eslint-disable-next-line no-template-curly-in-string
+			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.EMAIL] === 1) {
+				duplicatedFields.push('email');
+			}
+			// eslint-disable-next-line no-template-curly-in-string
+			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.TELEPHONE] === 1) {
+				duplicatedFields.push('telephone');
+			}
+
+			return duplicatedFields.length ? duplicatedFields : null;
 		} finally {
 			connection.release();
 		}

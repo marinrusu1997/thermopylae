@@ -20,7 +20,7 @@
     "pubKey": {
       "type": "string",
       "description": "Public key used for as alternative login method.",
-      "maxLength": 540
+      "maxLength": 450
     }
   },
   "required": [
