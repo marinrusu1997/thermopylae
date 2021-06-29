@@ -29,7 +29,7 @@ import { ErrorCodes } from '@thermopylae/core.declarations';
 import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
 import { LoggerInstance } from '@thermopylae/core.logger';
-import { publicEncrypt } from 'crypto';
+import { publicEncrypt, constants } from 'crypto';
 import express, { Router } from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -210,7 +210,14 @@ async function bootstrap() {
 				],
 				similarity: authEngineConfig.password.similarity,
 				forgotPasswordTokenEncrypt: async (pubKey, token) => {
-					return publicEncrypt(pubKey, Buffer.from(token)).toString('base64');
+					return publicEncrypt(
+						{
+							key: pubKey,
+							oaepHash: 'sha256',
+							padding: constants.RSA_PKCS1_OAEP_PADDING
+						},
+						Buffer.from(token)
+					).toString('base64');
 				}
 			},
 			hooks: {
