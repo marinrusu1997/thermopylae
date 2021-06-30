@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "#AUTH_SERVICE-LOGOUT_ONE",
+  "type": "object",
+  "properties": {
+    "refresh-token": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "required": [
+    "refresh-token"
+  ],
+  "additionalProperties": false
+}

@@ -379,11 +379,7 @@ class JwtUserSessionMiddleware {
 		await this.jwtSessionManager.deleteOne(subject, refreshToken, payload);
 
 		if (unsetSessionCookies && clientType === 'browser') {
-			res.header('set-cookie', this.invalidationCookies.refresh);
-			res.header('set-cookie', this.invalidationCookies.signature);
-			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
-				res.header('set-cookie', this.invalidationCookies.payload);
-			}
+			this.doUnsetSessionCookies(res);
 		}
 	}
 
@@ -403,16 +399,32 @@ class JwtUserSessionMiddleware {
 	 */
 	public async deleteAll(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<number> {
 		const numberOfDeletedSessions = await this.jwtSessionManager.deleteAll(subject, payload);
-
-		if (unsetSessionCookies && req.device && req.device.client && req.device.client.type === 'browser') {
-			res.header('set-cookie', this.invalidationCookies.refresh);
-			res.header('set-cookie', this.invalidationCookies.signature);
-			if (this.options.session.deliveryOfJwtPayloadViaCookie) {
-				res.header('set-cookie', this.invalidationCookies.payload);
-			}
+		if (unsetSessionCookies) {
+			this.unsetSessionCookies(req, res);
 		}
-
 		return numberOfDeletedSessions;
+	}
+
+	/**
+	 * Unsets session cookies in the `res`.<br/>
+	 * This is valid only for requests made from browser devices. <br/>
+	 * More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 *
+	 * @param req	Incoming HTTP request.
+	 * @param res	Outgoing HTTP response.
+	 */
+	public unsetSessionCookies(req: HttpRequest, res: HttpResponse): void {
+		if (req.device && req.device.client && req.device.client.type === 'browser') {
+			this.doUnsetSessionCookies(res);
+		}
+	}
+
+	private doUnsetSessionCookies(res: HttpResponse): void {
+		res.header('set-cookie', this.invalidationCookies.refresh);
+		res.header('set-cookie', this.invalidationCookies.signature);
+		if (this.options.session.deliveryOfJwtPayloadViaCookie) {
+			res.header('set-cookie', this.invalidationCookies.payload);
+		}
 	}
 
 	private getRefreshTokenFromRequest(req: HttpRequest): [string, ClientType | null] {

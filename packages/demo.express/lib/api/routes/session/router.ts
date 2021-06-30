@@ -7,6 +7,7 @@ import { ipLocation } from '../../middleware/ip-location';
 import { validateRequestBody as validateRefreshUserSessionRequestBody, route as refreshUserSessionRoute } from './methods/refresh';
 import { route as getActiveUserSessionsRoute } from './methods/get-active-sessions';
 import { route as logoutRoute } from './methods/logout';
+import { validateRequestBody as validateLogoutOneRequestBody, route as logoutOneRoute } from './methods/logout-one';
 import { route as logoutAllRoute } from './methods/logout-all';
 
 const userSessionRouter = Router(ROUTER_OPTIONS);
@@ -21,6 +22,7 @@ userSessionRouter[API_SCHEMA.refreshUserSession.verb](
 );
 userSessionRouter[API_SCHEMA.getActiveUserSessions.verb](API_SCHEMA.getActiveUserSessions.path, getActiveUserSessionsRoute);
 userSessionRouter[API_SCHEMA.logout.verb](API_SCHEMA.logout.path, logoutRoute);
+userSessionRouter[API_SCHEMA.logoutOne.verb](API_SCHEMA.logoutOne.path, jsonBody, validateLogoutOneRequestBody, logoutOneRoute);
 userSessionRouter[API_SCHEMA.logoutAll.verb](API_SCHEMA.logoutAll.path, userAgent, logoutAllRoute);
 
 export { userSessionRouter };

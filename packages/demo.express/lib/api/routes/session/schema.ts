@@ -1,6 +1,6 @@
 import { ApiSchema } from '../../../typings';
 
-type ApiMethod = 'refreshUserSession' | 'getActiveUserSessions' | 'logout' | 'logoutAll';
+type ApiMethod = 'refreshUserSession' | 'getActiveUserSessions' | 'logout' | 'logoutOne' | 'logoutAll';
 
 const API_SCHEMA: ApiSchema<ApiMethod> = {
 	refreshUserSession: {
@@ -16,6 +16,11 @@ const API_SCHEMA: ApiSchema<ApiMethod> = {
 	logout: {
 		verb: 'delete',
 		path: '/logout',
+		requiresSession: true
+	},
+	logoutOne: {
+		verb: 'delete',
+		path: '/logout/one',
 		requiresSession: true
 	},
 	logoutAll: {

@@ -2,10 +2,10 @@ import { HttpStatusCode, Library, Mutable, ObjMap, ErrorCodes as CoreErrorCodes 
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { ExpressRequestAdapter } from '@thermopylae/core.adapter.express';
+import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
 import { ChangePasswordContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
 import { logger } from '../../../../logger';
 import { createException } from '../../../../error';
@@ -50,6 +50,7 @@ const validateRequestBody: RequestHandler = handler(
 
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>) => {
 	const request = new ExpressRequestAdapter(req);
+	const response = new ExpressResponseAdapter(res);
 
 	const context = request.body as Mutable<ChangePasswordContext>;
 	context.ip = request.ip;
@@ -59,7 +60,8 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 
 	try {
 		await AUTHENTICATION_ENGINE.changePassword(context);
-		res.status(HttpStatusCode.Ok).send();
+		JWT_USER_SESSION_MIDDLEWARE.unsetSessionCookies(request, response);
+		res.status(HttpStatusCode.NoContent).send();
 	} catch (e) {
 		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
 			logger.error(`Change password failed. ${stringifyOperationContext(context)}`, e);
@@ -73,8 +75,6 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 					httpResponseStatus = HttpStatusCode.Gone;
 					break;
 				case AuthenticationErrorCodes.INCORRECT_PASSWORD:
-					httpResponseStatus = HttpStatusCode.Unauthorized;
-					break;
 				case AuthenticationErrorCodes.SIMILAR_PASSWORDS:
 				case AuthenticationErrorCodes.WEAK_PASSWORD:
 					httpResponseStatus = HttpStatusCode.BadRequest;
