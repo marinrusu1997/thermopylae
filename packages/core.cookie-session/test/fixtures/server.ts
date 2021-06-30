@@ -137,7 +137,7 @@ app[routes.logout.method](
 		const response = new ExpressResponseAdapter(res);
 
 		try {
-			await middleware.delete(request, response, request.query('uid')!);
+			await middleware.delete(request, response, request.query('uid')!, null, true);
 			response.status(HttpStatusCode.Ok).send();
 		} catch (e) {
 			response.status(HttpStatusCode.NotFound).send({ message: e.message });

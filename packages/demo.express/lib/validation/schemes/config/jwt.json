@@ -214,7 +214,10 @@
         "path": {
           "type": "object",
           "properties": {
-            "access": {
+            "access-signature": {
+              "type": "string"
+            },
+            "access-payload": {
               "type": "string"
             },
             "refresh": {

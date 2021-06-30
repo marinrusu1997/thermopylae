@@ -67,7 +67,8 @@
       "minimum": 1000
     },
     "prefix": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^(?:[a-z0-9]+:)+$"
     },
     "attachDebugListeners": {
       "oneOf": [

@@ -135,19 +135,22 @@ class CookieUserSessionMiddleware {
 		this.options = CookieUserSessionMiddleware.fillWithDefaults(options);
 		this.sessionManager = new UserSessionManager<UserSessionDevice, HTTPRequestLocation>(this.options.sessionManager);
 
-		this.cookieSerializeOptions = {
+		const cookieSerializeOptions: CookieSerializeOptions = {
 			secure: true,
 			httpOnly: true,
 			sameSite: this.options.session.cookie.sameSite,
 			path: this.options.session.cookie.path,
 			domain: this.options.session.cookie.domain,
-			maxAge: undefined
+			maxAge: undefined,
+			expires: undefined
 		};
 
 		// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
-		this.invalidateSessionCookieHeaderValue = serialize(this.options.session.cookie.name, '', {
-			expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-		});
+		cookieSerializeOptions.expires = new Date('Thu, 01 Jan 1970 00:00:00 GMT');
+		this.invalidateSessionCookieHeaderValue = serialize(this.options.session.cookie.name, '', cookieSerializeOptions);
+
+		delete cookieSerializeOptions.expires;
+		this.cookieSerializeOptions = Object.seal(cookieSerializeOptions);
 	}
 
 	/**

@@ -53,6 +53,8 @@ class UserSessionRedisStorage<
 {
 	private static readonly NO_ACTIVE_SESSIONS: ReadonlyMap<SessionId, any> = new Map();
 
+	private static GLOBAL_KEY_PREFIX: string | null = null;
+
 	protected readonly options: Required<UserSessionRedisStorageOptions<MetaData>>;
 
 	public constructor(options: UserSessionRedisStorageOptions<MetaData>) {
@@ -63,14 +65,17 @@ class UserSessionRedisStorage<
 				return;
 			}
 
-			const [, prefix, subject, sessionId] = channel.split(':');
-			if (prefix !== this.options.keyPrefix.sessionId) {
+			const channelEncodedParts = channel.split(':');
+			if (channelEncodedParts[channelEncodedParts.length - 3] !== this.options.keyPrefix.sessionId) {
 				return;
 			}
 
 			RedisClientInstance.subscriber.unsubscribe(channel).catch((e) => {
 				logger.error(`Failed to unsubscribe from '${channel}' channel.`, e);
 			});
+
+			const sessionId = channelEncodedParts[channelEncodedParts.length - 1];
+			const subject = channelEncodedParts[channelEncodedParts.length - 2];
 
 			RedisClientInstance.client.lrem(this.activeSessionsKey(subject), 1, sessionId).catch((e) => {
 				logger.error(`Failed to remove '${sessionId}' from the list of active sessions of the subject '${subject}'.`, e);
@@ -105,7 +110,17 @@ class UserSessionRedisStorage<
 
 		logger.debug(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);
 
-		await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:${sessionIdKey}`);
+		if (UserSessionRedisStorage.GLOBAL_KEY_PREFIX == null) {
+			if (RedisClientInstance.connectionOptions.REGULAR.prefix == null || RedisClientInstance.connectionOptions.REGULAR.prefix.length === 0) {
+				UserSessionRedisStorage.GLOBAL_KEY_PREFIX = '';
+			} else if (RedisClientInstance.connectionOptions.REGULAR.prefix[RedisClientInstance.connectionOptions.REGULAR.prefix.length - 1] === ':') {
+				UserSessionRedisStorage.GLOBAL_KEY_PREFIX = RedisClientInstance.connectionOptions.REGULAR.prefix;
+			} else {
+				UserSessionRedisStorage.GLOBAL_KEY_PREFIX = `${RedisClientInstance.connectionOptions.REGULAR.prefix}:`;
+			}
+		}
+
+		await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:${UserSessionRedisStorage.GLOBAL_KEY_PREFIX}${sessionIdKey}`);
 	}
 
 	public async read(subject: Subject, sessionId: SessionId): Promise<MetaData | undefined> {

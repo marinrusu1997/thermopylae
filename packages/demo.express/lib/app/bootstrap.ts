@@ -36,7 +36,6 @@ import cookieParser from 'cookie-parser';
 import addRequestId from 'express-request-id';
 import helmet from 'helmet';
 import fetch from 'node-fetch';
-import cors from 'cors'; // @fixme remove and from package.json
 import process from 'process';
 import path from 'path';
 import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
@@ -447,7 +446,6 @@ async function bootstrap() {
 
 	const app = express();
 	app.set('trust proxy', 1);
-	app.use(cors({ origin: 'http://localhost:63342', credentials: true })); // @fixme remove this
 	app.use(bodyParser.json());
 	app.use(cookieParser());
 	app.use(

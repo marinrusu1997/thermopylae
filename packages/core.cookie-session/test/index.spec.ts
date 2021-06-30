@@ -8,7 +8,8 @@ import type { HTTPRequestLocation, MutableSome } from '@thermopylae/core.declara
 import type { UserSessionMetaData, UserSessionTimeouts } from '@thermopylae/lib.user-session';
 import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
 import { setTimeout } from 'timers/promises';
-import { parse, serialize } from 'cookie';
+import { parse } from 'cookie';
+import capitalize from 'capitalize';
 import { CookieUserSessionMiddleware } from '../lib';
 import { routes } from './fixtures/routes';
 import { options } from './fixtures/middleware';
@@ -141,9 +142,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(logoutResp.status).to.be.eq(HttpStatusCode.Ok);
 			expect(logoutResp.headers.get(SET_COOKIE)).to.be.eq(
-				serialize(options.session.cookie.name, '', {
-					expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-				})
+				`${options.session.cookie.name}=; Path=${
+					options.session.cookie.path
+				}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookie.sameSite as string)}`
 			);
 
 			/* GET ACTIVE SESSIONS */
@@ -321,9 +322,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			);
 
 			expect(resourceResp.headers.get(SET_COOKIE)).to.be.eq(
-				serialize(options.session.cookie.name, '', {
-					expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-				})
+				`${options.session.cookie.name}=; Path=${
+					options.session.cookie.path
+				}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookie.sameSite as string)}`
 			);
 		});
 
@@ -390,9 +391,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				expect(error.message).to.match(/^Session '.+' it's expired, because it was idle for \d seconds. Context:/);
 
 				expect(resourceResp.headers.get(SET_COOKIE)).to.be.eq(
-					serialize(options.session.cookie.name, '', {
-						expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-					})
+					`${options.session.cookie.name}=; Path=${
+						options.session.cookie.path
+					}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookie.sameSite as string)}`
 				);
 			} finally {
 				(options.sessionManager.timeouts! as MutableSome<UserSessionTimeouts, 'renewal'>).renewal = renewalTimeoutSnapshot;

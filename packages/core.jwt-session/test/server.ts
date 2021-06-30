@@ -54,7 +54,8 @@ const options: JwtUserSessionMiddlewareOptions = {
 				refresh: 'rfsh'
 			},
 			path: {
-				access: '/api',
+				'access-payload': '/',
+				'access-signature': '/api',
 				refresh: '/session'
 			},
 			sameSite: 'strict',
@@ -166,7 +167,7 @@ server[routes.logout.method](routes.logout.path, async (req, res) => {
 		await middleware.delete(request, response, request.query('uid')!, undefined, false);
 	} else {
 		const jwtPayload = await middleware.verify(request, response);
-		await middleware.delete(request, response, jwtPayload.sub, jwtPayload);
+		await middleware.delete(request, response, jwtPayload.sub, jwtPayload, !!request.query('unset-cookies'));
 	}
 
 	response.status(HttpStatusCode.Ok).send();

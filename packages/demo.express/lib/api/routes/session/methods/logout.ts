@@ -33,7 +33,7 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 					res.status(HttpStatusCode.BadRequest).send({
 						error: {
 							code: ErrorCodes.REFRESH_TOKEN_REQUIRED,
-							message: 'Refresh token is required for session renew.'
+							message: 'Refresh token is required for logout.'
 						}
 					});
 					return;
@@ -43,7 +43,7 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 					res.status(HttpStatusCode.BadRequest).send({
 						error: {
 							code: ErrorCodes.CSRF_HEADER_REQUIRED,
-							message: 'Correct value of the CSRF header is required for session renew.'
+							message: 'Correct value of the CSRF header is required for logout.'
 						}
 					});
 					return;

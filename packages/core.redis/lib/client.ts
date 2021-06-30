@@ -21,7 +21,7 @@ type RequiredClientOptions = RequireSome<
 	ClientOpts,
 	'enable_offline_queue' | 'retry_unfulfilled_commands' | 'password' | 'db' | 'connect_timeout' | 'max_attempts' | 'retry_max_delay'
 >;
-type OmittedClientOptions = Omit<ClientOpts, 'no_ready_check' | 'disable_resubscribing' | 'rename_commands' | 'prefix'>;
+type OmittedClientOptions = Omit<ClientOpts, 'no_ready_check' | 'disable_resubscribing' | 'rename_commands'>;
 
 type DebuggableEventType = 'subscribe' | 'psubscribe' | 'unsubscribe' | 'punsubscribe' | 'connect' | 'reconnecting' | 'end';
 
@@ -82,6 +82,10 @@ class RedisClient {
 	};
 
 	private options!: Readonly<Record<ConnectionType, RedisClientOptions>>;
+
+	public get connectionOptions(): Readonly<Record<ConnectionType, RedisClientOptions>> {
+		return this.options;
+	}
 
 	public get db(): string | number {
 		return this.options[ConnectionType.REGULAR].db!;

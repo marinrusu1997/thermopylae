@@ -32,10 +32,10 @@
     },
     "dependencies": {
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.logger": "0",
         "@thermopylae/core.redis": "0",
         "@thermopylae/core.user-session.commons": "0",
         "@thermopylae/lib.exception": "0",
-        "@thermopylae/core.logger": "0",
         "@thermopylae/lib.user-session": "0",
         "cookie": "0"
     },
@@ -43,6 +43,7 @@
         "@thermopylae/core.adapter.express": "0",
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
+        "@types/capitalize": "2",
         "@types/cookie": "0",
         "@types/cookie-parser": "1",
         "@types/express": "4",
@@ -50,6 +51,7 @@
         "@types/morgan": "1",
         "@types/node-fetch": "2",
         "body-parser": "1",
+        "capitalize": "2",
         "cookie-parser": "1",
         "dotenv": "9",
         "express": "4",

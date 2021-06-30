@@ -11,7 +11,7 @@ import type { IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
 import { JwtUserSessionMiddleware } from '../lib';
 import { serverAddress } from './bootstrap';
 import { middleware, options, routes } from './server';
-import type { UserSessionCookiesOptions, UserSessionOptions } from '../lib/middleware';
+import type { UserSessionCookiesOptions, UserSessionOptions } from '../lib';
 
 const { AUTHORIZATION, USER_AGENT, COOKIE, X_FORWARDED_FOR } = HttpRequestHeaderEnum;
 const { SET_COOKIE, CACHE_CONTROL } = HttpResponseHeaderEnum;
@@ -186,7 +186,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					expect(cookie).to.match(
 						new RegExp(
 							`${options.session.cookies.name.signature}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
-								options.session.cookies.path.access
+								options.session.cookies.path['access-signature']
 							}; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
 						)
 					);
@@ -195,7 +195,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					expect(cookie).to.match(
 						new RegExp(
 							`${options.session.cookies.name.payload}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
-								options.session.cookies.path.access
+								options.session.cookies.path['access-payload']
 							}; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
 						)
 					);
@@ -221,7 +221,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					expect(cookie).to.match(
 						new RegExp(
 							`${options.session.cookies.name.signature}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
-								options.session.cookies.path.access
+								options.session.cookies.path['access-signature']
 							}; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
 						)
 					);
@@ -230,7 +230,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					expect(cookie).to.match(
 						new RegExp(
 							`${options.session.cookies.name.payload}=.+; Max-Age=${options.jwt.signOptions.expiresIn}; Path=${
-								options.session.cookies.path.access
+								options.session.cookies.path['access-payload']
 							}; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
 						)
 					);
@@ -730,6 +730,69 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			});
 			const activeSessionsBody = await activeSessionsAdminResp.json();
 			expect(Object.keys(activeSessionsBody)).to.be.ofSize(0);
+		});
+
+		it('invalidates all cookies on logout', async () => {
+			/* AUTHENTICATE */
+			const authResp = await fetch(`${serverAddress}${routes.login.path}`, {
+				method: routes.login.method,
+				headers: {
+					[USER_AGENT]: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36'
+				}
+			});
+			expect(authResp.status).to.be.eq(201);
+
+			const cookie = authResp.headers
+				.raw()
+				[SET_COOKIE].map((header) => {
+					const parsedCookie = parse(header);
+					const cookieName = Object.keys(parsedCookie)[0];
+					return `${cookieName}=${parsedCookie[cookieName]}`;
+				})
+				.join(';');
+
+			/* LOGOUT */
+			const logoutResponse = await fetch(`${serverAddress}${routes.logout.path}?unset-cookies=1`, {
+				method: routes.logout.method,
+				headers: {
+					[COOKIE]: cookie,
+					[options.session.csrfHeader.name]: options.session.csrfHeader.value as string
+				}
+			});
+			expect(logoutResponse.status).to.be.eq(200);
+
+			let validatedHeaders = 0;
+			logoutResponse.headers.raw()[SET_COOKIE].forEach((header) => {
+				if (header.startsWith(options.session.cookies.name.refresh)) {
+					expect(header).to.be.eq(
+						`${options.session.cookies.name.refresh}=; Path=${
+							options.session.cookies.path.refresh
+						}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+					);
+					validatedHeaders += 1;
+					return;
+				}
+
+				if (header.startsWith(options.session.cookies.name.signature)) {
+					expect(header).to.be.eq(
+						`${options.session.cookies.name.signature}=; Path=${
+							options.session.cookies.path['access-signature']
+						}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+					);
+					validatedHeaders += 1;
+					return;
+				}
+
+				if (header.startsWith(options.session.cookies.name.payload)) {
+					expect(header).to.be.eq(
+						`${options.session.cookies.name.payload}=; Path=${
+							options.session.cookies.path['access-payload']
+						}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; SameSite=${capitalize(options.session.cookies.sameSite as string)}`
+					);
+					validatedHeaders += 1;
+				}
+			});
+			expect(validatedHeaders).to.be.eq(3);
 		});
 	});
 

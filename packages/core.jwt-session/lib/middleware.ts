@@ -46,10 +46,15 @@ interface UserSessionCookiesOptions {
 	 */
 	readonly path: {
 		/**
-		 * *Path* for {@link UserSessionCookiesOptions.name.payload} and {@link UserSessionCookiesOptions.name.signature} cookies. <br/>
+		 * *Path* for {@link UserSessionCookiesOptions.name.signature} cookie. <br/>
 		 * Defaults to *Path* attribute not being set.
 		 */
-		readonly access?: string;
+		readonly 'access-signature'?: string;
+		/**
+		 * *Path* for {@link UserSessionCookiesOptions.name.payload} cookie. <br/>
+		 * Defaults to *Path* attribute not being set.
+		 */
+		readonly 'access-payload'?: string;
 		/**
 		 * *Path* for {@link UserSessionCookiesOptions.name.refresh} cookie. <br/>
 		 * Refresh tokens are used for session refresh and delete, therefore it needs to contain a very restrictive path,
@@ -197,32 +202,49 @@ class JwtUserSessionMiddleware {
 		this.options = JwtUserSessionMiddleware.fillWithDefaults(options);
 		this.jwtSessionManager = new JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation>(options.jwt);
 
-		this.refreshTokenCookieOptions = Object.freeze({
+		const refreshTokenCookieOptions: CookieSerializeOptions = {
 			path: this.options.session.cookies.path.refresh,
 			secure: true,
 			httpOnly: true,
 			sameSite: this.options.session.cookies.sameSite,
 			domain: this.options.session.cookies.domain,
-			maxAge: this.options.jwt.invalidationOptions.refreshTokenTtl
-		});
+			maxAge: undefined,
+			expires: undefined
+		};
 
 		this.accessTokenCookieOptions = Object.seal({
-			path: this.options.session.cookies.path.access,
+			path: undefined,
 			secure: true,
 			httpOnly: true,
 			sameSite: this.options.session.cookies.sameSite,
 			domain: this.options.session.cookies.domain,
-			maxAge: undefined
+			maxAge: undefined,
+			expires: undefined
 		});
 
 		// see https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side
-		const invalidateCookieOptions: CookieSerializeOptions = {
-			expires: new Date('Thu, 01 Jan 1970 00:00:00 GMT')
-		};
+		const invalidationDate = new Date('Thu, 01 Jan 1970 00:00:00 GMT');
+
+		refreshTokenCookieOptions.expires = invalidationDate;
+		const refreshCookieInvalidation = serialize(this.options.session.cookies.name.refresh, '', refreshTokenCookieOptions);
+		delete refreshTokenCookieOptions.expires;
+		refreshTokenCookieOptions.maxAge = this.options.jwt.invalidationOptions.refreshTokenTtl;
+		this.refreshTokenCookieOptions = Object.freeze(refreshTokenCookieOptions);
+
+		this.setAccessTokenSignatureHttpOnlyAndPathCookieOptions();
+		this.accessTokenCookieOptions.expires = invalidationDate;
+		const accessTokenSignatureInvalidation = serialize(this.options.session.cookies.name.signature, '', this.accessTokenCookieOptions);
+		this.accessTokenCookieOptions.expires = undefined;
+
+		this.setAccessTokenPayloadHttpOnlyAndPathCookieOptions();
+		this.accessTokenCookieOptions.expires = invalidationDate;
+		const accessTokenPayloadInvalidation = serialize(this.options.session.cookies.name.payload, '', this.accessTokenCookieOptions);
+		this.accessTokenCookieOptions.expires = undefined;
+
 		this.invalidationCookies = Object.freeze({
-			signature: serialize(this.options.session.cookies.name.signature, '', invalidateCookieOptions),
-			payload: serialize(this.options.session.cookies.name.payload, '', invalidateCookieOptions),
-			refresh: serialize(this.options.session.cookies.name.refresh, '', invalidateCookieOptions)
+			signature: accessTokenSignatureInvalidation,
+			payload: accessTokenPayloadInvalidation,
+			refresh: refreshCookieInvalidation
 		});
 	}
 
@@ -423,12 +445,12 @@ class JwtUserSessionMiddleware {
 				: (this.options.jwt.signOptions.expiresIn as number)
 			: undefined;
 
-		this.accessTokenCookieOptions.httpOnly = true; // only for signature
+		this.setAccessTokenSignatureHttpOnlyAndPathCookieOptions();
 		const signatureCookie = serialize(this.options.session.cookies.name.signature, signature, this.accessTokenCookieOptions);
 		res.header('set-cookie', signatureCookie);
 
 		if (this.options.session.deliveryOfJwtPayloadViaCookie) {
-			this.accessTokenCookieOptions.httpOnly = false; // only for payload
+			this.setAccessTokenPayloadHttpOnlyAndPathCookieOptions();
 			const payloadCookie = serialize(this.options.session.cookies.name.payload, `${header}.${payload}`, this.accessTokenCookieOptions);
 			res.header('set-cookie', payloadCookie);
 		} else {
@@ -442,6 +464,16 @@ class JwtUserSessionMiddleware {
 				res.header('cache-control', `no-cache="set-cookie, set-cookie2, ${this.options.session.headers.access}"`);
 			}
 		}
+	}
+
+	private setAccessTokenSignatureHttpOnlyAndPathCookieOptions() {
+		this.accessTokenCookieOptions.httpOnly = true; // only for signature
+		this.accessTokenCookieOptions.path = this.options.session.cookies.path['access-signature'];
+	}
+
+	private setAccessTokenPayloadHttpOnlyAndPathCookieOptions() {
+		this.accessTokenCookieOptions.httpOnly = false; // only for payload
+		this.accessTokenCookieOptions.path = this.options.session.cookies.path['access-payload'];
 	}
 
 	private static fillWithDefaults(options: JwtUserSessionMiddlewareOptions): RequireSome<JwtUserSessionMiddlewareOptions, 'accessTokenExtractor'> {

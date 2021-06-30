@@ -1,5 +1,5 @@
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, Mutable, Library, ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { HttpStatusCode, ObjMap, Mutable, Library, ErrorCodes as CoreErrorCodes, CoreModule } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { AccountWithTotpSecret, AuthenticationContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
@@ -13,7 +13,8 @@ import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } fro
 import { stringifyOperationContext } from '../../../../utils';
 
 const enum ErrorCodes {
-	INVALID_INPUT = 'INVALID_INPUT'
+	INVALID_INPUT = 'INVALID_INPUT',
+	TOO_MANY_SESSIONS = 'TOO_MANY_SESSIONS'
 }
 
 interface RequestBody {
@@ -122,34 +123,46 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 			`Authentication completed, but it's status couldn't be resolved. Authentication status: ${JSON.stringify(authenticationStatus)}.`
 		);
 	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
+		if (e instanceof Exception) {
 			logger.error(`Authentication failed. ${stringifyOperationContext(authContext)}`, e);
 
-			if (e.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
-				res.status(HttpStatusCode.Locked).send({
-					error: {
-						code: AuthenticationErrorCodes.ACCOUNT_DISABLED,
-						message: 'Authentication on disable.'
-					}
-				});
-				return;
+			if (e.emitter === Library.AUTHENTICATION) {
+				if (e.code === AuthenticationErrorCodes.ACCOUNT_DISABLED) {
+					res.status(HttpStatusCode.Locked).send({
+						error: {
+							code: AuthenticationErrorCodes.ACCOUNT_DISABLED,
+							message: 'Authentication on disable.'
+						}
+					});
+					return;
+				}
+
+				if (e.code === AuthenticationErrorCodes.ACCOUNT_NOT_FOUND) {
+					res.status(HttpStatusCode.BadRequest).send({
+						error: {
+							code: AuthenticationErrorCodes.INCORRECT_CREDENTIALS,
+							message: 'Credentials are not valid.'
+						}
+					});
+					return;
+				}
+
+				if (e.code === AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY) {
+					res.status(HttpStatusCode.BadRequest).send({
+						error: {
+							code: AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
+							message: 'Two factor authentication token was issued already. Provide it or wait until it expires, then request a new one.'
+						}
+					});
+					return;
+				}
 			}
 
-			if (e.code === AuthenticationErrorCodes.ACCOUNT_NOT_FOUND) {
+			if (e.emitter === CoreModule.USER_SESSION_COMMONS && e.code === CoreErrorCodes.OVERFLOW) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
-						code: AuthenticationErrorCodes.INCORRECT_CREDENTIALS,
-						message: 'Credentials are not valid.'
-					}
-				});
-				return;
-			}
-
-			if (e.code === AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY) {
-				res.status(HttpStatusCode.BadRequest).send({
-					error: {
-						code: AuthenticationErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
-						message: 'Two factor authentication token was issued already. Provide it or wait until it expires, then request a new one.'
+						code: ErrorCodes.TOO_MANY_SESSIONS,
+						message: 'Concurrent user sessions limit reached.'
 					}
 				});
 				return;
