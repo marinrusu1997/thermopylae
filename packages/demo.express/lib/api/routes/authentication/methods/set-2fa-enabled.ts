@@ -80,7 +80,7 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 					httpResponseStatus = HttpStatusCode.Gone;
 					break;
 				case AuthenticationErrorCodes.INCORRECT_PASSWORD:
-					httpResponseStatus = HttpStatusCode.Unauthorized;
+					httpResponseStatus = HttpStatusCode.BadRequest;
 					break;
 				default:
 					throw createException(

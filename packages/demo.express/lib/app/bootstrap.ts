@@ -530,10 +530,18 @@ async function shutdown(): Promise<void> {
 
 	/* CLOSE REDIS CONNECTION */
 	try {
-		await RedisClientInstance.disconnect();
+		await RedisClientInstance.disconnect(true);
 		logger.info('Redis client successful disconnect.');
 	} catch (e) {
 		logger.error('Failed to disconnect redis client.', e);
+	}
+
+	/* CLOSE EMAIL CLIENT */
+	try {
+		EMAIL_CLIENT.close();
+		logger.info('Email client closed successfully.');
+	} catch (e) {
+		logger.error('Failed to close email client.', e);
 	}
 }
 
