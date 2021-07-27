@@ -1,20 +1,21 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # compiled output
-/build
-/dist
+/build/
+/dist/
 /dist-server
 /tmp
 /out-tsc
 /build/Release
 
 # testing
-/.nyc_output
-/coverage
-/report
+/.nyc_output/
+/coverage/
+/report/
+/doc/
 
 # dependencies
-/node_modules
+/node_modules/
 package-lock.json
 
 # IDEs and editors
