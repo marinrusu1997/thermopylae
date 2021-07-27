@@ -1,5 +1,7 @@
 const path = require('path');
 
+const PACKAGE_NAME_REGEXP = /^(?:@([^\/]+?)[\/])?([^\/]+?)$/;
+
 /**
  * @enum {string}
  */
@@ -37,5 +39,6 @@ module.exports = {
   ModuleLang,
   SPAWN_OPTIONS,
   PLACEHOLDERS,
-  PLACEHOLDER_VALUES
+  PLACEHOLDER_VALUES,
+  PACKAGE_NAME_REGEXP
 };
