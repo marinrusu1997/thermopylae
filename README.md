@@ -4,8 +4,8 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://bitbucket.org/marinrusu1997/framework/src/master/">
-    <img src="./assets/img/spartan-shield.png" alt="Logo" width="120" height="80">
+  <a href="https://github.com/marinrusu1997/thermopylae">
+    <img src="./assets/img/spartan-shield.png" alt="Logo" width="160" height="120">
   </a>
 </p>
 
@@ -81,12 +81,12 @@ Distributed under the MIT License. See `LICENSE` for more information.
 👤 **Rusu Marin**
 
 * GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [contact me](mailto:dimarusu2000@gmail.com)
+* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
 * LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://bitbucket.org/marinrusu1997/framework/src/master/LICENSE
+[license-url]: https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/marinrusu1997
