@@ -63,17 +63,48 @@ type AccountToBeRegistered<Account extends AccountModel> = RequireSome<Partial<A
 type EncryptForgotPasswordToken = (pubKey: string, token: string) => Promise<string>;
 
 interface AuthenticationEngineOptions<Account extends AccountModel> {
+	/**
+	 * Threshold options.
+	 */
 	readonly thresholds: {
+		/**
+		 * Number of allowed failed authentication attempts before account will be locked
+		 * for {@link AuthenticationEngineOptions.ttl.accountDisableTimeout} seconds.
+		 */
 		readonly maxFailedAuthAttempts: Threshold;
+		/**
+		 * Number of failed authentication attempts before recaptcha validation will be performed.
+		 */
 		readonly failedAuthAttemptsRecaptcha: Threshold;
 	};
+	/**
+	 * Time to live options.
+	 */
 	readonly ttl: {
+		/**
+		 * TTL in seconds of the {@link AuthenticationSession}.
+		 */
 		readonly authenticationSession: Seconds;
+		/**
+		 * TTL in seconds of the {@link FailedAuthenticationAttemptSession}.
+		 */
 		readonly failedAuthAttemptsSession: Seconds;
+		/**
+		 * TTL in seconds of the activate account token.
+		 */
 		readonly activateAccountSession: Seconds;
+		/**
+		 * TTL in seconds of the forgot password token.
+		 */
 		readonly forgotPasswordSession: Seconds;
+		/**
+		 * Timeout in seconds for which account will be disabled by internal procedures.
+		 */
 		readonly accountDisableTimeout: Seconds;
 	};
+	/**
+	 * Repositories used by {@link AuthenticationEngine}.
+	 */
 	readonly repositories: {
 		readonly account: AccountRepository<Account>;
 		readonly successfulAuthentications: SuccessfulAuthenticationsRepository;

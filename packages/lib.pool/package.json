@@ -30,7 +30,7 @@
     "dependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
-        "@types/yallist": "3",
+        "@types/yallist": "4",
         "yallist": "4"
     },
     "devDependencies": {

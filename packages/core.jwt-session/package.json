@@ -32,11 +32,11 @@
     },
     "dependencies": {
         "@thermopylae/core.declarations": "0",
+        "@thermopylae/core.logger": "0",
         "@thermopylae/core.user-session.commons": "0",
         "@thermopylae/lib.cache": "0",
         "@thermopylae/lib.exception": "0",
         "@thermopylae/lib.jwt-user-session": "0",
-        "@thermopylae/core.logger": "0",
         "cookie": "0"
     },
     "devDependencies": {
@@ -51,7 +51,7 @@
         "@types/node-fetch": "2",
         "benchmark": "2",
         "capitalize": "2",
-        "dotenv": "8",
+        "dotenv": "10",
         "fastify": "3",
         "fastify-cookie": "5",
         "node-fetch": "2",

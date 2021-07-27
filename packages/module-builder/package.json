@@ -1,7 +1,7 @@
 {
   "name": "@thermopylae/module-builder",
   "version": "0.0.1",
-  "description": "Builder and common stuff for typescript modules",
+  "description": "Builder and common stuff for typescript modules.",
   "main": "lib/index.js",
   "files": [
     "lib/**/*.js"
@@ -16,7 +16,7 @@
   "dependencies": {
     "@types/chai": "4",
     "@types/mocha": "8",
-    "@types/node": "15",
+    "@types/node": "16",
     "@typescript-eslint/eslint-plugin": "4",
     "@typescript-eslint/parser": "4",
     "chai": "4",
@@ -38,9 +38,9 @@
     "npm-run": "5",
     "nyc": "15",
     "prettier": "2",
-    "ts-node": "9",
-    "typedoc": "0",
+    "ts-node": "10",
+    "typedoc": "0.20",
     "typedoc-neo-theme": "1",
-    "typescript": "4"
+    "typescript": "4.2"
   }
 }

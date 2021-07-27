@@ -1,7 +1,7 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
-const mongoMemoryServer = new MongoMemoryServer({ autoStart: false });
+const mongoMemoryServer = new MongoMemoryServer();
 
 // see https://stackoverflow.com/questions/51960171/node63208-deprecationwarning-collection-ensureindex-is-deprecated-use-creat
 mongoose.set('useCreateIndex', true);
@@ -17,15 +17,11 @@ function getMongoModel(name: string, schema: mongoose.Schema): mongoose.Model<mo
  * Connect to the in-memory database.
  */
 async function connectToMongoDatabase(): Promise<mongoose.Mongoose> {
-	if (mongoMemoryServer.getInstanceInfo() === false) {
-		if (!(await mongoMemoryServer.start())) {
-			throw new Error('Failed to start mongo db memory server');
-		}
+	if (mongoMemoryServer.instanceInfo == null) {
+		await mongoMemoryServer.start();
 	}
 
-	const uri = await mongoMemoryServer.getUri();
-
-	return mongoose.connect(uri, {
+	return mongoose.connect(mongoMemoryServer.getUri(), {
 		useNewUrlParser: true,
 		useUnifiedTopology: true
 	});

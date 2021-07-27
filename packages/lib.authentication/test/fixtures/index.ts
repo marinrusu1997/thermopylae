@@ -32,7 +32,7 @@ const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	hashLength: 5,
 	memoryCost: 8192,
 	parallelism: 4,
-	timeCost: 1,
+	timeCost: 2,
 	saltLength: 8
 });
 

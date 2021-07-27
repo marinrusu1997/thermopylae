@@ -53,7 +53,7 @@
         "body-parser": "1",
         "capitalize": "2",
         "cookie-parser": "1",
-        "dotenv": "9",
+        "dotenv": "10",
         "express": "4",
         "express-async-handler": "1",
         "express-request-id": "1",

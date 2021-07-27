@@ -58,7 +58,7 @@
         "@types/zxcvbn": "4",
         "bcrypt": "5",
         "keypair": "1",
-        "mongodb-memory-server": "6",
+        "mongodb-memory-server": "7",
         "mongoose": "5",
         "object-hash": "2"
     },

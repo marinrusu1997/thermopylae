@@ -38,7 +38,7 @@
         "@thermopylae/lib.unit-test": "0",
         "@thermopylae/module-builder": "0",
         "@types/nodemailer": "6",
-        "dotenv": "8"
+        "dotenv": "10"
     },
     "peerDependencies": {
         "chai": "4",
