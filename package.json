@@ -33,5 +33,6 @@
     "packages/lib.user-session.commons",
     "packages/lib.utils",
     "packages/module-builder"
-  ]
+  ],
+  "license": "MIT"
 }

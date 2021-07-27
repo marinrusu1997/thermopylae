@@ -12,7 +12,6 @@
 /.nyc_output
 /coverage
 /report
-/doc
 
 # dependencies
 /node_modules

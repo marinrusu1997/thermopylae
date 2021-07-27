@@ -5,7 +5,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/marinrusu1997/thermopylae">
-    <img src="./assets/img/spartan-shield.png" alt="Logo" width="160" height="120">
+    <img src="./assets/img/spartan-shield.png" alt="Logo" width="180" height="180">
   </a>
 </p>
 
