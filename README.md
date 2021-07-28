@@ -32,7 +32,6 @@
             <li><a href="#installation">Installation</a></li>
         </ul>
     </li>
-    <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
@@ -68,12 +67,6 @@ Example:
 ```sh
 npm i @thermopylae/lib.authentication
 ```
-
-<!-- LICENSE -->
-## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
 
 <!-- CONTACT -->
 ## Contact

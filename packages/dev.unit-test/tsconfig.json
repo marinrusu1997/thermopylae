@@ -1,5 +1,5 @@
 {
-    "extends": "../../node_modules/@thermopylae/module-builder/lib/configs/tsconfig.json",
+    "extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
     "compilerOptions": {
         "rootDir": ".",
         "tsBuildInfoFile": "build/tsbuildinfo",

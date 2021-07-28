@@ -128,9 +128,6 @@
 				<blockquote>
 					<p>Utility functions.</p>
 				</blockquote>
-				<a href="#🏠-homepage" id="🏠-homepage" style="color: inherit; text-decoration: none;">
-					<h3>🏠 <a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.utils">Homepage</a></h3>
-				</a>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
@@ -147,32 +144,32 @@
 				<p>Bellow is a simple example of how this module can be used:</p>
 				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">array</span><span style="color: #000000">, </span><span style="color: #001080">number</span><span style="color: #000000">, </span><span style="color: #001080">chrono</span><span style="color: #000000">, </span><span style="color: #001080">string</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.utils&#039;</span><span style="color: #000000">;</span>
 
-<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">randomNumber</span><span style="color: #000000">() {</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">randomOffsets</span><span style="color: #000000"> = </span><span style="color: #001080">array</span><span style="color: #000000">.</span><span style="color: #795E26">filledWith</span><span style="color: #000000">(</span><span style="color: #098658">10</span><span style="color: #000000">, () </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
 <span style="color: #000000">    </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">number</span><span style="color: #000000">.</span><span style="color: #795E26">randomInt</span><span style="color: #000000">(</span><span style="color: #098658">0</span><span style="color: #000000">, </span><span style="color: #098658">10</span><span style="color: #000000">);</span>
-<span style="color: #000000">}</span>
-<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">randomString</span><span style="color: #000000">() {</span>
-<span style="color: #000000">    </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">string</span><span style="color: #000000">.</span><span style="color: #795E26">random</span><span style="color: #000000">({ </span><span style="color: #001080">allowedCharRegex:</span><span style="color: #811F3F"> /</span><span style="color: #D16969">[</span><span style="color: #811F3F">a-z0-9</span><span style="color: #D16969">]</span><span style="color: #811F3F">/</span><span style="color: #000000"> });</span>
-<span style="color: #000000">}</span>
-
-<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">randomOffsets</span><span style="color: #000000"> = </span><span style="color: #001080">array</span><span style="color: #000000">.</span><span style="color: #795E26">filledWith</span><span style="color: #000000">(</span><span style="color: #098658">10</span><span style="color: #000000">, </span><span style="color: #001080">randomNumber</span><span style="color: #000000">);</span>
+<span style="color: #000000">});</span>
 
 <span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">timestamps</span><span style="color: #000000"> = </span><span style="color: #001080">randomOffsets</span><span style="color: #000000">.</span><span style="color: #795E26">map</span><span style="color: #000000">((</span><span style="color: #001080">offset</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
 <span style="color: #000000">    </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">chrono</span><span style="color: #000000">.</span><span style="color: #795E26">unixTime</span><span style="color: #000000">() + </span><span style="color: #001080">offset</span><span style="color: #000000">;</span>
 <span style="color: #000000">});</span>
 
-<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">randomUniqueStrings</span><span style="color: #000000"> = </span><span style="color: #001080">array</span><span style="color: #000000">.</span><span style="color: #795E26">filledWith</span><span style="color: #000000">(</span><span style="color: #098658">10</span><span style="color: #000000">, </span><span style="color: #001080">randomString</span><span style="color: #000000">, { </span>
-<span style="color: #000000">    </span><span style="color: #001080">noDuplicates:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000"> </span>
-<span style="color: #000000">});</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">randomUniqueStrings</span><span style="color: #000000"> = </span><span style="color: #001080">array</span><span style="color: #000000">.</span><span style="color: #795E26">filledWith</span><span style="color: #000000">(</span><span style="color: #098658">10</span><span style="color: #000000">, () </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">string</span><span style="color: #000000">.</span><span style="color: #795E26">random</span><span style="color: #000000">({ </span><span style="color: #001080">allowedCharRegex:</span><span style="color: #811F3F"> /</span><span style="color: #D16969">[</span><span style="color: #811F3F">a-z0-9</span><span style="color: #D16969">]</span><span style="color: #811F3F">/</span><span style="color: #000000"> });</span>
+<span style="color: #000000">}, { </span><span style="color: #001080">noDuplicates:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000"> });</span>
 </code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h1>API Reference</h1>
 				</a>
-				<p>API documentation can be generated by issuing the following command:</p>
-				<pre><code class="language-shell"><span style="color: #000000">yarn workspace @thermopylae/lib.utils run doc</span>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/lib.utils/index.html">here</a>.</p>
+				<p>It can also be generated by issuing the following commands:</p>
+				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
+<span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
+<span style="color: #000000">yarn install</span>
+<span style="color: #000000">yarn workspace @thermopylae/lib.utils run doc</span>
 </code></pre>
 				<a href="#run-tests" id="run-tests" style="color: inherit; text-decoration: none;">
 					<h2>Run tests</h2>
 				</a>
+				<p>In the cloned repository run the following command: </p>
 				<pre><code class="language-sh"><span style="color: #000000">yarn workspace @thermopylae/lib.utils run </span><span style="color: #795E26">test</span>
 </code></pre>
 				<a href="#author" id="author" style="color: inherit; text-decoration: none;">

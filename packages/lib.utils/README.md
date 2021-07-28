@@ -12,9 +12,6 @@
 
 > Utility functions.
 
-### 🏠 [Homepage](https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.utils)
-
-
 ## Install
 
 ```sh
