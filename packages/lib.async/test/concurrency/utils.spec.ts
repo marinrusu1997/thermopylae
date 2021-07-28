@@ -1,6 +1,6 @@
 import { Milliseconds } from '@thermopylae/core.declarations';
 import { chrono, array } from '@thermopylae/lib.utils';
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { runInSeries, synchronize, toPromise } from '../../lib/concurrency';
 

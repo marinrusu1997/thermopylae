@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { chrono } from '@thermopylae/lib.utils';
 import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import { AccountStatus, AccountWithTotpSecret, FailedAuthenticationModel } from '../lib';

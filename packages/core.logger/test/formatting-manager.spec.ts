@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { format } from 'winston';
 import { TransformableInfo } from 'logform';
 import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager';

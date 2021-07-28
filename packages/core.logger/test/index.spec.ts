@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { LoggerInstance } from '../lib';
 
 describe('Lib spec', () => {

@@ -1,5 +1,5 @@
 import { after, before, describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, HTTPRequestLocation, ObjMap } from '@thermopylae/core.declarations';
 import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
 import type { Server } from 'http';

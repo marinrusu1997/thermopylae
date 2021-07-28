@@ -1,5 +1,5 @@
 import { after, before, beforeEach } from 'mocha';
-import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/lib.unit-test';
+import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/dev.unit-test';
 import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { Client, CoreModule, Library } from '@thermopylae/core.declarations';

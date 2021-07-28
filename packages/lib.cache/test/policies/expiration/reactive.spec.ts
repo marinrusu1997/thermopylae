@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { array, chrono } from '@thermopylae/lib.utils';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { ReactiveExpirationPolicy, EntryValidity } from '../../../lib';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';

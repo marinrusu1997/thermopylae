@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').configs.nyc;
+module.exports = require('@thermopylae/dev.environment').configs.nyc;

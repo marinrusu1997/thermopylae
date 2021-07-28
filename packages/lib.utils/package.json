@@ -40,8 +40,8 @@
         "uuid": "8"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.unit-test": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/lodash.clone": "4",
         "@types/uuid": "8"
     },

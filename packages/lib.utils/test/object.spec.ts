@@ -1,4 +1,4 @@
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { ObjMap } from '@thermopylae/core.declarations';
 import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse, TraverseProcessor } from '../lib/object';

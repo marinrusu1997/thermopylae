@@ -1,6 +1,6 @@
 import { string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { Person, PersonIndexes } from '@thermopylae/lib.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
 import { describe, it } from 'mocha';
 import dotprop from 'dot-prop';
 import { ErrorCodes } from '../lib/error';

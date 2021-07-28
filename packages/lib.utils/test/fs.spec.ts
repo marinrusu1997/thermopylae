@@ -1,4 +1,4 @@
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it, afterEach } from 'mocha';
 import { unlinkSync } from 'fs';
 import { writeJsonToFile, readJsonFromFile } from '../lib/fs';

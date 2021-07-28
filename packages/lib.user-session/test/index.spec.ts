@@ -1,5 +1,5 @@
 import { describe, it, before } from 'mocha';
-import { expect, logger, initLogger } from '@thermopylae/lib.unit-test';
+import { expect, logger, initLogger } from '@thermopylae/dev.unit-test';
 import { LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { setTimeout } from 'timers/promises';

@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { Comparator } from '@thermopylae/core.declarations';
 import { array, number } from '@thermopylae/lib.utils';

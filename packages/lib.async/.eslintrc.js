@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').configs.eslint;
+module.exports = require('@thermopylae/dev.environment').configs.eslint;

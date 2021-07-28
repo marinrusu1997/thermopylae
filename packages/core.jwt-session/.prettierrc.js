@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').configs.prettier;
+module.exports = require('@thermopylae/dev.environment').configs.prettier;

@@ -35,8 +35,8 @@
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.unit-test": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/nodemailer": "6",
         "dotenv": "10"
     },

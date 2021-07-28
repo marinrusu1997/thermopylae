@@ -38,9 +38,9 @@
     },
     "devDependencies": {
         "@thermopylae/lib.cache": "0",
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/lib.user-session.commons": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/jsonwebtoken": "8",
         "@types/uid-safe": "2"
     },

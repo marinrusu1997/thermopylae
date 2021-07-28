@@ -1,5 +1,5 @@
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { expect, logger } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { ProactiveExpirationPolicy, GarbageCollector, HeapGarbageCollector, BucketGarbageCollector } from '../../../lib';

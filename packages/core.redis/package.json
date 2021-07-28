@@ -39,7 +39,7 @@
         "redis": "3"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/redis": "2"
     },
     "peerDependencies": {

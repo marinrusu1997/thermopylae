@@ -1,5 +1,5 @@
-import { chai } from '@thermopylae/lib.unit-test';
-import { getPersonRepositoryClone, Person } from '@thermopylae/lib.unit-test/dist/fixtures/person';
+import { chai } from '@thermopylae/dev.unit-test';
+import { getPersonRepositoryClone, Person } from '@thermopylae/dev.unit-test/dist/fixtures/person';
 import { beforeEach } from 'mocha';
 import { array } from '@thermopylae/lib.utils';
 

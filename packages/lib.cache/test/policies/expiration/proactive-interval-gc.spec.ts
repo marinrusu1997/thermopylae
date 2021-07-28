@@ -2,7 +2,7 @@ import { describe, it } from 'mocha';
 import colors from 'colors';
 import range from 'lodash.range';
 import { array, chrono, number } from '@thermopylae/lib.utils';
-import { expect, logger } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/dev.unit-test';
 import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
 import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
 import { ProactiveExpirationPolicy, IntervalGarbageCollector, IntervalGarbageCollectorOptions, EsMapCacheBackend } from '../../../lib';

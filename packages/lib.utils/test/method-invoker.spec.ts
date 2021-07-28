@@ -1,4 +1,4 @@
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { MethodInvoker } from '../lib/method';
 

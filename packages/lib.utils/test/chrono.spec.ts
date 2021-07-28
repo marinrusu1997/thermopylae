@@ -1,4 +1,4 @@
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { fromUnixTime, minutesToSeconds, unixTime, sleep, tomorrow, firstDayOfNextMonth, executionTime, executionTimeAsync } from '../lib/chrono';
 

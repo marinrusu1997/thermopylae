@@ -1,5 +1,5 @@
 import { describe, it, before } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { config as dotEnvConfig } from 'dotenv';
 import fs from 'fs';
 import { EmailClient } from '../lib';

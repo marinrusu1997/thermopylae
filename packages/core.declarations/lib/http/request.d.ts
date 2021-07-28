@@ -14,7 +14,7 @@ export type HttpHeaderValue = string | Array<string>;
  */
 export interface HttpRequest<Body = unknown> {
 	/**
-	 * Return the remote address or the upstream addr (when behind web proxy).
+	 * The remote address or the upstream address (when behind web proxy).
 	 */
 	readonly ip: string;
 

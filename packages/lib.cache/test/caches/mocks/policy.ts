@@ -1,4 +1,4 @@
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
 import { CacheEntry } from '../../../lib/contracts/commons';
 

@@ -1,5 +1,5 @@
 import { HttpStatusCode } from '@thermopylae/core.declarations';
-import { logger } from '@thermopylae/lib.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
 import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '@thermopylae/core.adapter.express';
 import express from 'express';
 import bodyParser from 'body-parser';

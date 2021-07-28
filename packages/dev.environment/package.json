@@ -22,7 +22,8 @@
     "coverage:show": ":",
     "debug": ":",
     "clean": ":",
-    "purge": ":"
+    "purge": ":",
+    "unpublish": "npm unpublish --force $npm_package_name"
   },
   "dependencies": {
     "@types/chai": "4",

@@ -1,5 +1,5 @@
 import { before, describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import type { ObjMap } from '@thermopylae/core.declarations';
 import { config as dotEnvConfig } from 'dotenv';
 import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';

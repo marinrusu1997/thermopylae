@@ -41,9 +41,9 @@
         "fast-json-stable-stringify": "2"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/faker": "5",
         "dotenv": "10",
         "faker": "5"

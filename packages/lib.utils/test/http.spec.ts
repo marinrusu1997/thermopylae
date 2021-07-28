@@ -1,5 +1,5 @@
 import { ObjMap } from '@thermopylae/core.declarations';
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { request, requestSecure, HTTPResponse, ErrorCodes } from '../lib/http';

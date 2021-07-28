@@ -1,24 +1,6 @@
-export const enum ErrorCodes {
-	API_ERROR = 'API_ERROR',
-	BAD_INVARIANT = 'BAD_INVARIANT',
-	CHECK_FAILED = 'CHECK_FAILED',
-	DUPLICATE = 'DUPLICATE',
-	EXISTS = 'EXISTS',
-	EXPIRED = 'EXPIRED',
-	FULL = 'FULL',
-	INVALID = 'INVALID',
-	MISCONFIGURATION = 'MISCONFIGURATION',
-	NOT_ALLOWED = 'NOT_ALLOWED',
-	NOT_FOUND = 'NOT_FOUND',
-	NOT_EQUAL = 'NOT_EQUAL',
-	NOT_AVAILABLE = 'NOT_AVAILABLE',
-	NOT_CREATED = 'NOT_CREATED',
-	OVERFLOW = 'OVERFLOW',
-	REQUIRED = 'REQUIRED',
-	UNKNOWN = 'UNKNOWN',
-	UNPROCESSABLE = 'UNPROCESSABLE'
-}
-
+/**
+ * Thermopylae framework libraries.
+ */
 export const enum Library {
 	ASYNC = 'LIB_ASYNC',
 	AUTHENTICATION = 'LIB_AUTHENTICATION',
@@ -28,14 +10,14 @@ export const enum Library {
 	HEAP = 'LIB_HEAP',
 	GEO_IP = 'LIB_GEO_IP',
 	JWT_USER_SESSION = 'LIB_JWT_USER_SESSION',
-	LOGGER = 'LIB_LOGGER',
 	POOL = 'LIB_POOL',
-	SMS_CLIENT = 'LIB_SMS_CLIENT',
-	UNIT_TEST = 'LIB_UNIT_TEST',
 	USER_SESSION = 'LIB_USER_SESSION',
 	UTILS = 'LIB_UTILS'
 }
 
+/**
+ * Thermopylae framework core modules.
+ */
 export const enum CoreModule {
 	AUTHENTICATION = 'CORE_AUTHENTICATION',
 	USER_SESSION_COMMONS = 'CORE_USER_SESSION',
@@ -43,20 +25,27 @@ export const enum CoreModule {
 	COOKIE_USER_SESSION = 'CORE_COOKIE_SESSION'
 }
 
-export const enum Client {
+/**
+ * Thermopylae framework development modules.
+ */
+export const enum DevModule {
+	ENVIRONMENT = 'DEV_ENVIRONMENT',
+	UNIT_TESTING = 'DEV_UNIT_TESTING'
+}
+
+/**
+ * Thermopylae framework client modules.
+ */
+export const enum ClientModule {
 	SMS = 'SMS_CLIENT',
 	EMAIL = 'EMAIL_CLIENT',
 	REDIS = 'REDIS_CLIENT',
 	MYSQL = 'MYSQL_CLIENT'
 }
 
-export const enum AuthTokenType {
-	BASIC = 'BASIC',
-	OAUTH = 'OAUTH',
-	GOOGLE = 'GOOGLE',
-	FACEBOOK = 'FACEBOOK'
-}
-
+/**
+ * Flag which indicates operation/process status.
+ */
 export const enum StatusFlag {
 	ENABLED,
 	DISABLED,
@@ -74,6 +63,9 @@ export const enum ComparisonResult {
 	SMALLER = -1
 }
 
+/**
+ * Type of the concurrency when processing items.
+ */
 export const enum ConcurrencyType {
 	SEQUENTIAL,
 	PARALLEL,

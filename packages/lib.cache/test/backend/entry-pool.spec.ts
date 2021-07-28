@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { EntryPoolCacheBackend } from '../../lib';
 import { CacheEntry } from '../../lib/contracts/commons';

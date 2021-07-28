@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import colors from 'colors';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { chrono, number, string } from '@thermopylae/lib.utils';
 import { CacheEntryPriority, PrioritizedCacheEntry, PRIORITY_SYM, PriorityEvictionPolicy } from '../../../lib/policies/eviction/priority';
 import { EsMapCacheBackend } from '../../../lib';

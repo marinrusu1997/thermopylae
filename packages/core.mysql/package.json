@@ -37,7 +37,7 @@
         "mysql2": "2"
     },
     "devDependencies": {
-        "@thermopylae/module-builder": "0"
+        "@thermopylae/dev.environment": "0"
     },
     "peerDependencies": {
         "chai": "4",

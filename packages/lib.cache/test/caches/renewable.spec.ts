@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { chrono } from '@thermopylae/lib.utils';
 import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';

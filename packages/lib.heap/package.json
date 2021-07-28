@@ -42,9 +42,9 @@
         "lodash.isfunction": "3"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/lodash.isfunction": "3"
     },
     "peerDependencies": {

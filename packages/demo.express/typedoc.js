@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').configs.typedoc;
+module.exports = require('@thermopylae/dev.environment').configs.typedoc;

@@ -1,7 +1,7 @@
 /* eslint no-bitwise: 0 */ // --> OFF
 
 import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { array, chrono, number } from '@thermopylae/lib.utils';
 import { Library, Optional } from '@thermopylae/core.declarations';
 import { AwaiterRole, LabeledConditionalVariable, LockedOperation } from '../../lib/concurrency';

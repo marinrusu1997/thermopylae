@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').configs.mocha;
+module.exports = require('@thermopylae/dev.environment').configs.mocha;

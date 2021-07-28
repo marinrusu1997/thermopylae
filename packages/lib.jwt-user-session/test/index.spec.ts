@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { setTimeout } from 'timers/promises';
 import type { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';

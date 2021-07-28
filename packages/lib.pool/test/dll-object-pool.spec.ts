@@ -1,5 +1,5 @@
 import { number, string, array } from '@thermopylae/lib.utils';
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';

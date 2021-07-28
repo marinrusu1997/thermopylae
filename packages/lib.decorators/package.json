@@ -32,7 +32,7 @@
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "enum-for": "0"
     },
     "peerDependencies": {

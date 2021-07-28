@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { Person } from '@thermopylae/lib.unit-test/dist/fixtures/person';
+import { Person } from '@thermopylae/dev.unit-test/dist/fixtures/person';
 import { string } from '@thermopylae/lib.utils';
 import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, randomPerson } from './utils';

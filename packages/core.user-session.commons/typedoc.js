@@ -1,4 +1,4 @@
-const typedoc = require('@thermopylae/module-builder').configs.typedoc;
+const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
 typedoc.externalPattern = [
     'lib/storage/serializers/**/*.ts'
 ];

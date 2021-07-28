@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/lib.unit-test';
+import { expect, logger } from '@thermopylae/dev.unit-test';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
 import { Suite } from 'benchmark';
 import type { Event } from 'benchmark';

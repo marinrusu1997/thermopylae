@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { chrono, array } from '@thermopylae/lib.utils';
 import { PromiseExecutor, PromiseExecutorTask } from '../../lib/concurrency';
 

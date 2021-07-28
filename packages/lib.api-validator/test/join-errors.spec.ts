@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { ErrorObject } from 'ajv';
 import { ApiValidator } from '../lib';
 import { apiValidator } from './bootstrap';

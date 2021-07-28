@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/lib.unit-test/dist/fixtures/person';
+import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
 import { number, object, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 import { Exception } from '@thermopylae/lib.exception';

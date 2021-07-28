@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { log, logError } from './utils';
 import { FormattingManager } from '../lib/formatting-manager';
 import { GrayLogsManager } from '../lib/transports/graylog';

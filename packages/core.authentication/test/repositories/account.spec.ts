@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { AccountStatus, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
 import faker from 'faker';
 import { array, chrono } from '@thermopylae/lib.utils';

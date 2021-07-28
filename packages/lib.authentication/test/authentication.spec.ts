@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { array, chrono } from '@thermopylae/lib.utils';
 import type { UnixTimestamp } from '@thermopylae/core.declarations';

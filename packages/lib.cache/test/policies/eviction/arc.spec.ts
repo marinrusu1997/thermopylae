@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { Exception } from '@thermopylae/lib.exception';
 import { ArcEvictionPolicy, EvictableCacheEntry, SEGMENT_TYPE_SYM } from '../../../lib/policies/eviction/arc';

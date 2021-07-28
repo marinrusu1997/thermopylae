@@ -37,8 +37,8 @@
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.unit-test": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.unit-test": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/cookie": "0",
         "@types/cookie-parser": "1",
         "@types/express": "4",

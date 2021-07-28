@@ -38,9 +38,9 @@
         "object-sizeof": "1"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/core.logger": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/lodash.range": "3",
         "array-move": "3",
         "colors": "1",

@@ -1,1 +1,1 @@
-module.exports = require('@thermopylae/module-builder').gulpfile;
+module.exports = require('@thermopylae/dev.environment').gulpfile;

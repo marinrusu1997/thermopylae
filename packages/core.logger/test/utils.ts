@@ -1,4 +1,4 @@
-import { chai } from '@thermopylae/lib.unit-test';
+import { chai } from '@thermopylae/dev.unit-test';
 import { chrono } from '@thermopylae/lib.utils';
 import moment from 'moment';
 import winston from 'winston';

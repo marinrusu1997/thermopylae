@@ -35,9 +35,9 @@
         "dot-prop": "6"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "range-generator": "1"
     },
     "peerDependencies": {

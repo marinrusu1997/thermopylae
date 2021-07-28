@@ -5,7 +5,7 @@ import { HttpStatusCode, HttpVerb } from '@thermopylae/core.declarations';
 import { UserSessionRedisStorage, UserSessionRedisStorageOptions } from '@thermopylae/core.user-session.commons';
 // eslint-disable-next-line import/extensions
 import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
-import { logger } from '@thermopylae/lib.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
 import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions } from '../lib';
 
 const server = fastify({

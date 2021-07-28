@@ -12,7 +12,7 @@ import {
 	IndexValueGenerators,
 	PersonJsonSchema,
 	getPersonRepositoryClone
-} from '@thermopylae/lib.unit-test';
+} from '@thermopylae/dev.unit-test';
 
 import { beforeEach, describe, it } from 'mocha';
 import { $enum } from 'ts-enum-util';

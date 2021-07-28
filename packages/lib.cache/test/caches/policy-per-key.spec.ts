@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/lib.unit-test';
+import { expect } from '@thermopylae/dev.unit-test';
 import { EsMapCacheBackend, EntryValidity, PolicyPerKeyCache, CacheEvent } from '../../lib';
 import { PolicyMock } from './mocks/policy';
 import { NOT_FOUND_VALUE } from '../../lib/constants';

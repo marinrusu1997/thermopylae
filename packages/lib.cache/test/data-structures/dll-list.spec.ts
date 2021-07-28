@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/lib.unit-test';
+import { assert, expect } from '@thermopylae/dev.unit-test';
 import { Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import arrayMove from 'array-move';

@@ -44,9 +44,9 @@
         "rx-subject": "3"
     },
     "devDependencies": {
-        "@thermopylae/lib.unit-test": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/lib.utils": "0",
-        "@thermopylae/module-builder": "0",
+        "@thermopylae/dev.environment": "0",
         "@types/lodash.orderby": "4",
         "@types/lodash.uniqby": "4",
         "array-differ": "3",

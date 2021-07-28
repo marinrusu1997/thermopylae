@@ -10,7 +10,7 @@ import {
 	truncateMySqlTables,
 	ConnectionDetails,
 	bootRedisContainer
-} from '@thermopylae/lib.unit-test';
+} from '@thermopylae/dev.unit-test';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, initLogger as initMySqlLogger } from '@thermopylae/core.mysql';

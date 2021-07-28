@@ -1,5 +1,5 @@
 import { before } from 'mocha';
-import { initLogger } from '@thermopylae/lib.unit-test';
+import { initLogger } from '@thermopylae/dev.unit-test';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { Library } from '@thermopylae/core.declarations';
 
