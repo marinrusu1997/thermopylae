@@ -28,14 +28,14 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\t${message}`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${level}: \t${message}`);
 		});
 
 		it('applies order for colored printf', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRINTF, true);
+			formattingManager.setDefaultRecipe(OutputFormat.PRINTF, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -48,10 +48,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				`${loggedInfo.timestamp} [${loggedInfo.label}] \u001b[32m${level}\u001b[39m: \u001b[32m	${message}\u001b[39m`
+				`${loggedInfo['timestamp']} [${loggedInfo['label']}] \u001b[32m${level}\u001b[39m: \u001b[32m	${message}\u001b[39m`
 			);
 		});
 
@@ -69,7 +69,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\t${message}`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
@@ -77,7 +77,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 						level,
 						message: `\t${message}`,
 						label: SUBSYSTEM,
-						timestamp: loggedInfo.timestamp
+						timestamp: loggedInfo['timestamp']
 					},
 					null,
 					4
@@ -87,7 +87,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for colored json', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.JSON, true);
+			formattingManager.setDefaultRecipe(OutputFormat.JSON, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -101,7 +101,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
@@ -109,7 +109,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 						level: `\u001b[32m${level}\u001b[39m`,
 						message: `\u001b[32m\t${message}\u001b[39m`,
 						label: SUBSYSTEM,
-						timestamp: loggedInfo.timestamp
+						timestamp: loggedInfo['timestamp']
 					},
 					null,
 					4
@@ -131,17 +131,17 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\t${message}`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
-				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo.timestamp}\'\n}`
+				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
 			);
 		});
 
 		it('applies order for colored pretty print', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT, true);
+			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -155,11 +155,11 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
 			// @ts-ignore
 			expect(loggedInfo.timestamp).to.be.a.dateString();
-			expect(loggedInfo.label).to.equal(SUBSYSTEM);
+			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
-				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo.timestamp}\'\n}`
+				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
 			);
 		});
 	});
@@ -197,7 +197,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		expect(loggedInfo.message).to.equal(`\t${message}`);
 		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
-		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 		// @ts-ignore
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${message}`);
 
@@ -213,10 +213,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		expect(loggedInfo.message).to.equal(`\t${err.message}`);
 		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
-		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 		// @ts-ignore
 		expect(loggedInfo[Symbol.for(message)]).to.equal(
-			`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${err.message}\n${err.stack}`
+			`${loggedInfo['timestamp']} (${process.pid}) [${loggedInfo['label']}] ${loggedInfo.level}:\t${err.message}\n${err.stack}`
 		);
 	});
 
@@ -250,7 +250,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		expect(loggedInfo.message).to.equal(`\t${logMessage}`);
 		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
-		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 		// @ts-ignore
 		expect(loggedInfo[Symbol.for('message')]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}`);
 
@@ -267,7 +267,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		expect(loggedInfo.message).to.equal(`${logMessage}`);
 		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
-		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 		// @ts-ignore
 		expect(loggedInfo[Symbol.for('message')]).to.equal(
 			JSON.stringify(
@@ -275,7 +275,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 					level: logLevel,
 					message: logMessage,
 					label: SUBSYSTEM,
-					timestamp: loggedInfo.timestamp
+					timestamp: loggedInfo['timestamp']
 				},
 				null,
 				4
@@ -300,7 +300,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		expect(loggedInfo.message).to.equal(message);
 		// @ts-ignore
 		expect(loggedInfo.timestamp).to.be.a.dateString();
-		expect(loggedInfo.label).to.equal(SUBSYSTEM);
+		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 		// @ts-ignore
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}: ${message}`);
 	});

@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
-import { Logger } from '../lib/logger';
+import { Logger } from '../lib';
 
 describe('Logger spec', () => {
 	it('returns logging managers', () => {

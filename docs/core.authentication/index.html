@@ -83,7 +83,7 @@
 					</a>
 				</p>
 				<blockquote>
-					<p>Implementations of repositories required by Authentication Library.</p>
+					<p>Implementation of repositories required by Authentication Library.</p>
 				</blockquote>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
@@ -95,17 +95,17 @@
 				</a>
 				<p>Before being able to use this package you need to take following actions:</p>
 				<ol>
-					<li><p>Redis 6 and MySQL 8 deployments</p>
+					<li><p>Deploy <strong>Redis 6</strong> and <strong>MySQL 8</strong> server instances</p>
 					</li>
-					<li><p>Create MySQL database having the following minimal schema:</p>
+					<li><p>Create MySQL database having the <a href="https://github.com/marinrusu1997/thermopylae/blob/master/packages/core.authentication/test/fixtures/setup.sql">following minimal schema</a>:</p>
 						<a href="https://dbdesigner.page.link/LwHWf38hE89bgQvm7">
-							<img src="../../assets/img/thermopylae-db-schema.png">
-						</a>
-					[Here][test-fixtures-sql-schema] is an example of MySQL code in order to setup this schema.</li>
+							<img src="https://raw.githubusercontent.com/marinrusu1997/thermopylae/master/assets/img/thermopylae-db-schema.png">
+					</a></li>
 					<li><p>Configure core logging. Example:</p>
 					</li>
 				</ol>
 				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">, </span><span style="color: #001080">LoggerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ClientModule</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
 
 <span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultRecipe</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
 <span style="color: #000000">  </span><span style="color: #001080">colorize:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>

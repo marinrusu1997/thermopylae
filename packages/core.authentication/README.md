@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Implementations of repositories required by Authentication Library.
+> Implementation of repositories required by Authentication Library.
 
 ## Install
 
@@ -23,11 +23,10 @@ Before being able to use this package you need to take following actions:
 
 1. Deploy **Redis 6** and **MySQL 8** server instances
 
-2. Create MySQL database having the following minimal schema:
-   <a href="https://dbdesigner.page.link/LwHWf38hE89bgQvm7">
-      <img src="../../assets/img/thermopylae-db-schema.png">
-   </a>
-[Here][test-fixtures-sql-schema] is an example of MySQL code in order to setup this schema.
+2. Create MySQL database having the [following minimal schema][test-fixtures-sql-schema]:
+<a href="https://dbdesigner.page.link/LwHWf38hE89bgQvm7">
+  <img src="https://raw.githubusercontent.com/marinrusu1997/thermopylae/master/assets/img/thermopylae-db-schema.png">
+</a>
 
 3. Configure core logging. Example:
 
@@ -94,7 +93,7 @@ Repositories are grouped in two categories:
     * [AccountMySqlRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_account.accountmysqlrepository.html)
     * [FailedAuthenticationsMysqlRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_failed_authentications.failedauthenticationsmysqlrepository.html)
     * [SuccessfulAuthenticationsMysqlRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_successful_authentication.successfulauthenticationsmysqlrepository.html)
-* *redis* - these repositories use Redis database as underlying storage
+* **redis** - these repositories use Redis database as underlying storage
     * [ActivateAccountSessionRedisRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_activate_account_session.activateaccountsessionredisrepository.html)
     * [AuthenticationSessionRedisRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_authentication_session.authenticationsessionredisrepository.html)
     * [FailedAuthenticationAttemptsSessionRedisRepository](https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_failed_authentications_session.failedauthenticationattemptssessionredisrepository.html)
