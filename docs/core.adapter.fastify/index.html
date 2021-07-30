@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>@thermopylae/core.adapter.express</title>
+	<title>@thermopylae/core.adapter.fastify</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="assets/css/main.css">
@@ -25,8 +25,8 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="index.html" class="title">@thermopylae/core.adapter.express</a>
-					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.express" class="title">Github</a>
+					<a href="index.html" class="title">@thermopylae/core.adapter.fastify</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.fastify" class="title">Github</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,13 +69,13 @@
 			</nav>
 		</div>
 		<div class="col-7 offset-3 col-content">
-			<h1>@thermopylae/core.adapter.express</h1>
+			<h1>@thermopylae/core.adapter.fastify</h1>
 			<div class="tsd-panel tsd-typography">
-				<h1 align="center">@thermopylae/core.adapter.express</h1>
+				<h1 align="center">@thermopylae/core.adapter.fastify</h1>
 				<p>
 					<img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
 					<img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
-					<a href="https://marinrusu1997.github.io/thermopylae/core.adapter.express/index.html" target="_blank">
+					<a href="https://marinrusu1997.github.io/thermopylae/core.adapter.fastify/index.html" target="_blank">
 						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 					</a>
 					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
@@ -83,12 +83,12 @@
 					</a>
 				</p>
 				<blockquote>
-					<p>Express adapter for Thermopylae framework.</p>
+					<p>Fastify adapter for Thermopylae framework.</p>
 				</blockquote>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
-				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/core.adapter.express</span>
+				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/core.adapter.fastify</span>
 </code></pre>
 				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
 					<h2>Description</h2>
@@ -101,20 +101,20 @@
 					interfaces from <a href="https://marinrusu1997.github.io/thermopylae/core.declarations/index.html">@thermopylae/core.declarations</a>.</p>
 				</blockquote>
 				<p>This package contains implementations for <em>HttpRequest</em> and <em>HttpResponse</em> from <a href="https://marinrusu1997.github.io/thermopylae/core.declarations/index.html">@thermopylae/core.declarations</a>. <br/>
-				These implementations are wrappers over Express request and response objects.</p>
+				These implementations are wrappers over Fastify request and response objects.</p>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
 				</a>
 				<p>Bellow is a simple example of how this package can be used:</p>
-				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ExpressRequestAdapter</span><span style="color: #000000">, </span><span style="color: #001080">ExpressResponseAdapter</span><span style="color: #000000">, </span><span style="color: #001080">LOCATION_SYM</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.adapter.express&#039;</span><span style="color: #000000">;</span>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">FastifyRequestAdapter</span><span style="color: #000000">, </span><span style="color: #001080">FastifyResponseAdapter</span><span style="color: #000000">, </span><span style="color: #001080">LOCATION_SYM</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.adapter.fastify&#039;</span><span style="color: #000000">;</span>
 <span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">HttpStatusCode</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
-<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">Request</span><span style="color: #000000">, </span><span style="color: #001080">Response</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;express&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">FastifyRequest</span><span style="color: #000000">, </span><span style="color: #001080">FastifyReply</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;fastify&#039;</span><span style="color: #000000">;</span>
 
-<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">handler</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">: </span><span style="color: #267F99">Request</span><span style="color: #000000">, </span><span style="color: #001080">res</span><span style="color: #000000">: </span><span style="color: #267F99">Response</span><span style="color: #000000">) {</span>
-<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">request</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ExpressRequestAdapter</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">);</span>
-<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">response</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ExpressResponseAdapter</span><span style="color: #000000">(</span><span style="color: #001080">res</span><span style="color: #000000">);</span>
+<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">handler</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">: </span><span style="color: #267F99">FastifyRequest</span><span style="color: #000000">, </span><span style="color: #001080">res</span><span style="color: #000000">: </span><span style="color: #267F99">FastifyReply</span><span style="color: #000000">) {</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">request</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FastifyRequestAdapter</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">response</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FastifyResponseAdapter</span><span style="color: #000000">(</span><span style="color: #001080">res</span><span style="color: #000000">);</span>
 
-<span style="color: #000000">    </span><span style="color: #008000">// location needs to be computed by yourself and attached to Express request object, </span>
+<span style="color: #000000">    </span><span style="color: #008000">// location needs to be computed by yourself and attached to Fastify request object, </span>
 <span style="color: #000000">    </span><span style="color: #008000">// before passing it to Thermopylae functions</span>
 <span style="color: #000000">    </span><span style="color: #001080">request</span><span style="color: #000000">.</span><span style="color: #001080">raw</span><span style="color: #000000">[</span><span style="color: #0070C1">LOCATION_SYM</span><span style="color: #000000">] = {</span>
 <span style="color: #000000">        </span><span style="color: #001080">countryCode:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;MD&#039;</span><span style="color: #000000">,</span>
@@ -134,12 +134,12 @@
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>
-				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/core.adapter.express/index.html">here</a>.</p>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/core.adapter.fastify/index.html">here</a>.</p>
 				<p>It can also be generated by issuing the following commands:</p>
 				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
 <span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
 <span style="color: #000000">yarn install</span>
-<span style="color: #000000">yarn workspace @thermopylae/core.adapter.express run doc</span>
+<span style="color: #000000">yarn workspace @thermopylae/core.adapter.fastify run doc</span>
 </code></pre>
 				<a href="#author" id="author" style="color: inherit; text-decoration: none;">
 					<h2>Author</h2>
@@ -156,7 +156,7 @@
 				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
 				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
 			</div>
-			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.express&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.express&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/error.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.express&quot;}],&quot;outline&quot;:[{&quot;Request&quot;:&quot;request&quot;,&quot;Response&quot;:&quot;response&quot;}]}-->
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.fastify&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.fastify&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/error.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.fastify&quot;}],&quot;outline&quot;:[{&quot;Request&quot;:&quot;request&quot;,&quot;Response&quot;:&quot;response&quot;}]}-->
 		</div>
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">

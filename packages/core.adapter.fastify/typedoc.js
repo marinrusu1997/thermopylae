@@ -6,8 +6,8 @@ typedoc.outline = [
     }
 ];
 typedoc.links = [{
-    "label": "Bitbucket",
-    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/core.adapter.fastify/"
+    "label": "Github",
+    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.fastify"
 }]
 
 module.exports = typedoc;

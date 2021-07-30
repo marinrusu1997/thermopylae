@@ -9,6 +9,10 @@ import type {
 	ObjMap
 } from '@thermopylae/core.declarations';
 import type { FastifyRequest } from 'fastify';
+// eslint-disable-next-line import/no-unresolved
+import type { RouteGenericInterface } from 'fastify/types/route';
+// eslint-disable-next-line import/no-unresolved
+import type { RawRequestDefaultExpression, RawServerBase, RawServerDefault } from 'fastify/types/utils';
 import type { DeviceDetectorResult } from 'device-detector-js';
 import DeviceDetectorJs from 'device-detector-js';
 
@@ -18,7 +22,11 @@ const LOCATION_SYM = Symbol('HTTP_LOCATION_SYM');
 /**
  * Fastify request instance managed by {@link FastifyRequestAdapter}.
  */
-interface AdaptedFastifyRequest extends FastifyRequest {
+interface AdaptedFastifyRequest<
+	RouteGeneric extends RouteGenericInterface = RouteGenericInterface,
+	RawServer extends RawServerBase = RawServerDefault,
+	RawRequest extends RawRequestDefaultExpression<RawServer> = RawRequestDefaultExpression<RawServer>
+> extends FastifyRequest<RouteGeneric, RawServer, RawRequest> {
 	/**
 	 * Property under which *FastifyDeviceDetector* stores detected device. <br/>
 	 * Notice that if you pass a fastify request object to {@link FastifyRequestAdapter}
@@ -34,7 +42,9 @@ interface AdaptedFastifyRequest extends FastifyRequest {
 }
 
 /**
- * @private
+ * Device detector which extracts device from *User-Agent* header by using
+ * [device-detector-js](https://www.npmjs.com/package/device-detector-js) dependency. <br/>
+ * Device is stored in the Fastify request object under {@link DEVICE_SYM} symbol.
  */
 class FastifyDeviceDetector implements HttpDeviceDetector<AdaptedFastifyRequest> {
 	private readonly detector: DeviceDetectorJs;
@@ -64,7 +74,7 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
 	 * Device detector. <br/>
 	 * You can assign you own **HttpDeviceDetector** implementation. <br/>
-	 * Defaults to **FastifyDeviceDetector** which detects device based on *User-Agent* header.
+	 * Defaults to {@link FastifyDeviceDetector} which detects device based on *User-Agent* header.
 	 */
 	public static deviceDetector: HttpDeviceDetector<AdaptedFastifyRequest> = new FastifyDeviceDetector();
 
@@ -143,4 +153,4 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	}
 }
 
-export { FastifyRequestAdapter, AdaptedFastifyRequest, LOCATION_SYM, DEVICE_SYM };
+export { FastifyRequestAdapter, AdaptedFastifyRequest, FastifyDeviceDetector, LOCATION_SYM, DEVICE_SYM };

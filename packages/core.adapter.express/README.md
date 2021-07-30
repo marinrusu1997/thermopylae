@@ -19,7 +19,7 @@ npm install @thermopylae/core.adapter.express
 ```
 
 ## Description
-> :information_source: **TL;DR** <br/>
+> :information_source: **TL;DR;** <br/>
 > Thermopylae framework allows you to use it's *core.** modules with any of the existing web frameworks,
 > such as [express][express-link], [fastify][fastify-link] etc. <br/>
 > All you need to do is implementing [HttpRequest][core-declarations-http-request-link] and [HttpResponse][core-declarations-http-response-link]

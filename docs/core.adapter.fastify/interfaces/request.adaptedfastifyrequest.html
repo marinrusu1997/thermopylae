@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>AdaptedExpressRequest | @thermopylae/core.adapter.express</title>
+	<title>AdaptedFastifyRequest | @thermopylae/core.adapter.fastify</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -25,8 +25,8 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">@thermopylae/core.adapter.express</a>
-					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.express" class="title">Github</a>
+					<a href="../index.html" class="title">@thermopylae/core.adapter.fastify</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.fastify" class="title">Github</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -58,7 +58,7 @@
 					<a href="../modules/request.html">request</a>
 				</li>
 				<li>
-					<a href="request.adaptedexpressrequest.html">AdaptedExpressRequest</a>
+					<a href="request.adaptedfastifyrequest.html">AdaptedFastifyRequest</a>
 				</li>
 			</ul>
 		</div>
@@ -75,29 +75,23 @@
 			</nav>
 		</div>
 		<div class="col-7 offset-3 col-content">
-			<h1>Interface AdaptedExpressRequest&lt;P, ResBody, ReqBody, ReqQuery, Locals&gt;</h1>
+			<h1>Interface AdaptedFastifyRequest&lt;RouteGeneric, RawServer, RawRequest&gt;</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Express request instance managed by <a href="../classes/request.expressrequestadapter.html">ExpressRequestAdapter</a>.</p>
+						<p>Fastify request instance managed by <a href="../classes/request.fastifyrequestadapter.html">FastifyRequestAdapter</a>.</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-type-parameters">
 				<h3>Type parameters</h3>
 				<ul class="tsd-type-parameters">
 					<li>
-						<h4>P</h4>
+						<h4>RouteGeneric<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RouteGenericInterface</span></h4>
 					</li>
 					<li>
-						<h4>ResBody</h4>
+						<h4>RawServer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RawServerBase</span></h4>
 					</li>
 					<li>
-						<h4>ReqBody</h4>
-					</li>
-					<li>
-						<h4>ReqQuery</h4>
-					</li>
-					<li>
-						<h4>Locals<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						<h4>RawRequest<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RawRequestDefaultExpression</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">RawServer</span><span class="tsd-signature-symbol">&gt;</span></h4>
 					</li>
 				</ul>
 			</section>
@@ -105,10 +99,10 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="tsd-signature-type">Request</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">P</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">ResBody</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">ReqBody</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">ReqQuery</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Locals</span><span class="tsd-signature-symbol">&gt;</span>
+						<span class="tsd-signature-type">FastifyRequest</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">RouteGeneric</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">RawServer</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">RawRequest</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">AdaptedExpressRequest</span>
+								<span class="target">AdaptedFastifyRequest</span>
 							</li>
 						</ul>
 					</li>
@@ -120,8 +114,8 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="request.adaptedexpressrequest.html#_device_sym_" class="tsd-kind-icon">[DEVICE_<wbr>SYM]</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="request.adaptedexpressrequest.html#_location_sym_" class="tsd-kind-icon">[LOCATION_<wbr>SYM]</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="request.adaptedfastifyrequest.html#_device_sym_" class="tsd-kind-icon">[DEVICE_<wbr>SYM]</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="request.adaptedfastifyrequest.html#_location_sym_" class="tsd-kind-icon">[LOCATION_<wbr>SYM]</a></li>
 							</ul>
 						</section>
 					</div>
@@ -137,9 +131,9 @@
 					</aside>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Property under which <em>ExpressDeviceDetector</em> stores detected device. <br/>
-								Notice that if you pass an express request object to <a href="../classes/request.expressrequestadapter.html">ExpressRequestAdapter</a>
-							which already has this property with according device, <em>ExpressDeviceDetector</em> won&#39;t compute this property again.</p>
+							<p>Property under which <em>FastifyDeviceDetector</em> stores detected device. <br/>
+								Notice that if you pass a fastify request object to <a href="../classes/request.fastifyrequestadapter.html">FastifyRequestAdapter</a>
+							which already has this property with according device, <em>FastifyDeviceDetector</em> won&#39;t compute this property again.</p>
 						</div>
 					</div>
 				</section>
@@ -152,33 +146,33 @@
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
 							<p>Property under which location of the request is stored. <br/>
-								<em>Important!</em> Clients of the <a href="../classes/request.expressrequestadapter.html">ExpressRequestAdapter</a> have to set this property accordingly
-							on express request object before passing it to adapter, as he won&#39;t compute it.</p>
+								<em>Important!</em> Clients of the <a href="../classes/request.fastifyrequestadapter.html">FastifyRequestAdapter</a> have to set this property accordingly
+							on fastify request object before passing it to adapter, as he won&#39;t compute it.</p>
 						</div>
 					</div>
 				</section>
 			</section>
-			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.express&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.express&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/error.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.express&quot;}],&quot;outline&quot;:[{&quot;Request&quot;:&quot;request&quot;,&quot;Response&quot;:&quot;response&quot;}]}-->
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.fastify&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.adapter.fastify&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/error.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.adapter.fastify&quot;}],&quot;outline&quot;:[{&quot;Request&quot;:&quot;request&quot;,&quot;Response&quot;:&quot;response&quot;}]}-->
 		</div>
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
-						<a href="../classes/request.expressdevicedetector.html" class="tsd-kind-icon">Express<wbr>Device<wbr>Detector</a>
+						<a href="../classes/request.fastifydevicedetector.html" class="tsd-kind-icon">Fastify<wbr>Device<wbr>Detector</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
-						<a href="../classes/request.expressrequestadapter.html" class="tsd-kind-icon">Express<wbr>Request<wbr>Adapter</a>
+						<a href="../classes/request.fastifyrequestadapter.html" class="tsd-kind-icon">Fastify<wbr>Request<wbr>Adapter</a>
 					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
-						<a href="request.adaptedexpressrequest.html" class="tsd-kind-icon">Adapted<wbr>Express<wbr>Request</a>
+						<a href="request.adaptedfastifyrequest.html" class="tsd-kind-icon">Adapted<wbr>Fastify<wbr>Request</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="request.adaptedexpressrequest.html#_device_sym_" class="tsd-kind-icon">[DEVICE_<wbr>SYM]</a>
+								<a href="request.adaptedfastifyrequest.html#_device_sym_" class="tsd-kind-icon">[DEVICE_<wbr>SYM]</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="request.adaptedexpressrequest.html#_location_sym_" class="tsd-kind-icon">[LOCATION_<wbr>SYM]</a>
+								<a href="request.adaptedfastifyrequest.html#_location_sym_" class="tsd-kind-icon">[LOCATION_<wbr>SYM]</a>
 							</li>
 						</ul>
 					</li>
