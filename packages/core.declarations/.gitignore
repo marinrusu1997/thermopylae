@@ -9,8 +9,9 @@
 /build/Release
 
 # testing
-/.nyc_output
-/coverage
+/.nyc_output/
+/coverage/
+/doc/
 
 # environment
 .env

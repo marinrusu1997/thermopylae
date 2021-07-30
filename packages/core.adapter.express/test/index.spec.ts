@@ -30,7 +30,7 @@ let request: {
 };
 
 app.post('/:pp1/:pp2', (req, res) => {
-	const requestAdapter = new ExpressRequestAdapter<ObjMap>(req);
+	const requestAdapter = new ExpressRequestAdapter(req);
 	requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
 
 	request = {

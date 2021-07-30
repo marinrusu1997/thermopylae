@@ -10,6 +10,7 @@ import type {
 } from '@thermopylae/core.declarations';
 import type { Request } from 'express';
 import type { DeviceDetectorResult } from 'device-detector-js';
+import type { ParamsDictionary, Query } from 'express-serve-static-core';
 import DeviceDetectorJs from 'device-detector-js';
 
 const DEVICE_SYM = Symbol('HTTP_DEVICE_SYM');
@@ -18,7 +19,8 @@ const LOCATION_SYM = Symbol('HTTP_LOCATION_SYM');
 /**
  * Express request instance managed by {@link ExpressRequestAdapter}.
  */
-interface AdaptedExpressRequest extends Request {
+interface AdaptedExpressRequest<P = ParamsDictionary, ResBody = any, ReqBody = any, ReqQuery = Query, Locals extends Record<string, any> = Record<string, any>>
+	extends Request<P, ResBody, ReqBody, ReqQuery, Locals> {
 	/**
 	 * Property under which *ExpressDeviceDetector* stores detected device. <br/>
 	 * Notice that if you pass an express request object to {@link ExpressRequestAdapter}
@@ -34,7 +36,9 @@ interface AdaptedExpressRequest extends Request {
 }
 
 /**
- * @private
+ * Device detector which extracts device from *User-Agent* header by using
+ * [device-detector-js](https://www.npmjs.com/package/device-detector-js) dependency. <br/>
+ * Device is stored in the Express request object under {@link DEVICE_SYM} symbol.
  */
 class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest> {
 	private readonly detector: DeviceDetectorJs;
@@ -63,8 +67,8 @@ class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest>
 class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
 	 * Device detector. <br/>
-	 * You can assign you own **HttpDeviceDetector** implementation. <br/>
-	 * Defaults to **ExpressDeviceDetector** which detects device based on *User-Agent* header.
+	 * You can assign your own **HttpDeviceDetector** implementation. <br/>
+	 * Defaults to {@link ExpressDeviceDetector} which detects device based on *User-Agent* header.
 	 */
 	public static deviceDetector: HttpDeviceDetector<AdaptedExpressRequest> = new ExpressDeviceDetector();
 
@@ -142,4 +146,4 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	}
 }
 
-export { ExpressRequestAdapter, DEVICE_SYM, LOCATION_SYM, AdaptedExpressRequest };
+export { ExpressRequestAdapter, DEVICE_SYM, LOCATION_SYM, AdaptedExpressRequest, ExpressDeviceDetector };
