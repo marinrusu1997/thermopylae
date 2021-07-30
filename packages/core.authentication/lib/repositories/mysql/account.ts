@@ -1,9 +1,8 @@
-import { AccountRepository, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
+import type { AccountRepository, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, QueryType, ResultSetHeader, RowDataPacket } from '@thermopylae/core.mysql';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { TableNames } from '../constants';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 
 class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret> {
 	private static readonly DUPLICATED_FIELD_REGEXP = new RegExp(`for key '${TableNames.Account}\\.(username|email|telephone)'$`);
@@ -131,7 +130,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			const [results] = await connection.query<ResultSetHeader>(`UPDATE ${TableNames.Account} SET disabledUntil=${until} WHERE id=${accountId};`);
 
 			if (results.affectedRows !== 1) {
-				throw createException(ErrorCodes.NOT_FOUND, `Account with id '${accountId}' not found.`);
+				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id '${accountId}' not found.`);
 			}
 		} finally {
 			connection.release();
@@ -156,7 +155,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			);
 
 			if (results.affectedRows !== 1) {
-				throw createException(ErrorCodes.NOT_FOUND, `Account with id '${accountId}' not found.`);
+				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id '${accountId}' not found.`);
 			}
 		} finally {
 			connection.release();
@@ -173,7 +172,7 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			);
 
 			if (results.affectedRows !== 1) {
-				throw createException(ErrorCodes.NOT_FOUND, `Account with id '${accountId}' not found.`);
+				throw createException(ErrorCodes.ACCOUNT_NOT_FOUND, `Account with id '${accountId}' not found.`);
 			}
 		} finally {
 			connection.release();

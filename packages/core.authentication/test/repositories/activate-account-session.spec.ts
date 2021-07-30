@@ -4,8 +4,8 @@ import faker from 'faker';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { AccountStatus, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { ActivateAccountSessionRedisRepository } from '../../lib';
+import { ErrorCodes } from '../../lib/error';
 
 describe(`${ActivateAccountSessionRedisRepository.name} spec`, function suite() {
 	const activateAccountSessionRedisRepository = new ActivateAccountSessionRedisRepository('activ-acc');
@@ -55,7 +55,7 @@ describe(`${ActivateAccountSessionRedisRepository.name} spec`, function suite() 
 		} catch (e) {
 			err = e;
 		}
-		expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.NOT_CREATED);
+		expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACTIVATE_ACCOUNT_SESSION_NOT_CREATED);
 		expect(err).to.haveOwnProperty(
 			'message',
 			`Failed to insert activate account session for account with username '${account.username}' and email '${account.email}'.`

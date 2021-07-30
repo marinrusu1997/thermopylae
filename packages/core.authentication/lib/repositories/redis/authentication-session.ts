@@ -1,7 +1,7 @@
-import { AuthenticationSession, AuthenticationSessionRepository } from '@thermopylae/lib.authentication';
-import { ErrorCodes, Seconds } from '@thermopylae/core.declarations';
+import type { AuthenticationSession, AuthenticationSessionRepository } from '@thermopylae/lib.authentication';
+import { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 
 class AuthenticationSessionRedisRepository implements AuthenticationSessionRepository {
 	private readonly prefix: string;
@@ -13,7 +13,10 @@ class AuthenticationSessionRedisRepository implements AuthenticationSessionRepos
 	public async upsert(username: string, deviceId: string, session: AuthenticationSession, ttl: Seconds): Promise<void> {
 		const wasSet = await RedisClientInstance.client.set(this.buildKey(username, deviceId), JSON.stringify(session), ['EX', ttl]);
 		if (wasSet == null) {
-			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert authentication session for username '${username}' and device id '${deviceId}'.`);
+			throw createException(
+				ErrorCodes.AUTHENTICATION_SESSION_NOT_CREATED,
+				`Failed to insert authentication session for username '${username}' and device id '${deviceId}'.`
+			);
 		}
 	}
 

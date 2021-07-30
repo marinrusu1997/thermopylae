@@ -1,10 +1,10 @@
-import { Client, CoreModule, ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+import { ClientModule, CoreModule, DevModule, Nullable } from '@thermopylae/core.declarations';
 import { Format } from 'logform';
 import { format } from 'winston';
 // eslint-disable-next-line import/extensions
 import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
 import chalk from 'chalk';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 
 const enum OutputFormat {
 	PRINTF = 'PRINTF',
@@ -37,7 +37,7 @@ const enum DefaultFormatters {
 interface DefaultRecipeOptions {
 	/**
 	 * Whether output needs to be colored. <br/>
-	 * Passing `true` will colorize only {@link Client} and {@link CoreModule} labels.
+	 * Passing `true` will colorize only {@link ClientModule} and {@link CoreModule} labels.
 	 * If you need additional labels to be colorized, pass an object having label as key and color as value.
 	 */
 	readonly colorize?: boolean | Record<string, string>;
@@ -151,7 +151,7 @@ class FormattingManager {
 	 */
 	public order(recipe: Array<Formatter>): void {
 		if (this.recipe != null) {
-			throw createException(ErrorCodes.EXISTS, 'Order recipe has been configured already.');
+			throw createException(ErrorCodes.FORMATTERS_RECIPE_EXISTS, 'Order recipe has been configured already.');
 		}
 		this.recipe = recipe;
 	}
@@ -233,7 +233,7 @@ class FormattingManager {
 				order.push(DefaultFormatters.SIMPLE);
 				break;
 			default:
-				throw createException(ErrorCodes.UNKNOWN, `Unknown output format: ${outputFormat}.`);
+				throw createException(ErrorCodes.UNKNOWN_OUTPUT_FORMAT, `Unknown output format: ${outputFormat}.`);
 		}
 
 		this.recipe = order;
@@ -250,7 +250,7 @@ class FormattingManager {
 		const { combine, label } = format;
 
 		if (this.recipe == null) {
-			throw createException(ErrorCodes.REQUIRED, 'Order recipe is not configured.');
+			throw createException(ErrorCodes.FORMATTERS_RECIPE_NOT_CONFIGURED, 'Order recipe is not configured.');
 		}
 
 		const stagedFormatters = [label({ label: module })];
@@ -259,7 +259,7 @@ class FormattingManager {
 		for (let i = 0; i < this.recipe.length; i += 1) {
 			formatter = this.formatters.get(this.recipe[i]);
 			if (!formatter) {
-				throw createException(ErrorCodes.NOT_FOUND, `Formatter '${this.recipe[i]}' from the recipe is not registered.`);
+				throw createException(ErrorCodes.FORMATTER_NOT_REGISTERED, `Formatter '${this.recipe[i]}' from the recipe is not registered.`);
 			}
 			stagedFormatters.push(formatter);
 		}
@@ -359,8 +359,10 @@ class FormattingManager {
 		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
 		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('orange')(CoreModule.COOKIE_USER_SESSION));
 
-		formattedLabels[Client.MYSQL] = chalk.italic(chalk.bgKeyword('maroon')(Client.MYSQL));
-		formattedLabels[Client.REDIS] = chalk.italic(chalk.bgKeyword('gray')(Client.REDIS));
+		formattedLabels[ClientModule.MYSQL] = chalk.italic(chalk.bgKeyword('maroon')(ClientModule.MYSQL));
+		formattedLabels[ClientModule.REDIS] = chalk.italic(chalk.bgKeyword('gray')(ClientModule.REDIS));
+
+		formattedLabels[DevModule.UNIT_TESTING] = chalk.italic(chalk.bgKeyword('green')(DevModule.UNIT_TESTING));
 	}
 
 	private static defineFormattedLabel(formattedLabels: FormattedLabels, label: string, color: string): void {

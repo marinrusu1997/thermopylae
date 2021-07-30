@@ -42,7 +42,7 @@ class TransportsManager {
 		}
 
 		if (!transports.length) {
-			throw createException(ErrorCodes.REQUIRED, `No transports were configured for ${module}.`);
+			throw createException(ErrorCodes.NO_TRANSPORTS_FOR_MODULE, `No transports were configured for ${module}.`);
 		}
 
 		return transports;

@@ -12,7 +12,7 @@ import {
 	bootRedisContainer
 } from '@thermopylae/dev.unit-test';
 import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
-import { Client, CoreModule, Library } from '@thermopylae/core.declarations';
+import { ClientModule, DevModule } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, initLogger as initMySqlLogger } from '@thermopylae/core.mysql';
 import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
 import { config as dotEnvConfig } from 'dotenv';
@@ -35,10 +35,9 @@ before(async function boot() {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		levelForLabel: {
-			[Library.UNIT_TEST]: process.env['UNIT_TEST_LOG_LEVEL'] as string,
-			[CoreModule.AUTHENTICATION]: process.env['CORE_AUTHENTICATION_LOG_LEVEL'] as string,
-			[Client.MYSQL]: process.env['MYSQL_LOG_LEVEL'] as string,
-			[Client.REDIS]: process.env['REDIS_LOG_LEVEL'] as string
+			[DevModule.UNIT_TESTING]: process.env['UNIT_TEST_LOG_LEVEL'] as string,
+			[ClientModule.MYSQL]: process.env['MYSQL_LOG_LEVEL'] as string,
+			[ClientModule.REDIS]: process.env['REDIS_LOG_LEVEL'] as string
 		}
 	});
 	LoggerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] });

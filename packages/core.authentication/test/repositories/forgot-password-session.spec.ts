@@ -3,8 +3,8 @@ import { expect } from '@thermopylae/dev.unit-test';
 import faker from 'faker';
 import { chrono } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { ForgotPasswordSessionRedisRepository } from '../../lib';
+import { ErrorCodes } from '../../lib/error';
 
 describe(`${ForgotPasswordSessionRedisRepository.name} spec`, function suite() {
 	const forgotPasswordSessionRedisRepository = new ForgotPasswordSessionRedisRepository('fgt-pwd');
@@ -28,7 +28,7 @@ describe(`${ForgotPasswordSessionRedisRepository.name} spec`, function suite() {
 		} catch (e) {
 			err = e;
 		}
-		expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.NOT_CREATED);
+		expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.FORGOT_PASSWORD_SESSION_NOT_CREATED);
 		expect(err).to.haveOwnProperty('message', 'Failed to insert forgot password session.');
 
 		/* READ */

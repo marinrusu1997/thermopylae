@@ -16,7 +16,7 @@ export type {
 	Percentage,
 	Threshold
 } from './aliases';
-export { ClientModule, CoreModule, Library, ComparisonResult, ConcurrencyType, SortDirection, StatusFlag } from './enums';
+export { ClientModule, CoreModule, DevModule, Library, ComparisonResult, ConcurrencyType, SortDirection, StatusFlag } from './enums';
 export type { Same, Cloneable, Comparable, Identity } from './functional';
 export type {
 	Comparator,

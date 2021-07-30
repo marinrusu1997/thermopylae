@@ -1,7 +1,7 @@
-import { ErrorCodes, Seconds } from '@thermopylae/core.declarations';
+import { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
-import { ForgotPasswordSessionRepository } from '@thermopylae/lib.authentication';
-import { createException } from '../../error';
+import type { ForgotPasswordSessionRepository } from '@thermopylae/lib.authentication';
+import { createException, ErrorCodes } from '../../error';
 
 class ForgotPasswordSessionRedisRepository implements ForgotPasswordSessionRepository {
 	private readonly prefix: string;
@@ -13,7 +13,7 @@ class ForgotPasswordSessionRedisRepository implements ForgotPasswordSessionRepos
 	public async insert(token: string, ttl: Seconds): Promise<void> {
 		const wasSet = await RedisClientInstance.client.set(`${this.prefix}:${token}`, '', ['EX', ttl], 'NX');
 		if (wasSet == null) {
-			throw createException(ErrorCodes.NOT_CREATED, 'Failed to insert forgot password session.');
+			throw createException(ErrorCodes.FORGOT_PASSWORD_SESSION_NOT_CREATED, 'Failed to insert forgot password session.');
 		}
 	}
 

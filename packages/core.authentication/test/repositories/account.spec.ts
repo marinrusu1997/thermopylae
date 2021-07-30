@@ -4,8 +4,8 @@ import { AccountStatus, AccountWithTotpSecret } from '@thermopylae/lib.authentic
 import faker from 'faker';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { AccountMySqlRepository } from '../../lib';
+import { ErrorCodes } from '../../lib/error';
 
 describe(`${AccountMySqlRepository.name} spec`, function suite() {
 	this.timeout(2_500);
@@ -417,7 +417,7 @@ describe(`${AccountMySqlRepository.name} spec`, function suite() {
 			} catch (e) {
 				err = e;
 			}
-			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 			expect(err).to.haveOwnProperty('message', `Account with id '${'1'}' not found.`);
 		});
 
@@ -478,7 +478,7 @@ describe(`${AccountMySqlRepository.name} spec`, function suite() {
 			} catch (e) {
 				err = e;
 			}
-			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 			expect(err).to.haveOwnProperty('message', `Account with id '${'1'}' not found.`);
 		});
 
@@ -549,7 +549,7 @@ describe(`${AccountMySqlRepository.name} spec`, function suite() {
 			} catch (e) {
 				err = e;
 			}
-			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			expect(err).to.be.instanceof(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 			expect(err).to.haveOwnProperty('message', `Account with id '${'1'}' not found.`);
 		});
 

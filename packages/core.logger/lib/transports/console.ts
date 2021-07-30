@@ -1,10 +1,10 @@
-import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+import { Nullable } from '@thermopylae/core.declarations';
 // eslint-disable-next-line import/extensions
 import { Console, ConsoleTransportOptions } from 'winston/lib/winston/transports';
 import TransportStream from 'winston-transport';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import { AbstractTransportManager } from '../typings';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 
 /**
  * Stores console config and transport. <br>
@@ -25,7 +25,7 @@ class ConsoleLogsManager implements AbstractTransportManager {
 	 */
 	public createTransport(options?: ConsoleTransportOptions): void {
 		if (this.transport != null) {
-			throw createException(ErrorCodes.EXISTS, 'Transport has been created already.');
+			throw createException(ErrorCodes.TRANSPORT_EXISTS, 'Transport has been created already.');
 		}
 		this.transport = new Console(options);
 	}

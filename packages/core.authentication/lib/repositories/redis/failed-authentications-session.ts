@@ -1,8 +1,7 @@
-import { ErrorCodes, Seconds } from '@thermopylae/core.declarations';
+import { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
-import { FailedAuthAttemptSessionRepository } from '@thermopylae/lib.authentication';
-import { FailedAuthenticationAttemptSession } from '@thermopylae/lib.authentication/lib';
-import { createException } from '../../error';
+import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptSession } from '@thermopylae/lib.authentication';
+import { createException, ErrorCodes } from '../../error';
 
 class FailedAuthenticationAttemptsSessionRedisRepository implements FailedAuthAttemptSessionRepository {
 	private readonly prefix: string;
@@ -14,7 +13,10 @@ class FailedAuthenticationAttemptsSessionRedisRepository implements FailedAuthAt
 	public async upsert(username: string, session: FailedAuthenticationAttemptSession, ttl: Seconds): Promise<void> {
 		const wasSet = await RedisClientInstance.client.set(`${this.prefix}:${username}`, JSON.stringify(session), ['EX', ttl]);
 		if (wasSet == null) {
-			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert failed authentication attempts session for username '${username}'.`);
+			throw createException(
+				ErrorCodes.FAILED_AUTHENTICATION_ATTEMPTS_SESSION_NOT_CREATED,
+				`Failed to insert failed authentication attempts session for username '${username}'.`
+			);
 		}
 	}
 

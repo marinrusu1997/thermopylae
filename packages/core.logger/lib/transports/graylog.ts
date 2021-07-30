@@ -1,9 +1,9 @@
-import { ErrorCodes, Nullable } from '@thermopylae/core.declarations';
+import { Nullable } from '@thermopylae/core.declarations';
 import * as TransportStream from 'winston-transport';
 import WinstonGraylog2 from 'winston-graylog2';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import { AbstractTransportManager } from '../typings';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 
 interface GraylogEndpoint {
 	host: string;
@@ -40,7 +40,7 @@ class GrayLogsManager implements AbstractTransportManager {
 		}
 
 		if (this.inputs.has(input)) {
-			throw createException(ErrorCodes.EXISTS, `${input} has been registered already with ${JSON.stringify(this.inputs.get(input))}.`);
+			throw createException(ErrorCodes.GRAYLOG2_INPUT_EXISTS, `${input} has been registered already with ${JSON.stringify(this.inputs.get(input))}.`);
 		}
 
 		this.inputs.set(input, endpoint);
@@ -60,7 +60,10 @@ class GrayLogsManager implements AbstractTransportManager {
 		}
 
 		if (this.channels.has(module)) {
-			throw createException(ErrorCodes.EXISTS, `${module} has been registered already with ${JSON.stringify(this.channels.get(module))}.`);
+			throw createException(
+				ErrorCodes.GRAYLOG2_CHANNEL_EXISTS,
+				`${module} has been registered already with ${JSON.stringify(this.channels.get(module))}.`
+			);
 		}
 
 		this.channels.set(module, channel);
@@ -78,17 +81,17 @@ class GrayLogsManager implements AbstractTransportManager {
 			return null;
 		}
 		if (this.channels == null) {
-			throw createException(ErrorCodes.REQUIRED, 'No channels configured.');
+			throw createException(ErrorCodes.NO_GRAYLOG2_CHANNELS, 'No channels configured.');
 		}
 
 		const channel = this.channels.get(module) || this.channels.get('@all');
 		if (channel == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Neither '@all' recipe, nor '${module}' recipe were configured.`);
+			throw createException(ErrorCodes.GRAYLOG2_CHANNEL_NOT_FOUND, `Neither '@all' recipe, nor '${module}' recipe were configured.`);
 		}
 
 		const endpoint = this.inputs.get(channel.input);
 		if (endpoint == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Graylog2 endpoint for input ${channel.input} not configured.`);
+			throw createException(ErrorCodes.GRAYLOG2_INPUT_NOT_FOUND, `Graylog2 endpoint for input ${channel.input} not configured.`);
 		}
 
 		this.channels.delete(module); // transport for specific system can be obtained only once, so clean memory, be kind :)

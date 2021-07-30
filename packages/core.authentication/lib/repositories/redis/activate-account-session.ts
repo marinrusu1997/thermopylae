@@ -1,7 +1,7 @@
-import { ErrorCodes, Seconds } from '@thermopylae/core.declarations';
+import { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
-import { AccountWithTotpSecret, ActivateAccountSessionRepository } from '@thermopylae/lib.authentication';
-import { createException } from '../../error';
+import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '@thermopylae/lib.authentication';
+import { createException, ErrorCodes } from '../../error';
 
 class ActivateAccountSessionRedisRepository implements ActivateAccountSessionRepository<AccountWithTotpSecret> {
 	private readonly prefix: string;
@@ -14,7 +14,7 @@ class ActivateAccountSessionRedisRepository implements ActivateAccountSessionRep
 		const wasSet = await RedisClientInstance.client.set(`${this.prefix}:${token}`, JSON.stringify(account), ['EX', ttl], 'NX');
 		if (wasSet == null) {
 			throw createException(
-				ErrorCodes.NOT_CREATED,
+				ErrorCodes.ACTIVATE_ACCOUNT_SESSION_NOT_CREATED,
 				`Failed to insert activate account session for account with username '${account.username}' and email '${account.email}'.`
 			);
 		}
