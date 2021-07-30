@@ -1,10 +1,10 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
-import { Logger } from '../lib';
+import { LoggerManager } from '../lib';
 
 describe('Logger spec', () => {
 	it('returns logging managers', () => {
-		const instance = new Logger();
+		const instance = new LoggerManager();
 		expect(instance.formatting).to.not.be.equal(undefined);
 		expect(instance.console).to.not.be.equal(undefined);
 		expect(instance.file).to.not.be.equal(undefined);
@@ -12,11 +12,11 @@ describe('Logger spec', () => {
 	});
 
 	it('throws when getting logger if bad configuration', () => {
-		expect(() => new Logger().for('realsys')).to.throw('No transports were configured for realsys.');
+		expect(() => new LoggerManager().for('realsys')).to.throw('No transports were configured for realsys.');
 	});
 
 	it('creates logger for system, then does not cache it, but delegates this responsibility to the module which uses it', () => {
-		const logger = new Logger();
+		const logger = new LoggerManager();
 		logger.graylog2.register('input', { host: 'fake', port: 1 });
 		logger.graylog2.setChannel('realsys', { level: 'fake', input: 'input' });
 		const loggerFirst = logger.for('realsys');
@@ -27,7 +27,7 @@ describe('Logger spec', () => {
 	});
 
 	it("can't alter created logger object", () => {
-		const logger = new Logger();
+		const logger = new LoggerManager();
 		logger.console.createTransport({ level: 'info' });
 		const instance = logger.for('realsys');
 		expect(() => {

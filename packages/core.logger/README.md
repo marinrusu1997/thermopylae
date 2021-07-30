@@ -23,9 +23,14 @@ This package contains logging infrastructure used by Thermopylae *core.** module
 
 Logging is implemented with the help of [winston](https://www.npmjs.com/package/winston) npm package.
 The following transports are supported:
-* 
+* [Console][console-transport-link]
+* [File][file-transport-link]
+* [Graylog2][graylog2-transport-link]
 
 ## Usage
+Package exports a singleton instance of the [Logger][logger-class-link] class, named *LoggerManagerInstance*. <br/>
+Using its [for][logger-class-for-link] method you can obtain logger for your module. <br/>
+Before obtaining logger
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -52,3 +57,8 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/core.logger/index.html
+[console-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_console.consolelogsmanager.html
+[file-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_file.filelogsmanager.html
+[graylog2-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/modules/transports_graylog.html
+[logger-class-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger.logger-1.html
+[logger-class-for-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger.logger-1.html#for

@@ -7,7 +7,7 @@ typedoc.outline = [
     {
         "Error": "error",
         "Formatting": "formatting_manager",
-        "Logger": "logger",
+        "Logger Manager": "logger_manager",
         "Transports": {
             "Console": "transports_console",
             "File": "transports_file",

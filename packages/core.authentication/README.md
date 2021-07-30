@@ -31,10 +31,10 @@ Before being able to use this package you need to take following actions:
 3. Configure core logging. Example:
 
 ```typescript
-import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { ClientModule } from '@thermopylae/core.declarations';
 
-LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+LoggerManagerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
   colorize: true,
   skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
   levelForLabel: {
@@ -42,7 +42,7 @@ LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
     [ClientModule.REDIS]: 'info'
   }
 });
-LoggerInstance.console.createTransport({ level: 'info' });
+LoggerManagerInstance.console.createTransport({ level: 'info' });
 ```
 
 4. Enable loggers of database clients. Example:

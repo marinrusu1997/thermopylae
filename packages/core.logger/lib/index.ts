@@ -1,9 +1,9 @@
-import { Logger, WinstonLogger } from './logger';
+import { LoggerManager, WinstonLogger } from './logger-manager';
 
-const LoggerInstance = new Logger();
-Object.freeze(LoggerInstance);
+const LoggerManagerInstance = new LoggerManager();
+Object.freeze(LoggerManagerInstance);
 
-export { LoggerInstance, Logger, WinstonLogger };
+export { LoggerManagerInstance, LoggerManager, WinstonLogger };
 
 export { DefaultFormatters, OutputFormat } from './formatting-manager';
 export { ConsoleTransportOptions } from './transports/console';

@@ -16,7 +16,8 @@ interface GraylogLoggingChannel {
 }
 
 /**
- * Class responsible for holding references to graylog inputs.
+ * Class responsible for holding graylog2 transport. <br/>
+ * Uses [winston-graylog2](https://www.npmjs.com/package/winston-graylog2) npm package.
  */
 class GrayLogsManager implements AbstractTransportManager {
 	private inputs: Nullable<Map<string, GraylogEndpoint>>;

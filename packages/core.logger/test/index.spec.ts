@@ -1,12 +1,12 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
-import { LoggerInstance } from '../lib';
+import { LoggerManagerInstance } from '../lib';
 
 describe('Lib spec', () => {
 	it('exports a Logger singleton', () => {
 		expect(() => {
 			// @ts-ignore
-			LoggerInstance.console = null;
+			LoggerManagerInstance.console = null;
 		}).to.throw("Cannot assign to read only property 'console' of object '#<Logger>'");
 	});
 });

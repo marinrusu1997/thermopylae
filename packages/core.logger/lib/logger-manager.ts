@@ -8,7 +8,7 @@ import { TransportsManager } from './transports-manager';
 /**
  * Class responsible for providing loggers to app modules. <br>
  */
-class Logger {
+class LoggerManager {
 	/**
 	 * Formatting manager which configures format of the logging output.
 	 */
@@ -42,7 +42,8 @@ class Logger {
 
 	/**
 	 * Method used by modules to retrieve their loggers. <br>
-	 * Formatting and at least one of the transport managers needs to be configured before calling this method.
+	 * Formatting and at least one of the transport managers needs to be configured before calling this method. <br/>
+	 * After obtaining logger, module should not call again this method (i.e. it needs to save obtained logger).
 	 *
 	 * @param module    Module for which logger will be created.
 	 */
@@ -59,4 +60,4 @@ class Logger {
 	}
 }
 
-export { Logger, WinstonLogger };
+export { LoggerManager, WinstonLogger };

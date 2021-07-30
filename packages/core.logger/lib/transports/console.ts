@@ -7,8 +7,8 @@ import { AbstractTransportManager } from '../typings';
 import { createException, ErrorCodes } from '../error';
 
 /**
- * Stores console config and transport. <br>
- * Console transport is intended for development purposes, therefore no modules support is provided.
+ * Console transport is intended for development purposes, therefore no modules support is provided. <br/>
+ * Uses builtin *Console* transport from [winston](https://www.npmjs.com/package/winston) npm package.
  */
 class ConsoleLogsManager implements AbstractTransportManager {
 	private transport: Nullable<TransportStream>;
