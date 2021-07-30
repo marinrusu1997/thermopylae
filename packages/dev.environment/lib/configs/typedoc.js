@@ -21,8 +21,7 @@ module.exports = {
     ],
     "exclude": [
         "test/**/*",
-        "lib/index.ts",
-        "lib/error.ts"
+        "lib/index.ts"
     ],
     "excludeExternals": true,
     "excludePrivate": true,

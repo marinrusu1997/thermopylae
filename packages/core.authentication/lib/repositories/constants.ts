@@ -1,3 +1,6 @@
+/**
+ * @private
+ */
 const TableNames = {
 	Account: 'Account',
 	Device: 'AuthenticationDevice',

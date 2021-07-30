@@ -13,13 +13,13 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 		TELEPHONE: `EXISTS(SELECT * FROM ${TableNames.Account} WHERE telephone=?)`
 	};
 
-	public static readonly IS_DUPLICATE_SQL_QUERY = `SELECT ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.USERNAME}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.EMAIL}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.TELEPHONE};`;
+	private static readonly IS_DUPLICATE_SQL_QUERY = `SELECT ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.USERNAME}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.EMAIL}, ${AccountMySqlRepository.IS_DUPLICATE_EXISTS.TELEPHONE};`;
 
-	public static readonly READ_BY_USERNAME_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE username=?;`;
+	private static readonly READ_BY_USERNAME_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE username=?;`;
 
-	public static readonly READ_BY_EMAIL_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE email=?;`;
+	private static readonly READ_BY_EMAIL_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE email=?;`;
 
-	public static readonly READ_BY_TELEPHONE_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE telephone=?;`;
+	private static readonly READ_BY_TELEPHONE_SQL_QUERY = `SELECT * FROM ${TableNames.Account} WHERE telephone=?;`;
 
 	public async insert(account: AccountWithTotpSecret): Promise<(keyof AccountWithTotpSecret)[] | null | undefined> {
 		const connection = await MySqlClientInstance.getConnection(QueryType.WRITE);
