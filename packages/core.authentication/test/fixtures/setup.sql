@@ -3,12 +3,12 @@
 
 CREATE TABLE IF NOT EXISTS Account (
     id INT UNSIGNED AUTO_INCREMENT,
-    username VARCHAR(25) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE,
     passwordHash VARCHAR(250) NOT NULL,
     passwordSalt VARCHAR(30),
     passwordAlg TINYINT(1) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    telephone VARCHAR(50) UNIQUE,
+    email VARCHAR(256) NOT NULL UNIQUE,
+    telephone VARCHAR(16) UNIQUE,
     disabledUntil INT NOT NULL,
     mfa BOOLEAN NOT NULL,
     totpSecret VARCHAR(50),

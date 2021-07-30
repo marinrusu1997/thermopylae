@@ -90,18 +90,124 @@
 				</a>
 				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/core.authentication</span>
 </code></pre>
+				<a href="#prerequisites" id="prerequisites" style="color: inherit; text-decoration: none;">
+					<h2>Prerequisites</h2>
+				</a>
+				<p>Before being able to use this package you need to take following actions:</p>
+				<ol>
+					<li><p>Redis 6 and MySQL 8 deployments</p>
+					</li>
+					<li><p>Create MySQL database having the following minimal schema:</p>
+						<a href="https://dbdesigner.page.link/LwHWf38hE89bgQvm7">
+							<img src="../../assets/img/thermopylae-db-schema.png">
+						</a>
+					[Here][test-fixtures-sql-schema] is an example of MySQL code in order to setup this schema.</li>
+					<li><p>Configure core logging. Example:</p>
+					</li>
+				</ol>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">, </span><span style="color: #001080">LoggerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultRecipe</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
+<span style="color: #000000">  </span><span style="color: #001080">colorize:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">skippedFormatters:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">TIMESTAMP</span><span style="color: #000000">]),</span>
+<span style="color: #000000">  </span><span style="color: #001080">levelForLabel:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">[ClientModule.</span><span style="color: #0070C1">MYSQL</span><span style="color: #001080">]:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">[ClientModule.</span><span style="color: #0070C1">REDIS</span><span style="color: #001080">]:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
+<span style="color: #000000">  }</span>
+<span style="color: #000000">});</span>
+<span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({ </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000"> });</span>
+</code></pre>
+				<ol start="4">
+					<li>Enable loggers of database clients. Example:</li>
+				</ol>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initMySqlLogger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.mysql&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initRedisClientLogger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.redis&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #795E26">initMySqlLogger</span><span style="color: #000000">();</span>
+<span style="color: #795E26">initRedisClientLogger</span><span style="color: #000000">();</span>
+</code></pre>
+				<ol start="5">
+					<li>Init database clients. Example:</li>
+				</ol>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.mysql&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ConnectionType</span><span style="color: #000000">, </span><span style="color: #001080">DebuggableEventType</span><span style="color: #000000">, </span><span style="color: #001080">RedisClientInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.redis&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">init</span><span style="color: #000000">({</span>
+<span style="color: #000000">  </span><span style="color: #001080">pool:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">      </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">3306</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">user:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-user&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">password:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-password&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">database:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-database&#039;</span>
+<span style="color: #000000">  }</span>
+<span style="color: #000000">});</span>
+
+<span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">RedisClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">connect</span><span style="color: #000000">({</span>
+<span style="color: #000000">  </span><span style="color: #001080">[ConnectionType.</span><span style="color: #0070C1">REGULAR</span><span style="color: #001080">]:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">      </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">3306</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">password:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-password&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">connect_timeout:</span><span style="color: #000000"> </span><span style="color: #098658">10_000</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">max_attempts:</span><span style="color: #000000"> </span><span style="color: #098658">10</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">retry_max_delay:</span><span style="color: #000000"> </span><span style="color: #098658">5_000</span><span style="color: #000000">,</span>
+<span style="color: #000000">      </span><span style="color: #001080">attachDebugListeners:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DebuggableEventType</span><span style="color: #000000">&gt;([</span><span style="color: #A31515">&#039;end&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;reconnecting&#039;</span><span style="color: #000000">])</span>
+<span style="color: #000000">  }</span>
+<span style="color: #000000">});</span>
+</code></pre>
 				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
 					<h2>Description</h2>
 				</a>
-				<p>This package contains implementations of the repositories required by <a href="https://marinrusu1997.github.io/thermopylae/lib-authentication/index.html">@thermopylae/lib.authentication</a>. <br/>
-				Repositories are grouped in two categories:</p>
+				<p>This package contains implementations of the repositories required by <a href="https://marinrusu1997.github.io/thermopylae/lib-authentication/index.html">@thermopylae/lib.authentication</a>.
+				You can create instances of these repositories and pass them as config to <strong>@thermopylae/lib.authentication</strong>.</p>
+				<p>Repositories are grouped in two categories:</p>
 				<ul>
-					<li><em>mysql</em> - these repositories use MySQL database as underlying storage
-					* </li>
+					<li><strong>mysql</strong> - these repositories use MySQL database as underlying storage<ul>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_account.accountmysqlrepository.html">AccountMySqlRepository</a></li>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_failed_authentications.failedauthenticationsmysqlrepository.html">FailedAuthenticationsMysqlRepository</a></li>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_successful_authentication.successfulauthenticationsmysqlrepository.html">SuccessfulAuthenticationsMysqlRepository</a></li>
+						</ul>
+					</li>
+					<li><em>redis</em> - these repositories use Redis database as underlying storage<ul>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_activate_account_session.activateaccountsessionredisrepository.html">ActivateAccountSessionRedisRepository</a></li>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_authentication_session.authenticationsessionredisrepository.html">AuthenticationSessionRedisRepository</a></li>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_failed_authentications_session.failedauthenticationattemptssessionredisrepository.html">FailedAuthenticationAttemptsSessionRedisRepository</a></li>
+							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_forgot_password_session.forgotpasswordsessionredisrepository.html">ForgotPasswordSessionRedisRepository</a></li>
+						</ul>
+					</li>
 				</ul>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
 				</a>
+				<p>Bellow is an example of how the repositories implementations from this package can be used in order to instantiate <em>AuthenticationEngine</em>. @FIXME LINK</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">AccountWithTotpSecret</span><span style="color: #000000">, </span><span style="color: #001080">AuthenticationEngine</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.authentication&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> {</span>
+<span style="color: #000000">  </span><span style="color: #001080">AccountMySqlRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">FailedAuthenticationsMysqlRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">SuccessfulAuthenticationsMysqlRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">ActivateAccountSessionRedisRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">AuthenticationSessionRedisRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">FailedAuthenticationAttemptsSessionRedisRepository</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #001080">ForgotPasswordSessionRedisRepository</span>
+<span style="color: #000000">} </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.authentication&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">// setup decribed above in `Prerequisites` chapter</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">AUTHENTICATION_ENGINE</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">AuthenticationEngine</span><span style="color: #000000">&lt;</span><span style="color: #267F99">AccountWithTotpSecret</span><span style="color: #000000">&gt;({</span>
+<span style="color: #000000">  </span><span style="color: #008000">// config params...</span>
+<span style="color: #000000">  </span><span style="color: #001080">repositories:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">account:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">AccountMySqlRepository</span><span style="color: #000000">(),</span>
+<span style="color: #000000">    </span><span style="color: #001080">successfulAuthentications:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">SuccessfulAuthenticationsMysqlRepository</span><span style="color: #000000">(),</span>
+<span style="color: #000000">    </span><span style="color: #001080">failedAuthenticationAttempts:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FailedAuthenticationsMysqlRepository</span><span style="color: #000000">(),</span>
+<span style="color: #000000">    </span><span style="color: #001080">authenticationSession:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">AuthenticationSessionRedisRepository</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;actv-acc&#039;</span><span style="color: #000000">),</span>
+<span style="color: #000000">    </span><span style="color: #001080">failedAuthAttemptSession:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FailedAuthenticationAttemptsSessionRedisRepository</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;fail-auth&#039;</span><span style="color: #000000">),</span>
+<span style="color: #000000">    </span><span style="color: #001080">forgotPasswordSession:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ForgotPasswordSessionRedisRepository</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;fgt-pwd&#039;</span><span style="color: #000000">),</span>
+<span style="color: #000000">    </span><span style="color: #001080">activateAccountSession:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ActivateAccountSessionRedisRepository</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;actv-acc&#039;</span><span style="color: #000000">)</span>
+<span style="color: #000000">  }</span>
+<span style="color: #000000">});</span>
+
+<span style="color: #008000">// use authentication engine</span>
+<span style="color: #0070C1">AUTHENTICATION_ENGINE</span><span style="color: #000000">.</span><span style="color: #795E26">enableAccount</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;acount-id&#039;</span><span style="color: #000000">);</span>
+</code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>
