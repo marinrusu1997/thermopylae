@@ -103,11 +103,11 @@
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#formatterfor" class="tsd-kind-icon">formatter<wbr>For</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#order" class="tsd-kind-icon">order</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#remove" class="tsd-kind-icon">remove</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#set" class="tsd-kind-icon">set</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#removeformatter" class="tsd-kind-icon">remove<wbr>Formatter</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#setclusternodeid" class="tsd-kind-icon">set<wbr>Cluster<wbr>Node<wbr>Id</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#setdefaultrecipe" class="tsd-kind-icon">set<wbr>Default<wbr>Recipe</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#setcustomformattingorder" class="tsd-kind-icon">set<wbr>Custom<wbr>Formatting<wbr>Order</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#setdefaultformattingorder" class="tsd-kind-icon">set<wbr>Default<wbr>Formatting<wbr>Order</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="formatting_manager.formattingmanager.html#setformatter" class="tsd-kind-icon">set<wbr>Formatter</a></li>
 							</ul>
 						</section>
 					</div>
@@ -127,7 +127,7 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Defines default formatters and sets the recipe for <a href="../enums/formatting_manager.outputformat.html#printf">OutputFormat.PRINTF</a>.</p>
+									<p>Defines default formatters.</p>
 								</div>
 							</div>
 							<h4 class="tsd-returns-title">Returns <a href="formatting_manager.formattingmanager.html" class="tsd-signature-type">FormattingManager</a></h4>
@@ -150,7 +150,7 @@
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
 									<p>Returns a formatter object for winston, which combines all known formatters. <br>
-										Formatters order will follow the order specified by order recipe. <br>
+										Formatters order will follow the order specified by either <a href="formatting_manager.formattingmanager.html#setcustomformattingorder">FormattingManager.setCustomFormattingOrder</a>, or <a href="formatting_manager.formattingmanager.html#setdefaultformattingorder">FormattingManager.setDefaultFormattingOrder</a>. <br>
 									Label formatter will be set based on module name. <br></p>
 								</div>
 							</div>
@@ -168,38 +168,10 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="order" class="tsd-anchor"></a>
-					<h3>order</h3>
+					<a name="removeformatter" class="tsd-anchor"></a>
+					<h3>remove<wbr>Formatter</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">order<span class="tsd-signature-symbol">(</span>recipe<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Specifies a custom recipe which instructs in which order formatters needs to be combined.</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>recipe: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>List of formatter names.</p>
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="remove" class="tsd-anchor"></a>
-					<h3>remove</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">remove<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">remove<wbr>Formatter<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -208,7 +180,7 @@
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
 									<p>Removes existing formatter from known formatters list. <br>
-									Order recipe is discarded, reconfiguration is needed later.</p>
+									Formatting order is discarded, reconfiguration is needed later.</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -217,42 +189,6 @@
 									<h5>name: <span class="tsd-signature-type">string</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>Formatter name.</p>
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="set" class="tsd-anchor"></a>
-					<h3>set</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">set<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, formatter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Format</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Set a formatter into known formatters list. <br>
-										If formatter exists already, it will be overwritten. <br>
-									Order recipe is discarded and needs to be reconfigured.</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>name: <span class="tsd-signature-type">string</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Name of the formatter.</p>
-									</div>
-								</li>
-								<li>
-									<h5>formatter: <span class="tsd-signature-type">Format</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Formatter instance, must be winston compliant.</p>
 									</div>
 								</li>
 							</ul>
@@ -295,10 +231,10 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="setdefaultrecipe" class="tsd-anchor"></a>
-					<h3>set<wbr>Default<wbr>Recipe</h3>
+					<a name="setcustomformattingorder" class="tsd-anchor"></a>
+					<h3>set<wbr>Custom<wbr>Formatting<wbr>Order</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">set<wbr>Default<wbr>Recipe<span class="tsd-signature-symbol">(</span>outputFormat<span class="tsd-signature-symbol">: </span><a href="../enums/formatting_manager.outputformat.html" class="tsd-signature-type">OutputFormat</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">DefaultRecipeOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Custom<wbr>Formatting<wbr>Order<span class="tsd-signature-symbol">(</span>order<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -306,8 +242,36 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Configures a recipe from a predefined set of formatters. <br>
-									If a recipe exists, it will be rewritten.</p>
+									<p>Specifies a custom formatting order which instructs in which order formatters needs to be combined.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>order: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>List of formatter names.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setdefaultformattingorder" class="tsd-anchor"></a>
+					<h3>set<wbr>Default<wbr>Formatting<wbr>Order</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Default<wbr>Formatting<wbr>Order<span class="tsd-signature-symbol">(</span>outputFormat<span class="tsd-signature-symbol">: </span><a href="../enums/formatting_manager.outputformat.html" class="tsd-signature-type">OutputFormat</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">DefaultFormattingOrderOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Configures a formatting order from a predefined set of formatters. <br>
+									If a order exists, it will be rewritten.</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -315,13 +279,49 @@
 								<li>
 									<h5>outputFormat: <a href="../enums/formatting_manager.outputformat.html" class="tsd-signature-type">OutputFormat</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Logs output format for which recipe needs to be constructed.</p>
+										<p>Logs output format for which order needs to be constructed.</p>
 									</div>
 								</li>
 								<li>
-									<h5>options: <span class="tsd-signature-type">DefaultRecipeOptions</span><span class="tsd-signature-symbol"> = {}</span></h5>
+									<h5>options: <span class="tsd-signature-type">DefaultFormattingOrderOptions</span><span class="tsd-signature-symbol"> = {}</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Default recipe options.</p>
+										<p>Default formatting options.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setformatter" class="tsd-anchor"></a>
+					<h3>set<wbr>Formatter</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Formatter<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, formatter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Format</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Set a formatter into known formatters list. <br>
+										If formatter exists already, it will be overwritten. <br>
+									Formatting order is discarded and needs to be reconfigured.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the formatter.</p>
+									</div>
+								</li>
+								<li>
+									<h5>formatter: <span class="tsd-signature-type">Format</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Formatter instance, must be winston compliant.</p>
 									</div>
 								</li>
 							</ul>
@@ -353,19 +353,19 @@
 								<a href="formatting_manager.formattingmanager.html#formatterfor" class="tsd-kind-icon">formatter<wbr>For</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="formatting_manager.formattingmanager.html#order" class="tsd-kind-icon">order</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="formatting_manager.formattingmanager.html#remove" class="tsd-kind-icon">remove</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="formatting_manager.formattingmanager.html#set" class="tsd-kind-icon">set</a>
+								<a href="formatting_manager.formattingmanager.html#removeformatter" class="tsd-kind-icon">remove<wbr>Formatter</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="formatting_manager.formattingmanager.html#setclusternodeid" class="tsd-kind-icon">set<wbr>Cluster<wbr>Node<wbr>Id</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="formatting_manager.formattingmanager.html#setdefaultrecipe" class="tsd-kind-icon">set<wbr>Default<wbr>Recipe</a>
+								<a href="formatting_manager.formattingmanager.html#setcustomformattingorder" class="tsd-kind-icon">set<wbr>Custom<wbr>Formatting<wbr>Order</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="formatting_manager.formattingmanager.html#setdefaultformattingorder" class="tsd-kind-icon">set<wbr>Default<wbr>Formatting<wbr>Order</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="formatting_manager.formattingmanager.html#setformatter" class="tsd-kind-icon">set<wbr>Formatter</a>
 							</li>
 						</ul>
 					</li>
