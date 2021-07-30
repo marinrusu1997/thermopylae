@@ -6,16 +6,16 @@ import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/forma
 
 // eslint-disable-next-line mocha/no-skipped-tests
 describe.skip(`${FormattingManager.name} spec`, () => {
-	describe(`${FormattingManager.prototype.setDefaultRecipe.name} spec`, () => {
+	describe(`${FormattingManager.prototype.setDefaultFormattingOrder.name} spec`, () => {
 		it('throws when invalid output specified', () => {
 			const formattingManager = new FormattingManager();
 			// @ts-ignore
-			expect(() => formattingManager.setDefaultRecipe('INVALID FOR SURE')).to.throw('Unknown output format: INVALID FOR SURE.');
+			expect(() => formattingManager.setDefaultFormattingOrder('INVALID FOR SURE')).to.throw('Unknown output format: INVALID FOR SURE.');
 		});
 
 		it('applies order for uncolored printf', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRINTF);
+			formattingManager.setDefaultFormattingOrder(OutputFormat.PRINTF);
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -35,7 +35,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for colored printf', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRINTF, { colorize: true });
+			formattingManager.setDefaultFormattingOrder(OutputFormat.PRINTF, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -57,7 +57,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for uncolored json', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.JSON);
+			formattingManager.setDefaultFormattingOrder(OutputFormat.JSON);
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -87,7 +87,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for colored json', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.JSON, { colorize: true });
+			formattingManager.setDefaultFormattingOrder(OutputFormat.JSON, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -119,7 +119,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for uncolored pretty print', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT);
+			formattingManager.setDefaultFormattingOrder(OutputFormat.PRETTY_PRINT);
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -141,7 +141,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		it('applies order for colored pretty print', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.setDefaultRecipe(OutputFormat.PRETTY_PRINT, { colorize: true });
+			formattingManager.setDefaultFormattingOrder(OutputFormat.PRETTY_PRINT, { colorize: true });
 
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
@@ -167,14 +167,14 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 	describe(`${FormattingManager.prototype.formatterFor.name} spec`, () => {
 		it('throws when no recipe is registered', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.remove('align');
+			formattingManager.removeFormatter('align');
 			expect(() => formattingManager.formatterFor('SUBSYSTEM')).to.throw('Order recipe is not configured');
 		});
 
 		it('throws when formatter from the recipe is not registered', () => {
 			const formattingManager = new FormattingManager();
-			formattingManager.remove('align');
-			formattingManager.order(['not existing formatter']);
+			formattingManager.removeFormatter('align');
+			formattingManager.setCustomFormattingOrder(['not existing formatter']);
 			expect(() => formattingManager.formatterFor('SUBSYSTEM')).to.throw("Formatter 'not existing formatter' from the recipe is not registered");
 		});
 	});
@@ -228,7 +228,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		let loggedInfo;
 
 		/* overwrite existing one */
-		formattingManager1.set(
+		formattingManager1.setFormatter(
 			DefaultFormatters.PRINTF,
 			// eslint-disable-next-line no-unused-vars
 			format.printf(({ level, label, timestamp }) => {
@@ -238,7 +238,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		/* recipe must be invalidated */
 		expect(() => formattingManager1.formatterFor(SUBSYSTEM)).to.throw('Order recipe is not configured');
-		formattingManager1.order(['timestamp', 'errors', 'splat', 'align', 'printf']);
+		formattingManager1.setCustomFormattingOrder(['timestamp', 'errors', 'splat', 'align', 'printf']);
 
 		/* assert existing was overwritten */
 		loggedInfo = formattingManager1.formatterFor(SUBSYSTEM).transform({
@@ -256,8 +256,8 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		/* add new formatter */
 		const formattingManager2 = new FormattingManager();
-		formattingManager2.set(DefaultFormatters.JSON, format.json({ space: 4 }));
-		formattingManager2.order(['timestamp', 'errors', 'splat', 'json']);
+		formattingManager2.setFormatter(DefaultFormatters.JSON, format.json({ space: 4 }));
+		formattingManager2.setCustomFormattingOrder(['timestamp', 'errors', 'splat', 'json']);
 		loggedInfo = formattingManager2.formatterFor(SUBSYSTEM).transform({
 			level: logLevel,
 			message: logMessage
@@ -285,11 +285,11 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 	it('removes formatter', () => {
 		const formattingManager = new FormattingManager();
-		formattingManager.remove('align');
+		formattingManager.removeFormatter('align');
 		const SUBSYSTEM = 'SUBSYSTEM';
 		const level = 'info';
 		const message = 'message';
-		formattingManager.order(['timestamp', 'errors', 'splat', 'printf']);
+		formattingManager.setCustomFormattingOrder(['timestamp', 'errors', 'splat', 'printf']);
 
 		const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
@@ -307,6 +307,6 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 	it('order throws when recipe was defined already', () => {
 		const formattingManager = new FormattingManager();
-		expect(() => formattingManager.order(['foo formatter'])).to.throw('Order recipe configured already.');
+		expect(() => formattingManager.setCustomFormattingOrder(['foo formatter'])).to.throw('Order recipe configured already.');
 	});
 });

@@ -32,9 +32,9 @@ const enum DefaultFormatters {
 }
 
 /**
- * Options used when configuring default recipe for a given {@link OutputFormat}.
+ * Options used when configuring default formatting order for a given {@link OutputFormat}.
  */
-interface DefaultRecipeOptions {
+interface DefaultFormattingOrderOptions {
 	/**
 	 * Whether output needs to be colored. <br/>
 	 * Passing `true` will colorize only {@link ClientModule} and {@link CoreModule} labels.
@@ -89,10 +89,10 @@ class FormattingManager {
 
 	private clusterNodeId: string | number | null;
 
-	private recipe!: Nullable<Array<Formatter>>;
+	private formattingOrder!: Nullable<Array<Formatter>>;
 
 	/**
-	 * Defines default formatters and sets the recipe for {@link OutputFormat.PRINTF}.
+	 * Defines default formatters.
 	 */
 	public constructor() {
 		this.formatters = new Map();
@@ -103,8 +103,6 @@ class FormattingManager {
 		this.ignoredLabels = new Set<string>();
 		this.levelForLabel = {};
 		this.clusterNodeId = null;
-
-		this.setDefaultRecipe(OutputFormat.PRINTF);
 	}
 
 	/**
@@ -123,47 +121,47 @@ class FormattingManager {
 	/**
 	 * Set a formatter into known formatters list. <br>
 	 * If formatter exists already, it will be overwritten. <br>
-	 * Order recipe is discarded and needs to be reconfigured.
+	 * Formatting order is discarded and needs to be reconfigured.
 	 *
 	 * @param   name        Name of the formatter.
 	 * @param   formatter   Formatter instance, must be winston compliant.
 	 */
-	public set(name: Formatter, formatter: Format): void {
+	public setFormatter(name: Formatter, formatter: Format): void {
 		this.formatters.set(name, formatter);
-		this.recipe = null;
+		this.formattingOrder = null;
 	}
 
 	/**
 	 * Removes existing formatter from known formatters list. <br>
-	 * Order recipe is discarded, reconfiguration is needed later.
+	 * Formatting order is discarded, reconfiguration is needed later.
 	 *
 	 * @param   name  Formatter name.
 	 */
-	public remove(name: Formatter): void {
+	public removeFormatter(name: Formatter): void {
 		this.formatters.delete(name);
-		this.recipe = null;
+		this.formattingOrder = null;
 	}
 
 	/**
-	 * Specifies a custom recipe which instructs in which order formatters needs to be combined.
+	 * Specifies a custom formatting order which instructs in which order formatters needs to be combined.
 	 *
-	 * @param recipe	List of formatter names.
+	 * @param order	List of formatter names.
 	 */
-	public order(recipe: Array<Formatter>): void {
-		if (this.recipe != null) {
-			throw createException(ErrorCodes.FORMATTERS_RECIPE_EXISTS, 'Order recipe has been configured already.');
+	public setCustomFormattingOrder(order: Array<Formatter>): void {
+		if (this.formattingOrder != null) {
+			throw createException(ErrorCodes.FORMATTING_ORDER_EXISTS, 'Formatting order has been configured already.');
 		}
-		this.recipe = recipe;
+		this.formattingOrder = order;
 	}
 
 	/**
-	 * Configures a recipe from a predefined set of formatters. <br>
-	 * If a recipe exists, it will be rewritten.
+	 * Configures a formatting order from a predefined set of formatters. <br>
+	 * If a order exists, it will be rewritten.
 	 *
-	 * @param   outputFormat    Logs output format for which recipe needs to be constructed.
-	 * @param   options    		Default recipe options.
+	 * @param   outputFormat    Logs output format for which order needs to be constructed.
+	 * @param   options    		Default formatting options.
 	 */
-	public setDefaultRecipe(outputFormat: OutputFormat, options: DefaultRecipeOptions = {}): void {
+	public setDefaultFormattingOrder(outputFormat: OutputFormat, options: DefaultFormattingOrderOptions = {}): void {
 		const order = [];
 
 		if (options.ignoredLabels) {
@@ -236,12 +234,12 @@ class FormattingManager {
 				throw createException(ErrorCodes.UNKNOWN_OUTPUT_FORMAT, `Unknown output format: ${outputFormat}.`);
 		}
 
-		this.recipe = order;
+		this.formattingOrder = order;
 	}
 
 	/**
 	 * Returns a formatter object for winston, which combines all known formatters. <br>
-	 * Formatters order will follow the order specified by order recipe. <br>
+	 * Formatters order will follow the order specified by either {@link FormattingManager.setCustomFormattingOrder}, or {@link FormattingManager.setDefaultFormattingOrder}. <br>
 	 * Label formatter will be set based on module name. <br>
 	 *
 	 * @param   module   	Name of the module formatting will be applied for.
@@ -249,17 +247,17 @@ class FormattingManager {
 	public formatterFor(module: string): Format {
 		const { combine, label } = format;
 
-		if (this.recipe == null) {
-			throw createException(ErrorCodes.FORMATTERS_RECIPE_NOT_CONFIGURED, 'Order recipe is not configured.');
+		if (this.formattingOrder == null) {
+			throw createException(ErrorCodes.FORMATTING_ORDER_NOT_CONFIGURED, 'Formatting order is not configured.');
 		}
 
 		const stagedFormatters = [label({ label: module })];
 
 		let formatter;
-		for (let i = 0; i < this.recipe.length; i += 1) {
-			formatter = this.formatters.get(this.recipe[i]);
+		for (let i = 0; i < this.formattingOrder.length; i += 1) {
+			formatter = this.formatters.get(this.formattingOrder[i]);
 			if (!formatter) {
-				throw createException(ErrorCodes.FORMATTER_NOT_REGISTERED, `Formatter '${this.recipe[i]}' from the recipe is not registered.`);
+				throw createException(ErrorCodes.FORMATTER_NOT_REGISTERED, `Formatter '${this.formattingOrder[i]}' from the order is not registered.`);
 			}
 			stagedFormatters.push(formatter);
 		}

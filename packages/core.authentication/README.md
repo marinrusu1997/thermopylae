@@ -34,7 +34,7 @@ Before being able to use this package you need to take following actions:
 import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { ClientModule } from '@thermopylae/core.declarations';
 
-LoggerManagerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
   colorize: true,
   skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
   levelForLabel: {

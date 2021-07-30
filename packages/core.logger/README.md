@@ -28,9 +28,13 @@ The following transports are supported:
 * [Graylog2][graylog2-transport-link]
 
 ## Usage
-Package exports a singleton instance of the [Logger][logger-class-link] class, named *LoggerManagerInstance*. <br/>
-Using its [for][logger-class-for-link] method you can obtain logger for your module. <br/>
-Before obtaining logger
+Package exports a singleton instance of the [LoggerManager][logger-manager-class-link] class, named *LoggerManagerInstance*. <br/>
+Using its [for][logger-manager-class-for-link] method you can obtain logger for your module. <br/>
+Before obtaining logger, you need to configure formatting and transports of the *LoggerManagerInstance*.
+
+### Formatting
+[Formatting Manager][formatting-manager-link] has a set of [predefined formatters][default-formatters-link].
+You can also define your custom formatters by using 
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -60,5 +64,7 @@ This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/L
 [console-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_console.consolelogsmanager.html
 [file-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_file.filelogsmanager.html
 [graylog2-transport-link]: https://marinrusu1997.github.io/thermopylae/core.logger/modules/transports_graylog.html
-[logger-class-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger.logger-1.html
-[logger-class-for-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger.logger-1.html#for
+[logger-manager-class-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html
+[logger-manager-class-for-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html#for
+[formatting-manager-link]: https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html
+[default-formatters-link]: https://marinrusu1997.github.io/thermopylae/core.logger/enums/formatting_manager.defaultformatters.html
