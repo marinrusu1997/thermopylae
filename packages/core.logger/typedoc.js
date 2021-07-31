@@ -19,6 +19,6 @@ typedoc.outline = [
 typedoc.links = [{
     "label": "Github",
     "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.logger"
-}]
+}];
 
 module.exports = typedoc;

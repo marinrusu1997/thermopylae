@@ -22,22 +22,54 @@ type RequiredClientOptions = RequireSome<
 >;
 type OmittedClientOptions = Omit<ClientOpts, 'no_ready_check' | 'disable_resubscribing' | 'rename_commands'>;
 
+/**
+ * Type of the events on which debug listener can be attached. <br/>
+ * Whenever the event is emitted, listener will log this event along with it's arguments.
+ */
 type DebuggableEventType = 'subscribe' | 'psubscribe' | 'unsubscribe' | 'punsubscribe' | 'connect' | 'reconnecting' | 'end';
 
-type RedisClientOptions = (ConnectionOptions | RequiredClientOptions | OmittedClientOptions) & {
+/**
+ * Options for Redis Server connection.
+ */
+type RedisConnectionOptions = (ConnectionOptions | RequiredClientOptions | OmittedClientOptions) & {
+	/**
+	 * Whether debug listeners need to be attached on redis connection. <br/>
+	 * Depending on value of this param, following actions will be taken:
+	 * 	* undefined | false - debug listeners won't be attached
+	 * 	* true - debug listeners will be attached for all {@link DebuggableEventType}
+	 *  * Set<DebuggableEventType> - debug listeners will be attached only to specified events
+	 */
 	readonly attachDebugListeners?: boolean | Set<DebuggableEventType>;
 };
 
+/**
+ * Type of the connection established to Redis Server.
+ */
 const enum ConnectionType {
+	/**
+	 * Connection used for issuing commands (e.g. SET, GET)
+	 */
 	REGULAR = 'REGULAR',
+	/**
+	 * Connection used for subscribing to channels and receiving messages.
+	 */
 	SUBSCRIBER = 'SUBSCRIBER',
+	/**
+	 * Connection used for publishing messages into channels.
+	 */
 	PUBLISHER = 'PUBLISHER'
 }
 
+/**
+ * [Modules](https://redis.io/modules) that might be used by Redis Server.
+ */
 const enum RedisModule {
 	JSON
 }
 
+/**
+ * @private
+ */
 interface NodeRedisClientMulti<Results extends unknown[] = []>
 	extends WrappedNodeRedisMulti<Results>,
 		JsonModuleCommands<{
@@ -45,20 +77,30 @@ interface NodeRedisClientMulti<Results extends unknown[] = []>
 			results: Results;
 		}> {}
 
+/**
+ * @private
+ */
 interface NodeRedisClient extends WrappedNodeRedisClient, JsonModuleCommands {
 	multi(): NodeRedisClientMulti;
 	batch(): NodeRedisClientMulti;
 }
 
-interface ConnectOptions {
+/**
+ * {@link RedisClient} initialization options.
+ */
+interface InitializationOptions {
+	/**
+	 * [Modules](https://redis.io/modules) that need to be enabled on Redis Connections. <br/>
+	 * After enabling, commands from modules will be available on redis connections.
+	 */
 	readonly modules?: Set<RedisModule>;
 }
 
 /**
- * Redis client which wraps *node_redis* client and handles:
- * 	- connection
- * 	- disconnection
- * 	- event listeners
+ * Redis client which wraps *node_redis* client and handles: <br/>
+ * 	- connection <br/>
+ * 	- disconnection <br/>
+ * 	- event listeners <br/>
  * 	- logging
  */
 class RedisClient {
@@ -80,55 +122,115 @@ class RedisClient {
 		[ConnectionType.PUBLISHER]: []
 	};
 
-	private options!: Readonly<Record<ConnectionType, RedisClientOptions>>;
+	private options!: Readonly<Record<ConnectionType, RedisConnectionOptions>>;
 
-	public get connectionOptions(): Readonly<Record<ConnectionType, RedisClientOptions>> {
+	/**
+	 * Get connection options.
+	 */
+	public get connectionOptions(): Readonly<Record<ConnectionType, RedisConnectionOptions>> {
 		return this.options;
 	}
 
+	/**
+	 * Get index of the database where {@link ConnectionType.REGULAR} connection was established.
+	 *
+	 * > **⚠ WARNING: Do not change database after {@link ConnectionType.REGULAR} connection was established.**
+	 */
 	public get db(): string | number {
 		return this.options[ConnectionType.REGULAR].db!;
 	}
 
+	/**
+	 * Check whether [redis](https://www.npmjs.com/package/redis) is in *debug_mode*.
+	 */
 	public get debug(): boolean {
 		return redis.debug_mode;
 	}
 
-	public set debug(value: boolean) {
-		redis.debug_mode = value;
+	/**
+	 * Enable/Disable [redis](https://www.npmjs.com/package/redis) *debug_mode*.
+	 *
+	 * @param enable	Whether to enable.
+	 */
+	public set debug(enable: boolean) {
+		redis.debug_mode = enable;
 	}
 
 	/**
-	 * Get regular redis client.
+	 * Get {@link ConnectionType.REGULAR} redis client.
 	 */
 	public get client(): NodeRedisClient {
 		return this.connections[ConnectionType.REGULAR];
 	}
 
 	/**
-	 * Get subscriber redis client.
+	 * Get {@link ConnectionType.SUBSCRIBER} redis client.
 	 */
 	public get subscriber(): NodeRedisClient {
 		return this.connections[ConnectionType.SUBSCRIBER];
 	}
 
 	/**
-	 * Get publisher redis client.
+	 * Get {@link ConnectionType.PUBLISHER} redis client.
 	 */
 	public get publisher(): NodeRedisClient {
 		return this.connections[ConnectionType.PUBLISHER];
 	}
 
+	/**
+	 * Attach `listener` for `event` on `connectionType`. <br/>
+	 * This method is made because application modules tend to register listeners before connections are established.
+	 * Connection is made from the client constructor, meaning that on listeners registering clients are not created yet.
+	 * Therefore, listeners are queued before connections are established, and then registered.
+	 * In case connection is established already, they will be registered on it and skip the queueing phase.
+	 *
+	 * @param connectionType	Connection on which `listener` needs to be registered.
+	 * @param event				Event name.
+	 * @param listener			Event listener.
+	 */
 	public on(connectionType: ConnectionType, event: 'message' | 'message_buffer', listener: (channel: string, message: string) => void): this;
 
+	/**
+	 * Attach `listener` for `event` on `connectionType`. <br/>
+	 * This method is made because application modules tend to register listeners before connections are established.
+	 * Connection is made from the client constructor, meaning that on listeners registering clients are not created yet.
+	 * Therefore, listeners are queued before connections are established, and then registered.
+	 * In case connection is established already, they will be registered on it and skip the queueing phase.
+	 *
+	 * @param connectionType	Connection on which `listener` needs to be registered.
+	 * @param event				Event name.
+	 * @param listener			Event listener.
+	 */
 	public on(
 		connectionType: ConnectionType,
 		event: 'pmessage' | 'pmessage_buffer',
 		listener: (pattern: string, channel: string, message: string) => void
 	): this;
 
+	/**
+	 * Attach `listener` for `event` on `connectionType`. <br/>
+	 * This method is made because application modules tend to register listeners before connections are established.
+	 * Connection is made from the client constructor, meaning that on listeners registering clients are not created yet.
+	 * Therefore, listeners are queued before connections are established, and then registered.
+	 * In case connection is established already, they will be registered on it and skip the queueing phase.
+	 *
+	 * @param connectionType	Connection on which `listener` needs to be registered.
+	 * @param event				Event name.
+	 * @param listener			Event listener.
+	 */
 	public on(connectionType: ConnectionType, event: 'subscribe' | 'unsubscribe', listener: (channel: string, count: number) => void): this;
 
+	/**
+	 * Attach `listener` for `event` on `connectionType`. <br/>
+	 * This method is made because application modules tend to register listeners before connections are established.
+	 * Connection is made from the client constructor, meaning that on listeners registering clients are not created yet.
+	 * Therefore, listeners are queued before connections are established, and then registered.
+	 * In case connection is established already, they will be registered on it and skip the queueing phase.
+	 *
+	 * @param connectionType	Connection on which `listener` needs to be registered.
+	 * @param event				Event name.
+	 * @param listener			Event listener.
+	 */
 	public on(connectionType: ConnectionType, event: 'psubscribe' | 'punsubscribe', listener: (pattern: string, count: number) => void): this;
 
 	/**
@@ -154,18 +256,21 @@ class RedisClient {
 	/**
 	 * Connect to Redis server.
 	 *
-	 * @param connections	Which connections needs to be opened. <br/>
-	 * 						At least {@link ConnectionType.REGULAR} connection needs to be specified.
-	 * @param options		Connection options. These options are available for all established connections.
+	 * @param connections				Which connections needs to be opened. <br/>
+	 * 									At least {@link ConnectionType.REGULAR} connection needs to be specified.
+	 * @param initializationOptions		Initialization options. These options are available for all established connections.
 	 */
-	public async connect(connections: Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>, options?: ConnectOptions): Promise<void> {
+	public async connect(
+		connections: Readonly<Partial<Record<ConnectionType, RedisConnectionOptions>>>,
+		initializationOptions?: InitializationOptions
+	): Promise<void> {
 		if (connections[ConnectionType.REGULAR] == null) {
 			throw createException(ErrorCodes.REGULAR_CONNECTION_CONFIG_REQUIRED, `Options for ${ConnectionType.REGULAR} connection are required.`);
 		}
 
-		if (options) {
-			if (options.modules) {
-				for (const module of options.modules) {
+		if (initializationOptions) {
+			if (initializationOptions.modules) {
+				for (const module of initializationOptions.modules) {
 					RedisClient.REDIS_MODULE_INITIALIZERS[module]();
 				}
 			}
@@ -173,7 +278,7 @@ class RedisClient {
 
 		try {
 			await Promise.all(
-				(Object.entries(connections) as [ConnectionType, RedisClientOptions][]).map(([connectionType, connectionOptions]) => {
+				(Object.entries(connections) as [ConnectionType, RedisConnectionOptions][]).map(([connectionType, connectionOptions]) => {
 					if (connectionOptions.retry_strategy == null) {
 						connectionOptions.retry_strategy = RedisClient.createRetryStrategy(connectionType, connectionOptions);
 					}
@@ -193,7 +298,7 @@ class RedisClient {
 				}
 			}
 
-			this.options = connections as Readonly<Required<Record<ConnectionType, RedisClientOptions>>>;
+			this.options = connections as Readonly<Required<Record<ConnectionType, RedisConnectionOptions>>>;
 		} catch (e) {
 			// close connections that were successfully established
 			for (const connection of Object.values(this.connections)) {
@@ -229,7 +334,7 @@ class RedisClient {
 		}
 	}
 
-	private async establishConnection(options: RedisClientOptions, connectionType: ConnectionType): Promise<void> {
+	private async establishConnection(options: RedisConnectionOptions, connectionType: ConnectionType): Promise<void> {
 		return new Promise((resolve, reject) => {
 			try {
 				logger.debug(`Establishing ${connectionType} connection to ${RedisClient.redisUrl(options)}.`);
@@ -280,7 +385,7 @@ class RedisClient {
 		});
 	}
 
-	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType, options: RedisClientOptions): void {
+	private static attachEventListeners(redisClient: WrappedNodeRedisClient, connectionType: ConnectionType, options: RedisConnectionOptions): void {
 		if (!options.attachDebugListeners) {
 			return;
 		}
@@ -337,7 +442,7 @@ class RedisClient {
 		}
 	}
 
-	private static redisUrl(options: RedisClientOptions): string {
+	private static redisUrl(options: RedisConnectionOptions): string {
 		if (options.path) {
 			return options.path;
 		}
@@ -362,7 +467,7 @@ class RedisClient {
 		return error.format(redisError, error.format.NO_STACK_TRACE);
 	}
 
-	private static createRetryStrategy(connectionType: ConnectionType, options: RedisClientOptions): RetryStrategy {
+	private static createRetryStrategy(connectionType: ConnectionType, options: RedisConnectionOptions): RetryStrategy {
 		if (options.connect_timeout == null) {
 			options.connect_timeout = 3600000;
 		}
@@ -401,4 +506,4 @@ class RedisClient {
 	}
 }
 
-export { RedisClient, NodeRedisClient, NodeRedisClientMulti, RedisClientOptions, RedisModule, ConnectOptions, ConnectionType, DebuggableEventType };
+export { RedisClient, NodeRedisClient, NodeRedisClientMulti, RedisConnectionOptions, RedisModule, InitializationOptions, ConnectionType, DebuggableEventType };

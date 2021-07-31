@@ -4,6 +4,9 @@ import { addNodeRedisCommand } from 'handy-redis';
 // eslint-disable-next-line import/extensions
 import type { Result, ClientContext } from 'handy-redis/dist/generated/interface';
 
+/**
+ * @private
+ */
 function addJsonModuleCommands(): void {
 	addNodeRedisCommand('json.del');
 	addNodeRedisCommand('json.get');

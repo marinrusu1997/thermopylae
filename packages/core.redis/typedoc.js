@@ -1,16 +1,19 @@
 const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
-typedoc.externalPattern = [
-    'lib/error.ts'
-];
+
 typedoc.outline = [
     {
-        "RedisClient": "client",
-        "Logging": "logger"
+        "Client": "client",
+        "Error": "error",
+        "Logging": "logger",
+        "Modules": {
+            "JSON": "modules_json"
+        }
     }
 ];
+
 typedoc.links = [{
-    "label": "Bitbucket",
-    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/core.redis/"
-}]
+    "label": "Github",
+    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.redis"
+}];
 
 module.exports = typedoc;
