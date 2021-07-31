@@ -312,7 +312,8 @@ class RedisClient {
 	}
 
 	/**
-	 * Disconnect from Redis server.
+	 * Disconnect from Redis server. <br/>
+	 * Closes all of the earlier established connections.
 	 *
 	 * @param graceful		Whether to perform graceful disconnect.
 	 */

@@ -29,6 +29,9 @@ function addJsonModuleCommands(): void {
 	addNodeRedisCommand('json.resp');
 }
 
+/**
+ * [Redis JSON](https://redislabs.com/blog/redis-as-a-json-store/) module.
+ */
 interface JsonModuleCommands<
 	Context extends ClientContext = {
 		type: 'default';
