@@ -1,6 +1,5 @@
 import { error, number } from '@thermopylae/lib.utils';
 import type { RequireSome } from '@thermopylae/core.declarations';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { ClientOpts, RedisError, RetryStrategy } from 'redis';
 import redis, { AggregateError } from 'redis';
 import type { WrappedNodeRedisClient } from 'handy-redis';
@@ -8,7 +7,7 @@ import { createNodeRedisClient } from 'handy-redis';
 // eslint-disable-next-line import/extensions
 import type { WrappedNodeRedisMulti } from 'handy-redis/dist/node_redis/multi';
 import { logger } from './logger';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import { addJsonModuleCommands } from './modules/json';
 import type { JsonModuleCommands } from './modules/json';
 
@@ -161,7 +160,7 @@ class RedisClient {
 	 */
 	public async connect(connections: Readonly<Partial<Record<ConnectionType, RedisClientOptions>>>, options?: ConnectOptions): Promise<void> {
 		if (connections[ConnectionType.REGULAR] == null) {
-			throw createException(ErrorCodes.REQUIRED, `Options for ${ConnectionType.REGULAR} connection are required.`);
+			throw createException(ErrorCodes.REGULAR_CONNECTION_CONFIG_REQUIRED, `Options for ${ConnectionType.REGULAR} connection are required.`);
 		}
 
 		if (options) {

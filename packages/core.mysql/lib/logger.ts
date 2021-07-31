@@ -1,5 +1,5 @@
-import { LoggerInstance, WinstonLogger } from '@thermopylae/core.logger';
-import { Client } from '@thermopylae/core.declarations';
+import { LoggerManagerInstance, WinstonLogger } from '@thermopylae/core.logger';
+import { ClientModule } from '@thermopylae/core.declarations';
 
 /**
  * @private
@@ -12,7 +12,7 @@ let logger: WinstonLogger;
  * This method should be called once, at the application start, before using library.
  */
 function initLogger(): void {
-	logger = LoggerInstance.for(Client.MYSQL);
+	logger = LoggerManagerInstance.for(ClientModule.MYSQL);
 }
 
 export { logger, initLogger };

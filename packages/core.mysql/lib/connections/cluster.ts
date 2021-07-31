@@ -8,8 +8,7 @@ import {
 	PromisePoolConnection
 	// eslint-disable-next-line import/extensions
 } from 'mysql2/promise';
-import { ErrorCodes } from '@thermopylae/core.declarations';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 import { logger } from '../logger';
 import { ConnectionsManager, PoolConfigurator, QueryType } from './interface';
 import { mysqlErrorHandler } from '../utils';
@@ -82,7 +81,7 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 					});
 				});
 			default:
-				return Promise.reject(createException(ErrorCodes.UNKNOWN, `Unknown connection type: ${type}.`));
+				return Promise.reject(createException(ErrorCodes.UNKNOWN_CONNECTION_TYPE, `Unknown connection type: ${type}.`));
 		}
 	}
 

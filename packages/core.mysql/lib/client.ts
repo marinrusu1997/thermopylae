@@ -1,4 +1,3 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import {
 	Connection,
 	Pool,
@@ -9,7 +8,7 @@ import {
 } from 'mysql2/promise';
 import { escape } from 'mysql2';
 import { logger } from './logger';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import { PoolClusterConfig, PoolClusterConnectionsManager } from './connections/cluster';
 import { ConnectionsManager, QueryType } from './connections/interface';
 import { PoolConnectionsManager } from './connections/pool';

@@ -37,7 +37,7 @@ const enum DefaultFormatters {
 interface DefaultFormattingOrderOptions {
 	/**
 	 * Whether output needs to be colored. <br/>
-	 * Passing `true` will colorize only {@link ClientModule} and {@link CoreModule} labels.
+	 * Passing `true` will colorize only {@link ClientModule}, {@link CoreModule} and {@link DevModule} labels.
 	 * If you need additional labels to be colorized, pass an object having label as key and color as value.
 	 */
 	readonly colorize?: boolean | Record<string, string>;

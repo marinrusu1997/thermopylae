@@ -11,7 +11,7 @@ import {
 	ConnectionDetails,
 	bootRedisContainer
 } from '@thermopylae/dev.unit-test';
-import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { ClientModule, DevModule } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, initLogger as initMySqlLogger } from '@thermopylae/core.mysql';
 import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
@@ -31,7 +31,7 @@ before(async function boot() {
 	}
 
 	/* LOGGING */
-	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		levelForLabel: {
@@ -40,7 +40,7 @@ before(async function boot() {
 			[ClientModule.REDIS]: process.env['REDIS_LOG_LEVEL'] as string
 		}
 	});
-	LoggerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] });
+	LoggerManagerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] });
 
 	initUnitTestLogger();
 	initMySqlLogger();

@@ -6,3 +6,4 @@ export { RedisClientInstance };
 export { ConnectionType, RedisModule } from './client';
 export type { RedisClientOptions, NodeRedisClient, NodeRedisClientMulti, ConnectOptions, DebuggableEventType } from './client';
 export { initLogger } from './logger';
+export { ErrorCodes } from './error';

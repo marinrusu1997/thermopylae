@@ -93,25 +93,238 @@
 				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
 					<h2>Description</h2>
 				</a>
-				<p>This package contains logging infrastructure used by Thermopylae <em>core.</em>* modules.</p>
-				<p>Logging is implemented with the help of <a href="https://www.npmjs.com/package/winston">winston</a> npm package.
-				The following transports are supported:</p>
+				<p>This package contains logging infrastructure used by Thermopylae <em>core.</em>* modules.
+				This infrastructure can also be used by applications built with Thermopylae framework.</p>
+				<p>Logging is implemented with the help of <a href="https://www.npmjs.com/package/winston">winston</a> npm package.</p>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<p>Package exports a singleton instance of the <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html">LoggerManager</a> class, named <em>LoggerManagerInstance</em>. <br/>
+				Before obtaining logger, you need to configure formatting and transports of the <em>LoggerManagerInstance</em>.</p>
+				<a href="#formatting" id="formatting" style="color: inherit; text-decoration: none;">
+					<h3>Formatting</h3>
+				</a>
+				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html">Formatting Manager</a> has a set of <a href="https://marinrusu1997.github.io/thermopylae/core.logger/enums/formatting_manager.defaultformatters.html">predefined formatters</a>. <br/>
+					You can also define your custom formatters by using <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html#setformatter">setFormatter</a>. <br/>
+				Formatters can be removed by using <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html#removeformatter">removeFormatter</a>.</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">format</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;winston&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #001080">chalk</span><span style="color: #000000"> </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;chalk&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setFormatter</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;italic&#039;</span><span style="color: #000000">, </span><span style="color: #795E26">format</span><span style="color: #000000">((</span><span style="color: #001080">info</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">info</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;message&#039;</span><span style="color: #000000">] = </span><span style="color: #001080">chalk</span><span style="color: #000000">.</span><span style="color: #795E26">italic</span><span style="color: #000000">(</span><span style="color: #001080">info</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;message&#039;</span><span style="color: #000000">]);</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">info</span><span style="color: #000000">;</span>
+<span style="color: #000000">})());</span>
+
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">removeFormatter</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;italic&#039;</span><span style="color: #000000">); </span><span style="color: #008000">// you can remove your formatters...</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">removeFormatter</span><span style="color: #000000">(</span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">TIMESTAMP</span><span style="color: #000000">); </span><span style="color: #008000">// ...or the default ones</span>
+</code></pre>
+				<br/>
+				<p>After defining your own formatters (which is an optional step), you need to set an order in which formatters will be applied. <br/>
+					This task can be accomplished by using either <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html#setcustomformattingorder">setCustomFormattingOrder</a>,
+					or <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html#setdefaultformattingorder">setDefaultFormattingOrder</a>. <br/>
+					<em>setCustomFormattingOrder</em> allows you to set a custom order from all formatters, or only a part of them. <br/>
+					<em>setDefaultFormattingOrder</em> allows you to choose from a set of predefined formatter orders, called <a href="https://marinrusu1997.github.io/thermopylae/core.logger/enums/formatting_manager.outputformat.html">OutputFormat</a>s.
+				All output formats have the same configurable formatting order, varying only in the last formatter, which is the one of output format name.</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DevModule</span><span style="color: #000000">, </span><span style="color: #001080">CoreModule</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">// setting up a custom order</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setCustomFormattingOrder</span><span style="color: #000000">([</span>
+<span style="color: #000000">   </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">TIMESTAMP</span><span style="color: #000000">, </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">JSON</span>
+<span style="color: #000000">]);</span>
+
+<span style="color: #008000">// change it with a default one (overwrites the previous one)</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultFormattingOrder</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #008000">// colorize logging messages (to be used only with console transport)</span>
+<span style="color: #000000">    </span><span style="color: #001080">colorize:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #008000">// log messages containing these labels won&#039;t be displayed</span>
+<span style="color: #000000">    </span><span style="color: #001080">ignoredLabels:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #001080">DevModule</span><span style="color: #000000">.</span><span style="color: #0070C1">UNIT_TESTING</span><span style="color: #000000">]),</span>
+<span style="color: #000000">    </span><span style="color: #008000">// configure specific logging level per label different from transport level</span>
+<span style="color: #000000">    </span><span style="color: #001080">levelForLabel:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #008000">// notice this level need to be higher that transport levels, otherwise it has no effect</span>
+<span style="color: #000000">        </span><span style="color: #001080">[CoreModule.</span><span style="color: #0070C1">JWT_USER_SESSION</span><span style="color: #001080">]:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
+<span style="color: #000000">    },</span>
+<span style="color: #000000">    </span><span style="color: #008000">// these formatters won&#039;t be included in the formatting order</span>
+<span style="color: #000000">    </span><span style="color: #001080">skippedFormatters:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">ALIGN</span><span style="color: #000000">])</span>
+<span style="color: #000000">});</span>
+</code></pre>
+				<p>Notice that if you pass <code>{ colorize: true }</code>, only Thermopylae <em>ClientModule</em>, <em>CoreModule</em> and <em>DevModule</em> labels will be colorized.
+				If you need additional labels to be colorized (e.g. you are developing your own app module), pass an object having label as key and color as value.</p>
+				<pre><code class="language-typescript"><span style="color: #000000">{</span>
+<span style="color: #000000">    </span><span style="color: #008000">// this will colorize ClientModule + CoreModule + DevModule + labels defined in the object bellow</span>
+<span style="color: #000000">    colorize: {</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&#039;MY-APP-MODULE&#039;</span><span style="color: #000000">: </span><span style="color: #A31515">&#039;magenta&#039;</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">}</span>
+</code></pre>
+				<br/>
+				<p>When using <a href="https://marinrusu1997.github.io/thermopylae/core.logger/enums/formatting_manager.outputformat.html#printf">OutputFormat.PRINTF</a> and application runs in cluster mode, you can include cluster node id in the logged message.</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setClusterNodeId</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;slave-1&#039;</span><span style="color: #000000">);</span>
+</code></pre>
+				<a href="#transports" id="transports" style="color: inherit; text-decoration: none;">
+					<h3>Transports</h3>
+				</a>
+				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html">LoggerManager</a> supports the following types of transport:</p>
 				<ul>
 					<li><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_console.consolelogsmanager.html">Console</a></li>
 					<li><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_file.filelogsmanager.html">File</a></li>
 					<li><a href="https://marinrusu1997.github.io/thermopylae/core.logger/modules/transports_graylog.html">Graylog2</a></li>
 				</ul>
-				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
-					<h2>Usage</h2>
+				<p><em>LoggerManagerInstance</em> has no configured transports. The transports you configure, the ones will be used.
+				Therefore, you may use 1, 2 or 3 transports simultaneously.</p>
+				<a href="#console" id="console" style="color: inherit; text-decoration: none;">
+					<h4>Console</h4>
 				</a>
-				<p>Package exports a singleton instance of the <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html">LoggerManager</a> class, named <em>LoggerManagerInstance</em>. <br/>
-					Using its <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html#for">for</a> method you can obtain logger for your module. <br/>
-				Before obtaining logger, you need to configure formatting and transports of the <em>LoggerManagerInstance</em>.</p>
-				<a href="#formatting" id="formatting" style="color: inherit; text-decoration: none;">
-					<h3>Formatting</h3>
+				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_console.consolelogsmanager.html">Console</a> transport represents the builtin Console transport from winston. It is intended
+					for development purposes and is the only transport which supports colored output.
+				Configuration example:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">ConsoleTransportOptions</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;winston/lib/winston/transports&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">options</span><span style="color: #000000">: </span><span style="color: #267F99">ConsoleTransportOptions</span><span style="color: #000000"> = {</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&quot;level&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;debug&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&quot;consoleWarnLevels&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> [</span><span style="color: #A31515">&quot;warning&quot;</span><span style="color: #000000">],</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&quot;stderrLevels&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> [</span><span style="color: #A31515">&quot;emerg&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;alert&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;crit&quot;</span><span style="color: #000000">, </span><span style="color: #A31515">&quot;error&quot;</span><span style="color: #000000">]</span>
+<span style="color: #000000">};</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">(</span><span style="color: #001080">options</span><span style="color: #000000">);</span>
+
+<span style="color: #008000">// from now on all log messages will be printed to console</span>
+</code></pre>
+				<a href="#file" id="file" style="color: inherit; text-decoration: none;">
+					<h4>File</h4>
 				</a>
-				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/formatting_manager.formattingmanager.html">Formatting Manager</a> has a set of <a href="https://marinrusu1997.github.io/thermopylae/core.logger/enums/formatting_manager.defaultformatters.html">predefined formatters</a>.
-				You can also define your custom formatters by using </p>
+				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/transports_file.filelogsmanager.html">File</a> allows you to write logs into file. It&#39;s a thin wrapper over <a href="https://www.npmjs.com/package/winston-daily-rotate-file">winston-daily-rotate-file</a>.
+				Configuration example:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">file</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({</span>
+<span style="color: #000000">    </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">filename:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;application-%DATE%.log&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">datePattern:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;YYYY-MM-DD-HH&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">zippedArchive:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">maxSize:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;20m&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">maxFiles:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;14d&#039;</span>
+<span style="color: #000000">});</span>
+<span style="color: #008000">// if you want to attach event handlers (optional)</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">file</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">()!.</span><span style="color: #795E26">on</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;new&#039;</span><span style="color: #000000">, (</span><span style="color: #001080">newFilename</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">   </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #A31515">`New log file created with name &#039;</span><span style="color: #0000FF">${</span><span style="color: #001080">newFilename</span><span style="color: #0000FF">}</span><span style="color: #A31515">&#039;.`</span><span style="color: #000000">); </span>
+<span style="color: #000000">});</span>
+
+
+<span style="color: #008000">// if you want to also log on console (optional)</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({</span>
+<span style="color: #000000">    </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
+<span style="color: #000000">});</span>
+<span style="color: #008000">// now log messages will be written on console and into file</span>
+</code></pre>
+				<a href="#graylog2" id="graylog2" style="color: inherit; text-decoration: none;">
+					<h4>Graylog2</h4>
+				</a>
+				<p><a href="https://marinrusu1997.github.io/thermopylae/core.logger/modules/transports_graylog.html">Graylog2</a> transport allows you to write logs to <a href="https://docs.graylog.org/en/4.1/">graylog server</a>. <br/>
+				Configuration of this transport is done in 2 steps:</p>
+				<ol>
+					<li>You need to register inputs where logs will be written, namely Graylog Server endpoints. Example:</li>
+				</ol>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">// let&#039;s register 2 inputs based on logs priority</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">graylog2</span><span style="color: #000000">.</span><span style="color: #795E26">register</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;HIGH&#039;</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">, </span>
+<span style="color: #000000">    </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">12201</span><span style="color: #000000"> </span>
+<span style="color: #000000">});</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">graylog2</span><span style="color: #000000">.</span><span style="color: #795E26">register</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;NORMAL&#039;</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">12202</span>
+<span style="color: #000000">});</span>
+</code></pre>
+				<ol start="2">
+					<li>You need to set logging channels for application modules, namely decide into which input each module will write its logs. Example:</li>
+				</ol>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">/**</span>
+<span style="color: #008000"> * All application modules will write logs into &#039;NORMAL&#039; input with log level above or equal to &#039;notice&#039;.</span>
+<span style="color: #008000"> * Excepting &#039;CRITICAL-APP-MODULE&#039;, which will write logs into &#039;HIGH&#039; input with log level above or equal to &#039;info&#039;.</span>
+<span style="color: #008000"> */</span>
+
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">graylog2</span><span style="color: #000000">.</span><span style="color: #795E26">setChannel</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;@all&#039;</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #001080">input:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;NORMAL&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;notice&#039;</span>
+<span style="color: #000000">});</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">graylog2</span><span style="color: #000000">.</span><span style="color: #795E26">setChannel</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;CRITICAL-APP-MODULE&#039;</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #001080">input:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;HIGH&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
+<span style="color: #000000">});</span>
+</code></pre>
+				<a href="#creating-loggers" id="creating-loggers" style="color: inherit; text-decoration: none;">
+					<h3>Creating loggers</h3>
+				</a>
+				<p>After you configured formatting and transports, you can obtain loggers for app modules.
+					Due to the fact that you can&#39;t obtain logger before <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html">LoggerManager</a> isn&#39;t configured (usually it will be configured in the boostrap phase),
+				the following approach is recommended:</p>
+				<ul>
+					<li>in the application packages, create a file called <em>logger.ts</em> having following content:</li>
+				</ul>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerInstance</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">WinstonLogger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">logger</span><span style="color: #000000">: </span><span style="color: #267F99">WinstonLogger</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">initLogger</span><span style="color: #000000">(): </span><span style="color: #267F99">void</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">logger</span><span style="color: #000000"> = </span><span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #795E26">for</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;MY-MODULE-NAME&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #AF00DB">export</span><span style="color: #000000"> { </span><span style="color: #001080">logger</span><span style="color: #000000">, </span><span style="color: #001080">initLogger</span><span style="color: #000000"> };</span>
+</code></pre>
+				<ul>
+					<li>in the package files import <strong>logger</strong> from <em>logger.ts</em> and use it via <a href="https://stackoverflow.com/a/57552682">live binding mechanism</a>:</li>
+				</ul>
+				<pre><code class="language-typescript"><span style="color: #008000">// implementation.ts</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">logger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;./logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">print</span><span style="color: #000000">(</span><span style="color: #001080">msg</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">) {</span>
+<span style="color: #000000">    </span><span style="color: #001080">logger</span><span style="color: #000000">.</span><span style="color: #795E26">info</span><span style="color: #000000">(</span><span style="color: #001080">msg</span><span style="color: #000000">);</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #AF00DB">export</span><span style="color: #000000"> { </span><span style="color: #001080">print</span><span style="color: #000000"> };</span>
+</code></pre>
+				<ul>
+					<li>export initialization function from package entry point:</li>
+				</ul>
+				<pre><code class="language-typescript"><span style="color: #008000">// index.ts</span>
+
+<span style="color: #AF00DB">export</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;./logger&#039;</span><span style="color: #000000">;</span>
+</code></pre>
+				<ul>
+					<li>at the application bootstrap configure <a href="https://marinrusu1997.github.io/thermopylae/core.logger/classes/logger_manager.loggermanager.html">LoggerManager</a> and init loggers:</li>
+				</ul>
+				<pre><code class="language-typescript"><span style="color: #008000">// bootstrap.ts</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initMyPackageLogger</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;my-package&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">// read configs from somewhere</span>
+
+<span style="color: #008000">/**</span>
+<span style="color: #008000"> * Configure logging. </span>
+<span style="color: #008000"> * Notice that logging configuration needs to be one of the firstest steps in the app bootstrap. </span>
+<span style="color: #008000"> */</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultFormattingOrder</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
+<span style="color: #000000">    </span><span style="color: #001080">colorize:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span>
+<span style="color: #000000">});</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({</span>
+<span style="color: #000000">    </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
+<span style="color: #000000">});</span>
+
+<span style="color: #008000">/**</span>
+<span style="color: #008000"> * Init app loggers.</span>
+<span style="color: #008000"> */</span>
+<span style="color: #795E26">initMyPackageLogger</span><span style="color: #000000">();</span>
+
+<span style="color: #008000">// configure other application parts/systems</span>
+</code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>
