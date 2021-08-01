@@ -18,13 +18,13 @@ npm install @thermopylae/lib.api-validator
 ```
 
 ## Description
-This package allows you to validate user input used by API Services.
+This package allows you to validate user input used by API Services. <br/>
 Validation is performed against JSON schema and XSS injections. <br/>
 Detailed information can be found in the API Doc of the [ApiValidator][api-validator-link] class.
 
 ## Usage
 Assuming you have a directory structure as described [here][api-validator-init-link], 
-let's look at an example of how this package can be used.
+let's look at an example of how this package can be used. <br/>
 Supposing we have the following schemas:
 ```text
 └─ schemas
