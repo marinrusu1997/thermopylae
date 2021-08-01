@@ -74,29 +74,80 @@
 				<h1 align="center">@thermopylae/lib.email</h1>
 				<p>
 					<img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-					<img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
-					<a href="http:/localhost:8080/doc" target="_blank">
+					<img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
+					<a href="https://marinrusu1997.github.io/thermopylae/lib.email/index.html" target="_blank">
 						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 					</a>
-					<a href="http:/localhost:8080/license" target="_blank">
-						<img alt="License: ISC" src="https://img.shields.io/badge/License-ISC-yellow.svg" />
+					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
+						<img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 					</a>
 				</p>
 				<blockquote>
 					<p>Email client.</p>
 				</blockquote>
-				<a href="#🏠-homepage" id="🏠-homepage" style="color: inherit; text-decoration: none;">
-					<h3>🏠 <a href="http://localhost:8080">Homepage</a></h3>
-				</a>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
 				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/lib.email</span>
 </code></pre>
-				<a href="#run-tests" id="run-tests" style="color: inherit; text-decoration: none;">
-					<h2>Run tests</h2>
+				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
+					<h2>Description</h2>
 				</a>
-				<pre><code class="language-sh"><span style="color: #000000">npm run </span><span style="color: #795E26">test</span>
+				<p>This package contains <a href="https://marinrusu1997.github.io/thermopylae/lib.email/classes/client.emailclient.html">EmailClient</a> which can send emails. <br/>
+				In order to accomplish this task, it uses internally <a href="https://www.npmjs.com/package/nodemailer">nodemailer</a> npm package.</p>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<p>Example:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">EmailClient</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.email&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">(</span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">main</span><span style="color: #000000">() {</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">emailClient</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">EmailClient</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">transport:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">options:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">service:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;gmail&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">auth:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                    </span><span style="color: #001080">type:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;OAuth2&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">user:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;sample_user@gmail.com&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">clientId:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;CLIENT-ID&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">clientSecret:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;CLIENT-SECRET&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">refreshToken:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;REFRESH-TOKEN&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">accessToken:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;ACCESS-TOKEN&#039;</span>
+<span style="color: #000000">                }</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">defaults:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">from:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;sample_user@gmail.com&#039;</span>
+<span style="color: #000000">            }</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #001080">hooks:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #795E26">onTransportError</span><span style="color: #000000">(</span><span style="color: #001080">err</span><span style="color: #000000">) {</span>
+<span style="color: #000000">                </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">error</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;Error encountered in email transport: &#039;</span><span style="color: #000000">, </span><span style="color: #001080">err</span><span style="color: #000000">);</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #795E26">onTransportIdle</span><span style="color: #000000">() {</span>
+<span style="color: #000000">                </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">info</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;Email transport is idle.&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">            }</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    });</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sentEmailInfo</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">emailClient</span><span style="color: #000000">.</span><span style="color: #795E26">send</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">to:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;anoter_user@example.com&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">        </span><span style="color: #001080">subject:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;Demo Email&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">text:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;Demo text&#039;</span>
+<span style="color: #000000">    });</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;Email has been sent. Details: &#039;</span><span style="color: #000000">, </span><span style="color: #267F99">JSON</span><span style="color: #000000">.</span><span style="color: #795E26">stringify</span><span style="color: #000000">(</span><span style="color: #001080">sentEmailInfo</span><span style="color: #000000">));</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #001080">emailClient</span><span style="color: #000000">.</span><span style="color: #795E26">close</span><span style="color: #000000">();</span>
+<span style="color: #000000">})();</span>
+</code></pre>
+				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
+					<h2>API Reference</h2>
+				</a>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/lib.email/index.html">here</a>.</p>
+				<p>It can also be generated by issuing the following commands:</p>
+				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
+<span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
+<span style="color: #000000">yarn install</span>
+<span style="color: #000000">yarn workspace @thermopylae/lib.email run doc</span>
 </code></pre>
 				<a href="#author" id="author" style="color: inherit; text-decoration: none;">
 					<h2>Author</h2>
@@ -104,13 +155,14 @@
 				<p>👤 <strong>Rusu Marin</strong></p>
 				<ul>
 					<li>GitHub: <a href="https://github.com/marinrusu1997">@marinrusu1997</a></li>
-					<li>LinkedIn: <a href="https://linkedin.com/in/marinrusu1997">@marinrusu1997</a></li>
+					<li>Email: <a href="mailto:dimarusu2000@gmail.com">dimarusu2000@gmail.com</a></li>
+					<li>LinkedIn: <a href="https://www.linkedin.com/in/rusu-marin-1638b0156/">@marinrusu1997</a></li>
 				</ul>
 				<a href="#📝-license" id="📝-license" style="color: inherit; text-decoration: none;">
 					<h2>📝 License</h2>
 				</a>
-				<p>Copyright © 2020 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
-				This project is <a href="http:/localhost:8080/license">ISC</a> licensed.</p>
+				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
+				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
 			</div>
 			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.email&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.email&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.email&quot;}],&quot;outline&quot;:[{&quot;Client&quot;:&quot;client&quot;,&quot;Hooks&quot;:&quot;hooks&quot;,&quot;Typings&quot;:&quot;types&quot;}]}-->
 		</div>
