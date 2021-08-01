@@ -34,9 +34,9 @@ type DebuggableEventType = 'subscribe' | 'psubscribe' | 'unsubscribe' | 'punsubs
 type RedisConnectionOptions = (ConnectionOptions | RequiredClientOptions | OmittedClientOptions) & {
 	/**
 	 * Whether debug listeners need to be attached on redis connection. <br/>
-	 * Depending on value of this param, following actions will be taken:
-	 * 	* undefined | false - debug listeners won't be attached
-	 * 	* true - debug listeners will be attached for all {@link DebuggableEventType}
+	 * Depending on value of this param, following actions will be taken: <br/>
+	 * 	* undefined | false - debug listeners won't be attached <br/>
+	 * 	* true - debug listeners will be attached for all {@link DebuggableEventType} <br/>
 	 *  * Set<DebuggableEventType> - debug listeners will be attached only to specified events
 	 */
 	readonly attachDebugListeners?: boolean | Set<DebuggableEventType>;

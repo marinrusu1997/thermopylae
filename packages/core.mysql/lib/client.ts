@@ -15,6 +15,12 @@ import { PoolConnectionsManager } from './connections/pool';
 import { formatConnectionDetails, formatMySqlError, mysqlErrorHandler } from './utils';
 
 /**
+ * Type of the [events](https://www.npmjs.com/package/mysql#pool-events) on which debug listener can be attached. <br/>
+ * Whenever the event is emitted, listener will log this event along with it's arguments.
+ */
+type DebuggableEventType = 'acquire' | 'release' | 'enqueue' | 'connection';
+
+/**
  * Options needed for MySQL client initialization. <br/>
  * {@link MySQLClientOptions.pool} and {@link MySQLClientOptions.poolCluster} are mutually exclusive options.
  */
@@ -22,15 +28,23 @@ interface MySQLClientOptions {
 	/**
 	 * Configure client with pooled connections.
 	 */
-	pool?: PoolOptions;
+	readonly pool?: PoolOptions;
 	/**
 	 * Configure client with pool cluster connections.
 	 */
-	poolCluster?: PoolClusterConfig;
+	readonly poolCluster?: PoolClusterConfig;
 	/**
 	 * Queries to be executed after connection establishment in order to set session variables.
 	 */
-	sessionVariablesQueries?: Array<string>;
+	readonly sessionVariablesQueries?: Array<string>;
+	/**
+	 * Whether debug listeners need to be attached on pool. <br/>
+	 * Depending on value of this param, following actions will be taken: <br/>
+	 * 	* undefined | false - debug listeners won't be attached <br/>
+	 * 	* true - debug listeners will be attached for all {@link DebuggableEventType} <br/>
+	 *  * Set<DebuggableEventType> - debug listeners will be attached only to specified events
+	 */
+	readonly attachDebugListeners?: boolean | Set<DebuggableEventType>;
 }
 
 /**
@@ -57,7 +71,7 @@ class MySQLClient {
 				throw createException(ErrorCodes.MISCONFIGURATION, 'You need to provide either pool or pool cluster configurations.', options);
 			}
 
-			this.connections.init(MySQLClient.configurePool, options.sessionVariablesQueries);
+			this.connections.init(MySQLClient.configurePool, options);
 		}
 	}
 
@@ -89,15 +103,32 @@ class MySQLClient {
 		return escape(value);
 	}
 
-	private static configurePool(pool: Pool, sessionVariablesQueries?: Array<string>): void {
-		pool.on('acquire', MySQLClient.logAcquirePoolEvent);
-		pool.on('release', MySQLClient.logReleasePoolEvent);
-		pool.on('enqueue', MySQLClient.logEnqueuePoolEvent);
-		pool.on('connection', (connection: Connection): void => {
-			logger.info(`Pool connection established with id ${connection.threadId}.`);
+	private static configurePool(pool: Pool, options: MySQLClientOptions): void {
+		if (options.attachDebugListeners) {
+			if (options.attachDebugListeners === true) {
+				pool.on('acquire', MySQLClient.logAcquirePoolEvent);
+				pool.on('release', MySQLClient.logReleasePoolEvent);
+				pool.on('enqueue', MySQLClient.logEnqueuePoolEvent);
+			} else {
+				if (options.attachDebugListeners.has('acquire')) {
+					pool.on('acquire', MySQLClient.logAcquirePoolEvent);
+				}
+				if (options.attachDebugListeners.has('release')) {
+					pool.on('release', MySQLClient.logReleasePoolEvent);
+				}
+				if (options.attachDebugListeners.has('enqueue')) {
+					pool.on('enqueue', MySQLClient.logEnqueuePoolEvent);
+				}
+			}
+		}
 
-			if (sessionVariablesQueries) {
-				for (const sessionVariableQuery of sessionVariablesQueries) {
+		pool.on('connection', (connection: Connection): void => {
+			if (options.attachDebugListeners && (options.attachDebugListeners === true || options.attachDebugListeners.has('connection'))) {
+				logger.debug(`Pool connection established with id ${connection.threadId}.`);
+			}
+
+			if (options.sessionVariablesQueries) {
+				for (const sessionVariableQuery of options.sessionVariablesQueries) {
 					connection.query(sessionVariableQuery, (err: QueryError) => {
 						logger.error(`Failed to execute query '${sessionVariableQuery}' on ${formatConnectionDetails(connection)}. ${formatMySqlError(err)}`);
 					});
@@ -121,4 +152,4 @@ class MySQLClient {
 	}
 }
 
-export { MySQLClient, MySQLClientOptions };
+export { MySQLClient, MySQLClientOptions, DebuggableEventType };

@@ -8,6 +8,7 @@ import {
 	PromisePoolConnection
 	// eslint-disable-next-line import/extensions
 } from 'mysql2/promise';
+import { ObjMap } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../error';
 import { logger } from '../logger';
 import { ConnectionsManager, PoolConfigurator, QueryType } from './interface';
@@ -57,9 +58,9 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 			this.poolCluster.add(clusterNodeNames[i], options.nodes[clusterNodeNames[i]] as any);
 		}
 
-		this.poolCluster.on('online', (nodeId: number) => logger.notice(`Node with id ${nodeId} is online.`));
-		this.poolCluster.on('offline', (nodeId: number) => logger.warning(`Node with id ${nodeId} went offline.`));
-		this.poolCluster.on('remove', (nodeId) => logger.warning(`Node with id ${nodeId} has been removed.`));
+		this.poolCluster.on('online', (nodeId: number) => logger.notice(`Pool Cluster Node with id ${nodeId} is online.`));
+		this.poolCluster.on('offline', (nodeId: number) => logger.warning(`Pool Cluster Node with id ${nodeId} went offline.`));
+		this.poolCluster.on('remove', (nodeId) => logger.warning(`Pool Cluster Node with id ${nodeId} has been removed.`));
 		this.poolCluster.on('warn', mysqlErrorHandler);
 
 		this.writePool = this.poolCluster.of('MASTER*');
@@ -85,13 +86,13 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 		}
 	}
 
-	public init(configurator: PoolConfigurator, sessionVariablesQueries?: Array<string>): void {
+	public init(configurator: PoolConfigurator, configOptions: ObjMap): void {
 		// @ts-ignore
 		// eslint-disable-next-line no-restricted-syntax, guard-for-in, no-underscore-dangle
 		for (const nodeName in this.poolCluster._nodes) {
 			// @ts-ignore
 			// eslint-disable-next-line no-underscore-dangle
-			configurator(this.poolCluster._nodes[nodeName].pool, sessionVariablesQueries);
+			configurator(this.poolCluster._nodes[nodeName].pool, configOptions);
 		}
 	}
 

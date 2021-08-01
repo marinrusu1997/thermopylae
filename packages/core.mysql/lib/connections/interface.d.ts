@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/extensions
 import { Pool, PoolConnection } from 'mysql2/promise';
+import { ObjMap } from '@thermopylae/core.declarations';
 
 /**
  * Type of the queries that can be executed on the connection.
@@ -19,7 +20,7 @@ declare const enum QueryType {
  * Configure pool after it's initialization.
  * @private
  */
-declare type PoolConfigurator = (pool: Pool, sessionVariablesQueries?: Array<string>) => void;
+declare type PoolConfigurator = (pool: Pool, configOptions: ObjMap) => void;
 
 /**
  * Manages MySQL connections.
@@ -36,10 +37,10 @@ declare interface ConnectionsManager {
 	/**
 	 * Init manager.
 	 *
-	 * @param configurator                  Configurator function.
-	 * @param sessionVariablesQueries       Session variables to be set on new connection.
+	 * @param configurator        Configurator function.
+	 * @param configOptions       Configurator options.
 	 */
-	init(configurator: PoolConfigurator, sessionVariablesQueries?: Array<string>): void;
+	init(configurator: PoolConfigurator, configOptions: ObjMap): void;
 
 	/**
 	 * Shutdown all connections.

@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/extensions
 import { createPool, Pool, PoolConnection, PoolOptions } from 'mysql2/promise';
+import { ObjMap } from '@thermopylae/core.declarations';
 import { ConnectionsManager, PoolConfigurator } from './interface';
 
 /**
@@ -16,8 +17,8 @@ class PoolConnectionsManager implements ConnectionsManager {
 		return this.pool.getConnection();
 	}
 
-	public init(configurator: PoolConfigurator, sessionVariablesQueries?: Array<string>): void {
-		return configurator(this.pool, sessionVariablesQueries);
+	public init(configurator: PoolConfigurator, configOptions: ObjMap): void {
+		return configurator(this.pool, configOptions);
 	}
 
 	public shutdown(): Promise<void> {

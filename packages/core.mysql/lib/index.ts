@@ -7,7 +7,7 @@ export { QueryType } from './connections/interface';
 export { PoolClusterConfig, PoolClusterNodes } from './connections/cluster';
 export { ErrorCodes } from './error';
 export { initLogger } from './logger';
-export { MySQLClientOptions } from './client';
+export { MySQLClientOptions, DebuggableEventType } from './client';
 export { formatMySqlError, typeCastBooleans } from './utils';
 
 export { ResultSetHeader, RowDataPacket } from 'mysql2';

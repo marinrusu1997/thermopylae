@@ -150,7 +150,7 @@ yarn workspace @thermopylae/core.authentication run doc
 
 * GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
 * Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+* LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
 
 ## 📝 License
 
