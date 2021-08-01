@@ -14,7 +14,7 @@ import {
 import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
 import { ClientModule, DevModule } from '@thermopylae/core.declarations';
 import { MySqlClientInstance, initLogger as initMySqlLogger } from '@thermopylae/core.mysql';
-import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
+import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisConnectionOptions } from '@thermopylae/core.redis';
 import { config as dotEnvConfig } from 'dotenv';
 
 let mysqlContainer: DockerContainer;
@@ -24,7 +24,6 @@ before(async function boot() {
 	this.timeout(120_000);
 
 	/* DOT ENV */
-
 	const dotEnv = dotEnvConfig();
 	if (dotEnv.error) {
 		throw dotEnv.error;
@@ -72,7 +71,7 @@ before(async function boot() {
 	let redisConnectDetails: ConnectionDetails;
 	[redisContainer, redisConnectDetails] = await bootRedisContainer();
 
-	const redisClientOptions: RedisClientOptions = {
+	const redisConnectionOptions: RedisConnectionOptions = {
 		...redisConnectDetails,
 		connect_timeout: 10_000,
 		max_attempts: 10,
@@ -81,7 +80,7 @@ before(async function boot() {
 	};
 
 	await RedisClientInstance.connect({
-		[ConnectionType.REGULAR]: redisClientOptions
+		[ConnectionType.REGULAR]: redisConnectionOptions
 	});
 });
 

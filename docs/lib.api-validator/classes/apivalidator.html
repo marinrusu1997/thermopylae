@@ -1,0 +1,358 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>ApiValidator | @thermopylae/lib.api-validator</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="../index.html" class="title">@thermopylae/lib.api-validator</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.api-validator" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="apivalidator.html">ApiValidator</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class=" ">
+						<a href="../modules.html">Exports</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>Class ApiValidator</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p>Class which allows to validate data that is coming to API endpoints. <br/>
+							Internally it uses <a href="https://www.npmjs.com/package/ajv">ajv</a> in order to validate JSON objects. <br/>
+						XSS sanitization is performed with the <a href="https://www.npmjs.com/package/xss">xss</a> npm package.</p>
+					</div>
+			</div></section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">ApiValidator</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="apivalidator.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="apivalidator.html#init" class="tsd-kind-icon">init</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="apivalidator.html#joinerrors" class="tsd-kind-icon">join<wbr>Errors</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="apivalidator.html#sanitize" class="tsd-kind-icon">sanitize</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="apivalidator.html#validate" class="tsd-kind-icon">validate</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Api<wbr>Validator<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="apivalidator.html" class="tsd-signature-type">ApiValidator</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Create <a href="apivalidator.html">ApiValidator</a> instance.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="apivalidator.html" class="tsd-signature-type">ApiValidator</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="init" class="tsd-anchor"></a>
+					<h3>init</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">(</span>validationSchemasDir<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, excludeDirs<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Initializes <a href="apivalidator.html">ApiValidator</a> and reads validation JSON Schemas.
+										Each JSON schema needs to have an id of this format: <code>#${service}-${method}</code>. <br/>
+									JSON schemas needs to be located on the file system in the following topology: <br/></p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>└─ &lt;${validationSchemasDir}&gt; <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;└─ service-1 <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-1.json <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;└─ schema-2.json <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;├─ service-2 <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-1.json <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-2.json <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;└─ schema-n.json <br/>
+									&nbsp;&nbsp;&nbsp;&nbsp;└─ service-n <br/>
+								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ schema-1.json</p>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> validationSchemasDir: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Directory where validation schemas are located. <br/>
+										Defaults to <strong><code>${process.env[&#39;XDG_CONFIG_HOME&#39;] || </code>${process.env[&#39;HOME&#39;]}/.config<code>}/${process.env[&#39;APP_NAME&#39;]}/validation</code></strong>.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> excludeDirs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Directories from the <code>validationSchemasDir</code> which needs to be excluded, i.e. their schemas should not be loaded.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="joinerrors" class="tsd-anchor"></a>
+					<h3>join<wbr>Errors</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">join<wbr>Errors<span class="tsd-signature-symbol">(</span>errors<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">ErrorObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ErrorObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span>, into<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">"object"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"text"</span>, skippedKeywords<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ObjMap</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Joins errors from the exception thrown by <a href="apivalidator.html#validate">ApiValidator.validate</a> method. <br/>
+										Errors can be joined into text or object. <br/>
+										When <em>text</em> is specified, errors will be joined into message using <a href="https://github.com/ajv-validator/ajv-i18n">ajv-i18n</a>. <br/>
+										When <em>json</em> is specified, errors will be joined into an object,
+									having as key <a href="https://ajv.js.org/api.html#error-objects">instancePath</a> error property and as value <a href="https://ajv.js.org/api.html#error-objects">message</a> error property.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>errors: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">ErrorObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ErrorObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>(<a href="https://ajv.js.org/api.html#error-objects">https://ajv.js.org/api.html#error-objects</a>) from the exception thrown by <a href="apivalidator.html#validate">ApiValidator.validate</a> method.</p>
+									</div>
+								</li>
+								<li>
+									<h5>into: <span class="tsd-signature-type">"object"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"text"</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Format into which errors need to be joined.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> skippedKeywords: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>When format is <em>json</em>, you can skip some error objects having <a href="https://ajv.js.org/api.html#error-objects">keyword</a> property present in this list.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">ObjMap</span>
+							</h4>
+							<p>Joined errors.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="sanitize" class="tsd-anchor"></a>
+					<h3>sanitize</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">sanitize<span class="tsd-signature-symbol">(</span>data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ObjMap</span>, exceptPaths<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ObjMap</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Sanitizes data against XSS vulnerability. <br/>
+									Notice that in case of JSON data, only values will be sanitized, while keys will be left untouched.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>data: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ObjMap</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Data to be sanitized.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> exceptPaths: <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>When data is an object, you can specify a set of <a href="https://www.npmjs.com/package/dot-prop">dot paths</a>, values of which should not be sanitized.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">ObjMap</span>
+							</h4>
+							<p>Sanitized data.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="validate" class="tsd-anchor"></a>
+					<h3>validate</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">validate<span class="tsd-signature-symbol">(</span>service<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, method<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ObjMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ObjMap</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Validate data against JSON schema.
+									Id of the schema is formed from <code>#${service}-${method}</code>.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{ErrorObject} When data doesn&#39;t match schema.</p>
+								</dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>service: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the service.</p>
+									</div>
+								</li>
+								<li>
+									<h5>method: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the method.</p>
+									</div>
+								</li>
+								<li>
+									<h5>data: <span class="tsd-signature-type">ObjMap</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Data to be validated.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ObjMap</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Validated data.</p>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.api-validator&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.api-validator&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.api-validator&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class root">
+						<a href="apivalidator.html" class="tsd-kind-icon">Api<wbr>Validator</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class">
+								<a href="apivalidator.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="apivalidator.html#init" class="tsd-kind-icon">init</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="apivalidator.html#joinerrors" class="tsd-kind-icon">join<wbr>Errors</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="apivalidator.html#sanitize" class="tsd-kind-icon">sanitize</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="apivalidator.html#validate" class="tsd-kind-icon">validate</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
