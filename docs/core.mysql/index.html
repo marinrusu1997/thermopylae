@@ -74,29 +74,112 @@
 				<h1 align="center">@thermopylae/core.mysql</h1>
 				<p>
 					<img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-					<img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
-					<a href="http:/localhost:8080/doc" target="_blank">
+					<img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
+					<a href="https://marinrusu1997.github.io/thermopylae/core.mysql/index.html" target="_blank">
 						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 					</a>
-					<a href="http:/localhost:8080/license" target="_blank">
-						<img alt="License: ISC" src="https://img.shields.io/badge/License-ISC-yellow.svg" />
+					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
+						<img alt="License: ISC" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 					</a>
 				</p>
 				<blockquote>
 					<p>MySQL client.</p>
 				</blockquote>
-				<a href="#🏠-homepage" id="🏠-homepage" style="color: inherit; text-decoration: none;">
-					<h3>🏠 <a href="http://localhost:8080">Homepage</a></h3>
-				</a>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
 				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/core.mysql</span>
 </code></pre>
-				<a href="#run-tests" id="run-tests" style="color: inherit; text-decoration: none;">
-					<h2>Run tests</h2>
+				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
+					<h2>Description</h2>
 				</a>
-				<pre><code class="language-sh"><span style="color: #000000">npm run </span><span style="color: #795E26">test</span>
+				<p>This package contains client for MySQL Server.
+					It uses <a href="https://www.npmjs.com/package/mysql2">mysql2</a> npm package as underlying implementation. <br/>
+					<a href="https://marinrusu1997.github.io/thermopylae/core.mysql/classes/client.mysqlclient.html">MySQLClient</a> allows you to establish pooled connections or pool cluster connections.
+				Write &amp; Read pools are abstracted regardless of pooled or pool cluster connections.</p>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<p>Package exports a singleton of <a href="https://marinrusu1997.github.io/thermopylae/core.mysql/classes/client.mysqlclient.html">MySQLClient</a> class, called <em>MySqlClientInstance</em>, which needs to be configured before being used.
+					After that you can create connections and perform queries. <br/>
+				Let&#39;s take a look at the following example which demonstrates how the package can be used.</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">QueryType</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">DebuggableEventType</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">ResultSetHeader</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">RowDataPacket</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initCoreMysqlLogger</span><span style="color: #000000"> </span>
+<span style="color: #000000">} </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.mysql&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">(</span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">main</span><span style="color: #000000">() {</span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Firstly init logging system */</span>
+<span style="color: #000000">    </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultFormattingOrder</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({ </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000"> });</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initCoreMysqlLogger</span><span style="color: #000000">();</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Configure MySQL */</span>
+<span style="color: #000000">    </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">init</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">pool:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">3306</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">user:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-user&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">password:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-password&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">database:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;your-database&#039;</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #008000">/*</span>
+<span style="color: #008000">            // alternative to `pool` is `poolCluster` option</span>
+<span style="color: #008000">            poolCluster: {</span>
+<span style="color: #008000">                nodes: {</span>
+<span style="color: #008000">                    MASTER: { host: &#039;127.0.0.1&#039;, port: 3306 },</span>
+<span style="color: #008000">                    SLAVE: { host: &#039;127.0.0.1&#039;, port: 3307 }</span>
+<span style="color: #008000">                }</span>
+<span style="color: #008000">            }</span>
+<span style="color: #008000">         */</span>
+<span style="color: #000000">        </span><span style="color: #001080">sessionVariablesQueries:</span><span style="color: #000000"> [</span><span style="color: #A31515">&quot;SET @id = &#039;A&#039;;&quot;</span><span style="color: #000000">],</span>
+<span style="color: #000000">        </span><span style="color: #001080">attachDebugListeners:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DebuggableEventType</span><span style="color: #000000">&gt;([</span><span style="color: #A31515">&#039;connection&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;enqueue&#039;</span><span style="color: #000000">])</span>
+<span style="color: #000000">    });</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Perform queries  */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">accountId</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">;</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">connection</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">getConnection</span><span style="color: #000000">(</span><span style="color: #001080">QueryType</span><span style="color: #000000">.</span><span style="color: #0070C1">WRITE</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">try</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> [</span><span style="color: #0070C1">results</span><span style="color: #000000">] = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">connection</span><span style="color: #000000">.</span><span style="color: #795E26">execute</span><span style="color: #000000">&lt;</span><span style="color: #267F99">ResultSetHeader</span><span style="color: #000000">&gt;(</span>
+<span style="color: #000000">            </span><span style="color: #A31515">`INSERT INTO Account (username, passwordHash, email) VALUES (?, ?, </span><span style="color: #0000FF">${</span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000FF">.</span><span style="color: #795E26">escape</span><span style="color: #000000FF">(</span><span style="color: #A31515">&#039;email@email.com&#039;</span><span style="color: #000000FF">)</span><span style="color: #0000FF">}</span><span style="color: #A31515">);`</span><span style="color: #000000">,</span>
+<span style="color: #000000">            [</span><span style="color: #A31515">&#039;username&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;hash&#039;</span><span style="color: #000000">]</span>
+<span style="color: #000000">        );</span>
+
+<span style="color: #000000">        </span><span style="color: #001080">accountId</span><span style="color: #000000"> = </span><span style="color: #267F99">String</span><span style="color: #000000">(</span><span style="color: #001080">results</span><span style="color: #000000">.</span><span style="color: #001080">insertId</span><span style="color: #000000">);</span>
+<span style="color: #000000">    } </span><span style="color: #AF00DB">finally</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #001080">connection</span><span style="color: #000000">.</span><span style="color: #795E26">release</span><span style="color: #000000">(); </span><span style="color: #008000">// VERY IMPORTANT! Connection needs to be released</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #001080">connection</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">getConnection</span><span style="color: #000000">(</span><span style="color: #001080">QueryType</span><span style="color: #000000">.</span><span style="color: #0070C1">READ</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">try</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> [</span><span style="color: #0070C1">results</span><span style="color: #000000">] = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">connection</span><span style="color: #000000">.</span><span style="color: #795E26">query</span><span style="color: #000000">&lt;</span><span style="color: #267F99">RowDataPacket</span><span style="color: #000000">[]&gt;(</span><span style="color: #A31515">`SELECT * FROM Account WHERE id=</span><span style="color: #0000FF">${</span><span style="color: #001080">accountId</span><span style="color: #0000FF">}</span><span style="color: #A31515">;`</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">if</span><span style="color: #000000"> (</span><span style="color: #001080">results</span><span style="color: #000000">.</span><span style="color: #001080">length</span><span style="color: #000000"> === </span><span style="color: #098658">1</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #A31515">`Account found: </span><span style="color: #0000FF">${</span><span style="color: #267F99">JSON</span><span style="color: #000000FF">.</span><span style="color: #795E26">stringify</span><span style="color: #000000FF">(</span><span style="color: #001080">results</span><span style="color: #000000FF">[</span><span style="color: #098658">0</span><span style="color: #000000FF">])</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">);</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    } </span><span style="color: #AF00DB">finally</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #001080">connection</span><span style="color: #000000">.</span><span style="color: #795E26">release</span><span style="color: #000000">(); </span><span style="color: #008000">// VERY IMPORTANT! Connection needs to be released</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Shutdown */</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">MySqlClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">shutdown</span><span style="color: #000000">();</span>
+<span style="color: #000000">})();</span>
+</code></pre>
+				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
+					<h2>API Reference</h2>
+				</a>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/core.mysql/index.html">here</a>.</p>
+				<p>It can also be generated by issuing the following commands:</p>
+				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
+<span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
+<span style="color: #000000">yarn install</span>
+<span style="color: #000000">yarn workspace @thermopylae/core.mysql run doc</span>
 </code></pre>
 				<a href="#author" id="author" style="color: inherit; text-decoration: none;">
 					<h2>Author</h2>
@@ -104,13 +187,14 @@
 				<p>👤 <strong>Rusu Marin</strong></p>
 				<ul>
 					<li>GitHub: <a href="https://github.com/marinrusu1997">@marinrusu1997</a></li>
-					<li>LinkedIn: <a href="https://linkedin.com/in/marinrusu1997">@marinrusu1997</a></li>
+					<li>Email: <a href="mailto:dimarusu2000@gmail.com">dimarusu2000@gmail.com</a></li>
+					<li>LinkedIn: <a href="https://www.linkedin.com/in/rusu-marin-1638b0156/">@marinrusu1997</a></li>
 				</ul>
 				<a href="#📝-license" id="📝-license" style="color: inherit; text-decoration: none;">
 					<h2>📝 License</h2>
 				</a>
-				<p>Copyright © 2020 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
-				This project is <a href="http:/localhost:8080/license">ISC</a> licensed.</p>
+				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
+				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
 			</div>
 			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.mysql&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.mysql&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.mysql&quot;}],&quot;outline&quot;:[{&quot;Client&quot;:&quot;client&quot;,&quot;ConnectionsManager&quot;:&quot;connections_interface&quot;,&quot;PoolClusterConnectionsManager&quot;:&quot;connections_cluster&quot;,&quot;Logging&quot;:&quot;logger&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Utils&quot;:&quot;utils&quot;}]}-->
 		</div>

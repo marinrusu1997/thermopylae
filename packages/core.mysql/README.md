@@ -20,10 +20,83 @@ npm install @thermopylae/core.mysql
 
 ## Description
 This package contains client for MySQL Server.
-It uses [mysql2](https://www.npmjs.com/package/mysql2) npm package as underlying implementation.
-
+It uses [mysql2](https://www.npmjs.com/package/mysql2) npm package as underlying implementation. <br/>
+[MySQLClient][mysql-client-link] allows you to establish pooled connections or pool cluster connections.
+Write & Read pools are abstracted regardless of pooled or pool cluster connections.
 
 ## Usage
+Package exports a singleton of [MySQLClient][mysql-client-link] class, called *MySqlClientInstance*, which needs to be configured before being used.
+After that you can create connections and perform queries. <br/>
+Let's take a look at the following example which demonstrates how the package can be used.
+```typescript
+import {
+    MySqlClientInstance,
+    QueryType,
+    DebuggableEventType,
+    ResultSetHeader,
+    RowDataPacket,
+    initLogger as initCoreMysqlLogger 
+} from '@thermopylae/core.mysql';
+import { LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+
+(async function main() {
+    /* Firstly init logging system */
+    LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF);
+    LoggerManagerInstance.console.createTransport({ level: 'info' });
+    initCoreMysqlLogger();
+    
+    /* Configure MySQL */
+    MySqlClientInstance.init({
+        pool: {
+            host: '127.0.0.1',
+            port: 3306,
+            user: 'your-user',
+            password: 'your-password',
+            database: 'your-database'
+        },
+        /*
+            // alternative to `pool` is `poolCluster` option
+            poolCluster: {
+                nodes: {
+                    MASTER: { host: '127.0.0.1', port: 3306 },
+                    SLAVE: { host: '127.0.0.1', port: 3307 }
+                }
+            }
+         */
+        sessionVariablesQueries: ["SET @id = 'A';"],
+        attachDebugListeners: new Set<DebuggableEventType>(['connection', 'enqueue'])
+    });
+    
+    /* Perform queries  */
+    let accountId: string;
+    let connection = await MySqlClientInstance.getConnection(QueryType.WRITE);
+    
+    try {
+        const [results] = await connection.execute<ResultSetHeader>(
+            `INSERT INTO Account (username, passwordHash, email) VALUES (?, ?, ${MySqlClientInstance.escape('email@email.com')});`,
+            ['username', 'hash']
+        );
+
+        accountId = String(results.insertId);
+    } finally {
+        connection.release(); // VERY IMPORTANT! Connection needs to be released
+    }
+
+    connection = await MySqlClientInstance.getConnection(QueryType.READ);
+    try {
+        const [results] = await connection.query<RowDataPacket[]>(`SELECT * FROM Account WHERE id=${accountId};`);
+
+        if (results.length === 1) {
+            console.log(`Account found: ${JSON.stringify(results[0])}`);
+        }
+    } finally {
+        connection.release(); // VERY IMPORTANT! Connection needs to be released
+    }
+    
+    /* Shutdown */
+    await MySqlClientInstance.shutdown();
+})();
+```
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -48,3 +121,4 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/core.mysql/index.html
+[mysql-client-link]: https://marinrusu1997.github.io/thermopylae/core.mysql/classes/client.mysqlclient.html
