@@ -19,9 +19,103 @@ npm install @thermopylae/lib.pool
 ```
 
 ## Description
-This package contains a set of pools for resource management.
+This package contains a set of pools for resource management:
+* [Array Object Pool][array-pool-module-link] - a pool which manages object resources.
+    Internal implementation uses a single array to keep used and free objects.
+    All operations are constant, while memory footprint is low.
+* [DLL Object Pool][dll-pool-module-link] - a pool which manages object resources.
+    Internal implementation uses two doubly linked lists to keep used and free objects.
+    All operations are constant, while memory footprint is higher than the one of [Array Object Pool][array-pool-module-link].
+
+The 'go-to' option is [Array Object Pool][array-pool-module-link]. 
 
 ## Usage
+**ArrayObjectPool**:
+```typescript
+import { ArrayObjectPool } from '@thermopylae/lib.pool';
+
+/* Create a static pool */
+const pool = new ArrayObjectPool({
+    // if you ommit capacity, pool will grow as you use it
+    capacity: 1,
+    initializer(cacheEntry, args) {
+        cacheEntry['key'] = args[0];
+        cacheEntry['value'] = args[1];
+        
+        return cacheEntry;
+    },
+    deInitializer(cacheEntry) {
+        // GC can collect the values now
+        cacheEntry['key'] = undefined;
+        cacheEntry['value'] = undefined;
+        
+        return cacheEntry;
+    } 
+});
+
+/* Acquire resource */
+const resourceHandle = pool.acquire('key1', 'value1');
+console.log(resourceHandle.value); // { key: 'key1', value: 'value1' }
+
+try {
+    pool.acquire('key1', 'value1');
+} catch (e) {
+    console.error(e);
+}
+
+/* Release resource */
+pool.release(resourceHandle);
+
+/* Release all resources */
+pool.acquire('key1', 'value1');
+pool.releaseAll(); // after releasing all resources, you can acquire them again
+
+/* Clear pool */
+// it's RECOMMENDED to release resources before calling clear, 
+// as this method won't call object destructors
+pool.clear(); // after this operation pool should no longer be used
+```
+
+**DLLObjectPool**:
+```typescript
+import { DLLObjectPool } from '@thermopylae/lib.pool';
+
+/* Create pool */
+const pool = new DLLObjectPool({
+    capacity: 1,
+    constructor(key: string, value: string) {
+        return { key, value };
+    },
+    initializer(cacheEntry: object, key: string, value: string) {
+        cacheEntry.key = key;
+        cacheEntry.value = value;
+        
+        return cacheEntry;
+    },
+    destructor(cacheEntry: object) {
+        cacheEntry.key = undefined;
+        cacheEntry.value = undefined;
+
+        return cacheEntry;
+    }
+});
+
+/* Use pool */
+let resourceHandle = pool.acquire('key1', 'value1');
+console.log(resourceHandle.value); // { key: 'key1', value: 'value1' }
+
+pool.releaseHandle(resourceHandle);
+console.log(resourceHandle.value); // { key: undefined, value: undefined }
+
+const cacheEntry = { key: 'key', value: 'value' };
+resourceHandle = pool.preempt(cacheEntry);
+console.log(resourceHandle.value); // { key: 'key', value: 'value' }
+
+pool.releaseObject(cacheEntry); // works slower, has O(n) complexity
+
+pool.acquire('key', 'value');
+pool.releaseAll(); // after release all, objects can be acquired again
+```
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -46,4 +140,5 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/lib.pool/index.html
-
+[array-pool-module-link]: https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_array_object_pool.html
+[dll-pool-module-link]: https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_dll_object_pool.html

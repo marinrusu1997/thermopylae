@@ -252,8 +252,12 @@
 								<div class="lead">
 									<p>Clears the object resources pool. <br/>
 										After this operation, pool should no longer be used. <br/>
-									<strong>This operation has O(1) complexity.</strong></p>
+									<strong>This operation has O(1) complexity.</strong> <br/></p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<blockquote>
+									<p><strong>IMPORTANT! This method won&#39;t call destructors of the resources, it will only reset internal storage of resources</strong></p>
+								</blockquote>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>

@@ -93,10 +93,102 @@
 				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
 					<h2>Description</h2>
 				</a>
-				<p>This package contains a set of pools for resource management.</p>
+				<p>This package contains a set of pools for resource management:</p>
+				<ul>
+					<li><a href="https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_array_object_pool.html">Array Object Pool</a> - a pool which manages object resources.
+						Internal implementation uses a single array to keep used and free objects.
+					All operations are constant, while memory footprint is low.</li>
+					<li><a href="https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_dll_object_pool.html">DLL Object Pool</a> - a pool which manages object resources.
+						Internal implementation uses two doubly linked lists to keep used and free objects.
+					All operations are constant, while memory footprint is higher than the one of <a href="https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_array_object_pool.html">Array Object Pool</a>.</li>
+				</ul>
+				<p>The &#39;go-to&#39; option is <a href="https://marinrusu1997.github.io/thermopylae/lib.pool/modules/pools_array_object_pool.html">Array Object Pool</a>. </p>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
 				</a>
+				<p><strong>ArrayObjectPool</strong>:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ArrayObjectPool</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.pool&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">/* Create a static pool */</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">pool</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ArrayObjectPool</span><span style="color: #000000">({</span>
+<span style="color: #000000">    </span><span style="color: #008000">// if you ommit capacity, pool will grow as you use it</span>
+<span style="color: #000000">    </span><span style="color: #001080">capacity:</span><span style="color: #000000"> </span><span style="color: #098658">1</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initializer</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">, </span><span style="color: #001080">args</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;key&#039;</span><span style="color: #000000">] = </span><span style="color: #001080">args</span><span style="color: #000000">[</span><span style="color: #098658">0</span><span style="color: #000000">];</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;value&#039;</span><span style="color: #000000">] = </span><span style="color: #001080">args</span><span style="color: #000000">[</span><span style="color: #098658">1</span><span style="color: #000000">];</span>
+<span style="color: #000000">        </span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">;</span>
+<span style="color: #000000">    },</span>
+<span style="color: #000000">    </span><span style="color: #795E26">deInitializer</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #008000">// GC can collect the values now</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;key&#039;</span><span style="color: #000000">] = </span><span style="color: #0000FF">undefined</span><span style="color: #000000">;</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">[</span><span style="color: #A31515">&#039;value&#039;</span><span style="color: #000000">] = </span><span style="color: #0000FF">undefined</span><span style="color: #000000">;</span>
+<span style="color: #000000">        </span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">;</span>
+<span style="color: #000000">    } </span>
+<span style="color: #000000">});</span>
+
+<span style="color: #008000">/* Acquire resource */</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">resourceHandle</span><span style="color: #000000"> = </span><span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">acquire</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;key1&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;value1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000">); </span><span style="color: #008000">// { key: &#039;key1&#039;, value: &#039;value1&#039; }</span>
+
+<span style="color: #AF00DB">try</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">acquire</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;key1&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;value1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">} </span><span style="color: #AF00DB">catch</span><span style="color: #000000"> (</span><span style="color: #001080">e</span><span style="color: #000000">) {</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">error</span><span style="color: #000000">(</span><span style="color: #001080">e</span><span style="color: #000000">);</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #008000">/* Release resource */</span>
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">release</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">);</span>
+
+<span style="color: #008000">/* Release all resources */</span>
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">acquire</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;key1&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;value1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">releaseAll</span><span style="color: #000000">(); </span><span style="color: #008000">// after releasing all resources, you can acquire them again</span>
+
+<span style="color: #008000">/* Clear pool */</span>
+<span style="color: #008000">// it&#039;s RECOMMENDED to release resources before calling clear, </span>
+<span style="color: #008000">// as this method won&#039;t call object destructors</span>
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">clear</span><span style="color: #000000">(); </span><span style="color: #008000">// after this operation pool should no longer be used</span>
+</code></pre>
+				<p><strong>DLLObjectPool</strong>:</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DLLObjectPool</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.pool&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">/* Create pool */</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">pool</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">DLLObjectPool</span><span style="color: #000000">({</span>
+<span style="color: #000000">    </span><span style="color: #001080">capacity:</span><span style="color: #000000"> </span><span style="color: #098658">1</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #795E26">constructor</span><span style="color: #000000">(</span><span style="color: #001080">key</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">value</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> { </span><span style="color: #001080">key</span><span style="color: #000000">, </span><span style="color: #001080">value</span><span style="color: #000000"> };</span>
+<span style="color: #000000">    },</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initializer</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">: </span><span style="color: #267F99">object</span><span style="color: #000000">, </span><span style="color: #001080">key</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">value</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">.</span><span style="color: #001080">key</span><span style="color: #000000"> = </span><span style="color: #001080">key</span><span style="color: #000000">;</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000"> = </span><span style="color: #001080">value</span><span style="color: #000000">;</span>
+<span style="color: #000000">        </span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">;</span>
+<span style="color: #000000">    },</span>
+<span style="color: #000000">    </span><span style="color: #795E26">destructor</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">: </span><span style="color: #267F99">object</span><span style="color: #000000">) {</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">.</span><span style="color: #001080">key</span><span style="color: #000000"> = </span><span style="color: #0000FF">undefined</span><span style="color: #000000">;</span>
+<span style="color: #000000">        </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000"> = </span><span style="color: #0000FF">undefined</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">cacheEntry</span><span style="color: #000000">;</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">});</span>
+
+<span style="color: #008000">/* Use pool */</span>
+<span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">resourceHandle</span><span style="color: #000000"> = </span><span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">acquire</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;key1&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;value1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000">); </span><span style="color: #008000">// { key: &#039;key1&#039;, value: &#039;value1&#039; }</span>
+
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">releaseHandle</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">);</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000">); </span><span style="color: #008000">// { key: undefined, value: undefined }</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">cacheEntry</span><span style="color: #000000"> = { </span><span style="color: #001080">key:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;key&#039;</span><span style="color: #000000">, </span><span style="color: #001080">value:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;value&#039;</span><span style="color: #000000"> };</span>
+<span style="color: #001080">resourceHandle</span><span style="color: #000000"> = </span><span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">preempt</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">);</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">resourceHandle</span><span style="color: #000000">.</span><span style="color: #001080">value</span><span style="color: #000000">); </span><span style="color: #008000">// { key: &#039;key&#039;, value: &#039;value&#039; }</span>
+
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">releaseObject</span><span style="color: #000000">(</span><span style="color: #001080">cacheEntry</span><span style="color: #000000">); </span><span style="color: #008000">// works slower, has O(n) complexity</span>
+
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">acquire</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;key&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;value&#039;</span><span style="color: #000000">);</span>
+<span style="color: #001080">pool</span><span style="color: #000000">.</span><span style="color: #795E26">releaseAll</span><span style="color: #000000">(); </span><span style="color: #008000">// after release all, objects can be acquired again</span>
+</code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>

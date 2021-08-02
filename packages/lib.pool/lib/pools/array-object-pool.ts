@@ -148,7 +148,9 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	/**
 	 * Clears the object resources pool. <br/>
 	 * After this operation, pool should no longer be used. <br/>
-	 * **This operation has O(1) complexity.**
+	 * **This operation has O(1) complexity.** <br/>
+	 *
+	 * > **IMPORTANT! This method won't call destructors of the resources, it will only reset internal storage of resources**
 	 */
 	public clear(): void {
 		this.resources.length = 0;

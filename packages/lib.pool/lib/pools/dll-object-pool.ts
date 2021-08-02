@@ -1,5 +1,5 @@
 import DLL, { create, Node as DLLObjectPoolHandle } from 'yallist';
-import { Undefinable } from '@thermopylae/core.declarations';
+import { ObjMap, Undefinable } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../error';
 
 /**
@@ -66,7 +66,7 @@ interface DLLObjectPoolOptions<Value> {
  * Class which manages a pool of object resources. <br/>
  * Internal implementation is based on 2 Doubly Linked Lists, one for free resources, and another for used ones.
  */
-class DLLObjectPool<Value> {
+class DLLObjectPool<Value = ObjMap> {
 	private readonly config: DLLObjectPoolOptions<Value>;
 
 	private readonly free: DLL<Undefinable<Value>>;
@@ -84,7 +84,7 @@ class DLLObjectPool<Value> {
 	/**
 	 * Preempts an object resource which initially wasn't managed by this {@link DLLObjectPool}. <br/>
 	 * After preemption, object will be put into used resources list. <br/>
-	 * This operation has O(1) complexity.
+	 * **This operation has O(1) complexity.**
 	 *
 	 * @param object	Object resource.
 	 *
@@ -97,7 +97,7 @@ class DLLObjectPool<Value> {
 
 	/**
 	 * Acquire a new object resource from pool. <br/>
-	 * This operation has O(1) complexity.
+	 * **This operation has O(1) complexity.**
 	 *
 	 * @param args			Arguments forwarded to object:
 	 * 							- constructor (when resource is acquired for the first time)
@@ -125,7 +125,7 @@ class DLLObjectPool<Value> {
 
 	/**
 	 * Release handle to object resource. <br/>
-	 * This operation has O(1) complexity.
+	 * **This operation has O(1) complexity.**
 	 *
 	 * @param handle	Handle to object resource.
 	 */
