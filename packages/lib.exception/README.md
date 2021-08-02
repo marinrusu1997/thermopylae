@@ -57,4 +57,4 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/lib.exception/index.html
-[exception-link]: https://marinrusu1997.github.io/thermopylae/lib.sms/classes/client.smsclient.html
+[exception-link]: https://marinrusu1997.github.io/thermopylae/lib.exception/classes/exception.html
