@@ -6,14 +6,13 @@
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "license": "ISC",
+    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.exception",
     "main": "dist/index.js",
-    "types": "dist/index.d.ts",
     "exports": "./dist/index.js",
+    "types": "dist/index.d.ts",
     "files": [
         "dist/**/*"
     ],
-    "type": "commonjs",
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
@@ -25,9 +24,15 @@
         "debug": "gulp debug",
         "clean": "gulp clean",
         "purge": "gulp purge",
-        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
-        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme"
+        "prepublishOnly": "npm run lint && npm run clean && npm run build",
+        "unpublish": "npm unpublish --force $npm_package_name"
+    },
+    "devDependencies": {
+        "@thermopylae/dev.environment": "0"
+    },
+    "peerDependencies": {
+        "mocha": "8",
+        "chai": "4"
     },
     "lint-staged": {
         "*.ts": [
@@ -37,11 +42,6 @@
     "engines": {
         "node": ">= 16"
     },
-    "devDependencies": {
-        "@thermopylae/dev.environment": "0"
-    },
-    "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
-    }
+    "license": "MIT",
+    "type": "commonjs"
 }
