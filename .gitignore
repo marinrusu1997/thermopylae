@@ -5,6 +5,3 @@
 # Dependencies
 node_modules/
 yarn.lock
-
-# Docs
-docs/_build/

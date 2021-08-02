@@ -1,15 +1,15 @@
 import { Exception } from '@thermopylae/lib.exception';
-import { Library } from '@thermopylae/core.declarations';
+import { ClientModule } from '@thermopylae/core.declarations';
 
 const enum ErrorCodes {
 	SMS_DELIVERY_FAILED = 'SMS_DELIVERY_FAILED'
 }
 
 /**
- * @internal
+ * @private
  */
 function createException(code: string, message: string, data?: any): Exception {
-	return new Exception(Library.SMS_CLIENT, code, message, data);
+	return new Exception(ClientModule.SMS, code, message, data);
 }
 
 export { createException, ErrorCodes };
