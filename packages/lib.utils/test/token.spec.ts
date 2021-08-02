@@ -66,15 +66,15 @@ describe('token spec', () => {
 		});
 
 		it('hashes numbers', () => {
-			expect(fastUnSecureHash((1 as unknown) as ObjMap)).to.be.eq(49);
+			expect(fastUnSecureHash(1 as unknown as ObjMap)).to.be.eq(49);
 		});
 
 		it('hashes null', () => {
-			expect(fastUnSecureHash((null as unknown) as ObjMap)).to.be.eq(3392903);
+			expect(fastUnSecureHash(null as unknown as ObjMap)).to.be.eq(3392903);
 		});
 
 		it('hashes boolean', () => {
-			expect(fastUnSecureHash((true as unknown) as ObjMap)).to.be.eq(3569038);
+			expect(fastUnSecureHash(true as unknown as ObjMap)).to.be.eq(3569038);
 		});
 	});
 });

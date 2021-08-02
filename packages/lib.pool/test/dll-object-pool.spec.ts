@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 import { DLLObjectPool, ObjectConstructor, ObjectDestructor, ObjectInitializer, DLLObjectPoolStats, DLLObjectPoolHandle } from '../lib/pools/dll-object-pool';
-import { ErrorCodes } from '../lib/exception';
+import { ErrorCodes } from '../lib';
 
 const { expect } = chai;
 

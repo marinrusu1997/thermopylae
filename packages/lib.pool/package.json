@@ -5,7 +5,8 @@
         "library"
     ],
     "version": "0.0.1",
-    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.pool",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
@@ -15,16 +16,15 @@
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
+        "doc": "gulp doc",
         "test": "gulp test",
+        "report": "gulp report",
         "coverage": "gulp coverage",
         "coverage:show": "gulp coverageShow",
         "debug": "gulp debug",
         "clean": "gulp clean",
         "purge": "gulp purge",
-        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
-        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
-        "precommit": "npm run lint",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
@@ -50,6 +50,6 @@
     "engines": {
         "node": ">= 16"
     },
-    "license": "ISC",
+    "license": "MIT",
     "type": "commonjs"
 }

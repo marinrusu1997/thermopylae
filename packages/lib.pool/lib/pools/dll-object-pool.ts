@@ -1,20 +1,40 @@
 import DLL, { create, Node as DLLObjectPoolHandle } from 'yallist';
 import { Undefinable } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../exception';
+import { createException, ErrorCodes } from '../error';
 
+/**
+ * Function which constructs the object when given a set of arguments. <br/>
+ * After object has been created, it needs to be returned back.
+ */
 type ObjectConstructor<Value> = (...args: Array<any>) => Value;
+
+/**
+ * Function which initializes object with new values (i.e. overwrites the object). <br/>
+ * Function can do anything he want with object, such as removing properties, adding new ones, overwrite with new values etc. <br/>
+ * After object has been initialized, it needs to be returned back.
+ */
 type ObjectInitializer<Value> = (resource: Undefinable<Value>, ...args: Array<any>) => Value;
+
+/**
+ * Function called to destruct object. <br/>
+ * Usually such a function will nullify object values, allowing GC to collect them.
+ * It might also free external hold resources, such as file descriptors, tcp connections etc. <br/>
+ * After object has been destructed, it needs to be returned back.
+ */
 type ObjectDestructor<Value> = (resource: Undefinable<Value>) => Undefinable<Value>;
 
+/**
+ * Collection of pool statistics.
+ */
 interface DLLObjectPoolStats {
 	/**
 	 * Number of available object resources.
 	 */
-	free: number;
+	readonly free: number;
 	/**
 	 * Number of used object resources.
 	 */
-	used: number;
+	readonly used: number;
 }
 
 interface DLLObjectPoolOptions<Value> {
@@ -23,25 +43,29 @@ interface DLLObjectPoolOptions<Value> {
 	 * When number of used objects goes beyond *capacity*, and exception will be thrown,
 	 * preventing acquiring new resources.
 	 */
-	capacity: number;
+	readonly capacity: number;
 	/**
 	 * Function called when an object resource is acquired for the first time.
 	 */
-	constructor: ObjectConstructor<Value>;
+	readonly constructor: ObjectConstructor<Value>;
 	/**
 	 * Function called when an object resource is free and needs to be reused (i.e. acquired again).
 	 */
-	initializer: ObjectInitializer<Value>;
+	readonly initializer: ObjectInitializer<Value>;
 	/**
 	 * Function called when an object resource is released.
 	 */
-	destructor: ObjectDestructor<Value>;
+	readonly destructor: ObjectDestructor<Value>;
 	/**
-	 * Array of pre-allocated object resources used by {@link DLLObjectPool} from it's creation.
+	 * Array of pre-allocated object resources used by {@link DLLObjectPool} at it's creation.
 	 */
 	initialFreeShapes?: Array<Undefinable<Value>>;
 }
 
+/**
+ * Class which manages a pool of object resources. <br/>
+ * Internal implementation is based on 2 Doubly Linked Lists, one for free resources, and another for used ones.
+ */
 class DLLObjectPool<Value> {
 	private readonly config: DLLObjectPoolOptions<Value>;
 
@@ -58,29 +82,32 @@ class DLLObjectPool<Value> {
 	}
 
 	/**
-	 * Preempts an object resource which initially wasn't managed by this {@link DLLObjectPool}.
+	 * Preempts an object resource which initially wasn't managed by this {@link DLLObjectPool}. <br/>
+	 * After preemption, object will be put into used resources list. <br/>
+	 * This operation has O(1) complexity.
 	 *
 	 * @param object	Object resource.
 	 *
-	 * @returns			Handle to object resource.
+	 * @returns			Handle to object resource that was preempted.
 	 */
-	public preempt(object: Value): DLLObjectPoolHandle<Value> {
+	public preempt(object: Value): Readonly<DLLObjectPoolHandle<Value>> {
 		this.used.push(object);
 		return this.used.tail as DLLObjectPoolHandle<Value>; // there is a value
 	}
 
 	/**
-	 * Acquire a new object resource from pool.
+	 * Acquire a new object resource from pool. <br/>
+	 * This operation has O(1) complexity.
 	 *
-	 * @param args	Arguments forwarded to object:
-	 * 					- constructor (when resource is acquired for the first time)
-	 * 					- initialized (when resource is reused)
+	 * @param args			Arguments forwarded to object:
+	 * 							- constructor (when resource is acquired for the first time)
+	 * 							- initializer (when resource is reused)
 	 *
 	 * @throws {Exception}	When number of used resources goes beyond {@link DLLObjectPoolOptions.capacity}.
 	 *
-	 * @returns		Internal handle to object resource.
+	 * @returns				Handle to object resource.
 	 */
-	public acquire(...args: Array<any>): DLLObjectPoolHandle<Value> {
+	public acquire(...args: Array<any>): Readonly<DLLObjectPoolHandle<Value>> {
 		if (this.free.head != null) {
 			this.free.head.value = this.config.initializer(this.free.head.value, ...args);
 			this.used.pushNode(this.free.head);
@@ -97,7 +124,8 @@ class DLLObjectPool<Value> {
 	}
 
 	/**
-	 * Release handle to object resource.
+	 * Release handle to object resource. <br/>
+	 * This operation has O(1) complexity.
 	 *
 	 * @param handle	Handle to object resource.
 	 */
@@ -108,7 +136,7 @@ class DLLObjectPool<Value> {
 
 	/**
 	 * Release object resource <br/>
-	 * This method has O(n) complexity, because we need to find according handle
+	 * **This method has O(n) complexity**, because we need to find according handle
 	 * for that object resource before performing release.
 	 *
 	 * @param object	Object resource.
@@ -126,7 +154,8 @@ class DLLObjectPool<Value> {
 
 	/**
 	 * Release all object resources. <br/>
-	 * This method has O(n) complexity, because it needs to iterate over all used resources to free them.
+	 * **This method has O(n) complexity**, because it needs to iterate over all used resources
+	 * to free them (i.e. call their destructors).
 	 */
 	public releaseAll(): void {
 		while (this.used.head != null) {

@@ -1,49 +1,60 @@
-import { createException, ErrorCodes } from '../exception';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { createException, ErrorCodes } from '../error';
 
 /**
- * Function called in order to initialize *resource* with *values* provided on acquisition.
+ * Function called in order to initialize *resource* with *values* provided on it's acquisition. <br/>
+ * > **Notice** that when resource is firstly created, you will receive an empty object which needs to be initialized.
  */
 type ObjectInitializer<Value> = (resource: Value, values: Array<any>) => void;
+
 /**
  * Function called in order to de-initialize *resource* when it is released.
  */
 type ObjectDeInitializer<Value> = (resource: Value) => void;
 
+/**
+ * Internal structure managed by {@link ArrayObjectPool} which represents the object resource.
+ */
 interface ObjectResource<Value> {
 	/**
 	 * Position of the resource in the pool. <br/>
-	 * Managed by {@link ArrayObjectPool}.
+	 * Managed by {@link ArrayObjectPool}, do not change it on your own.
 	 */
 	index: number;
 	/**
 	 * Value of the resource.
 	 */
-	value: Value;
+	readonly value: Value;
 }
 
 interface ArrayObjectPoolOptions<Value> {
 	/**
 	 * Capacity of the poll. <br/>
+	 * When *capacity* is given, pool will behave as a static one, namely when it's size will
+	 * exceed it's capacity, acquire operation will fail with an exception. <br/>
 	 * When *capacity* is not given, pool resources will grow dynamically with the clients needs,
 	 * unless there is no available memory.
 	 */
-	capacity?: number;
+	readonly capacity?: number;
 	/**
 	 * Function called in order to initialize *resource*.
 	 */
-	initializer: ObjectInitializer<Value>;
+	readonly initializer: ObjectInitializer<Value>;
 	/**
 	 * Function called when an object resource is released.
 	 */
-	deInitializer: ObjectDeInitializer<Value>;
+	readonly deInitializer: ObjectDeInitializer<Value>;
 }
 
 /**
- * Pool of object resources. The internal implementation keeps resources into {@link Array}.
+ * Pool of object resources. <br/>
+ * The internal implementation keeps resources into a single {@link Array}. <br/>
+ * This implementation has advantage over {@link DLLObjectPool}, as it consumes less memory,
+ * while keeping operations complexity constant.
  *
  * @template T	Type of the object.
  */
-class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
+class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	private readonly options: ArrayObjectPoolOptions<T>;
 
 	private readonly resources: Array<ObjectResource<T>>;
@@ -82,15 +93,16 @@ class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
 	}
 
 	/**
-	 * Acquire a new object resource from pool.
+	 * Acquire a new object resource from pool. <br/>
+	 * **This operation has O(1) complexity.**
 	 *
-	 * @param args	Arguments forwarded to object initializer.
+	 * @param args			Arguments forwarded to object initializer.
 	 *
 	 * @throws {Exception}	When number of used resources goes beyond {@link ArrayObjectPoolOptions.capacity}.
 	 *
-	 * @returns		Object resource.
+	 * @returns				Object resource.
 	 */
-	public acquire(...args: Array<any>): ObjectResource<T> {
+	public acquire(...args: Array<any>): Readonly<ObjectResource<T>> {
 		if (this.freeResourcesRegionBeginIndex === this.resources.length) {
 			if (this.options.capacity) {
 				throw createException(ErrorCodes.LIMIT_REACHED, `Limit of ${this.options.capacity} has been reached.`);
@@ -107,11 +119,12 @@ class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
 	}
 
 	/**
-	 * Release object resource.
+	 * Release object resource. <br/>
+	 * **This operation has O(1) complexity.**
 	 *
 	 * @param objectResource	Object resource.
 	 */
-	public release(objectResource: ObjectResource<T>): void {
+	public release(objectResource: Readonly<ObjectResource<T>>): void {
 		if (this.freeResourcesRegionBeginIndex - objectResource.index > 1) {
 			this.swap(objectResource.index, this.freeResourcesRegionBeginIndex - 1);
 		}
@@ -122,7 +135,8 @@ class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
 
 	/**
 	 * Release all object resources. <br/>
-	 * Notice that objects won't be de-allocated, only their destructors will be called.
+	 * Notice that objects won't be de-allocated, only their destructors will be called. <br/>
+	 * **This operation has O(n) complexity.**
 	 */
 	public releaseAll(): void {
 		for (let i = 0; i < this.freeResourcesRegionBeginIndex; i++) {
@@ -133,7 +147,8 @@ class ArrayObjectPool<T extends Record<any, any> = Record<string, any>> {
 
 	/**
 	 * Clears the object resources pool. <br/>
-	 * After this operation, pool should no longer be used.
+	 * After this operation, pool should no longer be used. <br/>
+	 * **This operation has O(1) complexity.**
 	 */
 	public clear(): void {
 		this.resources.length = 0;

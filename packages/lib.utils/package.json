@@ -4,7 +4,7 @@
     "keywords": [
         "library"
     ],
-    "version": "0.0.1",
+    "version": "0.0.1627901399",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.utils",
     "main": "dist/index.js",

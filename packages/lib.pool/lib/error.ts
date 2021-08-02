@@ -6,6 +6,9 @@ const enum ErrorCodes {
 	INVALID_PARAM = 'INVALID_PARAM'
 }
 
+/**
+ * @private
+ */
 function createException(code: string, message: string, cause?: any): Exception {
 	return new Exception(Library.POOL, code, message, cause);
 }
