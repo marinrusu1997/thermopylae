@@ -118,7 +118,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 
 		if (timeout && LabeledConditionalVariableManager.assertTimeout(label, timeout)) {
 			const releaseWithRejection = (): void => {
-				const timeoutMessage = `Timeout of ${timeout} ms for label ${label} has been exceeded.`;
+				const timeoutMessage = `Timeout of ${timeout} ms for label '${label}' has been exceeded.`;
 
 				let expiredLock: LabeledMutexEntry<Optional<Result>> | undefined;
 				if ((expiredLock = this.locks.get(label))) {
@@ -162,7 +162,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 			}
 			return;
 		}
-		throw createException(ErrorCodes.LOCK_NOT_FOUND, `Can't unlock. No lock found for label ${label}.`);
+		throw createException(ErrorCodes.LOCK_NOT_FOUND, `Can't unlock. No lock found for label '${label}'.`);
 	}
 
 	/**
@@ -176,7 +176,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 
 		for (const label of this.locks.keys()) {
 			if (needsRelease(label)) {
-				this.notifyAll(label, createException(ErrorCodes.FORCED_RELEASE, `Label ${label} has been released forcibly.`));
+				this.notifyAll(label, createException(ErrorCodes.FORCED_RELEASE, `Label '${label}' has been released forcibly.`));
 			}
 		}
 	}
@@ -197,7 +197,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 	private static assertTimeout<Label>(label: Label, timeout: Milliseconds): never | true {
 		const minTimeout = 0;
 		if (timeout <= minTimeout) {
-			throw createException(ErrorCodes.INVALID_ARGUMENT, `Timeout can't be lower or equal to ${minTimeout} ms. Given: ${timeout}. Label: ${label}.`);
+			throw createException(ErrorCodes.INVALID_ARGUMENT, `Timeout can't be lower or equal to ${minTimeout} ms. Given: ${timeout}. Label: '${label}'.`);
 		}
 		return true;
 	}
@@ -208,7 +208,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 			case LockedOperationType.WRITE:
 				return;
 			default:
-				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation ${operation}.`);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation '${operation}'.`);
 		}
 	}
 
@@ -225,7 +225,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 			case LockedOperationType.WRITE:
 				throw createException(
 					ErrorCodes.UNABLE_TO_LOCK,
-					`Lock acquired for label ${label} on ${LabeledConditionalVariableManager.formatLockedOperation(
+					`Lock acquired for label '${label}' on ${LabeledConditionalVariableManager.formatLockedOperation(
 						acquired
 					)} operation, which is an exclusive one. Given: ${LabeledConditionalVariableManager.formatLockedOperation(requested)}.`
 				);
@@ -234,7 +234,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 				if (requested !== LockedOperationType.READ) {
 					throw createException(
 						ErrorCodes.UNABLE_TO_LOCK,
-						`Lock acquired for label ${label} on ${LabeledConditionalVariableManager.formatLockedOperation(acquired)} operation. ` +
+						`Lock acquired for label '${label}' on ${LabeledConditionalVariableManager.formatLockedOperation(acquired)} operation. ` +
 							`Only ${LabeledConditionalVariableManager.formatLockedOperation(LockedOperationType.READ)} operation can be requested. ` +
 							`Given: ${LabeledConditionalVariableManager.formatLockedOperation(requested)}.`
 					);
@@ -242,7 +242,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 				break;
 
 			default:
-				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation ${acquired}.`);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation '${acquired}'.`);
 		}
 	}
 
@@ -260,7 +260,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 			case LockedOperationType.WRITE:
 				return 'WRITE';
 			default:
-				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation ${operation}.`);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Requested an unknown operation '${operation}'.`);
 		}
 	}
 
@@ -278,7 +278,7 @@ class LabeledConditionalVariableManager<Label = string, Result = any> {
 			case AwaiterRole.PRODUCER:
 				return 'PRODUCER';
 			default:
-				throw createException(ErrorCodes.INVALID_ARGUMENT, `Awaiter role is not valid. Given ${role}.`);
+				throw createException(ErrorCodes.INVALID_ARGUMENT, `Awaiter role is not valid. Given: ${role}.`);
 		}
 	}
 }

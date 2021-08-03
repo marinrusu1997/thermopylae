@@ -37,69 +37,62 @@ import {
 class Cache {
     // acts as Read-Write Lock, i.e. shared for Reads, exclusive for Writes
     private readonly conditionalVariable: LabeledConditionalVariableManager<string, string>;
+
     private readonly entries: Map<string, string>; // assuming they will expire somehow
+
     private readonly storageReader: AsyncFunction<string, string>;
+
     private readonly storageWriter: AsyncFunction<string, void>;
 
-    public constructor(
-        storageReader: AsyncFunction<string, string>,
-        storageWriter: AsyncFunction<string, void>
-    ) {
+    public constructor(storageReader: AsyncFunction<string, string>, storageWriter: AsyncFunction<string, void>) {
         this.conditionalVariable = new LabeledConditionalVariableManager();
         this.entries = new Map<string, string>();
         this.storageReader = storageReader;
         this.storageWriter = storageWriter;
     }
-    
-    public async get(key: string): string | undefined {
+
+    public async get(key: string): Promise<string | undefined> {
         // acquire read-write lock
         // in case it is acquired already by `set` operation, wait will throw
         const lock = await this.conditionalVariable.wait(key, LockedOperationType.READ);
-        
+
         if (lock.role === AwaiterRole.CONSUMER) {
             // lock has been acquired already by someone who initiated `get` operation for this key
-            // just return promise and wait untill PRODUCER will resolve/reject it
+            // just return promise and wait until PRODUCER will resolve/reject it
             return lock.promise;
         }
-        
-        let value = this.entries.get(key);
-        if (value === undefined) {
+
+        let valueOrError = this.entries.get(key);
+        if (valueOrError === undefined) {
             try {
-                value = await this.storageReader(key);
-                this.entries.set(key, value);
+                valueOrError = await this.storageReader(key);
+                this.entries.set(key, valueOrError);
             } catch (e) {
-                // we are the producer, so we need to notify ourself and other consumers about failure
-                // also the lock needs to be released, so that `set` operation can acquire it
-                this.conditionalVariable.notifyAll(key, e);
-                return lock.promise;       
+                valueOrError = e;
             }
         }
 
-        // we are the producer, so we need to notify ourself and other consumers with value of the key
+        // we are the PRODUCER, so we need to notify ourself and other consumers with value of the key or error that occurred
         // also the lock needs to be released, so that `set` operation can acquire it
-        this.conditionalVariable.notifyAll(key, value);
-        
+        this.conditionalVariable.notifyAll(key, valueOrError);
         return lock.promise;
     }
-    
-    public async set(key: string, value: string): void {
+
+    public async set(key: string, value: string): Promise<void> {
         // acquire exclusive lock
         // in case it is acquired already by `set` or `get` cache operations, wait will throw
         await this.conditionalVariable.wait(key, LockedOperationType.WRITE);
-        
-        // there is no need to check for producer consumer roles, 
+
+        // there is no need to check for producer consumer roles,
         // because WRITE lock is either acquired, or an error is thrown
-        
-        let err: Error | undefined = undefined;
+
         try {
             await this.storageWriter(key, value);
             this.entries.set(key, value);
-        } catch (e) {
-            err = e;
+        } finally {
+            // release exclusive lock, so it can be used by either `set` or `get` cache operations
+            this.conditionalVariable.notifyAll(key);
         }
-        
-        // release exclusive lock, so it can be used by either `set` or `get` cache operations
-        this.conditionalVariable.notifyAll(key, err);
     }
 }
 ```
