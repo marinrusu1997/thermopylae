@@ -1,13 +1,10 @@
 import { AsyncFunction } from '@thermopylae/core.declarations';
 import asyncPool from 'tiny-async-pool';
-import { ErrorCodes, createException } from '../exception';
+import { ErrorCodes, createException } from '../error';
 
-interface PromiseExecutorTask<Input, Output> {
-	readonly processor: AsyncFunction<Input, Output>;
-	readonly data: ReadonlyArray<Input>;
-	readonly concurrency: number;
-}
-
+/**
+ * Class which executes a task over a data set.
+ */
 class PromiseExecutor<Input, Output> {
 	public static readonly SEQUENTIAL = 0;
 
@@ -26,23 +23,25 @@ class PromiseExecutor<Input, Output> {
 	}
 
 	/**
-	 * Execute command with encapsulated promises.
+	 * Execute processor over data set.
+	 *
+	 * @returns		Processing results.
 	 */
 	public execute(): Promise<Array<Output>> {
-		return PromiseExecutor.run<Input, Output>({
-			processor: this.processor,
-			data: this.data,
-			concurrency: this.concurrency
-		});
+		return PromiseExecutor.run<Input, Output>(this.processor, this.data, this.concurrency);
 	}
 
 	/**
-	 * Creates a new Promise executor which encapsulates promises that needs to be run.
+	 * Creates a new {@link PromiseExecutor} which encapsulates task that needs to be run over data set. <br/>
 	 * Follows Command Design Pattern.
 	 *
-	 * @param processor     Processing function
-	 * @param data          Data Set
-	 * @param concurrency   Processing concurrency
+	 * @param processor     Processing function.
+	 * @param data          Data Set.
+	 * @param concurrency   Processing concurrency.
+	 * 						Can take the following values: <br/>
+	 * 							- 0 - data will be processed in sequential order <br/>
+	 * 						 	- [1, *Infinity*) - data will be processed in batches of `concurrency` size <br/>
+	 * 						 	- *Infinity* - all data will be processed in parallel
 	 */
 	public static command<I, O>(processor: AsyncFunction<I, O>, data: ReadonlyArray<I>, concurrency: number): PromiseExecutor<I, O> {
 		PromiseExecutor.assertConcurrency(concurrency);
@@ -50,13 +49,19 @@ class PromiseExecutor<Input, Output> {
 	}
 
 	/**
-	 * Runs {@link processor} over {@link data} with specified {@link concurrency}.
+	 * Runs `processor` over `data` with specified `concurrency`.
 	 *
-	 * @param processor     Processing function
-	 * @param data          Data Set
-	 * @param concurrency   Processing concurrency
+	 * @param processor     Processing function.
+	 * @param data          Data Set.
+	 * @param concurrency   Processing concurrency.
+	 * 						Can take the following values: <br/>
+	 * 							- 0 - data will be processed in sequential order <br/>
+	 * 						 	- [1, *Infinity*) - data will be processed in batches of `concurrency` size <br/>
+	 * 						 	- *Infinity* - all data will be processed in parallel
+	 *
+	 * @returns				Processing results.
 	 */
-	public static async run<I, O>({ processor, data, concurrency }: PromiseExecutorTask<I, O>): Promise<Array<O>> {
+	public static async run<I, O>(processor: AsyncFunction<I, O>, data: ReadonlyArray<I>, concurrency: number): Promise<Array<O>> {
 		let results: Array<O>;
 		switch (concurrency) {
 			case PromiseExecutor.SEQUENTIAL:
@@ -77,9 +82,9 @@ class PromiseExecutor<Input, Output> {
 	}
 
 	/**
-	 * Formats {@link concurrency} to human readable format.
+	 * Formats `concurrency` to human readable format.
 	 *
-	 * @param concurrency	Processing concurrency
+	 * @param concurrency	Processing concurrency.
 	 */
 	public static formatConcurrency(concurrency: number): string {
 		PromiseExecutor.assertConcurrency(concurrency);
@@ -94,9 +99,9 @@ class PromiseExecutor<Input, Output> {
 	}
 
 	/**
-	 * Checks whether {@link concurrency} has an accepted value.
+	 * Checks whether `concurrency` has an accepted value.
 	 *
-	 * @param concurrency   Processing concurrency
+	 * @param concurrency   Processing concurrency.
 	 */
 	private static assertConcurrency(concurrency: number): void {
 		const minLimit = 1;
@@ -110,4 +115,4 @@ class PromiseExecutor<Input, Output> {
 	}
 }
 
-export { PromiseExecutor, PromiseExecutorTask };
+export { PromiseExecutor };

@@ -1,12 +1,14 @@
 import { AsyncFunction, PromiseHolder } from '@thermopylae/core.declarations';
 
 /**
- * like Promise.all() but runs in series instead of parallel
- * will pass the value of the prev func as the input to the next one,
- * therefore a pipeline is simulated
+ * Like Promise.all() but runs in series instead of parallel.
+ * Will pass the value of the prev func as the input to the next one,
+ * therefore a pipeline is simulated.
  *
- * @param 	tasks 			array with functions that return a promise
- * @param	initialValue	initial value of the processing chain
+ * @param 	tasks 			Array with functions that return a promise.
+ * @param	initialValue	Initial value of the processing chain.
+ *
+ * @returns					Results of the tasks.
  */
 async function runInSeries<I = any, O = any>(tasks: Array<AsyncFunction<I, O>>, initialValue?: any): Promise<any[]> {
 	const returnValues = [];
@@ -21,6 +23,13 @@ async function runInSeries<I = any, O = any>(tasks: Array<AsyncFunction<I, O>>, 
 	return returnValues;
 }
 
+/**
+ * Convert value into promise.
+ *
+ * @param maybePromise	Value or promise.
+ *
+ * @returns				Converted promise.
+ */
 function toPromise<T>(maybePromise: Promise<T> | T): Promise<T> {
 	if (maybePromise && maybePromise instanceof Promise) {
 		// is promise
@@ -29,12 +38,31 @@ function toPromise<T>(maybePromise: Promise<T> | T): Promise<T> {
 	return Promise.resolve(maybePromise);
 }
 
-// @fixme this function should also support operation arguments
-// @fixme typeof returned function is the operation one
+/**
+ * Synchronizes operation and ensures that it won't be executed concurrently. <br/>
+ * Example: <br/>
+ * <pre><code>
+ * async function makeApiCall() {
+ *     // function body
+ * }
+ *
+ * const nonConcurrentApiCallMaker = synchronize(makeApiCall);
+ *
+ * // `makeApiCall` will be called only once
+ * const results = await Promise.all([
+ * 		nonConcurrentApiCallMaker(),
+ * 		nonConcurrentApiCallMaker()
+ * ]);
+ *
+ * expect(results[0]).to.be.eq(results[1]);
+ *
+ * </code></pre>
+ *
+ * @param operation
+ */
 function synchronize<T>(operation: AsyncFunction<void, T>): AsyncFunction<void, T> {
 	let inFlight: Promise<T> | false = false;
 
-	// @fixme this function should forward operation arguments
 	return function notConcurrent(): Promise<T> {
 		if (!inFlight) {
 			inFlight = operation().finally(() => {
@@ -45,6 +73,11 @@ function synchronize<T>(operation: AsyncFunction<void, T>): AsyncFunction<void, 
 	};
 }
 
+/**
+ * Builds **PromiseHolder** instance.
+ *
+ * @returns		Promise holder.
+ */
 function buildPromiseHolder<T>(): PromiseHolder<T> {
 	const promiseHolder: PromiseHolder<T> = {
 		// @ts-ignore

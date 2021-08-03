@@ -1,4 +1,4 @@
 import * as concurrency from './concurrency';
-import { ErrorCodes } from './exception';
+import { ErrorCodes } from './error';
 
 export { ErrorCodes, concurrency };

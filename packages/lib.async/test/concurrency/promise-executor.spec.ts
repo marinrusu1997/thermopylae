@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/dev.unit-test';
 import { chrono, array } from '@thermopylae/lib.utils';
-import { PromiseExecutor, PromiseExecutorTask } from '../../lib/concurrency';
+import { PromiseExecutor } from '../../lib/concurrency';
 
 const { expect } = chai;
 
@@ -16,11 +16,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		}
 
 		const start = Date.now();
-		await PromiseExecutor.run<null, null>({
-			processor: longRunningProcessor,
-			data: array.filledWith(items, null),
-			concurrency: PromiseExecutor.SEQUENTIAL
-		});
+		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), PromiseExecutor.SEQUENTIAL);
 		const end = Date.now();
 
 		const expectedDuration = items * duration;
@@ -38,11 +34,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		}
 
 		const start = Date.now();
-		await PromiseExecutor.run<null, null>({
-			processor: longRunningProcessor,
-			data: array.filledWith(items, null),
-			concurrency: PromiseExecutor.PARALLEL
-		});
+		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), PromiseExecutor.PARALLEL);
 		const end = Date.now();
 
 		const expectedDuration = duration;
@@ -61,11 +53,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		}
 
 		const start = Date.now();
-		await PromiseExecutor.run<null, null>({
-			processor: longRunningProcessor,
-			data: array.filledWith(items, null),
-			concurrency
-		});
+		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), concurrency);
 		const end = Date.now();
 
 		const expectedDuration = (items * duration) / concurrency;
@@ -110,13 +98,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 			return null;
 		}
 
-		const task: PromiseExecutorTask<any, null> = {
-			processor,
-			data: [],
-			concurrency: 1
-		};
-
-		await expect(PromiseExecutor.run(task)).to.be.rejectedWith(
+		await expect(PromiseExecutor.run(processor, [], 1)).to.be.rejectedWith(
 			`Concurrency needs to have a min value of 2. Provided concurrency: 1. ` +
 				`For sequential concurrency please provide ${PromiseExecutor.SEQUENTIAL} value.`
 		);
@@ -127,13 +109,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 			return null;
 		}
 
-		const task: PromiseExecutorTask<any, null> = {
-			processor,
-			data: [],
-			concurrency: -1
-		};
-
-		await expect(PromiseExecutor.run(task)).to.be.rejectedWith(`Concurrency needs to have a min value of 2. Provided concurrency: -1. `);
+		await expect(PromiseExecutor.run(processor, [], -1)).to.be.rejectedWith(`Concurrency needs to have a min value of 2. Provided concurrency: -1. `);
 	});
 
 	it('formats concurrency', () => {

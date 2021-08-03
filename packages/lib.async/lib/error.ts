@@ -10,6 +10,9 @@ const enum ErrorCodes {
 	INCONSISTENCY = 'INCONSISTENCY'
 }
 
+/**
+ * @private
+ */
 function createException(code: string, message: string, cause?: any): Exception {
 	return new Exception(Library.ASYNC, code, message, cause);
 }
