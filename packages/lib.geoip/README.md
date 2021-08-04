@@ -19,9 +19,64 @@ npm install @thermopylae/lib.geoip
 ```
 
 ## Description
-This package allows you to retrieve location of the ip by using
+This package allows you to retrieve location of the ip by using [GeoIpLocator][geo-ip-locator-link]. <br/>
+This class allows you to register a set of repositories from where location of the ip can be retrieved.
+When location is requested, it will load balance request to one of these repositories in order to retrieve it.
+Three repositories are implemented by default:
+* [GeoIpLiteRepository][geoiplite-repository-link]
+* [IpLocateRepository][iplocate-repository-link]
+* [IpstackRepository][ipstack-repository-link]
+
+You can also create your own repository by implementing [IpLocationsRepository][iplocation-repository-interface-link] interface.
 
 ## Usage
+```typescript
+import {
+    GeoIpLocator,
+    GeoIpLiteRepository,
+    IpstackRepository,
+    IpstackSubscriptionPlan
+} from '@thermopylae/lib.geoip';
+
+(async function main() {
+    const geoip = new GeoIpLocator([
+        new GeoIpLiteRepository(1),
+        new IpstackRepository({
+            apiKey: 'IPSTACK_ACCESS_KEY',
+            lang: 'en',
+            plan: IpstackSubscriptionPlan.FREE,
+            weight: 2,
+            hooks: {
+                onIpRetrievalError(err) {
+                    console.error('Failed to retrieve location from ipstack ', err);
+                }
+            }
+        }),
+        new IpLocateRepository({
+            apiKey: 'IP_LOCATE_ACCESS_KEY',
+            weight: 3,
+            hooks: {
+                onIpRetrievalError(err) {
+                    console.error('Failed to retrieve location from iplocate ', err);
+                },
+                onRateLimitExceeded(rateLimitReset) {
+                    console.info('Iplocate Rate limit reset at ', rateLimitReset);
+                }
+            }
+        })
+    ]);
+    
+    // retrieve location from random repository
+    const firstLookup = await geoip.locate('8.8.8.8');
+    console.log(firstLookup);
+    
+    // retrieve from same repository again so that location objects are the same
+    // you are not required to specify 'repository-id', in this case a random repository will be selected
+    // which may provide a location a bit different from the previous one for same ip
+    const secondLookup = await geoip.locate('8.8.8.8', firstLookup.REPOSITORY_ID);
+    console.log(secondLookup);
+})();
+```
 
 ## API Reference
 API documentation is available [here][api-doc-link].
@@ -46,3 +101,8 @@ Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
 [api-doc-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/index.html
+[geo-ip-locator-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/classes/geoip.geoiplocator.html
+[geoiplite-repository-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/modules/repository_geoip_lite.html
+[iplocate-repository-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/modules/repository_iplocate.html
+[ipstack-repository-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/modules/repository_ipstack.html
+[iplocation-repository-interface-link]: https://marinrusu1997.github.io/thermopylae/lib.geoip/modules/repository.html
