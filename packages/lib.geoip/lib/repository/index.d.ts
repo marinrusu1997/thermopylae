@@ -25,7 +25,7 @@ declare interface IpLocationsRepository {
 	readonly id: string;
 
 	/**
-	 * Whether repository is available to server lookup requests.
+	 * Whether repository is available to serve lookup requests.
 	 */
 	readonly available: boolean;
 

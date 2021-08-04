@@ -8,6 +8,16 @@ import type { IpLocation, IpLocationsRepository } from './index';
 const AVAILABLE_NOW = -1;
 
 /**
+ * Ipstack [subscription plan](https://ipstack.com/plan).
+ */
+const enum IpstackSubscriptionPlan {
+	FREE,
+	BASIC,
+	PROFESSIONAL,
+	PROFESSIONAL_PLUS
+}
+
+/**
  * [API Guide](https://ipstack.com/documentation)
  */
 interface IpstackRepositoryOptions {
@@ -16,9 +26,9 @@ interface IpstackRepositoryOptions {
 	 */
 	readonly apiKey: string;
 	/**
-	 * Protocol used to fetch ip location.
+	 * Subscription plan.
 	 */
-	readonly proto: 'http' | 'https';
+	readonly plan: IpstackSubscriptionPlan;
 	/**
 	 * Language of the location details.
 	 *
@@ -142,8 +152,12 @@ class IpstackRepository implements IpLocationsRepository {
 	}
 
 	private buildUrl(ip: string): string {
-		return `${this.options.proto}://api.ipstack.com/${ip}?access_key=${this.options.apiKey}&fields=country_code,region_code,city,latitude,longitude,zip,time_zone.id&language=${this.options.lang}`;
+		if (this.options.plan === IpstackSubscriptionPlan.FREE) {
+			return `http://api.ipstack.com/${ip}?access_key=${this.options.apiKey}&fields=country_code,region_code,city,latitude,longitude,zip&language=${this.options.lang}`;
+		}
+
+		return `https://api.ipstack.com/${ip}?access_key=${this.options.apiKey}&fields=country_code,region_code,city,latitude,longitude,zip,time_zone.id&language=${this.options.lang}`;
 	}
 }
 
-export { IpstackRepository, IpstackRepositoryOptions };
+export { IpstackRepository, IpstackRepositoryOptions, IpstackSubscriptionPlan };

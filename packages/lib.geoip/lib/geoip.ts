@@ -1,7 +1,6 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { IpLocation, IpLocationsRepository } from './repository';
 import { LoadBalancer } from './load-balancer';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 
 /**
  * Geo IP locator which retrieves location of the IP address. <br/>
@@ -22,7 +21,7 @@ class GeoIpLocator {
 	/**
 	 * Retrieves location associated with an IP. <br/>
 	 * > Notice that location might differ when invoking this function with the same `ip` multiple times. <br/>
-	 * > This is caused by the way repositories are selected to retrieve location for that ip. <br/>
+	 * > This is caused by the way repositories are selected by load balancer in order to retrieve location for that ip. <br/>
 	 * > If you need same location object at each invocation, you can explicitly define `repo` from where
 	 * > to fetch location. Notice that location has {@link IpLocation.REPOSITORY_ID} property which indicates
 	 * > from which repository it was retrieved.
@@ -59,7 +58,7 @@ class GeoIpLocator {
 				return repo;
 			}
 		}
-		throw createException(ErrorCodes.NOT_FOUND, `Repository with id ${id} not found.`);
+		throw createException(ErrorCodes.REPOSITORY_NOT_FOUND, `Repository with id '${id}' not found.`);
 	}
 }
 

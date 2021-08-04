@@ -2,7 +2,7 @@ import { before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import type { ObjMap } from '@thermopylae/core.declarations';
 import { config as dotEnvConfig } from 'dotenv';
-import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpLocationsRepository, IpstackRepository } from '../lib';
+import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpLocationsRepository, IpstackRepository, IpstackSubscriptionPlan } from '../lib';
 import { IpRepositoryMock } from './mock/ip-repository';
 
 describe('geoip spec', () => {
@@ -19,12 +19,12 @@ describe('geoip spec', () => {
 			new IpstackRepository({
 				apiKey: process.env['IPSTACK_ACCESS_KEY']!,
 				lang: 'en',
-				proto: 'http',
+				plan: IpstackSubscriptionPlan.FREE,
 				weight: 2,
 				hooks: {
 					onIpRetrievalError(err) {
 						// eslint-disable-next-line no-console
-						console.error(err);
+						console.error('Failed to retrieve location from ipstack ', err);
 					}
 				}
 			})
@@ -36,11 +36,11 @@ describe('geoip spec', () => {
 				hooks: {
 					onIpRetrievalError(err) {
 						// eslint-disable-next-line no-console
-						console.error(err);
+						console.error('Failed to retrieve location from iplocate ', err);
 					},
 					onRateLimitExceeded(rateLimitReset) {
 						// eslint-disable-next-line no-console
-						console.info('Rate limit reset at ', rateLimitReset);
+						console.info('Iplocate Rate limit reset at ', rateLimitReset);
 					}
 				}
 			})

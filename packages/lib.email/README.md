@@ -23,7 +23,6 @@ This package contains [EmailClient][email-client-link] which can send emails. <b
 In order to accomplish this task, it uses internally [nodemailer](https://www.npmjs.com/package/nodemailer) npm package.
 
 ## Usage
-Example:
 ```typescript
 import { EmailClient } from '@thermopylae/lib.email';
 

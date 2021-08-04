@@ -69,7 +69,7 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 
 	/**
 	 * Refresh in-memory database which contains [geoip-lite](https://www.npmjs.com/package/geoip-lite) locations.
-	 * > 	**CAUTION!** <br/>
+	 * > **CAUTION!** <br/>
 	 * > This needs to be called after updating local *geoip-lite* db.
 	 */
 	public static async refresh(): Promise<void> {
