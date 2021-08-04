@@ -10,7 +10,7 @@ interface ArrayEqualsPredicate<T> {
 /**
  * Default function to compare element order.
  *
- * @internal
+ * @private
  */
 function defaultCompare<T>(a: T, b: T): number {
 	if (a < b) {

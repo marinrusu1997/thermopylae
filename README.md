@@ -75,11 +75,11 @@ npm i @thermopylae/lib.authentication
 
 * GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
 * Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+* LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
 [license-url]: https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/marinrusu1997
+[linkedin-url]: https://www.linkedin.com/in/rusu-marin-1638b0156/

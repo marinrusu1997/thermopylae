@@ -12,20 +12,53 @@ class Heap<T = number> {
 
 	private readonly nodes: Array<T>;
 
-	constructor(comparator?: Comparator<T>) {
+	/**
+	 * @param comparator	Elements comparator. <br/>
+	 * 						Defaults to comparator which compares elements with the **>** and **===** operators.
+	 */
+	public constructor(comparator?: Comparator<T>) {
 		this.compare = comparator || defaultCompare;
 		this.nodes = [];
 	}
 
+	/**
+	 * Check if heap is empty.
+	 */
+	public get empty(): boolean {
+		return this.nodes.length === 0;
+	}
+
+	/**
+	 * Get heap size
+	 */
+	public get size(): number {
+		return this.nodes.length;
+	}
+
+	/**
+	 * Push item into heap.
+	 *
+	 * @param item		Item to be pushed.
+	 */
 	public push(item: T): void {
 		this.nodes.push(item);
 		this.siftDown(0, this.nodes.length - 1);
 	}
 
+	/**
+	 * Peek element from heap root (does not remove it).
+	 *
+	 * @returns		Heap root.
+	 */
 	public peek(): T | undefined {
 		return this.nodes[0];
 	}
 
+	/**
+	 * Pop element from heap root (does remove it).
+	 *
+	 * @returns		Heap root.
+	 */
 	public pop(): T | undefined {
 		const lastEl = this.nodes.pop();
 		let returnItem: T | undefined;
@@ -41,19 +74,14 @@ class Heap<T = number> {
 		return returnItem;
 	}
 
-	public pushPop(item: T): T | undefined {
-		let returnItem: T | undefined;
-
-		if (this.nodes.length && this.compare(this.nodes[0], item) < 0) {
-			returnItem = this.nodes[0]!;
-			this.nodes[0] = item;
-			this.siftUp(0);
-		}
-
-		return returnItem;
-	}
-
-	public replace(item: T): T | undefined {
+	/**
+	 * Replace heap root with another item.
+	 *
+	 * @param item		Item that needs to replace the root.
+	 *
+	 * @returns			Previous value of the heap root.
+	 */
+	public replaceRootWith(item: T): T | undefined {
 		const returnItem = this.nodes[0];
 		this.nodes[0] = item;
 		this.siftUp(0);
@@ -61,10 +89,23 @@ class Heap<T = number> {
 		return returnItem;
 	}
 
+	/**
+	 * Find index of item in the heap.
+	 *
+	 * @param equalsFunction	Function which tests for equality with needed item.
+	 *
+	 * @returns					Index of the item.
+	 */
 	public findIndex(equalsFunction: ArrayEqualsPredicate<T>): number {
 		return this.nodes.findIndex(equalsFunction);
 	}
 
+	/**
+	 * Update item located at `index` with `newItem`.
+	 *
+	 * @param index			Index of the element that needs to be updated.
+	 * @param newItem		Value that needs to be put at that index.
+	 */
 	public update(index: number, newItem: T): void {
 		Heap.assertIndex(index, this.nodes.length);
 
@@ -74,6 +115,11 @@ class Heap<T = number> {
 		this.siftUp(index);
 	}
 
+	/**
+	 * Remove item located at `index`.
+	 *
+	 * @param index		Value of the item index.
+	 */
 	public remove(index: number): void {
 		Heap.assertIndex(index, this.nodes.length);
 
@@ -90,28 +136,35 @@ class Heap<T = number> {
 		}
 	}
 
+	/**
+	 * Check if heap contains item.
+	 *
+	 * @param itemOrPredicate		Item or function which checks for equality with that item.
+	 */
 	public contains(itemOrPredicate: ArrayEqualsPredicate<T> | T): boolean {
 		// @ts-ignore
 		const pos = isFunction(itemOrPredicate) ? this.nodes.findIndex(itemOrPredicate) : this.nodes.indexOf(itemOrPredicate);
 		return pos !== -1;
 	}
 
-	public empty(): boolean {
-		return this.nodes.length === 0;
-	}
-
-	public size(): number {
-		return this.nodes.length;
-	}
-
+	/**
+	 * Clear heap.
+	 */
 	public clear(): void {
 		this.nodes.length = 0;
 	}
 
+	/**
+	 * Get array representation of the heap.
+	 */
 	public toArray(): Array<T> {
 		return this.nodes.slice(0);
 	}
 
+	/**
+	 * Clone heap. <br/>
+	 * Notice that items are not cloned, only heap internal structure is cloned.
+	 */
 	public clone(): Heap<T> {
 		const heap = new Heap<T>(this.compare);
 		for (const item of this.nodes) {

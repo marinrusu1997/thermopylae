@@ -11,7 +11,7 @@ type ArrayComparator<T> = (a: Undefinable<T>, b: Undefinable<T>) => number;
 describe(`${Heap.name} spec`, () => {
 	function assertHeapSortedOrder<T>(heap: Heap<T>, comparator?: Comparator<T>): void {
 		const sorted = [];
-		while (!heap.empty()) {
+		while (!heap.empty) {
 			sorted.push(heap.pop());
 		}
 
@@ -91,7 +91,7 @@ describe(`${Heap.name} spec`, () => {
 			}
 
 			const sorted = [];
-			while (!heap.empty()) {
+			while (!heap.empty) {
 				sorted.push(heap.pop());
 			}
 
@@ -99,7 +99,7 @@ describe(`${Heap.name} spec`, () => {
 		});
 	});
 
-	describe(`${Heap.prototype.replace.name} spec`, () => {
+	describe(`${Heap.prototype.replaceRootWith.name} spec`, () => {
 		it('should behave like pop() followed by push()', () => {
 			const heap = new Heap<number>();
 
@@ -107,28 +107,9 @@ describe(`${Heap.name} spec`, () => {
 				heap.push(i);
 			}
 
-			expect(heap.replace(3)).to.be.eq(1);
+			expect(heap.replaceRootWith(3)).to.be.eq(1);
 
 			expect(heap.toArray().sort()).to.be.equalTo([2, 3, 3, 4, 5]);
-		});
-	});
-
-	describe(`${Heap.prototype.pushPop.name} spec`, () => {
-		it('should behave like push() followed by pop()', () => {
-			const heap = new Heap();
-			for (let i = 1; i <= 5; i++) {
-				heap.push(i);
-			}
-
-			expect(heap.pushPop(2)).to.be.eq(1);
-			expect(heap.pushPop(6)).to.be.eq(2);
-
-			const expectArr = [];
-			for (let i = 2; i <= 6; i++) {
-				expectArr.push(i);
-			}
-
-			expect(heap.toArray().sort()).to.be.equalTo(expectArr);
 		});
 	});
 
@@ -219,7 +200,7 @@ describe(`${Heap.name} spec`, () => {
 			}
 			expect(err)
 				.to.be.instanceOf(Error)
-				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size() - 1}. `);
+				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size - 1}. `);
 
 			assertHeapSortedOrder(heap);
 		});
@@ -318,7 +299,7 @@ describe(`${Heap.name} spec`, () => {
 
 			expect(err)
 				.to.be.instanceOf(Error)
-				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size() - 1}. `);
+				.and.to.haveOwnProperty('message', `Invalid index. Provided index ${index} should be in the range 0-${heap.size - 1}. `);
 		});
 	});
 
@@ -330,7 +311,7 @@ describe(`${Heap.name} spec`, () => {
 				heap.push(i);
 			}
 
-			expect(heap.size()).to.be.eq(5);
+			expect(heap.size).to.be.eq(5);
 
 			heap.clear();
 
@@ -339,12 +320,12 @@ describe(`${Heap.name} spec`, () => {
 			}
 
 			const expectedSorted = [];
-			while (!heap.empty()) {
+			while (!heap.empty) {
 				expectedSorted.push(heap.pop());
 			}
 
 			expect(expectedSorted).to.be.equalTo([1, 2, 3, 4, 5]);
-			expect(heap.size()).to.be.eq(0);
+			expect(heap.size).to.be.eq(0);
 		});
 	});
 });

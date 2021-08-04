@@ -3,6 +3,7 @@
 # compiled output
 /build
 /dist
+/doc
 /dist-server
 /tmp
 /out-tsc
@@ -11,7 +12,6 @@
 # testing
 /.nyc_output
 /coverage
-/report
 
 # environment
 .env
@@ -32,16 +32,8 @@ package-lock.json
 # IDE - VSCode
 .vscode/*
 !.vscode/settings.json
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
 
 # IDE - VSCode
-.vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
