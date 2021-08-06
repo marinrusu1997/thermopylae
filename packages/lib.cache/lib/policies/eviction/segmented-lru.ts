@@ -1,10 +1,10 @@
-import { ErrorCodes, Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
+import { Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
 import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
 import { LinkedList } from '../../data-structures/list/interface';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 
 /**
  * @private
@@ -55,7 +55,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	 */
 	public constructor(cacheMaxCapacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
 		if (cacheMaxCapacity < 2) {
-			throw createException(ErrorCodes.INVALID, `Capacity needs to be at least 2. Given: ${cacheMaxCapacity}.`);
+			throw createException(ErrorCodes.INVALID_CACHE_MAX_CAPACITY, `Capacity needs to be at least 2. Given: ${cacheMaxCapacity}.`);
 		}
 
 		const protectedSegmentSize = Math.round(
@@ -63,7 +63,10 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		);
 		if (protectedSegmentSize < 1) {
 			const context = { cacheMaxCapacity, protectedOverProbationRatio, protectedSegmentSize };
-			throw createException(ErrorCodes.INVALID, `Protected segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
+			throw createException(
+				ErrorCodes.INVALID_PROTECTED_SEGMENT_SIZE,
+				`Protected segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`
+			);
 		}
 
 		this.segments = {
@@ -84,7 +87,10 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 				protectedSegmentSize,
 				probationSegmentSize: this.segments[SegmentType.PROBATION].capacity
 			};
-			throw createException(ErrorCodes.INVALID, `Probation segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`);
+			throw createException(
+				ErrorCodes.INVALID_PROBATION_SEGMENT_SIZE,
+				`Probation segment size needs to be at least 1. Context: ${JSON.stringify(context)}.`
+			);
 		}
 	}
 
@@ -93,7 +99,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	 */
 	public get size(): number {
 		let size = 0;
-		for (const segment of (Object.keys(this.segments) as unknown) as Array<SegmentType>) {
+		for (const segment of Object.keys(this.segments) as unknown as Array<SegmentType>) {
 			size += this.segments[segment].items.size;
 		}
 		return size;
@@ -154,7 +160,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	 * @inheritDoc
 	 */
 	public onClear(): void {
-		for (const segment of (Object.keys(this.segments) as unknown) as Array<SegmentType>) {
+		for (const segment of Object.keys(this.segments) as unknown as Array<SegmentType>) {
 			this.segments[segment].items.clear();
 		}
 	}
@@ -205,7 +211,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 				break;
 
 			default:
-				throw createException(ErrorCodes.UNKNOWN, `Unknown segment type: ${entry[SEGMENT_SYM]} found in entry: ${JSON.stringify(entry)}.`);
+				throw createException(ErrorCodes.UNKNOWN_SEGMENT_TYPE, `Unknown segment type: ${entry[SEGMENT_SYM]} found in entry: ${JSON.stringify(entry)}.`);
 		}
 	}
 

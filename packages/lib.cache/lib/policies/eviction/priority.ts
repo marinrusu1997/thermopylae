@@ -103,7 +103,8 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
  * @template ArgumentsBundle	Type of the arguments bundle.
  */
 class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictionPolicyArgumentsBundle = PriorityEvictionPolicyArgumentsBundle>
-	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle>
+{
 	/**
 	 * @private
 	 */

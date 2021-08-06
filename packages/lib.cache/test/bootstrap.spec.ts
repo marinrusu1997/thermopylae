@@ -1,18 +1,18 @@
 import { before } from 'mocha';
 import { initLogger } from '@thermopylae/dev.unit-test';
-import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
-import { Library } from '@thermopylae/core.declarations';
+import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { DevModule } from '@thermopylae/core.declarations';
 
 before(() => {
 	/* LOGGING */
-	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		levelForLabel: {
-			[Library.UNIT_TEST]: 'debug'
+			[DevModule.UNIT_TESTING]: 'debug'
 		}
 	});
-	LoggerInstance.console.createTransport({ level: 'debug' });
+	LoggerManagerInstance.console.createTransport({ level: 'debug' });
 
 	initLogger();
 });

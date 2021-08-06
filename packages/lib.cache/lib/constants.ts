@@ -11,6 +11,6 @@ const NOT_FOUND_VALUE = undefined;
 /**
  * @private
  */
-const EXPIRES_AT_SYM = Symbol.for('EXPIRES_AT_SYM');
+const EXPIRES_AT_SYM = Symbol('EXPIRES_AT_SYM');
 
 export { INFINITE_EXPIRATION, NOT_FOUND_VALUE, EXPIRES_AT_SYM };

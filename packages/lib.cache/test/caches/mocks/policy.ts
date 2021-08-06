@@ -17,7 +17,7 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 	public constructor() {
 		this.methodBehaviours = new Map<keyof PolicyMock<Key, Value, ArgumentsBundle>, MethodBehaviour>();
 
-		const methods = (Object.getOwnPropertyNames(PolicyMock.prototype) as unknown) as Array<keyof PolicyMock<Key, Value, ArgumentsBundle>>;
+		const methods = Object.getOwnPropertyNames(PolicyMock.prototype) as unknown as Array<keyof PolicyMock<Key, Value, ArgumentsBundle>>;
 		for (const method of methods) {
 			this.methodBehaviours.set(method, { calls: 0 });
 		}

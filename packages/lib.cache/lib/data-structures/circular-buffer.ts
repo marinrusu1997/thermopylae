@@ -1,3 +1,6 @@
+/**
+ * @private
+ */
 class CircularBuffer<T> {
 	private readonly storage: Set<T>;
 

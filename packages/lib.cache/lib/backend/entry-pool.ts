@@ -110,7 +110,7 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 				}
 				// @ts-ignore
 				res.value[1] = res.value[1].value;
-				return (res as unknown) as IteratorResult<[Key, Entry]>;
+				return res as unknown as IteratorResult<[Key, Entry]>;
 			}
 		};
 	}
@@ -141,7 +141,7 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 						}
 						// @ts-ignore
 						res.value = res.value.value;
-						return (res as unknown) as IteratorResult<Entry>;
+						return res as unknown as IteratorResult<Entry>;
 					}
 				};
 			}

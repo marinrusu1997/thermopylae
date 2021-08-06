@@ -57,7 +57,8 @@ class PolicyPerKeyCache<
 		ArgumentsBundle extends PolicyPerKeyCacheArgumentsBundle<PolicyTag> = PolicyPerKeyCacheArgumentsBundle<PolicyTag>
 	>
 	extends EventEmitter
-	implements Cache<Key, Value, ArgumentsBundle> {
+	implements Cache<Key, Value, ArgumentsBundle>
+{
 	/**
 	 * @private
 	 */

@@ -1,9 +1,9 @@
-import { ErrorCodes, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import { CacheEntry } from '../../contracts/commons';
 import { EXPIRES_AT_SYM } from '../../constants';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 
 /**
  * @private
@@ -66,7 +66,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 		// we check them only for integer, as values are checked implicitly for expiresAt, because we sum them
 
 		if (!Number.isInteger(expiresAfter)) {
-			throw createException(ErrorCodes.INVALID, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
+			throw createException(ErrorCodes.INVALID_EXPIRES_AFTER, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
 		}
 
 		const now = chrono.unixTime();
@@ -74,7 +74,7 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 
 		if (expiresFrom != null) {
 			if (!Number.isInteger(expiresFrom)) {
-				throw createException(ErrorCodes.INVALID, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
+				throw createException(ErrorCodes.INVALID_EXPIRES_FROM, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
 			}
 
 			expiresAt = expiresFrom + expiresAfter;

@@ -50,7 +50,8 @@ class KeysDependenciesEvictionPolicy<
 	Key,
 	Value,
 	ArgumentsBundle extends KeysDependenciesEvictionPolicyArgumentsBundle<Key> = KeysDependenciesEvictionPolicyArgumentsBundle<Key>
-> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle>
+{
 	/**
 	 * @private
 	 */
@@ -100,7 +101,7 @@ class KeysDependenciesEvictionPolicy<
 				dependencyEntry = this.readonlyCacheBackend.get(dependencyKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
 					if (options.throwOnDependencyNotFound) {
-						throw createException(ErrorCodes.NOT_FOUND, `Dependency '${dependencyKey}' of the '${entry.key}' wasn't found.`);
+						throw createException(ErrorCodes.DEPENDENCY_KEY_NOT_FOUND, `Dependency '${dependencyKey}' of the '${entry.key}' wasn't found.`);
 					}
 					continue;
 				}
@@ -114,7 +115,7 @@ class KeysDependenciesEvictionPolicy<
 				dependencyEntry = this.readonlyCacheBackend.get(dependentKey) as CacheEntryWithDependencies<Key, Value>;
 				if (dependencyEntry == null) {
 					if (options.throwOnDependencyNotFound) {
-						throw createException(ErrorCodes.NOT_FOUND, `Dependent '${dependentKey}' of the '${entry.key}' wasn't found.`);
+						throw createException(ErrorCodes.DEPENDENT_KEY_NOT_FOUND, `Dependent '${dependentKey}' of the '${entry.key}' wasn't found.`);
 					}
 					continue;
 				}

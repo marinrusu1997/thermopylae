@@ -1,7 +1,7 @@
-import { ErrorCodes, Threshold } from '@thermopylae/core.declarations';
+import { Threshold } from '@thermopylae/core.declarations';
 import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
 import { CacheEntry } from '../../contracts/commons';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 import { BucketEntryNode, OrderedBucketList } from '../../data-structures/bucket-list/ordered-bucket-list';
 import { CacheBackendElementsCount } from '../../contracts/cache-backend';
 
@@ -39,7 +39,7 @@ abstract class BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> implements Cac
 	 */
 	public constructor(cacheMaxCapacity: Threshold, cacheBackendElementsCount: CacheBackendElementsCount) {
 		if (cacheMaxCapacity <= 0) {
-			throw createException(ErrorCodes.INVALID, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
+			throw createException(ErrorCodes.INVALID_CACHE_MAX_CAPACITY, `Capacity needs to be greater than 0. Given: ${cacheMaxCapacity}.`);
 		}
 
 		this.cacheMaxCapacity = cacheMaxCapacity;

@@ -5,7 +5,7 @@ import { LinkedList } from './interface';
 /**
  * @private
  */
-const NEXT_SYM = Symbol.for('NEXT_SYM_SLL');
+const NEXT_SYM = Symbol('NEXT_SYM_SLL');
 
 /**
  * @private

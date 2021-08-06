@@ -149,7 +149,7 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 				}
 			}
 
-			return (iterResult.value as unknown) as E;
+			return iterResult.value as unknown as E;
 		};
 	}
 }

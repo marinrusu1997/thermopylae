@@ -103,7 +103,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 		if (this.cleanUpInterval == null) {
 			this.cleanUpInterval = {
 				willCleanUpOn: 0,
-				timeoutId: (null as unknown) as NodeJS.Timeout
+				timeoutId: null as unknown as NodeJS.Timeout
 			};
 			this.scheduleNextGc(rootEntry);
 

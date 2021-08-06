@@ -33,3 +33,4 @@ export {
 } from './policies/expiration/sliding-reactive';
 
 export { INFINITE_EXPIRATION } from './constants';
+export { ErrorCodes } from './error';
