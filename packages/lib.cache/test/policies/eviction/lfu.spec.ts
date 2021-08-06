@@ -336,6 +336,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					}
 				});
 
+				// eslint-disable-next-line mocha/no-skipped-tests
 				it.skip('clears the freq list', () => {
 					const CAPACITY = 1_00_000;
 					const HEAP_USED_DELTA = 150_000;

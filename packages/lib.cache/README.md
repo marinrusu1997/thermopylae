@@ -10,7 +10,7 @@
 </a>
 </p>
 
-> Modular cache.
+> High performant and modular cache.
 
 ## Install
 
@@ -18,10 +18,96 @@
 npm install @thermopylae/lib.cache
 ```
 
-## Description
-
 ## Usage
+Bellow is a simple use case of how this package can be used.
+It reveals the basic principles of cache usage, such as backend, policies and arguments bundle.
+For more details, please consult API documentation, as it contains detailed explanation of each cache building block.
+```typescript
+import { ObjMap } from '@thermopylae/core.declarations';
+import {
+    CacheEvent,
+    CacheReplacementPolicy,
+    EntryPoolCacheBackend,
+    HeapGarbageCollector,
+    KeysDependenciesEvictionPolicy,
+    KeysDependenciesEvictionPolicyArgumentsBundle,
+    LRUEvictionPolicy,
+    PolicyPerKeyCache,
+    PolicyPerKeyCacheArgumentsBundle,
+    SlidingExpirationPolicyArgsBundle,
+    SlidingProactiveExpirationPolicy
+} from '@thermopylae/lib.cache';
 
+/* Define Policy Tags */
+const enum PolicyTag {
+    SLIDING_EXPIRATION,
+    KEYS_DEPENDENCIES,
+    LRU
+}
+
+/* Define Arguments Bundle */
+interface ArgumentsBundle
+    extends PolicyPerKeyCacheArgumentsBundle<PolicyTag>,
+        SlidingExpirationPolicyArgsBundle,
+        KeysDependenciesEvictionPolicyArgumentsBundle<string> {}
+
+/* Build Cache */
+const CAPACITY = 1_000;
+
+const backend = new EntryPoolCacheBackend<string, ObjMap>(CAPACITY);
+
+const policies = new Map<PolicyTag, CacheReplacementPolicy<string, ObjMap, ArgumentsBundle>>([
+    [PolicyTag.SLIDING_EXPIRATION, new SlidingProactiveExpirationPolicy<string, ObjMap, ArgumentsBundle>(new HeapGarbageCollector())],
+    [PolicyTag.KEYS_DEPENDENCIES, new KeysDependenciesEvictionPolicy<string, ObjMap, ArgumentsBundle>(backend)],
+    [PolicyTag.LRU, new LRUEvictionPolicy<string, ObjMap, ArgumentsBundle>(CAPACITY, backend)]
+]);
+
+const cache = new PolicyPerKeyCache<string, ObjMap, PolicyTag, ArgumentsBundle>(backend, policies);
+
+/* Attach listeners */
+cache.on(CacheEvent.DELETE, (key, value) => {
+    console.log(`Key '${key}' having value '${JSON.stringify(value)}' has been deleted/evicted from cache.`);
+});
+
+/* Insert keys */
+cache.set(
+    'user:session:1',
+    { token: 'iuj0-9unj8wetyu' },
+    {
+        timeSpan: 10_000,
+        policies: [PolicyTag.SLIDING_EXPIRATION]
+    }
+);
+
+cache.set(
+    'user:profile:0igk9g9',
+    { name: 'John' },
+    {
+        dependents: ['user:session:1'],
+        throwOnDependencyNotFound: true,
+        policies: [PolicyTag.KEYS_DEPENDENCIES]
+    }
+);
+
+cache.set(
+    'book:1',
+    { title: 'JavaScript Data Structures and Algorithms' },
+    {
+        policies: [PolicyTag.LRU]
+    }
+);
+
+/* Retrieve key */
+console.log(cache.get('user:session:1')); // { token: 'iuj0-9unj8wetyu' }
+console.log(cache.has('user:profile:0igk9g9')); // true
+
+/* Explicit delete */
+cache.del('book:1'); // Key 'book:1' having value '{ title: 'JavaScript Data Structures and Algorithms' }' has been deleted/evicted from cache.
+
+/* After 10 seconds will evict user session and cascade evict user profile */
+// Key 'user:session:1' having value '{ token: 'iuj0-9unj8wetyu' }' has been deleted/evicted from cache.
+// Key 'user:profile:0igk9g9' having value '{ name: 'John' }' has been deleted/evicted from cache.
+```
 
 ## API Reference
 API documentation is available [here][api-doc-link].

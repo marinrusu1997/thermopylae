@@ -84,7 +84,10 @@
 							When client inserts a new key, it can specify a list of policy tags which will track that key.
 							If it doesn&#39;t specify any tags, key will be tracked by all of the available policies. <br/>
 							Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
-						You can combine only 1 policy from each category in the <a href="../interfaces/caches_policy_per_key.policyperkeycacheargumentsbundle.html#policies">PolicyPerKeyCacheArgumentsBundle.policies</a>:</p>
+							You can combine only 1 policy from each category in the <a href="../interfaces/caches_policy_per_key.policyperkeycacheargumentsbundle.html#policies">PolicyPerKeyCacheArgumentsBundle.policies</a>.
+							Also be careful, as when you omit <a href="../interfaces/caches_policy_per_key.policyperkeycacheargumentsbundle.html#policies">PolicyPerKeyCacheArgumentsBundle.policies</a>, cache will enforce all of the
+							registered policies for that key, therefore if you have registered multiple policies from same category,
+						this will result in <strong>undefined behaviour</strong>.</p>
 					</div>
 					</div><div class="tsd-comment tsd-typography tsd-comment-text">
 					<table>

@@ -83,19 +83,104 @@
 					</a>
 				</p>
 				<blockquote>
-					<p>Modular cache.</p>
+					<p>High performant and modular cache.</p>
 				</blockquote>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
 				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/lib.cache</span>
 </code></pre>
-				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
-					<h2>Description</h2>
-				</a>
 				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
 					<h2>Usage</h2>
 				</a>
+				<p>Bellow is a simple use case of how this package can be used.
+					It reveals the basic principles of cache usage, such as backend, policies and arguments bundle.
+				For more details, please consult API documentation, as it contains detailed explanation of each cache building block.</p>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ObjMap</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">CacheEvent</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">CacheReplacementPolicy</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">EntryPoolCacheBackend</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">HeapGarbageCollector</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">KeysDependenciesEvictionPolicy</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">KeysDependenciesEvictionPolicyArgumentsBundle</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">LRUEvictionPolicy</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">PolicyPerKeyCache</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">PolicyPerKeyCacheArgumentsBundle</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">SlidingExpirationPolicyArgsBundle</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">SlidingProactiveExpirationPolicy</span>
+<span style="color: #000000">} </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.cache&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #008000">/* Define Policy Tags */</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0000FF">enum</span><span style="color: #000000"> </span><span style="color: #267F99">PolicyTag</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #0070C1">SLIDING_EXPIRATION</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #0070C1">KEYS_DEPENDENCIES</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #0070C1">LRU</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #008000">/* Define Arguments Bundle */</span>
+<span style="color: #0000FF">interface</span><span style="color: #000000"> </span><span style="color: #267F99">ArgumentsBundle</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">extends</span><span style="color: #000000"> </span><span style="color: #267F99">PolicyPerKeyCacheArgumentsBundle</span><span style="color: #000000">&lt;</span><span style="color: #267F99">PolicyTag</span><span style="color: #000000">&gt;,</span>
+<span style="color: #000000">        </span><span style="color: #267F99">SlidingExpirationPolicyArgsBundle</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #267F99">KeysDependenciesEvictionPolicyArgumentsBundle</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">&gt; {}</span>
+
+<span style="color: #008000">/* Build Cache */</span>
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">CAPACITY</span><span style="color: #000000"> = </span><span style="color: #098658">1_000</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">backend</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">EntryPoolCacheBackend</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">&gt;(</span><span style="color: #0070C1">CAPACITY</span><span style="color: #000000">);</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">policies</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Map</span><span style="color: #000000">&lt;</span><span style="color: #267F99">PolicyTag</span><span style="color: #000000">, </span><span style="color: #267F99">CacheReplacementPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">, </span><span style="color: #267F99">ArgumentsBundle</span><span style="color: #000000">&gt;&gt;([</span>
+<span style="color: #000000">    [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">SLIDING_EXPIRATION</span><span style="color: #000000">, </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">SlidingProactiveExpirationPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">, </span><span style="color: #267F99">ArgumentsBundle</span><span style="color: #000000">&gt;(</span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">HeapGarbageCollector</span><span style="color: #000000">())],</span>
+<span style="color: #000000">    [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">KEYS_DEPENDENCIES</span><span style="color: #000000">, </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">KeysDependenciesEvictionPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">, </span><span style="color: #267F99">ArgumentsBundle</span><span style="color: #000000">&gt;(</span><span style="color: #001080">backend</span><span style="color: #000000">)],</span>
+<span style="color: #000000">    [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">LRU</span><span style="color: #000000">, </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">LRUEvictionPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">, </span><span style="color: #267F99">ArgumentsBundle</span><span style="color: #000000">&gt;(</span><span style="color: #0070C1">CAPACITY</span><span style="color: #000000">, </span><span style="color: #001080">backend</span><span style="color: #000000">)]</span>
+<span style="color: #000000">]);</span>
+
+<span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">cache</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">PolicyPerKeyCache</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">ObjMap</span><span style="color: #000000">, </span><span style="color: #267F99">PolicyTag</span><span style="color: #000000">, </span><span style="color: #267F99">ArgumentsBundle</span><span style="color: #000000">&gt;(</span><span style="color: #001080">backend</span><span style="color: #000000">, </span><span style="color: #001080">policies</span><span style="color: #000000">);</span>
+
+<span style="color: #008000">/* Attach listeners */</span>
+<span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">on</span><span style="color: #000000">(</span><span style="color: #001080">CacheEvent</span><span style="color: #000000">.</span><span style="color: #0070C1">DELETE</span><span style="color: #000000">, (</span><span style="color: #001080">key</span><span style="color: #000000">, </span><span style="color: #001080">value</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #A31515">`Key &#039;</span><span style="color: #0000FF">${</span><span style="color: #001080">key</span><span style="color: #0000FF">}</span><span style="color: #A31515">&#039; having value &#039;</span><span style="color: #0000FF">${</span><span style="color: #267F99">JSON</span><span style="color: #000000FF">.</span><span style="color: #795E26">stringify</span><span style="color: #000000FF">(</span><span style="color: #001080">value</span><span style="color: #000000FF">)</span><span style="color: #0000FF">}</span><span style="color: #A31515">&#039; has been deleted/evicted from cache.`</span><span style="color: #000000">);</span>
+<span style="color: #000000">});</span>
+
+<span style="color: #008000">/* Insert keys */</span>
+<span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&#039;user:session:1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    { </span><span style="color: #001080">token:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;iuj0-9unj8wetyu&#039;</span><span style="color: #000000"> },</span>
+<span style="color: #000000">    {</span>
+<span style="color: #000000">        </span><span style="color: #001080">timeSpan:</span><span style="color: #000000"> </span><span style="color: #098658">10_000</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">policies:</span><span style="color: #000000"> [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">SLIDING_EXPIRATION</span><span style="color: #000000">]</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">);</span>
+
+<span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&#039;user:profile:0igk9g9&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    { </span><span style="color: #001080">name:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;John&#039;</span><span style="color: #000000"> },</span>
+<span style="color: #000000">    {</span>
+<span style="color: #000000">        </span><span style="color: #001080">dependents:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;user:session:1&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">        </span><span style="color: #001080">throwOnDependencyNotFound:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">policies:</span><span style="color: #000000"> [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">KEYS_DEPENDENCIES</span><span style="color: #000000">]</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">);</span>
+
+<span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&#039;book:1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">    { </span><span style="color: #001080">title:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;JavaScript Data Structures and Algorithms&#039;</span><span style="color: #000000"> },</span>
+<span style="color: #000000">    {</span>
+<span style="color: #000000">        </span><span style="color: #001080">policies:</span><span style="color: #000000"> [</span><span style="color: #001080">PolicyTag</span><span style="color: #000000">.</span><span style="color: #0070C1">LRU</span><span style="color: #000000">]</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">);</span>
+
+<span style="color: #008000">/* Retrieve key */</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;user:session:1&#039;</span><span style="color: #000000">)); </span><span style="color: #008000">// { token: &#039;iuj0-9unj8wetyu&#039; }</span>
+<span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">has</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;user:profile:0igk9g9&#039;</span><span style="color: #000000">)); </span><span style="color: #008000">// true</span>
+
+<span style="color: #008000">/* Explicit delete */</span>
+<span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">del</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;book:1&#039;</span><span style="color: #000000">); </span><span style="color: #008000">// Key &#039;book:1&#039; having value &#039;{ title: &#039;JavaScript Data Structures and Algorithms&#039; }&#039; has been deleted/evicted from cache.</span>
+
+<span style="color: #008000">/* After 10 seconds will evict user session and cascade evict user profile */</span>
+<span style="color: #008000">// Key &#039;user:session:1&#039; having value &#039;{ token: &#039;iuj0-9unj8wetyu&#039; }&#039; has been deleted/evicted from cache.</span>
+<span style="color: #008000">// Key &#039;user:profile:0igk9g9&#039; having value &#039;{ name: &#039;John&#039; }&#039; has been deleted/evicted from cache.</span>
+</code></pre>
 				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
 					<h2>API Reference</h2>
 				</a>

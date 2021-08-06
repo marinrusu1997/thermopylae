@@ -33,7 +33,10 @@ interface PolicyPerKeyCacheArgumentsBundle<PolicyTag> {
  * When client inserts a new key, it can specify a list of policy tags which will track that key.
  * If it doesn't specify any tags, key will be tracked by all of the available policies. <br/>
  * Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
- * You can combine only 1 policy from each category in the {@link PolicyPerKeyCacheArgumentsBundle.policies}:
+ * You can combine only 1 policy from each category in the {@link PolicyPerKeyCacheArgumentsBundle.policies}.
+ * Also be careful, as when you omit {@link PolicyPerKeyCacheArgumentsBundle.policies}, cache will enforce all of the
+ * registered policies for that key, therefore if you have registered multiple policies from same category,
+ * this will result in **undefined behaviour**.
  *
  * Category			|	Policies
  * ---------------- | -----------------------------
