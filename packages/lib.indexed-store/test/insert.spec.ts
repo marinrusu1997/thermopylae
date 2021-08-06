@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { number, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
-import { ErrorCodes } from '../lib/error';
-import { IndexedStore, PK_INDEX_NAME } from '../lib';
+import { ErrorCodes, IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';
 
 describe(`${IndexedStore.prototype.insert.name} spec`, () => {
@@ -48,7 +47,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		/** NO ID */
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+			.haveOwnProperty('code', ErrorCodes.NULLABLE_PRIMARY_KEY_CANNOT_BE_INDEXED);
 
 		/** ARRAY INDEX */
 		storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
@@ -60,7 +59,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID);
+			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
 		/** OBJECT INDEX */
@@ -76,7 +75,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID);
+			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
 		/** BOOLEAN INDEX */
@@ -98,7 +97,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID);
+			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
@@ -109,7 +108,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => storage.insert([PersonsRepo[number.randomInt(0, PersonsRepo.length - 1)]]))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.EXISTS);
+			.haveOwnProperty('code', ErrorCodes.RECORD_EXISTS);
 	});
 
 	it('saves records with undefined index properties', () => {
@@ -225,7 +224,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		expect(() => store.insert(toSave))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+			.haveOwnProperty('code', ErrorCodes.NULLABLE_PRIMARY_KEY_CANNOT_BE_INDEXED);
 		expect(store.size).to.be.eq(validRecordsNo);
 	});
 });

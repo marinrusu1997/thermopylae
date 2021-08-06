@@ -1,4 +1,4 @@
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';

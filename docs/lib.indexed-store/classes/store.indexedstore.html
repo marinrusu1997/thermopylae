@@ -1,0 +1,925 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>IndexedStore | @thermopylae/lib.indexed-store</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="../index.html" class="title">@thermopylae/lib.indexed-store</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.indexed-store" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../modules/store.html">store</a>
+				</li>
+				<li>
+					<a href="store.indexedstore.html">IndexedStore</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="../modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;Store&quot;:&quot;store&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Typings&quot;:&quot;typings&quot;}
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>Class IndexedStore&lt;IndexedRecord&gt;</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p><a href="store.indexedstore.html">IndexedStore</a> represents a storage of records that are indexed over multiple properties. <br>
+						Records ar stored in a multilevel map, with the following structure: <br></p>
+						<pre><code>
+    PrimaryIndexName     --> IndexValue --> [document]
+                        --> IndexValue --> [document]
+    SecondaryIndexName   --> IndexValue --> [document, document]
+</code></pre>
+						<p>Indexed properties are allowed to be nullable (i.e. have <code>null</code> or <code>undefined</code> as their values). <br>
+						This is a low-level class and exposes raw primitives. It needs to be used by higher level abstractions.</p>
+					</div>
+			</div></section>
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>IndexedRecord<span class="tsd-signature-symbol">: </span><a href="../interfaces/typings.recordable.html" class="tsd-signature-type">Recordable</a></h4>
+						<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+							<div class="lead">
+								<p>Type of the indexed record.</p>
+							</div>
+					</div>        </li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">IndexedStore</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><span class="tsd-signature-type">Iterable</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter"><a href="store.indexedstore.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Accessors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-get-signature tsd-parent-kind-class"><a href="store.indexedstore.html#indexes" class="tsd-kind-icon">indexes</a></li>
+								<li class="tsd-kind-get-signature tsd-parent-kind-class"><a href="store.indexedstore.html#size" class="tsd-kind-icon">size</a></li>
+								<li class="tsd-kind-get-signature tsd-parent-kind-class"><a href="store.indexedstore.html#values" class="tsd-kind-icon">values</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#_symbol_iterator_" class="tsd-kind-icon">[<wbr>Symbol.iterator]</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#clear" class="tsd-kind-icon">clear</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#contains" class="tsd-kind-icon">contains</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#containsindex" class="tsd-kind-icon">contains<wbr>Index</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#createindexes" class="tsd-kind-icon">create<wbr>Indexes</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#dropindex" class="tsd-kind-icon">drop<wbr>Index</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#dropindexes" class="tsd-kind-icon">drop<wbr>Indexes</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#filter" class="tsd-kind-icon">filter</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#find" class="tsd-kind-icon">find</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#getindexrecordscount" class="tsd-kind-icon">get<wbr>Index<wbr>Records<wbr>Count</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#insert" class="tsd-kind-icon">insert</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="store.indexedstore.html#map" class="tsd-kind-icon">map</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#read" class="tsd-kind-icon">read</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#readindex" class="tsd-kind-icon">read<wbr>Index</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#reindex" class="tsd-kind-icon">reindex</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="store.indexedstore.html#remove" class="tsd-kind-icon">remove</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Indexed<wbr>Store&lt;IndexedRecord&gt;<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/store.indexedstoreoptions.html" class="tsd-signature-type">IndexedStoreOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="store.indexedstore.html" class="tsd-signature-type">IndexedStore</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p><a href="store.indexedstore.html">IndexedStore</a> constructor.</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>IndexedRecord<span class="tsd-signature-symbol">: </span><a href="../interfaces/typings.recordable.html" class="tsd-signature-type">Recordable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <a href="../interfaces/store.indexedstoreoptions.html" class="tsd-signature-type">IndexedStoreOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Construction options. <br>
+										When <a href="../interfaces/store.indexedstoreoptions.html#indexes">IndexedStoreOptions.indexes</a> is given, will create them.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="store.indexedstore.html" class="tsd-signature-type">IndexedStore</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Accessors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class">
+					<a name="indexes" class="tsd-anchor"></a>
+					<h3>indexes</h3>
+					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> indexes<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get names of indexed properties.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class">
+					<a name="size" class="tsd-anchor"></a>
+					<h3>size</h3>
+					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> size<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get number of records present in the storage.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class">
+					<a name="values" class="tsd-anchor"></a>
+					<h3>values</h3>
+					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> values<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get a view of all records from storage.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></h4>
+							<p>Array of all records. Array can be modified by client, as it is created on each method call.</p>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="_symbol_iterator_" class="tsd-anchor"></a>
+					<h3>[<wbr>Symbol.iterator]</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">[<wbr>Symbol.iterator]<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Iterator</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of Iterable.__@iterator</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Iterate over records from storage.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Iterator</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="clear" class="tsd-anchor"></a>
+					<h3>clear</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">clear<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Removes all records from storage and leaves it empty. <br>
+									Notice that indexes are not removed, only their associated records are deleted.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="contains" class="tsd-anchor"></a>
+					<h3>contains</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">contains<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, indexValue<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check whether <code>indexName</code> contains records indexed with <code>indexValue</code>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+								<li>
+									<h5>indexValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="containsindex" class="tsd-anchor"></a>
+					<h3>contains<wbr>Index</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">contains<wbr>Index<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check whether index with <code>indexName</code> exists.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="createindexes" class="tsd-anchor"></a>
+					<h3>create<wbr>Indexes</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">create<wbr>Indexes<span class="tsd-signature-symbol">(</span>newIndexProperties<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Create new indexes for a set of record properties. <br>
+									When storage already contains records, they will be indexed for newly defined indexes.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>newIndexProperties: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of properties that need to be indexed.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="dropindex" class="tsd-anchor"></a>
+					<h3>drop<wbr>Index</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">drop<wbr>Index<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove index from storage. <br>
+									Notice that records are not removed, and can be found by another existing indexes.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<p>Whether index was removed or not.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="dropindexes" class="tsd-anchor"></a>
+					<h3>drop<wbr>Indexes</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">drop<wbr>Indexes<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove all indexes, except the primary one.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="filter" class="tsd-anchor"></a>
+					<h3>filter</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">filter<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, onIndex<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, withValue<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Filter a set of documents. <br>
+									When index related params are not specified, will apply <code>predicate</code> over all records.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>predicate: <span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Predicate function.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> onIndex: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Index from were documents need to be retrieved.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> withValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></h4>
+							<p>List of filtered records.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="find" class="tsd-anchor"></a>
+					<h3>find</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">find<span class="tsd-signature-symbol">(</span>predicate<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, onIndex<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, withValue<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Optional</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Find a single record from storage. <br>
+									When index related params are not specified, will apply <code>predicate</code> over all records.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>predicate: <span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Predicate function.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> onIndex: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Index from were documents need to be retrieved.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> withValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Optional</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Record matching search criteria, if found.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getindexrecordscount" class="tsd-anchor"></a>
+					<h3>get<wbr>Index<wbr>Records<wbr>Count</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Index<wbr>Records<wbr>Count<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get number of records stored under <code>indexName</code>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="insert" class="tsd-anchor"></a>
+					<h3>insert</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">insert<span class="tsd-signature-symbol">(</span>records<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Inserts records into storage. <br>
+									After insertion is completed, will index records by properties that are indexable.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>records: <span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>List of documents to be inserted.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="map" class="tsd-anchor"></a>
+					<h3>map</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">map&lt;MappedType&gt;<span class="tsd-signature-symbol">(</span>mapper<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Mapper</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">MappedType</span><span class="tsd-signature-symbol">&gt;</span>, onIndex<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, withValue<span class="tsd-signature-symbol">?: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MappedType</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Map a set of records. <br>
+									When index related params are not specified, will map all of the records.</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>MappedType</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>mapper: <span class="tsd-signature-type">Mapper</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">MappedType</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Mapping function.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> onIndex: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Index from were documents need to be retrieved.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> withValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">MappedType</span><span class="tsd-signature-symbol">[]</span></h4>
+							<p>List of mapped records.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="read" class="tsd-anchor"></a>
+					<h3>read</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">read<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, indexValue<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Read documents under <code>indexName</code> having it&#39;s value equal to <code>indexValue</code>. <br>
+									Reference to internal index structure is returned, and therefore the caller should not alter it.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+								<li>
+									<h5>indexValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">[]</span></h4>
+							<p>List of documents having <code>indexName</code> equal to <code>indexValue</code>.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="readindex" class="tsd-anchor"></a>
+					<h3>read<wbr>Index</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">read<wbr>Index<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#index" class="tsd-signature-type">Index</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Read all documents stored in the <code>indexName</code>. <br>
+									Reference to internal index structure is returned, and therefore the caller should not alter it.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../modules/typings.html#index" class="tsd-signature-type">Index</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>The internal index for <code>indexName</code>.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="reindex" class="tsd-anchor"></a>
+					<h3>reindex</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">reindex<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, oldValue<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a>, newValue<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a>, matcher<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Reindex document after it&#39;s <code>indexName</code> property has been changed. <br>
+										This method will also set the new value of <code>indexName</code> to record. <br>
+										Caller needs to call this method everytime value for one of the indexed properties changes. <br>
+									Notice that primary key should remain immutable, it&#39;s change is forbidden. <br/></p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>example</dt>
+									<dd><br>
+										<a href="#index-record-that-wasn39t-indexed-before" id="index-record-that-wasn39t-indexed-before" style="color: inherit; text-decoration: none;">
+											<h2><strong>Index record that wasn&#39;t indexed before</strong></h2>
+										</a>
+										<pre><code>// insert a record that wasn't indexed by 'birthYear', because it was null
+const record = { id: 1, birthYear: null };
+storage.insert([record]);
+
+// (re)index it by birth year
+storage.reindex('birthYear', record.birthYear, 1997, record.id);
+console.log(record.birthYear) // 1997
+</code></pre>
+										<p><strong>Reindex record that was indexed before</strong></p>
+										<hr>
+										<pre><code>// insert a record that is indexed by 'birthYear'
+const record = { id: 1, birthYear: 2000 };
+storage.insert([record]);
+
+// reindex it by birth year
+storage.reindex('birthYear', record.birthYear, 1997, record.id);
+console.log(record.birthYear) // 1997
+</code></pre>
+										<p><strong>De-index record that was indexed before</strong></p>
+										<hr>
+										<pre><code>// insert a record that is indexed by 'birthYear'
+const record = { id: 1, birthYear: 2000 };
+storage.insert([record]);
+
+// de-index it by birth year
+storage.reindex('birthYear', record.birthYear, null, record.id);
+console.log(record.birthYear) // null
+</code></pre>
+								</dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+								<li>
+									<h5>oldValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Old value of the index. It is used for record retrieval.</p>
+									</div>
+								</li>
+								<li>
+									<h5>newValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>The updated value of the index. Used for actual reindexing.</p>
+									</div>
+								</li>
+								<li>
+									<h5>matcher: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Predicate that matches record, indexed property of which has been changed.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="remove" class="tsd-anchor"></a>
+					<h3>remove</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">remove<span class="tsd-signature-symbol">(</span>indexName<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span>, indexValue<span class="tsd-signature-symbol">: </span><a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a>, predicate<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Optional</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove from storage record that match search criteria. <br>
+										Search criteria is expressed as name of the index, it&#39;s value, and an optional predicate for filtering records from that index. <br>
+									Notice that only the first record that matched the predicate will be removed. <br></p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>example</dt>
+									<dd><br>
+										<a href="#delete-record-by-primary-index" id="delete-record-by-primary-index" style="color: inherit; text-decoration: none;">
+											<h2>Delete record by primary index</h2>
+										</a>
+										<pre><code>storage.remove('id', 'value-of-id');</code></pre>
+										<a href="#delete-record-by-secondary-index" id="delete-record-by-secondary-index" style="color: inherit; text-decoration: none;">
+											<h2>Delete record by secondary index</h2>
+										</a>
+										<pre><code>// removes record having `fullName` equal to 'John', and `age` equal to 18
+storage.remove('fullName', 'John', record => record.age === 18);
+</code></pre>
+								</dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>indexName: <a href="../modules/typings.html#indexname" class="tsd-signature-type">IndexName</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the index.</p>
+									</div>
+								</li>
+								<li>
+									<h5>indexValue: <a href="../modules/typings.html#indexvalue" class="tsd-signature-type">IndexValue</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that index.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> predicate: <span class="tsd-signature-type">UnaryPredicate</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Predicate used for record filtering. <br>
+										When <code>indexName</code> is the primary one, this parameter is optional.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Optional</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">IndexedRecord</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Removed document, if found.</p>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.indexed-store&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.indexed-store&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.indexed-store&quot;}],&quot;outline&quot;:[{&quot;Store&quot;:&quot;store&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Typings&quot;:&quot;typings&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="store.indexedstore.html" class="tsd-kind-icon">Indexed<wbr>Store</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="store.indexedstore.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-get-signature tsd-parent-kind-class">
+								<a href="store.indexedstore.html#indexes" class="tsd-kind-icon">indexes</a>
+							</li>
+							<li class=" tsd-kind-get-signature tsd-parent-kind-class">
+								<a href="store.indexedstore.html#size" class="tsd-kind-icon">size</a>
+							</li>
+							<li class=" tsd-kind-get-signature tsd-parent-kind-class">
+								<a href="store.indexedstore.html#values" class="tsd-kind-icon">values</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#_symbol_iterator_" class="tsd-kind-icon">[<wbr>Symbol.iterator]</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#clear" class="tsd-kind-icon">clear</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#contains" class="tsd-kind-icon">contains</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#containsindex" class="tsd-kind-icon">contains<wbr>Index</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#createindexes" class="tsd-kind-icon">create<wbr>Indexes</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#dropindex" class="tsd-kind-icon">drop<wbr>Index</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#dropindexes" class="tsd-kind-icon">drop<wbr>Indexes</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#filter" class="tsd-kind-icon">filter</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#find" class="tsd-kind-icon">find</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#getindexrecordscount" class="tsd-kind-icon">get<wbr>Index<wbr>Records<wbr>Count</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#insert" class="tsd-kind-icon">insert</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="store.indexedstore.html#map" class="tsd-kind-icon">map</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#read" class="tsd-kind-icon">read</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#readindex" class="tsd-kind-icon">read<wbr>Index</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#reindex" class="tsd-kind-icon">reindex</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="store.indexedstore.html#remove" class="tsd-kind-icon">remove</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../interfaces/store.indexedstoreoptions.html" class="tsd-kind-icon">Indexed<wbr>Store<wbr>Options</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

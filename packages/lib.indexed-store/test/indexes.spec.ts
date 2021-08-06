@@ -1,10 +1,9 @@
 import { string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { describe, it } from 'mocha';
 import dotprop from 'dot-prop';
-import { ErrorCodes } from '../lib/error';
-import { IndexedStore, IndexName, IndexValue, PK_INDEX_NAME } from '../lib';
+import { ErrorCodes, IndexedStore, IndexName, IndexValue, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';
 
 describe('index spec', () => {
@@ -36,7 +35,7 @@ describe('index spec', () => {
 
 			expect(() => storage.createIndexes(indexes))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.EXISTS);
+				.haveOwnProperty('code', ErrorCodes.INDEX_EXISTS);
 		});
 
 		it('does not allow primary index redefinition', () => {
@@ -45,7 +44,7 @@ describe('index spec', () => {
 
 			expect(() => storage.createIndexes([PK_INDEX_NAME]))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.EXISTS);
+				.haveOwnProperty('code', ErrorCodes.INDEX_EXISTS);
 
 			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
 		});
@@ -165,7 +164,7 @@ describe('index spec', () => {
 			const store = new IndexedStore<Person>();
 			expect(() => store.dropIndex(PK_INDEX_NAME))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.NOT_ALLOWED);
+				.haveOwnProperty('code', ErrorCodes.DROPPING_OF_PRIMARY_INDEX_NOT_ALLOWED);
 		});
 
 		it('drops existing index', () => {
@@ -311,7 +310,7 @@ describe('index spec', () => {
 			const storage = new IndexedStore<Person>();
 			expect(() => storage.readIndex(string.random()))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+				.haveOwnProperty('code', ErrorCodes.INDEX_NOT_FOUND);
 		});
 	});
 });

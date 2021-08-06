@@ -1,11 +1,10 @@
 import { describe, it } from 'mocha';
-import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import dotprop from 'dot-prop';
 import { Exception } from '@thermopylae/lib.exception';
 import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { object, string } from '@thermopylae/lib.utils';
-import { ErrorCodes } from '../lib/error';
-import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
+import { ErrorCodes, IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
 import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
 
 describe(`${IndexedStore.prototype.remove.name} spec`, () => {
@@ -41,7 +40,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 
 		expect(() => store.remove(PersonIndexes.I_BIRTH_YEAR, unIndexedVal, predicate))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID);
+			.haveOwnProperty('code', ErrorCodes.NULLABLE_INDEX_VALUE_NOT_ALLOWED);
 		expect(store.size).to.be.eq(originalSize);
 	});
 
@@ -160,7 +159,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		const store = new IndexedStore<Person>({ indexes });
 
 		const throwable = () => store.remove(PersonIndexes.I_BIRTH_YEAR, string.random({ length: 5 }));
-		expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.REQUIRED);
+		expect(throwable).to.throw(Exception).haveOwnProperty('code', ErrorCodes.PREDICATE_REQUIRED);
 	});
 
 	it('should remove record that was not indexed for one of the indexes', () => {

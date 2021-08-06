@@ -1,12 +1,11 @@
 import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { number, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 import dotprop from 'dot-prop';
 // @ts-ignore
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
-import { ErrorCodes } from '../lib/error';
+import { IndexedStore, IndexValue, PK_INDEX_NAME, ErrorCodes } from '../lib';
 import { expect, PersonsRepo } from './utils';
 
 describe(`${IndexedStore.prototype.read.name} spec`, () => {
@@ -60,13 +59,13 @@ describe(`${IndexedStore.prototype.read.name} spec`, () => {
 		expect(storage.read(PK_INDEX_NAME, person.id)).to.be.equalTo([person]);
 		expect(() => storage.read(PK_INDEX_NAME, person.birthYear))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.INVALID);
+			.haveOwnProperty('code', ErrorCodes.NULLABLE_INDEX_VALUE_NOT_ALLOWED);
 	});
 
 	it('fails to read from invalid index', () => {
 		const storage = new IndexedStore<Person>();
 		expect(() => storage.read(string.random(), string.random()))
 			.to.throw(Exception)
-			.haveOwnProperty('code', ErrorCodes.NOT_FOUND);
+			.haveOwnProperty('code', ErrorCodes.INDEX_NOT_FOUND);
 	});
 });

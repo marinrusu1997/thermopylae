@@ -18,7 +18,7 @@ interface IndexedStoreOptions<RecordType> {
  * Records ar stored in a multilevel map, with the following structure: <br>
  * <pre><code>
  *     PrimaryIndexName 	--> IndexValue --> [document]
- *     		  		   		--> IndexValue --> [document]
+ *     					--> IndexValue --> [document]
  *     SecondaryIndexName   --> IndexValue --> [document, document]
  * </code></pre>
  * Indexed properties are allowed to be nullable (i.e. have `null` or `undefined` as their values). <br>
@@ -53,7 +53,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 		for (const record of records) {
 			if (this.indexRepo.get(PK_INDEX_NAME)!.has(record.id)) {
-				throw createException(ErrorCodes.EXISTS, `Record with primary key '${record.id}' has been added already.`);
+				throw createException(ErrorCodes.RECORD_EXISTS, `Record with primary key '${record.id}' has been added already.`);
 			}
 
 			IndexedStore.assertRecordIndexes(record, indexes);
@@ -71,7 +71,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	 * @param indexName		Name of the index.
 	 * @param indexValue	Value of that index.
 	 *
-	 * @returns		List of documents having `indexName` equal to `indexValue`.
+	 * @returns				List of documents having `indexName` equal to `indexValue`.
 	 */
 	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): Array<IndexedRecord> {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -84,7 +84,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	 *
 	 * @param indexName		Name of the index.
 	 *
-	 * @returns		The internal index for `indexName`.
+	 * @returns				The internal index for `indexName`.
 	 */
 	public readIndex(indexName: IndexName<IndexedRecord>): Index<IndexedRecord> {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -111,7 +111,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	/**
-	 * Remove record that match search criteria from storage. <br>
+	 * Remove from storage record that match search criteria. <br>
 	 * Search criteria is expressed as name of the index, it's value, and an optional predicate for filtering records from that index. <br>
 	 * Notice that only the first record that matched the predicate will be removed. <br>
 	 *
@@ -132,14 +132,17 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	 * @param predicate		Predicate used for record filtering. <br>
 	 * 						When `indexName` is the primary one, this parameter is optional.
 	 *
-	 * @returns		Removed document, if found.
+	 * @returns				Removed document, if found.
 	 */
 	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
 		indexValue = IndexedStore.assertNonNullableIndexValue(indexName, indexValue);
 
 		if (indexName !== PK_INDEX_NAME) {
 			if (predicate == null) {
-				throw createException(ErrorCodes.REQUIRED, `Predicate is required when removing from index ${indexName}`);
+				throw createException(
+					ErrorCodes.PREDICATE_REQUIRED,
+					`Predicate is required when removing from index '${indexName}', which is a non primary one.`
+				);
 			}
 		} else {
 			predicate = (record: IndexedRecord) => record[PK_INDEX_NAME] === indexValue;
@@ -167,9 +170,44 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	/**
 	 * Reindex document after it's `indexName` property has been changed. <br>
-	 * This method does not actually set the new value of `indexName` to record, this responsibility being assigned to caller. <br>
+	 * This method will also set the new value of `indexName` to record. <br>
 	 * Caller needs to call this method everytime value for one of the indexed properties changes. <br>
-	 * Notice that primary key should remain immutable, it's change is forbidden.
+	 * Notice that primary key should remain immutable, it's change is forbidden. <br/>
+	 *
+	 * @example <br>
+	 *
+	 * **Index record that wasn't indexed before**
+	 * ------------------------------------------------
+	 * <pre><code>// insert a record that wasn't indexed by 'birthYear', because it was null
+	 * const record = { id: 1, birthYear: null };
+	 * storage.insert([record]);
+	 *
+	 * // (re)index it by birth year
+	 * storage.reindex('birthYear', record.birthYear, 1997, record.id);
+	 * console.log(record.birthYear) // 1997
+	 * </code></pre>
+	 *
+	 * **Reindex record that was indexed before**
+	 * ___________________
+	 * <pre><code>// insert a record that is indexed by 'birthYear'
+	 * const record = { id: 1, birthYear: 2000 };
+	 * storage.insert([record]);
+	 *
+	 * // reindex it by birth year
+	 * storage.reindex('birthYear', record.birthYear, 1997, record.id);
+	 * console.log(record.birthYear) // 1997
+	 * </code></pre>
+	 *
+	 * **De-index record that was indexed before**
+	 * ___________________
+	 * <pre><code>// insert a record that is indexed by 'birthYear'
+	 * const record = { id: 1, birthYear: 2000 };
+	 * storage.insert([record]);
+	 *
+	 * // de-index it by birth year
+	 * storage.reindex('birthYear', record.birthYear, null, record.id);
+	 * console.log(record.birthYear) // null
+	 * </code></pre>
 	 *
 	 * @param indexName		Name of the index.
 	 * @param oldValue		Old value of the index. It is used for record retrieval.
@@ -178,11 +216,11 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	 */
 	public reindex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, matcher: UnaryPredicate<IndexedRecord> | IndexValue): void {
 		if (indexName === PK_INDEX_NAME) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Can't reindex primary index '${indexName}' value.`);
+			throw createException(ErrorCodes.REINDEX_OF_PRIMARY_KEY_NOT_ALLOWED, `Can't reindex primary index '${indexName}' value.`);
 		}
 
 		if (oldValue === newValue) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `New and old values for index '${indexName}' are the same: ${JSON.stringify(oldValue)}.`);
+			throw createException(ErrorCodes.REINDEXING_SAME_VALUE, `New and old values for index '${indexName}' are the same: ${JSON.stringify(oldValue)}.`);
 		}
 
 		if (oldValue == null) {
@@ -191,8 +229,8 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 				if (matcher instanceof Function) {
 					throw createException(
-						ErrorCodes.REQUIRED,
-						`Matcher needs to be primary key index when indexing record that was not indexed before. Context: index '${indexName}', new value '${JSON.stringify(
+						ErrorCodes.PRIMARY_KEY_VALUE_REQUIRED,
+						`Matcher needs to be primary key value when indexing record that was not indexed before. Context: index '${indexName}', new value '${JSON.stringify(
 							newValue
 						)}'.`
 					);
@@ -202,10 +240,11 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 				const record = primaryIndex.get(matcher);
 				if (record == null || record.length !== 1) {
-					throw createException(ErrorCodes.NOT_FOUND, `No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
+					throw createException(ErrorCodes.RECORD_NOT_FOUND, `No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
 				}
 
-				IndexedStore.assertIndexValue(indexName, newValue, record[0]);
+				dotprop.set(record[0], indexName, IndexedStore.assertIndexValue(indexName, newValue, record[0]));
+
 				const storageIndex = this.readIndex(indexName);
 				IndexedStore.indexRecordBy(record[0], newValue, storageIndex);
 			}
@@ -218,7 +257,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			const removed = IndexedStore.removeRecord(records, predicate);
 			if (removed == null) {
 				throw createException(
-					ErrorCodes.NOT_FOUND,
+					ErrorCodes.RECORD_NOT_FOUND,
 					`Failed to de-index record from index '${indexName}' with value '${oldValue}', because it wasn't found.`
 				);
 			}
@@ -226,9 +265,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			if (newValue != null) {
 				// update
 
-				IndexedStore.assertIndexValue(indexName, newValue, removed);
+				dotprop.set(removed, indexName, IndexedStore.assertIndexValue(indexName, newValue, removed));
+
 				const storageIndex = this.readIndex(indexName);
 				IndexedStore.indexRecordBy(removed, newValue, storageIndex);
+			} else {
+				dotprop.set(removed, indexName, newValue);
 			}
 		}
 	}
@@ -276,7 +318,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	 */
 	public dropIndex(indexName: IndexName<IndexedRecord>): boolean {
 		if (indexName === PK_INDEX_NAME) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Primary index '${indexName}' can't be dropped.`);
+			throw createException(ErrorCodes.DROPPING_OF_PRIMARY_INDEX_NOT_ALLOWED, `Primary index '${indexName}' can't be dropped.`);
 		}
 		return this.indexRepo.delete(indexName);
 	}
@@ -476,7 +518,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		let i = indexNames.length;
 		while (i--) {
 			if (indexes.has(indexNames[i])) {
-				throw createException(ErrorCodes.EXISTS, `Index '${String(indexNames[i])} has been redefined already.`);
+				throw createException(ErrorCodes.INDEX_EXISTS, `Index '${String(indexNames[i])} has been redefined already.`);
 			}
 			indexes.set(indexNames[i], new Map<IndexValue, Array<R>>());
 		}
@@ -484,14 +526,14 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 
 	private static assertIndex<R>(indexName: IndexName<R>, index?: Index<R>): Index<R> | never {
 		if (index == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Property '${indexName}' is not indexed.`);
+			throw createException(ErrorCodes.INDEX_NOT_FOUND, `Property '${indexName}' is not indexed.`);
 		}
 		return index;
 	}
 
 	private static assertRecordIndexes<R>(record: R, indexes: ReadonlyArray<IndexName<R>>): R | never {
 		for (const indexName of indexes) {
-			IndexedStore.assertIndexValue(indexName, dotprop.get((record as unknown) as ObjMap, indexName), record);
+			IndexedStore.assertIndexValue(indexName, dotprop.get(record as unknown as ObjMap, indexName), record);
 		}
 		return record;
 	}
@@ -499,7 +541,10 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	private static assertIndexValue<R>(indexName: IndexName<R>, value: IndexValue, record: R): IndexValue | never {
 		if (value == null) {
 			if (indexName === PK_INDEX_NAME) {
-				throw createException(ErrorCodes.NOT_ALLOWED, `Can't index record '${JSON.stringify(record)}' which has a nullable primary key.`);
+				throw createException(
+					ErrorCodes.NULLABLE_PRIMARY_KEY_CANNOT_BE_INDEXED,
+					`Can't index record '${JSON.stringify(record)}' which has a nullable primary key.`
+				);
 			}
 			return value; // null values for other indexes are valid
 		}
@@ -510,7 +555,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				return value;
 			default:
 				throw createException(
-					ErrorCodes.INVALID,
+					ErrorCodes.INDEX_PROPERTY_INVALID_TYPE,
 					`Index property '${String(indexName)}' is allowed to have a 'string' or 'number' value. Given: ${JSON.stringify(value)}`
 				);
 		}
@@ -519,7 +564,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	private static assertNonNullableIndexValue<R>(indexName: IndexName<R>, indexValue: IndexValue): NonNullable<IndexValue> | never {
 		if (indexValue == null) {
 			throw createException(
-				ErrorCodes.INVALID,
+				ErrorCodes.NULLABLE_INDEX_VALUE_NOT_ALLOWED,
 				`Nullable index value is not allowed in current context for index name '${indexName}'. Given: ${indexValue}`
 			);
 		}

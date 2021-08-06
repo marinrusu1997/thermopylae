@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { object, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 // @ts-ignore

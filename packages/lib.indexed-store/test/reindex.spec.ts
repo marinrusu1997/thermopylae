@@ -1,10 +1,9 @@
 import { describe, it } from 'mocha';
-import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test/dist/fixtures/person';
+import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { number, object, string } from '@thermopylae/lib.utils';
 import dotprop from 'dot-prop';
 import { Exception } from '@thermopylae/lib.exception';
-import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
-import { ErrorCodes } from '../lib/error';
+import { IndexedStore, IndexValue, PK_INDEX_NAME, ErrorCodes } from '../lib';
 import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
 
 describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
@@ -79,6 +78,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const newVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 
 		store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PK_INDEX_NAME]);
+		expect(dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newVal);
 		expect(store.size).to.be.eq(originalSize);
 
 		const indexedRecords = store.read(PersonIndexes.I_BIRTH_YEAR, newVal);
@@ -98,7 +98,7 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 		expect(reindex).to.throw(
-			`Matcher needs to be primary key index when indexing record that was not indexed before. Context: index '${
+			`Matcher needs to be primary key value when indexing record that was not indexed before. Context: index '${
 				PersonIndexes.I_BIRTH_YEAR
 			}', new value '${JSON.stringify(newVal)}'.`
 		);
@@ -141,13 +141,10 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const newBirthYear = number.randomInt(2010, 2020);
 		store.reindex(PersonIndexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PK_INDEX_NAME]);
 
-		// it not touched record, just reindex it
-		expect(originalCandidate).to.be.deep.eq(candidate);
-		expect(candidate.birthYear).to.not.be.eq(newBirthYear);
+		expect(originalCandidate).to.not.be.deep.eq(candidate);
+		expect(dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newBirthYear);
 
 		/** AFTER REINDEX */
-		candidate.birthYear = newBirthYear;
-
 		expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 		expect(birthYearIndex.get(newBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
@@ -180,10 +177,8 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 			expect(store.read(indexName, newValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 
 			store.reindex(indexName, oldValue, newValue, predicate);
-			expect(candidate).to.be.deep.eq(originalCandidate); // it didn't touched record
-			expect(dotprop.get(candidate, indexName)).to.not.be.deep.eq(newValue); // and not updated value
-
-			dotprop.set(candidate, indexName, newValue); // update the record
+			expect(candidate).to.not.be.deep.eq(originalCandidate);
+			expect(dotprop.get(candidate, indexName)).to.be.deep.eq(newValue); // it updated value
 
 			expect(store.read(indexName, oldValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX); // de-indexed
 			expect(store.read(indexName, newValue).findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX); // indexed under new value
@@ -210,17 +205,14 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 			store.reindex(indexName, oldIndexValue, newIndexValue, predicate);
 			expect(store.size).to.be.eq(originalSize); // nothing changed in records no
 
-			// record remained untouched
-			expect(candidate).to.be.deep.eq(originalCandidate);
-			expect(dotprop.get(candidate, indexName)).to.not.be.deep.eq(newIndexValue); // and not updated value
-
-			dotprop.set(candidate, indexName, newIndexValue); // update the record
+			expect(candidate).to.not.be.deep.eq(originalCandidate);
+			expect(dotprop.get(candidate, indexName)).to.be.deep.eq(newIndexValue); // it updated value
 
 			// record was de-indexed
 			expect(store.read(indexName, oldIndexValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 			expect(() => store.read(indexName, newIndexValue).find(predicate))
 				.to.throw(Exception)
-				.haveOwnProperty('code', ErrorCodes.INVALID);
+				.haveOwnProperty('code', ErrorCodes.NULLABLE_INDEX_VALUE_NOT_ALLOWED);
 		}
 	});
 });

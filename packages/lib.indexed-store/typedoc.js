@@ -1,1 +1,16 @@
-module.exports = require('@thermopylae/dev.environment').configs.typedoc;
+const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
+
+typedoc.outline = [
+    {
+        "Store": "store",
+        "Error": "error",
+        "Typings": "typings"
+    }
+];
+
+typedoc.links = [{
+    "label": "Github",
+    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.indexed-store"
+}];
+
+module.exports = typedoc;
