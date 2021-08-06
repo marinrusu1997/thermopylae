@@ -8,7 +8,7 @@ import { createException, ErrorCodes } from './error';
 import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields, PK_INDEX_NAME } from './typings';
 
 /**
- * @internal
+ * @private
  */
 class Processor<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
@@ -20,7 +20,6 @@ class Processor<Document extends DocumentContract<Document>> {
 		this.skipQueryValidation = validateQueries == null ? false : !validateQueries;
 	}
 
-	// FIXME mention about index renaming: delete + set
 	public update(matches: Array<Document>, update: ObjMap): void {
 		const { indexes } = this.storage; // they are expensive to compute
 
@@ -69,7 +68,7 @@ class Processor<Document extends DocumentContract<Document>> {
 
 		const fields = Object.keys(sortFields);
 		if (fields.length === 0) {
-			throw createException(ErrorCodes.REQUIRED, 'At leas one sorting field needs to be present. Found: 0.');
+			throw createException(ErrorCodes.SORTING_FIELD_REQUIRED, 'At leas one sorting field needs to be present. Found: 0.');
 		}
 
 		return orderBy(matches, Object.keys(sortFields), Object.values(sortFields));
@@ -92,7 +91,7 @@ class Processor<Document extends DocumentContract<Document>> {
 				}
 				break;
 			default:
-				throw createException(ErrorCodes.UNKNOWN, `Projection type '${projection.type} can't be handled.`);
+				throw createException(ErrorCodes.UNKNOWN_PROJECTION_TYPE, `Projection type '${projection.type} can't be handled.`);
 		}
 		return documentClone;
 	}

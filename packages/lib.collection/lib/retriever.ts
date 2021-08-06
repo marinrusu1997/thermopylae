@@ -1,4 +1,4 @@
-import { ErrorCodes, Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
+import { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
 import { IndexedStore } from '@thermopylae/lib.indexed-store';
 import isObject from 'isobject';
 // @ts-ignore
@@ -6,10 +6,10 @@ import { createQuery } from 'common-query';
 import dotProp from 'dot-prop';
 import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators, PK_INDEX_NAME } from './typings';
 import { Processor } from './processor';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 
 /**
- * @internal
+ * @private
  */
 class Retriever<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
@@ -94,7 +94,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 
 					if (operators.length === 1) {
 						if (operators[0][0] === '$eq') {
-							throw createException(ErrorCodes.INVALID, "Operator '$eq' is not supported. Specify value directly.");
+							throw createException(ErrorCodes.OPERATOR_NOT_SUPPORTED, "Operator '$eq' is not supported. Specify value directly.");
 						}
 
 						if (operators[0][0] === QueryOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {

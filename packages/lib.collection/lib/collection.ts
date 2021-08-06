@@ -456,7 +456,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
 				AjvLocalizeEn(validator.errors as null); // dumb ajv typings
-				throw createException(ErrorCodes.INVALID, validator.errorsText(validator.errors, { separator: '\n' }), document);
+				throw createException(ErrorCodes.DOCUMENT_NOT_VALID_AGAINST_JSON_SCHEMA, validator.errorsText(validator.errors, { separator: '\n' }), document);
 			}
 		}
 	}
