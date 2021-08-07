@@ -36,7 +36,7 @@ function stagePackageJson(done) {
     }
 
     const pkg = JSON.parse(content);
-    if (pkg.exports == null) {
+    if (typeof pkg.main === 'string' && pkg.exports == null) {
       pkg.exports = pkg.main.startsWith('./') ? pkg.main : `./${pkg.main}`;
     }
 

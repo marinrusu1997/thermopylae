@@ -15,6 +15,6 @@ type ReadUserSessionHook<
 	Device extends DeviceBase,
 	Location,
 	MetaData extends UserSessionMetaData<Device, Location> = UserSessionMetaData<Device, Location>
-> = (subject: string, sessionId: SessionId, context: UserSessionOperationContext<Device, Location>, sessionMetaData: Readonly<MetaData>) => void;
+> = (subject: string, sessionId: SessionId, context: UserSessionOperationContext<Device, Location>, sessionMetaData: Readonly<MetaData>) => void | never;
 
 export { ReadUserSessionHook };

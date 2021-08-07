@@ -23,6 +23,8 @@ declare interface UserSessionStorage<
 	 * @param sessionId		Session id.
 	 * @param metaData		Session meta data.
 	 * @param ttl			Session ttl (in seconds).
+	 *
+	 * @throws {Error}		When session can't be inserted.
 	 */
 	insert(subject: Subject, sessionId: SessionId, metaData: MetaData, ttl: Seconds): Promise<void>;
 
@@ -34,9 +36,9 @@ declare interface UserSessionStorage<
 	 * 						Storage should treat `sessionId` as untrusted and
 	 * 						perform SQLi and XSS validations before query meta data.
 	 *
-	 * @returns				User session meta data or *undefined* if not found.
+	 * @returns				User session meta data or *null* / *undefined* if not found.
 	 */
-	read(subject: Subject, sessionId: SessionId): Promise<MetaData | undefined>;
+	read(subject: Subject, sessionId: SessionId): Promise<MetaData | null | undefined>;
 
 	/**
 	 * Read all of the **active** user sessions for `subject`.
