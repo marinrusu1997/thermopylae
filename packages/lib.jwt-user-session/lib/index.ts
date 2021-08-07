@@ -1,5 +1,6 @@
 export { JsonWebTokenError, NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
 export { JwtUserSessionManager, JwtUserSessionManagerEvent } from './manager';
+export { ErrorCodes } from './error';
 
 export type { JwtUserSessionManagerOptions, JwtSignOptions, JwtVerifyOptions, SessionTokens } from './manager';
 export type { JwtPayload, IssuedJwtPayload } from './declarations';

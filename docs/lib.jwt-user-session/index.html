@@ -1,0 +1,320 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>@thermopylae/lib.jwt-user-session</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+	<script async src="assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="index.html" class="title">@thermopylae/lib.jwt-user-session</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.jwt-user-session" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;Declarations&quot;:&quot;declarations&quot;,&quot;Invalidation&quot;:&quot;invalidation&quot;,&quot;SessionManager&quot;:&quot;manager&quot;,&quot;Cache&quot;:&quot;cache&quot;,&quot;Error&quot;:&quot;error&quot;}
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>@thermopylae/lib.jwt-user-session</h1>
+			<div class="tsd-panel tsd-typography">
+				<h1 align="center">@thermopylae/lib.jwt-user-session</h1>
+				<p>
+					<img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+					<img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
+					<a href="https://marinrusu1997.github.io/thermopylae/lib.jwt-user-session/index.html" target="_blank">
+						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
+					</a>
+					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
+						<img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+					</a>
+				</p>
+				<blockquote>
+					<p>Stateless user session implementation based on JsonWebTokens.</p>
+				</blockquote>
+				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
+					<h2>Install</h2>
+				</a>
+				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/lib.jwt-user-session</span>
+</code></pre>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<p>This is a simple example of how this package can be used. <br/></p>
+				<p>First, you need to implement storage for user sessions. In this example we will build
+				an in-memory storage, although it&#39;s recommended to implement a persistent storage (e.g. by using Redis).</p>
+				<pre><code class="language-typescript"><span style="color: #008000">// storage.ts</span>
+
+<span style="color: #AF00DB">import</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #001080">PolicyBasedCache</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">AbsoluteExpirationPolicyArgumentsBundle</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">BucketGarbageCollector</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">EsMapCacheBackend</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">ProactiveExpirationPolicy</span><span style="color: #000000">,</span>
+<span style="color: #000000">    </span><span style="color: #001080">CacheEvent</span>
+<span style="color: #000000">} </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.cache&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">Seconds</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">DeviceBase</span><span style="color: #000000">, </span><span style="color: #001080">UserSessionMetaData</span><span style="color: #000000">, </span><span style="color: #001080">UserSessionStorage</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.user-session.commons&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">class</span><span style="color: #000000"> </span><span style="color: #267F99">InMemoryRefreshTokensStorage</span><span style="color: #000000"> </span><span style="color: #0000FF">implements</span><span style="color: #000000"> </span><span style="color: #267F99">UserSessionStorage</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">private</span><span style="color: #000000"> </span><span style="color: #0000FF">readonly</span><span style="color: #000000"> </span><span style="color: #001080">cache</span><span style="color: #000000">: </span><span style="color: #267F99">PolicyBasedCache</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt;, </span><span style="color: #267F99">AbsoluteExpirationPolicyArgumentsBundle</span><span style="color: #000000">&gt;;</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">private</span><span style="color: #000000"> </span><span style="color: #0000FF">readonly</span><span style="color: #000000"> </span><span style="color: #001080">userSessions</span><span style="color: #000000">: </span><span style="color: #267F99">Map</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">Set</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">&gt;&gt;;</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">constructor</span><span style="color: #000000">() {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">backend</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">EsMapCacheBackend</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt;&gt;();</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">policies</span><span style="color: #000000"> = [</span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ProactiveExpirationPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt;&gt;(</span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">BucketGarbageCollector</span><span style="color: #000000">())];</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">PolicyBasedCache</span><span style="color: #000000">(</span><span style="color: #001080">backend</span><span style="color: #000000">, </span><span style="color: #001080">policies</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Map</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">Set</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">&gt;&gt;();</span>
+
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">on</span><span style="color: #000000">(</span><span style="color: #001080">CacheEvent</span><span style="color: #000000">.</span><span style="color: #0070C1">DELETE</span><span style="color: #000000">, (</span><span style="color: #001080">key</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #0000FF">const</span><span style="color: #000000"> [</span><span style="color: #0070C1">user</span><span style="color: #000000">, </span><span style="color: #0070C1">token</span><span style="color: #000000">] = </span><span style="color: #001080">key</span><span style="color: #000000">.</span><span style="color: #795E26">split</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;@&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">            </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sessions</span><span style="color: #000000"> = </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">user</span><span style="color: #000000">)!;</span>
+
+<span style="color: #000000">            </span><span style="color: #001080">sessions</span><span style="color: #000000">.</span><span style="color: #795E26">delete</span><span style="color: #000000">(</span><span style="color: #001080">token</span><span style="color: #000000">);</span>
+<span style="color: #000000">            </span><span style="color: #AF00DB">if</span><span style="color: #000000"> (</span><span style="color: #001080">sessions</span><span style="color: #000000">.</span><span style="color: #001080">size</span><span style="color: #000000"> === </span><span style="color: #098658">0</span><span style="color: #000000">) {</span>
+<span style="color: #000000">                </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">delete</span><span style="color: #000000">(</span><span style="color: #001080">user</span><span style="color: #000000">);</span>
+<span style="color: #000000">            }</span>
+<span style="color: #000000">        });</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #795E26">insert</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">refreshToken</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">metaData</span><span style="color: #000000">: </span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt;, </span><span style="color: #001080">ttl</span><span style="color: #000000">: </span><span style="color: #267F99">Seconds</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">void</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">let</span><span style="color: #000000"> </span><span style="color: #001080">sessions</span><span style="color: #000000"> = </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">);</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">if</span><span style="color: #000000"> (</span><span style="color: #001080">sessions</span><span style="color: #000000"> == </span><span style="color: #0000FF">null</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #001080">sessions</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">&gt;();</span>
+<span style="color: #000000">            </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">, </span><span style="color: #001080">sessions</span><span style="color: #000000">);</span>
+<span style="color: #000000">        }</span>
+
+<span style="color: #000000">        </span><span style="color: #001080">sessions</span><span style="color: #000000">.</span><span style="color: #795E26">add</span><span style="color: #000000">(</span><span style="color: #001080">refreshToken</span><span style="color: #000000">);</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #A31515">`</span><span style="color: #0000FF">${</span><span style="color: #001080">subject</span><span style="color: #0000FF">}</span><span style="color: #A31515">@</span><span style="color: #0000FF">${</span><span style="color: #001080">refreshToken</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">, </span><span style="color: #001080">metaData</span><span style="color: #000000">, { </span><span style="color: #001080">expiresAfter:</span><span style="color: #000000"> </span><span style="color: #001080">ttl</span><span style="color: #000000"> });</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #795E26">read</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">refreshToken</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt; | </span><span style="color: #267F99">undefined</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #A31515">`</span><span style="color: #0000FF">${</span><span style="color: #001080">subject</span><span style="color: #0000FF">}</span><span style="color: #A31515">@</span><span style="color: #0000FF">${</span><span style="color: #001080">refreshToken</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">);</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #795E26">readAll</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">ReadonlyMap</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UserSessionMetaData</span><span style="color: #000000">&lt;</span><span style="color: #267F99">DeviceBase</span><span style="color: #000000">, </span><span style="color: #267F99">string</span><span style="color: #000000">&gt;&gt;&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">refreshTokenToSession</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Map</span><span style="color: #000000">();</span>
+
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sessions</span><span style="color: #000000"> = </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">);</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">if</span><span style="color: #000000"> (</span><span style="color: #001080">sessions</span><span style="color: #000000"> == </span><span style="color: #0000FF">null</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">refreshTokenToSession</span><span style="color: #000000">;</span>
+<span style="color: #000000">        }</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">for</span><span style="color: #000000"> (</span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">refreshToken</span><span style="color: #000000"> </span><span style="color: #0000FF">of</span><span style="color: #000000"> </span><span style="color: #001080">sessions</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #001080">refreshTokenToSession</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #001080">refreshToken</span><span style="color: #000000">, </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #A31515">`</span><span style="color: #0000FF">${</span><span style="color: #001080">subject</span><span style="color: #0000FF">}</span><span style="color: #A31515">@</span><span style="color: #0000FF">${</span><span style="color: #001080">refreshToken</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">)!);</span>
+<span style="color: #000000">        }</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">refreshTokenToSession</span><span style="color: #000000">;</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #795E26">delete</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">refreshToken</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">void</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">del</span><span style="color: #000000">(</span><span style="color: #A31515">`</span><span style="color: #0000FF">${</span><span style="color: #001080">subject</span><span style="color: #0000FF">}</span><span style="color: #A31515">@</span><span style="color: #0000FF">${</span><span style="color: #001080">refreshToken</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">);</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #795E26">deleteAll</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">number</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sessions</span><span style="color: #000000"> = </span><span style="color: #267F99">Array</span><span style="color: #000000">.</span><span style="color: #795E26">from</span><span style="color: #000000">(</span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">userSessions</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">subject</span><span style="color: #000000">) || </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">());</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">for</span><span style="color: #000000"> (</span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">session</span><span style="color: #000000"> </span><span style="color: #0000FF">of</span><span style="color: #000000"> </span><span style="color: #001080">sessions</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">del</span><span style="color: #000000">(</span><span style="color: #A31515">`</span><span style="color: #0000FF">${</span><span style="color: #001080">subject</span><span style="color: #0000FF">}</span><span style="color: #A31515">@</span><span style="color: #0000FF">${</span><span style="color: #001080">session</span><span style="color: #0000FF">}</span><span style="color: #A31515">`</span><span style="color: #000000">);</span>
+<span style="color: #000000">        }</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #001080">sessions</span><span style="color: #000000">.</span><span style="color: #001080">length</span><span style="color: #000000">;</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #AF00DB">export</span><span style="color: #000000"> { </span><span style="color: #001080">InMemoryRefreshTokensStorage</span><span style="color: #000000"> };</span>
+</code></pre>
+				<p>Next, we need to implement cache where access tokens that were forcibly invalidated
+				have to be stored.</p>
+				<pre><code class="language-typescript"><span style="color: #008000">// cache.ts</span>
+
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">AbsoluteExpirationPolicyArgumentsBundle</span><span style="color: #000000">, </span><span style="color: #001080">EsMapCacheBackend</span><span style="color: #000000">, </span><span style="color: #001080">PolicyBasedCache</span><span style="color: #000000">, </span><span style="color: #001080">ProactiveExpirationPolicy</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.cache&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">Seconds</span><span style="color: #000000">, </span><span style="color: #001080">UnixTimestamp</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> </span><span style="color: #AF00DB">type</span><span style="color: #000000"> { </span><span style="color: #001080">InvalidAccessTokensCache</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.jwt-user-session&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #0000FF">class</span><span style="color: #000000"> </span><span style="color: #267F99">InMemoryInvalidAccessTokensCache</span><span style="color: #000000"> </span><span style="color: #0000FF">implements</span><span style="color: #000000"> </span><span style="color: #267F99">InvalidAccessTokensCache</span><span style="color: #000000"> {</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">private</span><span style="color: #000000"> </span><span style="color: #0000FF">readonly</span><span style="color: #000000"> </span><span style="color: #001080">cache</span><span style="color: #000000">: </span><span style="color: #267F99">PolicyBasedCache</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UnixTimestamp</span><span style="color: #000000"> | </span><span style="color: #267F99">null</span><span style="color: #000000">, </span><span style="color: #267F99">AbsoluteExpirationPolicyArgumentsBundle</span><span style="color: #000000">&gt;;</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #0000FF">constructor</span><span style="color: #000000">() {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">backend</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">EsMapCacheBackend</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UnixTimestamp</span><span style="color: #000000"> | </span><span style="color: #267F99">null</span><span style="color: #000000">&gt;();</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">policies</span><span style="color: #000000"> = [</span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">ProactiveExpirationPolicy</span><span style="color: #000000">&lt;</span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #267F99">UnixTimestamp</span><span style="color: #000000"> | </span><span style="color: #267F99">null</span><span style="color: #000000">&gt;()];</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">PolicyBasedCache</span><span style="color: #000000">(</span><span style="color: #001080">backend</span><span style="color: #000000">, </span><span style="color: #001080">policies</span><span style="color: #000000">);</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">UnixTimestamp</span><span style="color: #000000"> | </span><span style="color: #267F99">null</span><span style="color: #000000"> | </span><span style="color: #267F99">undefined</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">get</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">);</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #795E26">has</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">): </span><span style="color: #267F99">boolean</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #AF00DB">return</span><span style="color: #000000"> </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">has</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">);</span>
+<span style="color: #000000">    }</span>
+
+<span style="color: #000000">    </span><span style="color: #0000FF">public</span><span style="color: #000000"> </span><span style="color: #795E26">upset</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">: </span><span style="color: #267F99">string</span><span style="color: #000000">, </span><span style="color: #001080">invalidatedAt</span><span style="color: #000000">: </span><span style="color: #267F99">UnixTimestamp</span><span style="color: #000000"> | </span><span style="color: #267F99">null</span><span style="color: #000000">, </span><span style="color: #001080">ttl</span><span style="color: #000000">: </span><span style="color: #267F99">Seconds</span><span style="color: #000000">): </span><span style="color: #267F99">void</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">this</span><span style="color: #000000">.</span><span style="color: #001080">cache</span><span style="color: #000000">.</span><span style="color: #795E26">set</span><span style="color: #000000">(</span><span style="color: #001080">refreshTokenAnchor</span><span style="color: #000000">, </span><span style="color: #001080">invalidatedAt</span><span style="color: #000000">, { </span><span style="color: #001080">expiresAfter:</span><span style="color: #000000"> </span><span style="color: #001080">ttl</span><span style="color: #000000"> });</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">}</span>
+
+<span style="color: #AF00DB">export</span><span style="color: #000000"> { </span><span style="color: #001080">InMemoryInvalidAccessTokensCache</span><span style="color: #000000"> };</span>
+</code></pre>
+				<p>Then, we can instantiate <strong>JwtUserSessionManager</strong> and manage user sessions.</p>
+				<pre><code class="language-typescript"><span style="color: #008000">// session.ts</span>
+
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">JwtUserSessionManager</span><span style="color: #000000">, </span><span style="color: #001080">JwtUserSessionManagerEvent</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.jwt-user-session&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">InMemoryRefreshTokensStorage</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;./storage&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">InMemoryInvalidAccessTokensCache</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;./cache&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">(</span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">main</span><span style="color: #000000">() {</span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Create manager instance */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">manager</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">JwtUserSessionManager</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">secret:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;99afj9aujf907;LKOP/][;kgopj&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">signOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">algorithm:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;HS384&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">issuer:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">audience:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;rest-server.com&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">            </span><span style="color: #001080">expiresIn:</span><span style="color: #000000"> </span><span style="color: #098658">900</span><span style="color: #000000"> </span><span style="color: #008000">// 15 min</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #001080">verifyOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">algorithms:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;HS384&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">            </span><span style="color: #001080">issuer:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">audience:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;rest-server.com&#039;</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #001080">invalidationOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">refreshTokenTtl:</span><span style="color: #000000"> </span><span style="color: #098658">86_400</span><span style="color: #000000">, </span><span style="color: #008000">// 24h</span>
+<span style="color: #000000">            </span><span style="color: #001080">refreshTokenLength:</span><span style="color: #000000"> </span><span style="color: #098658">15</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">invalidAccessTokensCache:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">InMemoryInvalidAccessTokensCache</span><span style="color: #000000">(),</span>
+<span style="color: #000000">            </span><span style="color: #001080">refreshTokensStorage:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">InMemoryRefreshTokensStorage</span><span style="color: #000000">()</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Attach listeners */</span>
+<span style="color: #000000">    </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">on</span><span style="color: #000000">(</span><span style="color: #001080">JwtUserSessionManagerEvent</span><span style="color: #000000">.</span><span style="color: #0070C1">SESSION_INVALIDATED</span><span style="color: #000000">, (</span><span style="color: #001080">jwtAccessToken</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&#039;If you have multiple instances of app (i.e. cluster mode), you need to broadcast this token to them, &#039;</span><span style="color: #000000"> +</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&#039;so that they can invalidate it too via JwtUserSessionManager::restrictOne&#039;</span>
+<span style="color: #000000">        );</span>
+<span style="color: #000000">    });</span>
+<span style="color: #000000">    </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">on</span><span style="color: #000000">(</span><span style="color: #001080">JwtUserSessionManagerEvent</span><span style="color: #000000">.</span><span style="color: #0070C1">ALL_SESSIONS_INVALIDATED</span><span style="color: #000000">, (</span><span style="color: #001080">subject</span><span style="color: #000000">, </span><span style="color: #001080">accessTokenTtl</span><span style="color: #000000">) </span><span style="color: #0000FF">=&gt;</span><span style="color: #000000"> {</span>
+<span style="color: #000000">        </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&#039;If you have multiple instances of app (i.e. cluster mode), you need to broadcast these arguments to them, &#039;</span><span style="color: #000000"> +</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&#039;so that they can invalidate it too via JwtUserSessionManager::restrictAll&#039;</span>
+<span style="color: #000000">        );</span>
+<span style="color: #000000">    });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Create session */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sessionTokens</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">create</span><span style="color: #000000">({ </span><span style="color: #001080">name:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;John&#039;</span><span style="color: #000000"> }, { </span><span style="color: #001080">subject:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000"> }, { </span><span style="color: #001080">ip:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000"> });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Validate it */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">sessionMetaData</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">read</span><span style="color: #000000">(</span><span style="color: #001080">sessionTokens</span><span style="color: #000000">.</span><span style="color: #001080">accessToken</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #267F99">JSON</span><span style="color: #000000">.</span><span style="color: #795E26">stringify</span><span style="color: #000000">(</span><span style="color: #001080">sessionMetaData</span><span style="color: #000000">));</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Read active sessions */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">activeSessions</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">readAll</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">info</span><span style="color: #000000">(</span><span style="color: #A31515">`User with id &#039;uid1&#039; has </span><span style="color: #0000FF">${</span><span style="color: #001080">activeSessions</span><span style="color: #000000FF">.</span><span style="color: #001080">size</span><span style="color: #0000FF">}</span><span style="color: #A31515"> active sessions.`</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Update access token */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">refreshedAccessToken</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">update</span><span style="color: #000000">(</span><span style="color: #001080">sessionTokens</span><span style="color: #000000">.</span><span style="color: #001080">refreshToken</span><span style="color: #000000">, { </span><span style="color: #001080">name:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;John&#039;</span><span style="color: #000000"> }, { </span><span style="color: #001080">subject:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000"> }, { </span><span style="color: #001080">ip:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000"> });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Delete session */</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">deleteOne</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000">, </span><span style="color: #001080">sessionTokens</span><span style="color: #000000">.</span><span style="color: #001080">refreshToken</span><span style="color: #000000">, </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">read</span><span style="color: #000000">(</span><span style="color: #001080">refreshedAccessToken</span><span style="color: #000000">));</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Delete all sessions */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">deletedSessionsNo</span><span style="color: #000000"> = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">manager</span><span style="color: #000000">.</span><span style="color: #795E26">deleteAll</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">log</span><span style="color: #000000">(</span><span style="color: #A31515">`Deleted </span><span style="color: #0000FF">${</span><span style="color: #001080">deletedSessionsNo</span><span style="color: #0000FF">}</span><span style="color: #A31515"> active sessions of user with id &#039;uid1&#039;.`</span><span style="color: #000000">);</span>
+<span style="color: #000000">})();</span>
+</code></pre>
+				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
+					<h2>API Reference</h2>
+				</a>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/lib.jwt-user-session/index.html">here</a>.</p>
+				<p>It can also be generated by issuing the following commands:</p>
+				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
+<span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
+<span style="color: #000000">yarn install</span>
+<span style="color: #000000">yarn workspace @thermopylae/lib.jwt-user-session run doc</span>
+</code></pre>
+				<a href="#author" id="author" style="color: inherit; text-decoration: none;">
+					<h2>Author</h2>
+				</a>
+				<p>👤 <strong>Rusu Marin</strong></p>
+				<ul>
+					<li>GitHub: <a href="https://github.com/marinrusu1997">@marinrusu1997</a></li>
+					<li>Email: <a href="mailto:dimarusu2000@gmail.com">dimarusu2000@gmail.com</a></li>
+					<li>LinkedIn: <a href="https://www.linkedin.com/in/rusu-marin-1638b0156/">@marinrusu1997</a></li>
+				</ul>
+				<a href="#📝-license" id="📝-license" style="color: inherit; text-decoration: none;">
+					<h2>📝 License</h2>
+				</a>
+				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
+				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
+			</div>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.jwt-user-session&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.jwt-user-session&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.jwt-user-session&quot;}],&quot;outline&quot;:[{&quot;Declarations&quot;:&quot;declarations&quot;,&quot;Invalidation&quot;:&quot;invalidation&quot;,&quot;SessionManager&quot;:&quot;manager&quot;,&quot;Cache&quot;:&quot;cache&quot;,&quot;Error&quot;:&quot;error&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

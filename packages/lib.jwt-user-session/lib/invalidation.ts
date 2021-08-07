@@ -1,4 +1,3 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { MutableSome, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import type {
 	DeviceBase,
@@ -10,7 +9,7 @@ import type {
 	UserSessionStorage
 } from '@thermopylae/lib.user-session.commons';
 import safeUid from 'uid-safe';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import type { IssuedJwtPayload } from './declarations';
 import type { InvalidAccessTokensCache } from './cache';
 
@@ -85,7 +84,10 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	 */
 	public constructor(options: InvalidationStrategyOptions<Device, Location>) {
 		if (options.refreshTokenLength < 15) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token length can't be lower than 15 characters. Given: ${options.refreshTokenLength}.`);
+			throw createException(
+				ErrorCodes.INVALID_REFRESH_TOKEN_LENGTH,
+				`Refresh token length can't be lower than 15 characters. Given: ${options.refreshTokenLength}.`
+			);
 		}
 
 		if (options.refreshAccessTokenHook == null) {
@@ -157,7 +159,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	public async refreshSessionAccessToken(subject: Subject, refreshToken: SessionId, context: UserSessionOperationContext<Device, Location>): Promise<string> {
 		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
 		if (!userSessionMetadata) {
-			throw createException(ErrorCodes.NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
+			throw createException(ErrorCodes.USER_SESSION_NOT_FOUND, `Refresh token '${refreshToken}' for subject ${subject} doesn't exist.`);
 		}
 
 		this.options.refreshAccessTokenHook(subject, refreshToken, context, userSessionMetadata);
@@ -238,7 +240,7 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 		if (context.device && sessionMetaData.device) {
 			if (context.device.type !== sessionMetaData.device.type || context.device.name !== sessionMetaData.device.name) {
 				throw createException(
-					ErrorCodes.NOT_EQUAL,
+					ErrorCodes.REFRESHING_ACCESS_TOKEN_FROM_DIFFERENT_CONTEXT_NOT_ALLOWED,
 					`Attempting to regenerate access token for subject '${subject}'` +
 						`from context that differs from user session metadata. Refresh token context: ${JSON.stringify(
 							context

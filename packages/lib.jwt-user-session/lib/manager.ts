@@ -1,11 +1,10 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { MutableSome, PublicPrivateKeys, RequireAtLeastOne, RequireSome, Seconds } from '@thermopylae/core.declarations';
 import type { DeviceBase, SessionId, Subject, UserSessionMetaData, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import type { SignOptions, VerifyOptions } from 'jsonwebtoken';
 import { sign, verify } from 'jsonwebtoken';
 import { EventEmitter } from 'events';
 import type { IssuedJwtPayload, JwtPayload } from './declarations';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import type { InvalidationStrategyOptions } from './invalidation';
 import { InvalidationStrategy } from './invalidation';
 
@@ -134,7 +133,7 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 	 * @throws {TokenExpiredError}	When token is expired.
 	 * @throws {JsonWebTokenError}	When token is invalid.
 	 * @throws {NotBeforeError}		When token is used before its activation timestamp.
-	 * @throws {Exception}			When token was invalided with error code {@link ErrorCodes.INVALID}.
+	 * @throws {Exception}			When token was invalided with error code {@link ErrorCodes.ACCESS_TOKEN_WAS_FORCIBLY_INVALIDATED}.
 	 *
 	 * @returns		JWT access token payload.
 	 */
@@ -153,7 +152,7 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 						return resolve(decoded as IssuedJwtPayload);
 					}
 
-					return reject(createException(ErrorCodes.INVALID, `Token '${jwtAccessToken}' was forcibly invalidated.`));
+					return reject(createException(ErrorCodes.ACCESS_TOKEN_WAS_FORCIBLY_INVALIDATED, `Token '${jwtAccessToken}' was forcibly invalidated.`));
 				} catch (e) {
 					return reject(e);
 				}
@@ -329,7 +328,7 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 		(options.signOptions as unknown as SignOptions).mutatePayload = true;
 		if (typeof options.signOptions.expiresIn !== 'number') {
 			throw createException(
-				ErrorCodes.NOT_ALLOWED,
+				ErrorCodes.EXPIRES_IN_INVALID_TYPE,
 				`Expiration from sign options can't have a type different than number. Given value: ${options.signOptions.expiresIn}`
 			);
 		}

@@ -1,18 +1,18 @@
 const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
-typedoc.externalPattern = [
-    'lib/error.ts'
-];
+
 typedoc.outline = [
     {
         "Declarations": "declarations",
         "Invalidation": "invalidation",
         "SessionManager": "manager",
-        "Cache": "cache"
+        "Cache": "cache",
+        "Error": "error"
     }
 ];
+
 typedoc.links = [{
-    "label": "Bitbucket",
-    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/lib.jwt-user-session/"
-}]
+    "label": "Github",
+    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.jwt-user-session"
+}];
 
 module.exports = typedoc;

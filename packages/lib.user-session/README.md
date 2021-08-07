@@ -22,7 +22,7 @@ npm install @thermopylae/lib.user-session
 This is a simple example of how this package can be used. <br/>
 
 First, you need to implement storage for user sessions. In this example we will build
-an in-memory storage.
+an in-memory storage, although it's recommended to implement a persistent storage (e.g. by using Redis).
 ```typescript
 // storage.ts
 
