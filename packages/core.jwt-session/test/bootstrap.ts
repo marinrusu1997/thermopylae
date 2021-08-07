@@ -1,8 +1,8 @@
 import { after, before, beforeEach } from 'mocha';
 import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/dev.unit-test';
-import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisClientOptions } from '@thermopylae/core.redis';
-import { DefaultFormatters, LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
-import { Client, CoreModule, Library, MutableSome } from '@thermopylae/core.declarations';
+import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisConnectionOptions } from '@thermopylae/core.redis';
+import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { ClientModule, DevModule, CoreModule, MutableSome } from '@thermopylae/core.declarations';
 import { config as dotEnvConfig } from 'dotenv';
 import pickRandom from 'pick-random';
 import { initLogger as initUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
@@ -31,17 +31,17 @@ before(async function boot() {
 		throw dotEnv.error;
 	}
 
-	LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, {
+	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
 		levelForLabel: {
 			[CoreModule.JWT_USER_SESSION]: 'info',
 			[CoreModule.USER_SESSION_COMMONS]: 'info',
-			[Library.UNIT_TEST]: 'error',
-			[Client.REDIS]: 'info'
+			[DevModule.UNIT_TESTING]: 'error',
+			[ClientModule.REDIS]: 'info'
 		}
 	});
-	LoggerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] || 'debug' });
+	LoggerManagerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] || 'debug' });
 
 	initUnitTestLogger();
 	initRedisClientLogger();
@@ -51,7 +51,7 @@ before(async function boot() {
 	let connectDetails: ConnectionDetails;
 	[redisContainer, connectDetails] = await bootRedisContainer();
 
-	const redisClientOptions: RedisClientOptions = {
+	const redisClientOptions: RedisConnectionOptions = {
 		...connectDetails,
 		connect_timeout: 10_000,
 		max_attempts: 10,

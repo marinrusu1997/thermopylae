@@ -26,13 +26,13 @@ interface AdaptedExpressRequest<P = ParamsDictionary, ResBody = any, ReqBody = a
 	 * Notice that if you pass an express request object to {@link ExpressRequestAdapter}
 	 * which already has this property with according device, *ExpressDeviceDetector* won't compute this property again.
 	 */
-	[DEVICE_SYM]?: DeviceDetectorResult;
+	[DEVICE_SYM]?: DeviceDetectorResult | null;
 	/**
 	 * Property under which location of the request is stored. <br/>
 	 * *Important!* Clients of the {@link ExpressRequestAdapter} have to set this property accordingly
 	 * on express request object before passing it to adapter, as he won't compute it.
 	 */
-	[LOCATION_SYM]?: HTTPRequestLocation;
+	[LOCATION_SYM]?: HTTPRequestLocation | null;
 }
 
 /**
@@ -47,7 +47,7 @@ class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest>
 		this.detector = new DeviceDetectorJs();
 	}
 
-	public detect(req: AdaptedExpressRequest): DeviceDetectorResult | undefined {
+	public detect(req: AdaptedExpressRequest): DeviceDetectorResult | undefined | null {
 		if (req[DEVICE_SYM] == null) {
 			const userAgent = req.header('user-agent');
 			if (typeof userAgent !== 'string') {
@@ -106,14 +106,14 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
 	 * @inheritDoc
 	 */
-	public get device(): HttpDevice | undefined {
+	public get device(): HttpDevice | undefined | null {
 		return ExpressRequestAdapter.deviceDetector.detect(this.req);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public get location(): HTTPRequestLocation | undefined {
+	public get location(): HTTPRequestLocation | undefined | null {
 		return this.req[LOCATION_SYM];
 	}
 

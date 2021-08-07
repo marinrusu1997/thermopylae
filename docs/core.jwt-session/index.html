@@ -1,0 +1,260 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>@thermopylae/core.jwt-session</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+	<script async src="assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="index.html" class="title">@thermopylae/core.jwt-session</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.jwt-session" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;Middleware&quot;:&quot;middleware&quot;,&quot;InvalidAccessTokensMemCache&quot;:&quot;storages_access_tokens&quot;,&quot;Logging&quot;:&quot;logger&quot;,&quot;Error&quot;:&quot;error&quot;}
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>@thermopylae/core.jwt-session</h1>
+			<div class="tsd-panel tsd-typography">
+				<h1 align="center">@thermopylae/core.jwt-session</h1>
+				<p>
+					<img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
+					<img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
+					<a href="https://marinrusu1997.github.io/thermopylae/core.jwt-session/index.html" target="_blank">
+						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
+					</a>
+					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
+						<img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+					</a>
+				</p>
+				<blockquote>
+					<p>JWT user session for HTTP interface.</p>
+				</blockquote>
+				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
+					<h2>Install</h2>
+				</a>
+				<pre><code class="language-sh"><span style="color: #000000">npm install @thermopylae/core.jwt-session</span>
+</code></pre>
+				<a href="#description" id="description" style="color: inherit; text-decoration: none;">
+					<h2>Description</h2>
+				</a>
+				<p>This package contains Http Middleware for jwt user session management.
+					It uses <a href="https://marinrusu1997.github.io/thermopylae/lib.jwt-user-session/index.html">@thermopylae/lib.jwt-user-session</a> for session management
+				and contains implementation for repositories required by the library.</p>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ConnectionType</span><span style="color: #000000">, </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initRedisClientLogger</span><span style="color: #000000">, </span><span style="color: #001080">RedisClientInstance</span><span style="color: #000000">, </span><span style="color: #001080">RedisConnectionOptions</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.redis&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initUserSessionCommonsLogger</span><span style="color: #000000">, </span><span style="color: #001080">UserSessionRedisStorage</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.user-session.commons&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">FastifyRequestAdapter</span><span style="color: #000000">, </span><span style="color: #001080">FastifyResponseAdapter</span><span style="color: #000000">, </span><span style="color: #001080">AdaptedFastifyRequest</span><span style="color: #000000">, </span><span style="color: #001080">LOCATION_SYM</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.adapter.fastify&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">GeoIpLocator</span><span style="color: #000000">, </span><span style="color: #001080">GeoIpLiteRepository</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/lib.geoip&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">AVRO_SERIALIZER</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">FastifyReply</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;fastify&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">HttpStatusCode</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
+<span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">initLogger</span><span style="color: #000000"> </span><span style="color: #AF00DB">as</span><span style="color: #000000"> </span><span style="color: #001080">initCoreJwtSessionLogger</span><span style="color: #000000">, </span><span style="color: #001080">InvalidAccessTokensMemCache</span><span style="color: #000000">, </span><span style="color: #001080">JwtUserSessionMiddleware</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.jwt-session&#039;</span><span style="color: #000000">;</span>
+
+<span style="color: #000000">(</span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">main</span><span style="color: #000000">() {</span>
+<span style="color: #000000">    </span><span style="color: #008000">/* Configure logging */</span>
+<span style="color: #000000">    </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultFormattingOrder</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">);</span>
+<span style="color: #000000">    </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({ </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000"> });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Init loggers */</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initRedisClientLogger</span><span style="color: #000000">();</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initCoreJwtSessionLogger</span><span style="color: #000000">();</span>
+<span style="color: #000000">    </span><span style="color: #795E26">initUserSessionCommonsLogger</span><span style="color: #000000">();</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Connect to Redis Server */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">redisClientOptions</span><span style="color: #000000">: </span><span style="color: #267F99">RedisConnectionOptions</span><span style="color: #000000"> = {</span>
+<span style="color: #000000">        </span><span style="color: #001080">host:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;127.0.0.1&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">port:</span><span style="color: #000000"> </span><span style="color: #098658">6379</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">password:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;09}KNng90/mng89;&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">connect_timeout:</span><span style="color: #000000"> </span><span style="color: #098658">10_000</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">max_attempts:</span><span style="color: #000000"> </span><span style="color: #098658">10</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">retry_max_delay:</span><span style="color: #000000"> </span><span style="color: #098658">5_000</span><span style="color: #000000">,</span>
+<span style="color: #000000">        </span><span style="color: #001080">attachDebugListeners:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #A31515">&#039;end&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;reconnecting&#039;</span><span style="color: #000000">])</span>
+<span style="color: #000000">    };</span>
+
+<span style="color: #000000">    </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">RedisClientInstance</span><span style="color: #000000">.</span><span style="color: #795E26">connect</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">[ConnectionType.</span><span style="color: #0070C1">REGULAR</span><span style="color: #001080">]:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            ...</span><span style="color: #001080">redisClientOptions</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">detect_buffers:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000"> </span><span style="color: #008000">// very important, REQUIRED</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #001080">[ConnectionType.</span><span style="color: #0070C1">SUBSCRIBER</span><span style="color: #001080">]:</span><span style="color: #000000"> </span><span style="color: #001080">redisClientOptions</span>
+<span style="color: #000000">    });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Enable Key Space Notification Events (REQUIRED) */</span>
+<span style="color: #000000">    </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">RedisClientInstance</span><span style="color: #000000">.</span><span style="color: #001080">client</span><span style="color: #000000">.</span><span style="color: #795E26">config</span><span style="color: #000000">(</span><span style="color: #A31515">&#039;SET&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;notify-keyspace-events&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;Kgxe&#039;</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Configure Geoip (OPTIONAL) */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">geoip</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">GeoIpLocator</span><span style="color: #000000">([</span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">GeoIpLiteRepository</span><span style="color: #000000">(</span><span style="color: #098658">1</span><span style="color: #000000">)]);</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Configure Middleware */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">middleware</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">JwtUserSessionMiddleware</span><span style="color: #000000">({</span>
+<span style="color: #000000">        </span><span style="color: #001080">jwt:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">secret:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;secret&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #001080">signOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">algorithm:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;HS384&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">issuer:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">audience:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">, </span><span style="color: #A31515">&#039;rest-server.com&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">                </span><span style="color: #001080">expiresIn:</span><span style="color: #000000"> </span><span style="color: #098658">900</span><span style="color: #000000"> </span><span style="color: #008000">// 15 min</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">verifyOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">algorithms:</span><span style="color: #000000"> [</span><span style="color: #A31515">&#039;HS384&#039;</span><span style="color: #000000">],</span>
+<span style="color: #000000">                </span><span style="color: #001080">issuer:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;auth-server.com&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">audience:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;rest-server.com&#039;</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">invalidationOptions:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">refreshTokenTtl:</span><span style="color: #000000"> </span><span style="color: #098658">86_400</span><span style="color: #000000">, </span><span style="color: #008000">// 24h</span>
+<span style="color: #000000">                </span><span style="color: #001080">refreshTokenLength:</span><span style="color: #000000"> </span><span style="color: #098658">24</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">invalidAccessTokensCache:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">InvalidAccessTokensMemCache</span><span style="color: #000000">(),</span>
+<span style="color: #000000">                </span><span style="color: #001080">refreshTokensStorage:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">UserSessionRedisStorage</span><span style="color: #000000">({</span>
+<span style="color: #000000">                    </span><span style="color: #001080">keyPrefix:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                        </span><span style="color: #001080">sessions:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;reftoks&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                        </span><span style="color: #001080">sessionId:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;reftok&#039;</span>
+<span style="color: #000000">                    },</span>
+<span style="color: #000000">                    </span><span style="color: #001080">concurrentSessions:</span><span style="color: #000000"> </span><span style="color: #098658">3</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">serializer:</span><span style="color: #000000"> </span><span style="color: #0070C1">AVRO_SERIALIZER</span>
+<span style="color: #000000">                })</span>
+<span style="color: #000000">            }</span>
+<span style="color: #000000">        },</span>
+<span style="color: #000000">        </span><span style="color: #001080">session:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #001080">cookies:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">name:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                    </span><span style="color: #001080">signature:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;sig&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">payload:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;pld&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">refresh:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;rfsh&#039;</span>
+<span style="color: #000000">                },</span>
+<span style="color: #000000">                </span><span style="color: #001080">path:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                    </span><span style="color: #A31515">&#039;access-payload&#039;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;/&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #A31515">&#039;access-signature&#039;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;/api&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                    </span><span style="color: #001080">refresh:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;/session&#039;</span>
+<span style="color: #000000">                },</span>
+<span style="color: #000000">                </span><span style="color: #001080">sameSite:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;strict&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">persistentAccessToken:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">headers:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">access:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;x-access-token&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">refresh:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;x-refresh-token&#039;</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">csrfHeader:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">                </span><span style="color: #001080">name:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;x-requested-with&#039;</span><span style="color: #000000">,</span>
+<span style="color: #000000">                </span><span style="color: #001080">value:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;XmlHttpRequest&#039;</span>
+<span style="color: #000000">            },</span>
+<span style="color: #000000">            </span><span style="color: #001080">deliveryOfJwtPayloadViaCookie:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&#039;cache-control&#039;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    });</span>
+
+<span style="color: #000000">    </span><span style="color: #008000">/* Define Route Handler */</span>
+<span style="color: #000000">    </span><span style="color: #0000FF">async</span><span style="color: #000000"> </span><span style="color: #0000FF">function</span><span style="color: #000000"> </span><span style="color: #795E26">createSession</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">: </span><span style="color: #267F99">AdaptedFastifyRequest</span><span style="color: #000000">, </span><span style="color: #001080">res</span><span style="color: #000000">: </span><span style="color: #267F99">FastifyReply</span><span style="color: #000000">): </span><span style="color: #267F99">Promise</span><span style="color: #000000">&lt;</span><span style="color: #267F99">void</span><span style="color: #000000">&gt; {</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">request</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FastifyRequestAdapter</span><span style="color: #000000">(</span><span style="color: #001080">req</span><span style="color: #000000">);</span>
+<span style="color: #000000">        </span><span style="color: #0000FF">const</span><span style="color: #000000"> </span><span style="color: #0070C1">response</span><span style="color: #000000"> = </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #795E26">FastifyResponseAdapter</span><span style="color: #000000">(</span><span style="color: #001080">res</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">        </span><span style="color: #001080">req</span><span style="color: #000000">[</span><span style="color: #0070C1">LOCATION_SYM</span><span style="color: #000000">] = </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">geoip</span><span style="color: #000000">.</span><span style="color: #795E26">locate</span><span style="color: #000000">(</span><span style="color: #001080">request</span><span style="color: #000000">.</span><span style="color: #001080">ip</span><span style="color: #000000">);</span>
+
+<span style="color: #000000">        </span><span style="color: #AF00DB">try</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #AF00DB">await</span><span style="color: #000000"> </span><span style="color: #001080">middleware</span><span style="color: #000000">.</span><span style="color: #795E26">create</span><span style="color: #000000">(</span><span style="color: #001080">request</span><span style="color: #000000">, </span><span style="color: #001080">response</span><span style="color: #000000">, { </span><span style="color: #001080">role:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;user&#039;</span><span style="color: #000000"> }, { </span><span style="color: #001080">subject:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;uid1&#039;</span><span style="color: #000000"> });</span>
+<span style="color: #000000">            </span><span style="color: #001080">response</span><span style="color: #000000">.</span><span style="color: #795E26">status</span><span style="color: #000000">(</span><span style="color: #001080">HttpStatusCode</span><span style="color: #000000">.</span><span style="color: #001080">Created</span><span style="color: #000000">).</span><span style="color: #795E26">send</span><span style="color: #000000">();</span>
+<span style="color: #000000">        } </span><span style="color: #AF00DB">catch</span><span style="color: #000000"> (</span><span style="color: #001080">e</span><span style="color: #000000">) {</span>
+<span style="color: #000000">            </span><span style="color: #001080">response</span><span style="color: #000000">.</span><span style="color: #795E26">status</span><span style="color: #000000">(</span><span style="color: #001080">HttpStatusCode</span><span style="color: #000000">.</span><span style="color: #001080">BadRequest</span><span style="color: #000000">).</span><span style="color: #795E26">send</span><span style="color: #000000">({ </span><span style="color: #001080">message:</span><span style="color: #000000"> </span><span style="color: #001080">e</span><span style="color: #000000">.</span><span style="color: #001080">message</span><span style="color: #000000"> });</span>
+<span style="color: #000000">        }</span>
+<span style="color: #000000">    }</span>
+<span style="color: #000000">})();</span>
+</code></pre>
+				<a href="#api-reference" id="api-reference" style="color: inherit; text-decoration: none;">
+					<h2>API Reference</h2>
+				</a>
+				<p>API documentation is available <a href="https://marinrusu1997.github.io/thermopylae/core.jwt-session/index.html">here</a>.</p>
+				<p>It can also be generated by issuing the following commands:</p>
+				<pre><code class="language-shell"><span style="color: #000000">git clone git@github.com:marinrusu1997/thermopylae.git</span>
+<span style="color: #795E26">cd</span><span style="color: #000000"> thermopylae</span>
+<span style="color: #000000">yarn install</span>
+<span style="color: #000000">yarn workspace @thermopylae/core.jwt-session run doc</span>
+</code></pre>
+				<a href="#author" id="author" style="color: inherit; text-decoration: none;">
+					<h2>Author</h2>
+				</a>
+				<p>👤 <strong>Rusu Marin</strong></p>
+				<ul>
+					<li>GitHub: <a href="https://github.com/marinrusu1997">@marinrusu1997</a></li>
+					<li>Email: <a href="mailto:dimarusu2000@gmail.com">dimarusu2000@gmail.com</a></li>
+					<li>LinkedIn: <a href="https://www.linkedin.com/in/rusu-marin-1638b0156/">@marinrusu1997</a></li>
+				</ul>
+				<a href="#📝-license" id="📝-license" style="color: inherit; text-decoration: none;">
+					<h2>📝 License</h2>
+				</a>
+				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
+				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
+			</div>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.jwt-session&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.jwt-session&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.jwt-session&quot;}],&quot;outline&quot;:[{&quot;Middleware&quot;:&quot;middleware&quot;,&quot;InvalidAccessTokensMemCache&quot;:&quot;storages_access_tokens&quot;,&quot;Logging&quot;:&quot;logger&quot;,&quot;Error&quot;:&quot;error&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

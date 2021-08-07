@@ -13,7 +13,7 @@ export interface HttpDeviceDetector<Request> {
 	 *
 	 * @returns     Device.
 	 */
-	detect(req: Request): HttpDevice | undefined;
+	detect(req: Request): HttpDevice | undefined | null;
 }
 
 /**

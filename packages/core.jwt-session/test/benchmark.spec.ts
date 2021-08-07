@@ -212,6 +212,7 @@ const samples: Array<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
 ];
 const ROUNDS = 10;
 
+// eslint-disable-next-line mocha/no-skipped-tests
 describe.skip(`user session meta data serializers spec`, () => {
 	it('benchmark', (done) => {
 		const suite = new Suite('Serialization Benchmark');

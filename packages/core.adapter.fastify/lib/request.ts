@@ -32,13 +32,13 @@ interface AdaptedFastifyRequest<
 	 * Notice that if you pass a fastify request object to {@link FastifyRequestAdapter}
 	 * which already has this property with according device, *FastifyDeviceDetector* won't compute this property again.
 	 */
-	[DEVICE_SYM]?: DeviceDetectorResult;
+	[DEVICE_SYM]?: DeviceDetectorResult | null;
 	/**
 	 * Property under which location of the request is stored. <br/>
 	 * *Important!* Clients of the {@link FastifyRequestAdapter} have to set this property accordingly
 	 * on fastify request object before passing it to adapter, as he won't compute it.
 	 */
-	[LOCATION_SYM]?: HTTPRequestLocation;
+	[LOCATION_SYM]?: HTTPRequestLocation | null;
 }
 
 /**
@@ -53,7 +53,7 @@ class FastifyDeviceDetector implements HttpDeviceDetector<AdaptedFastifyRequest>
 		this.detector = new DeviceDetectorJs();
 	}
 
-	public detect(req: AdaptedFastifyRequest): DeviceDetectorResult | undefined {
+	public detect(req: AdaptedFastifyRequest): DeviceDetectorResult | undefined | null {
 		if (req[DEVICE_SYM] == null) {
 			const userAgent = req.headers['user-agent'];
 			if (typeof userAgent !== 'string') {
@@ -112,14 +112,14 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
 	 * @inheritDoc
 	 */
-	public get device(): HttpDevice | undefined {
+	public get device(): HttpDevice | undefined | null {
 		return FastifyRequestAdapter.deviceDetector.detect(this.req);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public get location(): HTTPRequestLocation | undefined {
+	public get location(): HTTPRequestLocation | undefined | null {
 		return this.req[LOCATION_SYM];
 	}
 

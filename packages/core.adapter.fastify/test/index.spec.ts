@@ -19,8 +19,8 @@ app.register(cookie);
 let request: {
 	ip: string;
 	body: ObjMap;
-	device: HttpDevice | undefined;
-	location: HTTPRequestLocation | undefined;
+	device: HttpDevice | undefined | null;
+	location: HTTPRequestLocation | undefined | null;
 	headers: Partial<Record<HttpRequestHeader, HttpHeaderValue | undefined>>;
 	cookies: ObjMap;
 	params: ObjMap;

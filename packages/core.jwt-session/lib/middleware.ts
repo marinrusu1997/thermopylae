@@ -1,5 +1,5 @@
 import type { JwtPayload, JwtUserSessionManagerOptions, JwtSignOptions, JwtVerifyOptions, IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
-import { JsonWebTokenError, JwtUserSessionManager, TokenExpiredError } from '@thermopylae/lib.jwt-user-session';
+import { JsonWebTokenError, JwtUserSessionManager, TokenExpiredError, ErrorCodes as JwtUserSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
 import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
 import type { UserSessionDevice, AuthorizationTokenExtractor } from '@thermopylae/core.user-session.commons';
 import type {
@@ -14,11 +14,10 @@ import type {
 	RequireAtLeastOne,
 	RequireSome
 } from '@thermopylae/core.declarations';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 import { serialize } from 'cookie';
 import type { CookieSerializeOptions } from 'cookie';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 
 interface UserSessionCookiesOptions {
 	/**
@@ -87,12 +86,13 @@ interface UserSessionCookiesOptions {
 
 interface UserSessionOptions {
 	/**
-	 * User session cookies options.
+	 * User session cookies options. <br/>
+	 * These options will be used for requests coming from browser devices.
 	 */
 	readonly cookies: UserSessionCookiesOptions;
 	/**
 	 * HTTP headers used for passing Access & Refresh tokens. <br/>
-	 * This option is used for non-browser devices.
+	 * This option will be used for requests coming from non-browser devices.
 	 */
 	readonly headers: {
 		/**
@@ -133,8 +133,8 @@ interface UserSessionOptions {
 	readonly deliveryOfJwtPayloadViaCookie: boolean;
 	/**
 	 * CSRF header options. <br/>
-	 * CSRF will be validated when {@link UserSessionOptions.deliveryOfJwtPayloadViaCookie} has value *true*
-	 * or when refresh token is sent to server.
+	 * CSRF will be validated when {@link UserSessionOptions.deliveryOfJwtPayloadViaCookie} has value *true* or when refresh token is sent to server. <br/>
+	 * This option is available only for requests coming from browser.
 	 */
 	readonly csrfHeader: {
 		/**
@@ -155,7 +155,8 @@ interface UserSessionOptions {
 	/**
 	 * Whether to set *Cache-Control: no-cache="Set-Cookie, Set-Cookie2"* response header for the
 	 * requests that deliver access and refresh tokens to client
-	 * (i.e. {@link JwtUserSessionMiddleware.create} and {@link JwtUserSessionMiddleware.renew} operations).
+	 * (i.e. {@link JwtUserSessionMiddleware.create} and {@link JwtUserSessionMiddleware.refresh} operations). <br/>
+	 * This option is available only for requests coming from browser.
 	 */
 	readonly 'cache-control': boolean;
 }
@@ -320,7 +321,9 @@ class JwtUserSessionMiddleware {
 		} catch (e) {
 			if (
 				unsetSessionCookies &&
-				(e instanceof TokenExpiredError || e instanceof JsonWebTokenError || (e instanceof Exception && e.code === ErrorCodes.INVALID))
+				(e instanceof TokenExpiredError ||
+					e instanceof JsonWebTokenError ||
+					(e instanceof Exception && e.code === JwtUserSessionErrorCodes.ACCESS_TOKEN_WAS_FORCIBLY_INVALIDATED))
 			) {
 				if (signatureCookie != null) {
 					res.header('set-cookie', this.invalidationCookies.signature);
@@ -437,13 +440,13 @@ class JwtUserSessionMiddleware {
 		if ((refreshToken = req.header(this.options.session.headers.refresh) as string)) {
 			return [refreshToken, null];
 		}
-		throw createException(ErrorCodes.NOT_FOUND, 'Refresh token not found in the request header nor cookies.');
+		throw createException(ErrorCodes.REFRESH_TOKEN_NOT_FOUND_IN_THE_REQUEST, 'Refresh token not found in the request header nor cookies.');
 	}
 
 	private performCSRFValidation(req: HttpRequest): void | never {
 		const csrf = req.header(this.options.session.csrfHeader.name);
 		if (csrf !== this.options.session.csrfHeader.value) {
-			throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
+			throw createException(ErrorCodes.CSRF_HEADER_INVALID_VALUE, `CSRF header value '${csrf}' differs from the expected one.`);
 		}
 	}
 
@@ -492,24 +495,42 @@ class JwtUserSessionMiddleware {
 		// it's mandatory for them to be in lower case
 
 		if (!UserSessionUtils.isLowerCase(options.session.cookies.name.signature)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Signature cookie name needs to be lower case. Given: ${options.session.cookies.name.signature}`);
+			throw createException(
+				ErrorCodes.SIGNATURE_COOKIE_NAME_NOT_IN_LOWER_CASE,
+				`Signature cookie name needs to be lower case. Given: ${options.session.cookies.name.signature}`
+			);
 		}
 		if (!UserSessionUtils.isLowerCase(options.session.cookies.name.payload)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Payload cookie name needs to be lower case. Given: ${options.session.cookies.name.payload}`);
+			throw createException(
+				ErrorCodes.PAYLOAD_COOKIE_NAME_NOT_IN_LOWER_CASE,
+				`Payload cookie name needs to be lower case. Given: ${options.session.cookies.name.payload}`
+			);
 		}
 		if (!UserSessionUtils.isLowerCase(options.session.cookies.name.refresh)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh cookie name needs to be lower case. Given: ${options.session.cookies.name.refresh}`);
+			throw createException(
+				ErrorCodes.REFRESH_COOKIE_NAME_NOT_IN_LOWER_CASE,
+				`Refresh cookie name needs to be lower case. Given: ${options.session.cookies.name.refresh}`
+			);
 		}
 
 		if (!UserSessionUtils.isLowerCase(options.session.headers.access)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Access token header name needs to be lower case. Given: ${options.session.headers.access}`);
+			throw createException(
+				ErrorCodes.ACCESS_TOKEN_HEADER_NAME_NOT_IN_LOWER_CASE,
+				`Access token header name needs to be lower case. Given: ${options.session.headers.access}`
+			);
 		}
 		if (!UserSessionUtils.isLowerCase(options.session.headers.refresh)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Refresh token header name needs to be lower case. Given: ${options.session.headers.refresh}`);
+			throw createException(
+				ErrorCodes.REFRESH_TOKEN_HEADER_NAME_NOT_IN_LOWER_CASE,
+				`Refresh token header name needs to be lower case. Given: ${options.session.headers.refresh}`
+			);
 		}
 
 		if (options.session.csrfHeader && !UserSessionUtils.isLowerCase(options.session.csrfHeader.name)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `CSRF header name needs to be lower case. Given: ${options.session.csrfHeader.name}`);
+			throw createException(
+				ErrorCodes.CSRF_TOKEN_HEADER_NAME_NOT_IN_LOWER_CASE,
+				`CSRF header name needs to be lower case. Given: ${options.session.csrfHeader.name}`
+			);
 		}
 
 		if (options.accessTokenExtractor == null) {

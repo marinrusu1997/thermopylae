@@ -26,12 +26,12 @@ export interface HttpRequest<Body = unknown> {
 	/**
 	 * Device from where request has been made.
 	 */
-	readonly device?: HttpDevice;
+	readonly device?: HttpDevice | null;
 
 	/**
 	 * Location from where request has been made.
 	 */
-	readonly location?: HTTPRequestLocation;
+	readonly location?: HTTPRequestLocation | null;
 
 	/**
 	 * Return request header.
