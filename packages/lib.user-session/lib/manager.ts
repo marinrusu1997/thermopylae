@@ -1,9 +1,8 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { Seconds, UnixTimestamp, MutableSome } from '@thermopylae/core.declarations';
 import type { Subject, SessionId, DeviceBase, UserSessionOperationContext, ReadUserSessionHook } from '@thermopylae/lib.user-session.commons';
 import safeUid from 'uid-safe';
 import { createHash } from 'crypto';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 import type { UserSessionMetaData } from './session';
 import type { UserSessionsStorage } from './storage';
 
@@ -30,7 +29,7 @@ interface RenewSessionHooks {
 
 	/**
 	 * After successful renew operation, the deletion of old session will be scheduled to occur
-	 * after {@link UserSessionTimeouts.oldSessionAvailabilityTimeoutAfterRenewal} seconds. <br/>
+	 * after {@link UserSessionTimeouts.oldSessionAvailabilityAfterRenewal} seconds. <br/>
 	 * In case the deletion of the old session will fail, this hook will be called with that error.
 	 *
 	 * @param sessionId		Id of the session.
@@ -50,10 +49,10 @@ interface UserSessionTimeouts {
 	readonly idle?: Seconds;
 	/**
 	 * This timeout defines the amount of time in seconds since session creation
-	 * after which the session ID is automatically renewed, in the middle of the user session,
-	 * and independently of the session activity and, therefore, of the idle timeout. <br/>
+	 * after which the session ID is automatically renewed.
+	 * Renewal happens automatically when user session is read by manager. <br/>
 	 * Renewal consists in deletion of the old session and creation of a new one. <br/>
-	 * If you do not need idle session feature, do not set this option. <br/>
+	 * If you do not need renewal session feature, do not set this option. <br/>
 	 * **Defaults** to *undefined*.
 	 */
 	readonly renewal?: Seconds;
@@ -66,7 +65,7 @@ interface UserSessionTimeouts {
 	 * **Required** when {@link UserSessionManagerOptions.timeouts.renewal} option is set.
 	 * **Recommended** value is *5*.
 	 */
-	readonly oldSessionAvailabilityTimeoutAfterRenewal?: Seconds;
+	readonly oldSessionAvailabilityAfterRenewal?: Seconds;
 }
 
 interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
@@ -105,8 +104,6 @@ interface UserSessionManagerOptions<Device extends DeviceBase, Location> {
 
 /**
  * Mark session as being renewed.
- *
- * @private
  */
 const RENEWED_SESSION_FLAG = -1;
 
@@ -173,7 +170,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * if it was idle for more than {@link UserSessionManagerOptions.timeouts.idle} seconds. <br/>
 	 * When renew functionality is activated, this method might create a new user session, and return it's id as the second part of the tuple.
 	 * In case renewed session id is returned, it needs to be sent to application clients via 'Set-Cookie' header to replace the old session cookie.
-	 * The old session will still be available for {@link UserSessionManagerOptions.timeouts.oldSessionAvailabilityTimeoutAfterRenewal} seconds,
+	 * The old session will still be available for {@link UserSessionManagerOptions.timeouts.oldSessionAvailabilityAfterRenewal} seconds,
 	 * so that older requests might complete successfully and client has time to refresh session id on it's side.
 	 *
 	 * @param subject		Subject.
@@ -181,9 +178,9 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	 * @param context		Operation context.
 	 *
 	 * @throws {Exception}	With the following error codes:
-	 * 						- {@link ErrorCodes.NOT_FOUND}		- session wasn't found in the storage
-	 * 						- {@link ErrorCodes.NOT_ALLOWED} 	- session is accessed from a device which differs from the one it was created
-	 * 						- {@link ErrorCodes.EXPIRED}		- session was expired because of the idle timeout
+	 * 						- {@link ErrorCodes.USER_SESSION_NOT_FOUND}		- session wasn't found in the storage
+	 * 						- {@link ErrorCodes.USER_SESSION_EXPIRED} 		- session is accessed from a device which differs from the one it was created
+	 * 						- {@link ErrorCodes.USER_SESSION_EXPIRED}		- session was expired because of the idle timeout
 	 *
 	 * @returns		A tuple with the following parts:
 	 * 				- session metadata
@@ -196,7 +193,10 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 	): Promise<[Readonly<UserSessionMetaData<Device, Location>>, string | null]> {
 		const sessionMetaData = await this.options.storage.read(subject, sessionId);
 		if (sessionMetaData == null) {
-			throw createException(ErrorCodes.NOT_FOUND, `Session '${UserSessionManager.hash(sessionId)}' doesn't exist. Context: ${JSON.stringify(context)}.`);
+			throw createException(
+				ErrorCodes.USER_SESSION_NOT_FOUND,
+				`Session '${UserSessionManager.hash(sessionId)}' doesn't exist. Context: ${JSON.stringify(context)}.`
+			);
 		}
 
 		this.options.readUserSessionHook(subject, sessionId, context, sessionMetaData);
@@ -216,7 +216,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			if (timeSinceLastAccess >= this.options.timeouts.idle) {
 				await this.options.storage.delete(subject, sessionId);
 				throw createException(
-					ErrorCodes.EXPIRED,
+					ErrorCodes.USER_SESSION_EXPIRED,
 					`Session '${UserSessionManager.hash(
 						sessionId
 					)}' it's expired, because it was idle for ${timeSinceLastAccess} seconds. Context: ${JSON.stringify(context)}.`
@@ -287,7 +287,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			sessionId,
 			setTimeout(
 				() => this.delete(subject, sessionId).catch((e) => this.options.renewSessionHooks.onOldSessionDeleteFailure(sessionId, e)),
-				this.options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal! * 1000
+				this.options.timeouts.oldSessionAvailabilityAfterRenewal! * 1000
 			)
 		);
 
@@ -336,7 +336,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 
 	private static fillWithDefaults<Dev extends DeviceBase, Loc>(options: UserSessionManagerOptions<Dev, Loc>): Required<UserSessionManagerOptions<Dev, Loc>> {
 		if (options.idLength < 15) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Session id length can't be lower than 15 characters. Given: ${options.idLength}.`);
+			throw createException(ErrorCodes.INVALID_SESSION_ID_LENGTH, `Session id length can't be lower than 15 characters. Given: ${options.idLength}.`);
 		}
 
 		if (options.timeouts == null) {
@@ -345,30 +345,33 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 			// if idle session feature is enabled
 			if (options.timeouts.idle != null) {
 				if (options.timeouts.idle <= 0 || options.timeouts.idle >= options.sessionTtl) {
-					throw createException(ErrorCodes.INVALID, `Idle timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.idle}`);
+					throw createException(
+						ErrorCodes.INVALID_IDLE_TIMEOUT,
+						`Idle timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.idle}`
+					);
 				}
 			}
 
 			// if session renewal feature is enabled
 			if (options.timeouts.renewal != null) {
 				if (options.timeouts.renewal <= 0 || options.timeouts.renewal >= options.sessionTtl) {
-					throw createException(ErrorCodes.INVALID, `Renew timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.renewal}`);
-				}
-
-				if (options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal == null) {
 					throw createException(
-						ErrorCodes.REQUIRED,
-						"'timeouts.oldSessionAvailabilityTimeoutAfterRenewal' is a required property when 'timeouts.renewal' is set."
+						ErrorCodes.INVALID_RENEW_TIMEOUT,
+						`Renew timeout needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.renewal}`
 					);
 				}
 
-				if (
-					options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal <= 0 ||
-					options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal >= options.sessionTtl
-				) {
+				if (options.timeouts.oldSessionAvailabilityAfterRenewal == null) {
 					throw createException(
-						ErrorCodes.INVALID,
-						`'timeouts.oldSessionAvailabilityTimeoutAfterRenewal' needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.oldSessionAvailabilityTimeoutAfterRenewal}.`
+						ErrorCodes.OLD_SESSION_AVAILABILITY_TIMEOUT_AFTER_RENEWAL_REQUIRED,
+						"'timeouts.oldSessionAvailabilityAfterRenewal' is a required property when 'timeouts.renewal' is set."
+					);
+				}
+
+				if (options.timeouts.oldSessionAvailabilityAfterRenewal <= 0 || options.timeouts.oldSessionAvailabilityAfterRenewal >= options.sessionTtl) {
+					throw createException(
+						ErrorCodes.INVALID_OLD_SESSION_AVAILABILITY_TIMEOUT_AFTER_RENEWAL,
+						`'timeouts.oldSessionAvailabilityAfterRenewal' needs to be >0 && <${options.sessionTtl}. Given ${options.timeouts.oldSessionAvailabilityAfterRenewal}.`
 					);
 				}
 			}
@@ -398,7 +401,7 @@ class UserSessionManager<Device extends DeviceBase = DeviceBase, Location = stri
 		if (context.device && sessionMetaData.device) {
 			if (context.device.type !== sessionMetaData.device.type || context.device.name !== sessionMetaData.device.name) {
 				throw createException(
-					ErrorCodes.NOT_ALLOWED,
+					ErrorCodes.FORBIDDEN_ACCESS_TO_USER_SESSION_FROM_DIFFERENT_DEVICE,
 					`Attempting to access session '${UserSessionManager.hash(
 						sessionId
 					)}' of the subject '${subject}' from a device which differs from the one session was created. Context: ${JSON.stringify(context)}.`

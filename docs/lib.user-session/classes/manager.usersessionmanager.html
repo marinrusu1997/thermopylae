@@ -1,0 +1,524 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>UserSessionManager | @thermopylae/lib.user-session</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="../index.html" class="title">@thermopylae/lib.user-session</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.user-session" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../modules/manager.html">manager</a>
+				</li>
+				<li>
+					<a href="manager.usersessionmanager.html">UserSessionManager</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="../modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;SessionManager&quot;:&quot;manager&quot;,&quot;Session&quot;:&quot;session&quot;,&quot;Storage&quot;:&quot;storage&quot;,&quot;Error&quot;:&quot;error&quot;}
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>Class UserSessionManager&lt;Device, Location&gt;</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p>Stateful implementation of the user sessions. <br/>
+							Session data is stored in external storage and client receives only it&#39;s id. <br/>
+						Sessions are implemented in a such way, so that they can be used in cluster or single-node infrastructures.</p>
+					</div>
+			</div></section>
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>Device<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">DeviceBase</span></h4>
+						<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+							<div class="lead">
+								<p>Type of the device.</p>
+							</div>
+					</div>        </li>
+					<li>
+						<h4>Location</h4>
+						<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+							<div class="lead">
+								<p>Type of the location.</p>
+							</div>
+					</div>        </li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">UserSessionManager</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter"><a href="manager.usersessionmanager.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#create" class="tsd-kind-icon">create</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#delete" class="tsd-kind-icon">delete</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#deleteall" class="tsd-kind-icon">delete<wbr>All</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#read" class="tsd-kind-icon">read</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#readall" class="tsd-kind-icon">read<wbr>All</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="manager.usersessionmanager.html#renew" class="tsd-kind-icon">renew</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="manager.usersessionmanager.html#currenttimestamp" class="tsd-kind-icon">current<wbr>Timestamp</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="manager.usersessionmanager.html#hash" class="tsd-kind-icon">hash</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>User<wbr>Session<wbr>Manager&lt;Device, Location&gt;<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><a href="../interfaces/manager.usersessionmanageroptions.html" class="tsd-signature-type">UserSessionManagerOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="manager.usersessionmanager.html" class="tsd-signature-type">UserSessionManager</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Device<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">DeviceBase</span></h4>
+								</li>
+								<li>
+									<h4>Location</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <a href="../interfaces/manager.usersessionmanageroptions.html" class="tsd-signature-type">UserSessionManagerOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Options object. <br/>
+										It should not be modified after, as it will be used without being cloned.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="manager.usersessionmanager.html" class="tsd-signature-type">UserSessionManager</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="create" class="tsd-anchor"></a>
+					<h3>create</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">create<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span>, sessionTtl<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Create new user session for <code>subject</code>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject the session will belong to.</p>
+									</div>
+								</li>
+								<li>
+									<h5>context: <span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Operation context.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> sessionTtl: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Session ttl. Takes precedence over the default one.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>User session id.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="delete" class="tsd-anchor"></a>
+					<h3>delete</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Delete user session.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject.</p>
+									</div>
+								</li>
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Id of the user session.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="deleteall" class="tsd-anchor"></a>
+					<h3>delete<wbr>All</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">delete<wbr>All<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Delete all of the user sessions.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Number of deleted sessions.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="read" class="tsd-anchor"></a>
+					<h3>read</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">read<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Read user session from external storage. <br/>
+										When idle functionality is activated, this method might delete user session and throw an error to notify about this,
+										if it was idle for more than {@link UserSessionManagerOptions.timeouts.idle} seconds. <br/>
+										When renew functionality is activated, this method might create a new user session, and return it&#39;s id as the second part of the tuple.
+										In case renewed session id is returned, it needs to be sent to application clients via &#39;Set-Cookie&#39; header to replace the old session cookie.
+										The old session will still be available for {@link UserSessionManagerOptions.timeouts.oldSessionAvailabilityAfterRenewal} seconds,
+									so that older requests might complete successfully and client has time to refresh session id on it&#39;s side.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With the following error codes:
+											- <a href="../enums/error.errorcodes.html#user_session_not_found">ErrorCodes.USER_SESSION_NOT_FOUND</a>        - session wasn&#39;t found in the storage
+											- <a href="../enums/error.errorcodes.html#user_session_expired">ErrorCodes.USER_SESSION_EXPIRED</a>         - session is accessed from a device which differs from the one it was created
+										- <a href="../enums/error.errorcodes.html#user_session_expired">ErrorCodes.USER_SESSION_EXPIRED</a>        - session was expired because of the idle timeout</p>
+								</dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject.</p>
+									</div>
+								</li>
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Session id.</p>
+									</div>
+								</li>
+								<li>
+									<h5>context: <span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Operation context.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>A tuple with the following parts:
+								- session metadata
+							- renewed session id (if renewal took place)</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="readall" class="tsd-anchor"></a>
+					<h3>read<wbr>All</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">read<wbr>All<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ReadonlyMap</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Read all active sessions of the subject.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ReadonlyMap</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Active sessions of the subject.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="renew" class="tsd-anchor"></a>
+					<h3>renew</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">renew<span class="tsd-signature-symbol">(</span>subject<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionMetaData<span class="tsd-signature-symbol">: </span><a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Renew user session. <br/>
+										Renewing consist from the following actions:
+										1. scheduling deletion of the old session in a very short amount of time
+									2. creating a new user session</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>subject: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Subject.</p>
+									</div>
+								</li>
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Id of the session to be renewed.</p>
+									</div>
+								</li>
+								<li>
+									<h5>sessionMetaData: <a href="../interfaces/session.usersessionmetadata.html" class="tsd-signature-type">UserSessionMetaData</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Metadata of that session.</p>
+									</div>
+								</li>
+								<li>
+									<h5>context: <span class="tsd-signature-type">UserSessionOperationContext</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Device</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Location</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Operation context.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>The new user session id. <br/>
+							When renew can&#39;t be performed, a log message is printed and <em>null</em> is returned.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="currenttimestamp" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> current<wbr>Timestamp</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">current<wbr>Timestamp<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="hash" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> hash</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">hash<span class="tsd-signature-symbol">(</span>sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Hashes session id. <br/>
+									Useful for logging purposes.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Session id.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+							<p>Hashed session id.</p>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.user-session&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.user-session&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.user-session&quot;}],&quot;outline&quot;:[{&quot;SessionManager&quot;:&quot;manager&quot;,&quot;Session&quot;:&quot;session&quot;,&quot;Storage&quot;:&quot;storage&quot;,&quot;Error&quot;:&quot;error&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="manager.usersessionmanager.html" class="tsd-kind-icon">User<wbr>Session<wbr>Manager</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="manager.usersessionmanager.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#create" class="tsd-kind-icon">create</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#delete" class="tsd-kind-icon">delete</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#deleteall" class="tsd-kind-icon">delete<wbr>All</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#read" class="tsd-kind-icon">read</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#readall" class="tsd-kind-icon">read<wbr>All</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="manager.usersessionmanager.html#renew" class="tsd-kind-icon">renew</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="manager.usersessionmanager.html#currenttimestamp" class="tsd-kind-icon">current<wbr>Timestamp</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="manager.usersessionmanager.html#hash" class="tsd-kind-icon">hash</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/manager.renewsessionhooks.html" class="tsd-kind-icon">Renew<wbr>Session<wbr>Hooks</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../interfaces/manager.usersessionmanageroptions.html" class="tsd-kind-icon">User<wbr>Session<wbr>Manager<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/manager.usersessiontimeouts.html" class="tsd-kind-icon">User<wbr>Session<wbr>Timeouts</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-module root">
+						<a href="../modules/manager.html#renewed_session_flag" class="tsd-kind-icon">RENEWED_<wbr>SESSION_<wbr>FLAG</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

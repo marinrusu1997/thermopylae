@@ -1,6 +1,6 @@
 import { describe, it, before } from 'mocha';
 import { expect, logger, initLogger } from '@thermopylae/dev.unit-test';
-import { LoggerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { setTimeout } from 'timers/promises';
 import { RenewSessionHooks, UserSessionManager, UserSessionManagerOptions } from '../lib';
@@ -43,8 +43,8 @@ const renewSessionHooks: RenewSessionHooks = {
 
 describe(`${UserSessionManager.name} spec`, () => {
 	before(() => {
-		LoggerInstance.console.createTransport({ level: 'info' });
-		LoggerInstance.formatting.setDefaultRecipe(OutputFormat.PRINTF, { colorize: true });
+		LoggerManagerInstance.console.createTransport({ level: 'info' });
+		LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, { colorize: true });
 		initLogger();
 	});
 
@@ -104,7 +104,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			timeouts: {
 				idle: 2,
 				renewal: 5,
-				oldSessionAvailabilityTimeoutAfterRenewal: 1
+				oldSessionAvailabilityAfterRenewal: 1
 			},
 			storage: new StorageMock(),
 			renewSessionHooks
@@ -133,7 +133,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			sessionTtl: 10,
 			timeouts: {
 				renewal: 1,
-				oldSessionAvailabilityTimeoutAfterRenewal: 1
+				oldSessionAvailabilityAfterRenewal: 1
 			},
 			storage,
 			renewSessionHooks
@@ -182,7 +182,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				sessionTtl: 10,
 				timeouts: {
 					renewal: 1,
-					oldSessionAvailabilityTimeoutAfterRenewal: 1
+					oldSessionAvailabilityAfterRenewal: 1
 				},
 				storage,
 				renewSessionHooks
@@ -229,7 +229,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			sessionTtl: 10,
 			timeouts: {
 				renewal: 1,
-				oldSessionAvailabilityTimeoutAfterRenewal: 1
+				oldSessionAvailabilityAfterRenewal: 1
 			},
 			storage,
 			renewSessionHooks
@@ -254,7 +254,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			sessionTtl: 10,
 			timeouts: {
 				renewal: 1,
-				oldSessionAvailabilityTimeoutAfterRenewal: 1
+				oldSessionAvailabilityAfterRenewal: 1
 			},
 			storage,
 			renewSessionHooks

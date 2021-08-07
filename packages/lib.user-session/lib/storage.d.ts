@@ -7,8 +7,7 @@ import type { UserSessionMetaData } from './session';
  * @template Device		Type of the device.
  * @template Location	Type of the location.
  */
-declare interface UserSessionsStorage<Device extends DeviceBase, Location>
-	extends BaseUserSessionStorage<Device, Location, UserSessionMetaData<Device, Location>> {
+interface UserSessionsStorage<Device extends DeviceBase, Location> extends BaseUserSessionStorage<Device, Location, UserSessionMetaData<Device, Location>> {
 	/**
 	 * Caller will pass an {@link UserSessionMetaData} object (the same one which was obtained from {@link UserSessionsStorage.read} operation, without being cloned)
 	 * which has updated {@link UserSessionMetaData.accessedAt} field.
