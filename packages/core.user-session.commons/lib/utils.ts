@@ -1,7 +1,7 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import type { HttpRequest, HTTPRequestLocation, Undefinable } from '@thermopylae/core.declarations';
 import type { UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import type { ExceptionFactory, UserSessionDevice } from './typings';
+import { ErrorCodes } from './error';
 
 class UserSessionUtils {
 	public static buildUserSessionContext(req: HttpRequest): UserSessionOperationContext<UserSessionDevice, HTTPRequestLocation> {
@@ -24,15 +24,21 @@ class UserSessionUtils {
 		// it's mandatory to handle missing header, invalid scheme, missing token
 
 		if (typeof authorization !== 'string') {
-			throw exceptionFactory(ErrorCodes.NOT_FOUND, `Authorization header value not present.`);
+			throw exceptionFactory(ErrorCodes.AUTHORIZATION_HEADER_NOT_FOUND, `Authorization header value not present.`);
 		}
 
 		const [scheme, token] = authorization.split(' ') as [Undefinable<string>, Undefinable<string>];
 		if (scheme !== 'Bearer') {
-			throw exceptionFactory(ErrorCodes.UNPROCESSABLE, `Authorization scheme needs to be 'Bearer'. Authorization header value: ${authorization}`);
+			throw exceptionFactory(
+				ErrorCodes.AUTHORIZATION_HEADER_INVALID_SCHEME,
+				`Authorization scheme needs to be 'Bearer'. Authorization header value: ${authorization}`
+			);
 		}
 		if (typeof token !== 'string') {
-			throw exceptionFactory(ErrorCodes.NOT_FOUND, `Can't extract access token. Authorization header value ${authorization}`);
+			throw exceptionFactory(
+				ErrorCodes.AUTHORIZATION_HEADER_HAS_NO_ACCESS_TOKEN,
+				`Can't extract access token. Authorization header value ${authorization}`
+			);
 		}
 		return token;
 	}

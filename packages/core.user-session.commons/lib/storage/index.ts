@@ -1,10 +1,9 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { ConnectionType, RedisClientInstance } from '@thermopylae/core.redis';
 import type { Seconds, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { Subject, SessionId, UserSessionMetaData, UserSessionStorage } from '@thermopylae/lib.user-session.commons';
 import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../typings';
 import { logger } from '../logger';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 
 interface UserSessionRedisStorageOptions<
 	MetaData extends UserSessionMetaData<UserSessionDevice, HTTPRequestLocation> = UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
@@ -38,6 +37,7 @@ interface UserSessionRedisStorageOptions<
  * User session storage backed by [Redis](https://redis.io/). <br/>
  * This implementation uses *core.redis* as client and imposes the following requirements to him: <br/>
  * 	- {@link ConnectionType.SUBSCRIBER} connection needs to be established and available.
+ * 		**Key space notification events needs to be enabled on Redis Server side.**
  * 		This is needed for receiving of key space notification events about refresh token keys deletion, expiration or eviction,
  * 		in order to remove them from list of active user sessions. <br/>
  * 	- {@link ConnectionType.REGULAR} connection needs to have **detect_buffers** option enabled, because it stores and reads
@@ -90,7 +90,7 @@ class UserSessionRedisStorage<
 			const activeSessions = await RedisClientInstance.client.llen(activeSessionsKey);
 			if (activeSessions >= this.options.concurrentSessions) {
 				throw createException(
-					ErrorCodes.OVERFLOW,
+					ErrorCodes.TOO_MANY_CONCURRENT_USER_SESSIONS,
 					`Concurrent user sessions limit reached for subject '${subject}', as he has ${activeSessions} active sessions.`
 				);
 			}
@@ -105,7 +105,7 @@ class UserSessionRedisStorage<
 			.exec()) as unknown as [Buffer, number];
 
 		if (wasSet == null) {
-			throw createException(ErrorCodes.NOT_CREATED, `Failed to insert user session under key '${sessionIdKey}'.`);
+			throw createException(ErrorCodes.USER_SESSION_INSERTION_FAILED, `Failed to insert user session under key '${sessionIdKey}'.`);
 		}
 
 		logger.debug(`Inserted user session for subject '${subject}'. He has ${activeSessions} active sessions.`);

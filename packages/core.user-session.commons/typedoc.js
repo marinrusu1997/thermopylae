@@ -1,16 +1,20 @@
 const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
+
 typedoc.externalPattern = [
     'lib/storage/serializers/**/*.ts'
 ];
+
 typedoc.outline = [
     {
         "Storage": "storage",
-        "Typings": "typings"
+        "Typings": "typings",
+        "Error": "error"
     }
 ];
+
 typedoc.links = [{
-    "label": "Bitbucket",
-    "url": "https://bitbucket.org/marinrusu1997/framework/src/master/packages/core.user-session.commons/"
-}]
+    "label": "Github",
+    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.user-session.commons"
+}];
 
 module.exports = typedoc;

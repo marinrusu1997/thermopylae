@@ -1,4 +1,4 @@
-import { LoggerInstance } from '@thermopylae/core.logger';
+import { LoggerManagerInstance } from '@thermopylae/core.logger';
 import type { WinstonLogger } from '@thermopylae/core.logger';
 import { CoreModule } from '@thermopylae/core.declarations';
 
@@ -13,7 +13,7 @@ let logger: WinstonLogger;
  * This method should be called once, at the application start, before using library.
  */
 function initLogger(): void {
-	logger = LoggerInstance.for(CoreModule.USER_SESSION_COMMONS);
+	logger = LoggerManagerInstance.for(CoreModule.USER_SESSION_COMMONS);
 }
 
 export { logger, initLogger };

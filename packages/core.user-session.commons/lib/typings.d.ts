@@ -1,4 +1,4 @@
-import type { HttpDeviceClient, HttpDeviceOs, Nullable, HTTPRequestLocation, ErrorCodes } from '@thermopylae/core.declarations';
+import type { HttpDeviceClient, HttpDeviceOs, Nullable, HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { DeviceBase, UserSessionMetaData } from '@thermopylae/lib.user-session.commons';
 import type { Exception } from '@thermopylae/lib.exception';
 
@@ -34,6 +34,6 @@ type AuthorizationTokenExtractor = (authorization: string | null | undefined) =>
 /**
  * Function which returns an {@link Exception} instance.
  */
-type ExceptionFactory = (code: ErrorCodes, message: string) => Exception;
+type ExceptionFactory = (code: string, message: string) => Exception;
 
 export { UserSessionDevice, UserSessionMetaDataSerializer, ExceptionFactory, AuthorizationTokenExtractor };
