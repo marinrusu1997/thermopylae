@@ -7,6 +7,9 @@ import type { UserSessionsStorage, UserSessionMetaData } from '@thermopylae/lib.
 import type { Subject, SessionId } from '@thermopylae/lib.user-session.commons';
 import { logger } from './logger';
 
+/**
+ * @inheritDoc
+ */
 class UserSessionRedisStorage
 	extends BaseUserSessionRedisStorage<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>>
 	implements UserSessionsStorage<UserSessionDevice, HTTPRequestLocation>

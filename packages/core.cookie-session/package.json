@@ -5,7 +5,8 @@
         "core"
     ],
     "version": "0.0.1",
-    "author": "Rusu Marin dimarusu2000@gmail.com",
+    "author": "Rusu Marin <dimarusu2000@gmail.com>",
+    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.cookie-session",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
@@ -16,7 +17,6 @@
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
         "build": "gulp build",
         "doc": "gulp doc",
-        "readme": "gulp readme",
         "test": "gulp test",
         "report": "gulp report",
         "coverage": "gulp coverage",
@@ -24,10 +24,7 @@
         "debug": "gulp debug",
         "clean": "gulp clean",
         "purge": "gulp purge",
-        "update": "gulp stickToMajorSemver && npm update --dev --force -verbose",
-        "bumpVersion": "timestamp=$(date \"+%s\") && npm version 0.0.$timestamp",
-        "precommit": "npm run lint",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build && npm run bumpVersion && gulp stickToMajorSemver && gulp readme",
+        "prepublishOnly": "npm run lint && npm run clean && npm run build",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
@@ -62,8 +59,8 @@
         "unix-timestamp": "0"
     },
     "peerDependencies": {
-        "chai": "4",
-        "mocha": "8"
+        "mocha": "8",
+        "chai": "4"
     },
     "lint-staged": {
         "*.ts": [
@@ -73,6 +70,6 @@
     "engines": {
         "node": ">= 16"
     },
-    "license": "ISC",
+    "license": "MIT",
     "type": "commonjs"
 }

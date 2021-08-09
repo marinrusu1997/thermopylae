@@ -181,7 +181,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
 			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityTimeoutAfterRenewal) {
+			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
 				const firstSessionId = Object.entries(parse(firstAuthResp.headers.get(SET_COOKIE)!))[0][1];
 				const secondSessionId = secondAuthResp.headers.get(options.session.header)!;
 				expect(Object.keys(activeSessions)).to.be.equalTo([secondSessionId, firstSessionId]);
@@ -255,7 +255,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
 			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityTimeoutAfterRenewal) {
+			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
 				const oldSessionId = Object.entries(parse(cookie))[0][1];
 				expect(Object.keys(activeSessions)).to.be.equalTo([oldSessionId]);
 			} else {
@@ -443,7 +443,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
 			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityTimeoutAfterRenewal) {
+			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
 				const oldSessionId = Object.entries(parse(cookie))[0][1];
 				expect(Object.keys(activeSessions)).to.be.equalTo([oldSessionId]);
 			} else {

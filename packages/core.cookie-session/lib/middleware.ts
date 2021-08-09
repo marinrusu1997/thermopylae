@@ -14,13 +14,12 @@ import type { SessionId, Subject } from '@thermopylae/lib.user-session.commons';
 import type { UserSessionManagerOptions, UserSessionMetaData } from '@thermopylae/lib.user-session';
 import type { UserSessionDevice, AuthorizationTokenExtractor } from '@thermopylae/core.user-session.commons';
 import type { CookieSerializeOptions } from 'cookie';
-import { UserSessionManager } from '@thermopylae/lib.user-session';
-import { ErrorCodes } from '@thermopylae/core.declarations';
+import { UserSessionManager, ErrorCodes as UserSessionErrorCodes } from '@thermopylae/lib.user-session';
 import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
 import { Exception } from '@thermopylae/lib.exception';
 import { serialize } from 'cookie';
 import { ClientType } from '@thermopylae/core.declarations/lib';
-import { createException } from './error';
+import { createException, ErrorCodes } from './error';
 
 interface UserSessionCookiesOptions {
 	/**
@@ -219,7 +218,7 @@ class CookieUserSessionMiddleware {
 				unsetSessionCookie &&
 				clientType === 'browser' &&
 				e instanceof Exception &&
-				(e.code === ErrorCodes.NOT_FOUND || e.code === ErrorCodes.EXPIRED)
+				(e.code === UserSessionErrorCodes.USER_SESSION_NOT_FOUND || e.code === UserSessionErrorCodes.USER_SESSION_EXPIRED)
 			) {
 				res.header('set-cookie', this.invalidateSessionCookieHeaderValue);
 			}
@@ -292,7 +291,7 @@ class CookieUserSessionMiddleware {
 
 		const csrf = req.header(this.options.session.csrf.name);
 		if (csrf !== this.options.session.csrf.value) {
-			throw createException(ErrorCodes.CHECK_FAILED, `CSRF header value '${csrf}' differs from the expected one.`);
+			throw createException(ErrorCodes.CSRF_HEADER_INVALID_VALUE, `CSRF header value '${csrf}' differs from the expected one.`);
 		}
 
 		return [sessionId, 'browser'];
@@ -313,16 +312,19 @@ class CookieUserSessionMiddleware {
 
 	private static fillWithDefaults(options: CookieUserSessionMiddlewareOptions): RequireSome<CookieUserSessionMiddlewareOptions, 'sessionIdExtractor'> {
 		if (options.session.cookie.name.startsWith('__Host-')) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Session cookie name is not allowed to start with '__Host-'. Given: ${options.session.cookie.name}.`);
+			throw createException(
+				ErrorCodes.SESSION_COOKIE_NAME_INVALID_FORMAT,
+				`Session cookie name is not allowed to start with '__Host-'. Given: ${options.session.cookie.name}.`
+			);
 		}
 		if (options.session.cookie.name.startsWith('__Secure-')) {
 			throw createException(
-				ErrorCodes.NOT_ALLOWED,
+				ErrorCodes.SESSION_COOKIE_NAME_INVALID_FORMAT,
 				`Session cookie name is not allowed to start with '__Secure-'. Given: ${options.session.cookie.name}.`
 			);
 		}
 		if (!isLowerCase(options.session.cookie.name)) {
-			throw createException(ErrorCodes.INVALID, `Cookie name should be lowercase. Given: ${options.session.cookie.name}.`);
+			throw createException(ErrorCodes.SESSION_COOKIE_NAME_MUST_BE_LOWERCASE, `Cookie name should be lowercase. Given: ${options.session.cookie.name}.`);
 		}
 
 		if (options.session.cookie.domain == null && options.session.cookie.path === '/') {
@@ -332,11 +334,17 @@ class CookieUserSessionMiddleware {
 		}
 
 		if (!isLowerCase(options.session.header)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `Session id header name needs to be lower case. Given: ${options.session.header}`);
+			throw createException(
+				ErrorCodes.SESSION_ID_HEADER_NAME_MUST_BE_LOWERCASE,
+				`Session id header name needs to be lower case. Given: ${options.session.header}`
+			);
 		}
 
 		if (!isLowerCase(options.session.csrf.name)) {
-			throw createException(ErrorCodes.NOT_ALLOWED, `CSRF header name needs to be lower case. Given: ${options.session.csrf.name}`);
+			throw createException(
+				ErrorCodes.CSRF_HEADER_NAME_MUST_BE_LOWERCASE,
+				`CSRF header name needs to be lower case. Given: ${options.session.csrf.name}`
+			);
 		}
 
 		if (options.sessionIdExtractor == null) {

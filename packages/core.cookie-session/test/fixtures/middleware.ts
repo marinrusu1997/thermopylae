@@ -12,7 +12,7 @@ const options: CookieUserSessionMiddlewareOptions = {
 		timeouts: {
 			idle: 3,
 			renewal: 2,
-			oldSessionAvailabilityTimeoutAfterRenewal: 1
+			oldSessionAvailabilityAfterRenewal: 1
 		},
 		renewSessionHooks: {
 			onRenewMadeAlreadyFromCurrentProcess(sessionId: string) {
