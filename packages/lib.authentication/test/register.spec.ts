@@ -2,7 +2,6 @@ import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono, string } from '@thermopylae/lib.utils';
-import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
 import { EmailSenderInstance } from './fixtures/senders/email';
@@ -119,7 +118,7 @@ describe('Register spec', () => {
 			err = e;
 		}
 
-		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', CoreErrorCodes.MISCONFIGURATION);
+		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INVALID_DISABLED_UNTIL_VALUE);
 		expect(err).to.haveOwnProperty(
 			'message',
 			`Account 'disabledUntil' field should take either ${AccountStatus.ENABLED} or ${AccountStatus.DISABLED_UNTIL_ACTIVATION} values. Given: ${now}.`

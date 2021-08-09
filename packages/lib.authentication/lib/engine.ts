@@ -1,4 +1,4 @@
-import { ErrorCodes as CoreErrorCodes, RequireSome, Seconds, Threshold, UnixTimestamp } from '@thermopylae/core.declarations';
+import { RequireSome, Seconds, Threshold, UnixTimestamp } from '@thermopylae/core.declarations';
 
 import uidSafe from 'uid-safe';
 import { compareTwoStrings } from 'string-similarity';
@@ -24,7 +24,7 @@ import { RecaptchaStep } from './authentication/steps/recaptcha-step';
 import { ErrorStep } from './authentication/steps/error-step';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
 import { PasswordsManager } from './managers/password';
-import type { PasswordHashing } from './managers/password';
+import type { PasswordHashingOptions } from './managers/password';
 import type { EmailSender, SmsSender } from './types/side-channels';
 import type { AccountModel, FailedAuthenticationModel, SuccessfulAuthenticationModel } from './types/models';
 import { ChallengeResponseStep } from './authentication/steps/challenge-response-step';
@@ -58,8 +58,19 @@ import { TokenManager } from './managers/token';
 // @fixme also for tokens, it would be recommended to use HMAC, and secret to be kept outside of the db
 // this way if tokens are leaked, they are useless without that secret
 
+/**
+ * Minimal fields required for account registration.
+ */
 type AccountToBeRegistered<Account extends AccountModel> = RequireSome<Partial<Account>, 'username' | 'passwordHash' | 'email' | 'disabledUntil'>;
 
+/**
+ * Function which encrypts forgot password token.
+ *
+ * @param pubKey	Public Key of the user account (see {@link AccountModel.pubKey}).
+ * @param token		Forgot password token in plaintext.
+ *
+ * @returns			Encrypted token.
+ */
 type EncryptForgotPasswordToken = (pubKey: string, token: string) => Promise<string>;
 
 interface AuthenticationEngineOptions<Account extends AccountModel> {
@@ -114,10 +125,25 @@ interface AuthenticationEngineOptions<Account extends AccountModel> {
 		readonly forgotPasswordSession: ForgotPasswordSessionRepository;
 		readonly activateAccountSession: ActivateAccountSessionRepository<Account>;
 	};
+	/**
+	 * Hooks called by {@link AuthenticationEngine}.
+	 */
 	readonly hooks: {
+		/**
+		 * Hook called when authentication from different context (i.e. different device, location etc.) has been detected.
+		 */
 		readonly onAuthenticationFromDifferentContext: OnAuthenticationFromDifferentContextHook<Account>;
+		/**
+		 * Hook called when account has been disabled due to authentication error or explicitly by admin.
+		 */
 		readonly onAccountDisabled: OnAccountDisabledHook<Account>;
+		/**
+		 * Hook called when password has been changed.
+		 */
 		readonly onPasswordChanged: OnPasswordChangedHook<Account>;
+		/**
+		 * Hook called when forgotten password has been changed.
+		 */
 		readonly onForgottenPasswordChanged: OnForgottenPasswordChangedHook<Account>;
 	};
 	readonly validators: {
@@ -125,18 +151,43 @@ interface AuthenticationEngineOptions<Account extends AccountModel> {
 		readonly challengeResponse?: ChallengeResponseValidator;
 	};
 	readonly password: {
-		readonly hashing: PasswordHashing;
+		readonly hashing: PasswordHashingOptions;
+		/**
+		 * Password encryption options. <br/>
+		 * Depending of this option value, following behaviours will occur: <br/>
+		 * - *false* - password hash will be stored in plaintext in the {@link AccountModel.passwordHash} <br/>
+		 * - *{@link SecretEncryptionOptions}* - password hash will be encrypted before being stored in the {@link AccountModel.passwordHash}
+		 */
 		readonly encryption: SecretEncryptionOptions | false;
+		/**
+		 * Password strength policy validators.
+		 */
 		readonly strength: PasswordStrengthPolicyValidator<Account>[];
+		/**
+		 * Password similarity threshold used when password is changed.
+		 * When old and new password have a similarity equal or greater with this one,
+		 * error will be thrown and password change process will be aborted. <br/>
+		 * Ranges between [0, 1], **0** being completely different and **1** being completely similar.
+		 */
 		readonly similarity: Threshold;
+		/**
+		 * Forgot password token encryptor.
+		 */
 		readonly forgotPasswordTokenEncrypt: EncryptForgotPasswordToken;
 	};
 	readonly email: {
+		/**
+		 * Email of the administrator.
+		 */
 		readonly admin: string;
 		readonly sender: EmailSender<Account>;
 	};
 	readonly smsSender: SmsSender<Account>;
 	readonly '2fa-strategy': TwoFactorAuthStrategy<Account>;
+	/**
+	 * Length of the issued tokens (e.g. forgot password token, account activation token etc.). <br/>
+	 * Recommended value is 24.
+	 */
 	readonly tokensLength: number;
 }
 
@@ -265,7 +316,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 		}
 
 		throw createException(
-			CoreErrorCodes.MISCONFIGURATION,
+			ErrorCodes.INVALID_DISABLED_UNTIL_VALUE,
 			`Account 'disabledUntil' field should take either ${AccountStatus.ENABLED} or ${AccountStatus.DISABLED_UNTIL_ACTIVATION} values. Given: ${account.disabledUntil}.`
 		);
 	}
@@ -447,7 +498,7 @@ class AuthenticationEngine<Account extends AccountModel> {
 				);
 			} else {
 				throw createException(
-					CoreErrorCodes.UNKNOWN,
+					ErrorCodes.UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL,
 					`Can't send forgot password token for account with id '${account.id}', because side channel type '${sideChannel}' is unknown.`
 				);
 			}
@@ -498,11 +549,14 @@ class AuthenticationEngine<Account extends AccountModel> {
 
 	private static validateOptions<Acc extends AccountModel>(options: AuthenticationEngineOptions<Acc>): AuthenticationEngineOptions<Acc> | never {
 		if (options.password.similarity < 0 || options.password.similarity > 1) {
-			throw createException(CoreErrorCodes.INVALID, `Password similarity threshold needs to be in range [0, 1]. Given: ${options.password.similarity}.`);
+			throw createException(
+				ErrorCodes.INVALID_PASSWORD_SIMILARITY_VALUE,
+				`Password similarity threshold needs to be in range [0, 1]. Given: ${options.password.similarity}.`
+			);
 		}
 
 		if (options.tokensLength < 15) {
-			throw createException(CoreErrorCodes.NOT_ALLOWED, `Tokens length can't be lower than 15 characters. Given: ${options.tokensLength}.`);
+			throw createException(ErrorCodes.INVALID_TOKENS_LENGTH, `Tokens length can't be lower than 15 characters. Given: ${options.tokensLength}.`);
 		}
 
 		return options;

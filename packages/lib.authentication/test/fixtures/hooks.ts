@@ -1,5 +1,10 @@
-import { AccountWithTotpSecret, OnAccountDisabledHook, OnForgottenPasswordChangedHook, OnPasswordChangedHook } from '../../lib';
-import { OnAuthenticationFromDifferentContextHook } from '../../lib/types/hooks';
+import {
+	AccountWithTotpSecret,
+	OnAccountDisabledHook,
+	OnForgottenPasswordChangedHook,
+	OnPasswordChangedHook,
+	OnAuthenticationFromDifferentContextHook
+} from '../../lib';
 
 const OnAuthFromDifferentContextHookMock: { calls: string[]; hook: OnAuthenticationFromDifferentContextHook<AccountWithTotpSecret> } = {
 	calls: [],

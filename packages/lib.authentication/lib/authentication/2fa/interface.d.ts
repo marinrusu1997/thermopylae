@@ -2,6 +2,8 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
+// @fixme implement 2fa with push notifications https://www.npmjs.com/package/node-pushnotifications
+
 /**
  * Represents 2 Factor Authentication strategy.
  */
@@ -10,7 +12,7 @@ interface TwoFactorAuthStrategy<Account extends AccountModel> {
 	 * Hook used by strategy in order to attach metadata to account when multi factor auth is enabled.
 	 *
 	 * @param account	User account.
-	 * @param update	Fields that need to be updated on user account.
+	 * @param update	Fields that need to be updated on user account (e.g. totp secret).
 	 *
 	 * @returns			Result of the hook.
 	 */

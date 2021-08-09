@@ -2,7 +2,6 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono, string } from '@thermopylae/lib.utils';
-import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import { AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
 import { AuthenticationEngineDefaultOptions, ForgotPasswordTokenEncryption, PasswordLengthValidatorOptions } from './fixtures';
 import { AccountKeyPair, buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
@@ -284,7 +283,9 @@ describe('forgot password spec', function suite() {
 			unknownSideChannelErr = e;
 		}
 
-		expect(unknownSideChannelErr).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', CoreErrorCodes.UNKNOWN);
+		expect(unknownSideChannelErr)
+			.to.be.instanceOf(Exception)
+			.and.to.haveOwnProperty('code', ErrorCodes.UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL);
 		expect(unknownSideChannelErr).to.haveOwnProperty(
 			'message',
 			`Can't send forgot password token for account with id '${account.id}', because side channel type '${sideChannel}' is unknown.`

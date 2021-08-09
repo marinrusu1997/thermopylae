@@ -1,0 +1,618 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>AuthenticationEngine | @thermopylae/lib.authentication</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<ul class="results-priority" style="display:none">
+					</ul>
+					<a href="../index.html" class="title">@thermopylae/lib.authentication</a>
+					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication" class="title">Github</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../modules/engine.html">engine</a>
+				</li>
+				<li>
+					<a href="engine.authenticationengine.html">AuthenticationEngine</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class=" ">
+						<a href="../modules.html">Exports</a>
+					</li>
+					<li class="current tsd-kind-module">
+						<a href="../modules/engine.html">engine</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div class="col-7 offset-3 col-content">
+			<h1>Class AuthenticationEngine&lt;Account&gt;</h1>
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>Account<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_models.accountmodel.html" class="tsd-signature-type">AccountModel</a></h4>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">AuthenticationEngine</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter"><a href="engine.authenticationengine.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#activateaccount" class="tsd-kind-icon">activate<wbr>Account</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#authenticate" class="tsd-kind-icon">authenticate</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#changeforgottenpassword" class="tsd-kind-icon">change<wbr>Forgotten<wbr>Password</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="engine.authenticationengine.html#changepassword" class="tsd-kind-icon">change<wbr>Password</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#createforgotpasswordsession" class="tsd-kind-icon">create<wbr>Forgot<wbr>Password<wbr>Session</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#disableaccount" class="tsd-kind-icon">disable<wbr>Account</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#enableaccount" class="tsd-kind-icon">enable<wbr>Account</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#getfailedauthentications" class="tsd-kind-icon">get<wbr>Failed<wbr>Authentications</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#getsuccessfulauthentications" class="tsd-kind-icon">get<wbr>Successful<wbr>Authentications</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#register" class="tsd-kind-icon">register</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#settwofactorauthenabled" class="tsd-kind-icon">set<wbr>Two<wbr>Factor<wbr>Auth<wbr>Enabled</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="engine.authenticationengine.html#verifypassword" class="tsd-kind-icon">verify<wbr>Password</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Authentication<wbr>Engine&lt;Account&gt;<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><a href="../interfaces/engine.authenticationengineoptions.html" class="tsd-signature-type">AuthenticationEngineOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="engine.authenticationengine.html" class="tsd-signature-type">AuthenticationEngine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Account<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_models.accountmodel.html" class="tsd-signature-type">AccountModel</a></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <a href="../interfaces/engine.authenticationengineoptions.html" class="tsd-signature-type">AuthenticationEngineOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="engine.authenticationengine.html" class="tsd-signature-type">AuthenticationEngine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="activateaccount" class="tsd-anchor"></a>
+					<h3>activate<wbr>Account</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">activate<wbr>Account<span class="tsd-signature-symbol">(</span>activateAccountToken<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>activateAccountToken: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="authenticate" class="tsd-anchor"></a>
+					<h3>authenticate</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">authenticate<span class="tsd-signature-symbol">(</span>authenticationContext<span class="tsd-signature-symbol">: </span><a href="../modules/types_contexts.html#authenticationcontext" class="tsd-signature-type">AuthenticationContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/authentication_step.authenticationstatus.html" class="tsd-signature-type">AuthenticationStatus</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>authenticationContext: <a href="../modules/types_contexts.html#authenticationcontext" class="tsd-signature-type">AuthenticationContext</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/authentication_step.authenticationstatus.html" class="tsd-signature-type">AuthenticationStatus</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="changeforgottenpassword" class="tsd-anchor"></a>
+					<h3>change<wbr>Forgotten<wbr>Password</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">change<wbr>Forgotten<wbr>Password<span class="tsd-signature-symbol">(</span>token<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, newPassword<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>token: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>newPassword: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="changepassword" class="tsd-anchor"></a>
+					<h3>change<wbr>Password</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">change<wbr>Password&lt;Context&gt;<span class="tsd-signature-symbol">(</span>changePasswordContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Context</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Changes users password. <br/></p>
+									<blockquote>
+										<p><strong>Important!</strong> This method has authorization implications.
+										It needs to be called only by authenticated users and they can change only their password.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Context<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_contexts.changepasswordcontext.html" class="tsd-signature-type">ChangePasswordContext</a></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>changePasswordContext: <span class="tsd-signature-type">Context</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Change password context.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="createforgotpasswordsession" class="tsd-anchor"></a>
+					<h3>create<wbr>Forgot<wbr>Password<wbr>Session</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">create<wbr>Forgot<wbr>Password<wbr>Session<span class="tsd-signature-symbol">(</span>accountUniqueFieldName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">&#x60;readBy${Capitalize}&#x60;</span>, accountUniqueFieldValue<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sideChannel<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">"email"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"sms"</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>fixme</dt>
+									<dd><p>When account not found err is thrown, REST API should not respond with error, in order to prevent user enumeration,
+										i.e it should respond with ok (something like token was sent to specified email, even if account doesn&#39;t exist)</p>
+								</dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountUniqueFieldName: <span class="tsd-signature-type">&#x60;readBy${Capitalize}&#x60;</span></h5>
+								</li>
+								<li>
+									<h5>accountUniqueFieldValue: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>sideChannel: <span class="tsd-signature-type">"email"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"sms"</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="disableaccount" class="tsd-anchor"></a>
+					<h3>disable<wbr>Account</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">disable<wbr>Account<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, until<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, cause<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Disable user account. <br/></p>
+									<blockquote>
+										<p><strong>Important!</strong> This operation should be done only by admin, or by application&#39;s business logic.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account id.</p>
+									</div>
+								</li>
+								<li>
+									<h5>until: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Unix timestamp until account will be disabled. <br/>
+										Use {@link UnixTimestamp | AccountStatus.DISABLED_UNTIL_ACTIVATION} to disable account for an undefined amount of time.</p>
+									</div>
+								</li>
+								<li>
+									<h5>cause: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>String message that contains explanation why account is disabled.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="enableaccount" class="tsd-anchor"></a>
+					<h3>enable<wbr>Account</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">enable<wbr>Account<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Enable user account.</p>
+									<blockquote>
+										<p><strong>Important!</strong> This operation should be done only by admin.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account id.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getfailedauthentications" class="tsd-anchor"></a>
+					<h3>get<wbr>Failed<wbr>Authentications</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Failed<wbr>Authentications<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, startingFrom<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, endingTo<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types_models.failedauthenticationmodel.html" class="tsd-signature-type">FailedAuthenticationModel</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get failed authentication attempts into user account.</p>
+									<blockquote>
+										<p><strong>Important!</strong> This method has authorization implications.
+										It needs to be called only by authenticated users for their account or by admin.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account id.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> startingFrom: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Starting timestamp.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> endingTo: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Ending timestamp.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types_models.failedauthenticationmodel.html" class="tsd-signature-type">FailedAuthenticationModel</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getsuccessfulauthentications" class="tsd-anchor"></a>
+					<h3>get<wbr>Successful<wbr>Authentications</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Successful<wbr>Authentications<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, startingFrom<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, endingTo<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types_models.successfulauthenticationmodel.html" class="tsd-signature-type">SuccessfulAuthenticationModel</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get successful authentications into user account.</p>
+									<blockquote>
+										<p><strong>Important!</strong> This method has authorization implications.
+										It needs to be called only by authenticated users for their account or by admin.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account id.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> startingFrom: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Starting timestamp.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> endingTo: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Ending timestamp.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types_models.successfulauthenticationmodel.html" class="tsd-signature-type">SuccessfulAuthenticationModel</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="register" class="tsd-anchor"></a>
+					<h3>register</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">register<span class="tsd-signature-symbol">(</span>account<span class="tsd-signature-symbol">: </span><a href="../modules/engine.html#accounttoberegistered" class="tsd-signature-type">AccountToBeRegistered</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>account: <a href="../modules/engine.html#accounttoberegistered" class="tsd-signature-type">AccountToBeRegistered</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="settwofactorauthenabled" class="tsd-anchor"></a>
+					<h3>set<wbr>Two<wbr>Factor<wbr>Auth<wbr>Enabled</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Two<wbr>Factor<wbr>Auth<wbr>Enabled<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, enabled<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, context<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types_contexts.settwofactorauthenticationcontext.html" class="tsd-signature-type">SetTwoFactorAuthenticationContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Enable/Disable 2 factor authentication on the user&#39;s account.</p>
+									<blockquote>
+										<p><strong>Important!</strong> This method has authorization implications.
+										It needs to be called only by authenticated users for their account.</p>
+									</blockquote>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>accountId: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account id.</p>
+									</div>
+								</li>
+								<li>
+									<h5>enabled: <span class="tsd-signature-type">boolean</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Whether it&#39;s enabled or not.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <a href="../interfaces/types_contexts.settwofactorauthenticationcontext.html" class="tsd-signature-type">SetTwoFactorAuthenticationContext</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Operation context. @fixme detail it</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>@fixme</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="verifypassword" class="tsd-anchor"></a>
+					<h3>verify<wbr>Password</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">verify<wbr>Password<span class="tsd-signature-symbol">(</span>password<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, account<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Account</span>, context<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_contexts.basecontext.html" class="tsd-signature-type">BaseContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>password: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>account: <span class="tsd-signature-type">Account</span></h5>
+								</li>
+								<li>
+									<h5>context: <a href="../interfaces/types_contexts.basecontext.html" class="tsd-signature-type">BaseContext</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}]}-->
+		</div>
+		<div class="col-2 col-menu secondary-menu">
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="engine.authenticationengine.html" class="tsd-kind-icon">Authentication<wbr>Engine</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="engine.authenticationengine.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#activateaccount" class="tsd-kind-icon">activate<wbr>Account</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#authenticate" class="tsd-kind-icon">authenticate</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#changeforgottenpassword" class="tsd-kind-icon">change<wbr>Forgotten<wbr>Password</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="engine.authenticationengine.html#changepassword" class="tsd-kind-icon">change<wbr>Password</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#createforgotpasswordsession" class="tsd-kind-icon">create<wbr>Forgot<wbr>Password<wbr>Session</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#disableaccount" class="tsd-kind-icon">disable<wbr>Account</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#enableaccount" class="tsd-kind-icon">enable<wbr>Account</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#getfailedauthentications" class="tsd-kind-icon">get<wbr>Failed<wbr>Authentications</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#getsuccessfulauthentications" class="tsd-kind-icon">get<wbr>Successful<wbr>Authentications</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#register" class="tsd-kind-icon">register</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#settwofactorauthenabled" class="tsd-kind-icon">set<wbr>Two<wbr>Factor<wbr>Auth<wbr>Enabled</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="engine.authenticationengine.html#verifypassword" class="tsd-kind-icon">verify<wbr>Password</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../interfaces/engine.authenticationengineoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../modules/engine.html#accounttoberegistered" class="tsd-kind-icon">Account<wbr>ToBe<wbr>Registered</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer>
+</footer>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

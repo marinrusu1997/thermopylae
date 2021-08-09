@@ -1,25 +1,54 @@
 import type { HttpDevice, HTTPRequestLocation, UnixTimestamp } from '@thermopylae/core.declarations';
 
 /**
- * Session which holds the current authentication made by user from a concrete device
- * (i.e. these sessions are device based, usually by 'User-Agent' when using HTTP interface).
+ * Session which holds the current authentication made by user from a concrete device.
  */
 interface AuthenticationSession {
+	/**
+	 * Whether recaptcha is required in order to complete authentication. <br/>
+	 * After recaptcha has been verified, this property will be removed from session.
+	 */
 	recaptchaRequired?: boolean;
+	/**
+	 * Two factor authentication token that was generated and sent to client. <br/>
+	 * After it has been validated, it will removed from session, in order to prevent [replay attacks](https://en.wikipedia.org/wiki/Replay_attack).
+	 */
 	'2fa-token'?: string; // preventing replay attacks
+	/**
+	 * Challenge Response nonce that was generated and sent to client. <br/>
+	 * After it has been validated, it will removed from session, in order to prevent [replay attacks](https://en.wikipedia.org/wiki/Replay_attack).
+	 */
 	challengeResponseNonce?: string; // preventing replay attacks
 }
 
 /**
- * Session which stores failed authentication attempts for the whole account
- * no matter from which device authentication is made. <br/>
- * On the successful authentication, this session needs to be deleted.
+ * Session which stores failed authentication attempts for the whole account,
+ * no matter from which device failed authentication has been made. <br/>
+ * On the successful authentication, this session needs to be deleted. <br/>
+ * This session is mainly used to detect [brute force attack](https://en.wikipedia.org/wiki/Brute-force_attack)
+ * and employ some form of protection (recaptcha & account disabling for some amount of time).
  */
 interface FailedAuthenticationAttemptSession {
+	/**
+	 * When attempt has been detected.
+	 */
 	detectedAt: UnixTimestamp;
+	/**
+	 * Ip from where authentication has been made.
+	 */
 	ip: string;
+	/**
+	 * Device from where authentication has been made.
+	 */
 	device?: HttpDevice;
+	/**
+	 * Location from where authentication has been made.
+	 */
 	location?: HTTPRequestLocation;
+	/**
+	 * Number of failed authentication attempts detected. <br/>
+	 * Each time a new attempt is detected, this counter gets incremented.
+	 */
 	counter: number;
 }
 

@@ -6,6 +6,9 @@ import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authen
 import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks';
 import { getCurrentTimestamp } from '../../utils';
 
+/**
+ * @private
+ */
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly onAuthFromDifferentContextHook: OnAuthenticationFromDifferentContextHook<Account>;
 

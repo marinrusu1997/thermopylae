@@ -1,11 +1,13 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 import { AuthenticationStepName } from '../types/enums';
 import type { AuthenticationStatus, AuthenticationStep, AuthenticationStepOutput } from './step';
 import type { AccountModel } from '../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../types/contexts';
 
+/**
+ * @private
+ */
 class AuthenticationOrchestrator<Account extends AccountModel> {
 	private readonly startStepName: AuthenticationStepName;
 
@@ -47,7 +49,7 @@ class AuthenticationOrchestrator<Account extends AccountModel> {
 				return output.done;
 			} else {
 				// configuration error
-				throw createException(ErrorCodes.MISCONFIGURATION, 'Expected done or next step');
+				throw createException(ErrorCodes.INVALID_AUTHENTICATION_STEP_OUTPUT, 'Expected done or next step');
 			}
 		}
 	}

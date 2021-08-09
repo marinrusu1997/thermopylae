@@ -4,13 +4,30 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationContext } from '../../types/contexts';
 import { createException, ErrorCodes } from '../../error';
 
+/**
+ * Send sms containing two factor authentication token to user.
+ *
+ * @param telephone		User telephone.
+ * @param token			Two factor authentication token.
+ */
 type SendSmsWithToken = (telephone: string, token: string) => Promise<void>;
 
 interface SmsTwoFactorAuthStrategyOptions {
+	/**
+	 * Two factor authentication token length.
+	 */
 	readonly tokenLength: number;
+	/**
+	 * Two factor authentication token sms sender.
+	 */
 	readonly sendSms: SendSmsWithToken;
 }
 
+/**
+ * Two factor authentication strategy which sends token to user via sms. <br/>
+ * Generated token is stored in the {@link AuthenticationSession['2fa-token']} property
+ * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
+ */
 class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	private readonly options: SmsTwoFactorAuthStrategyOptions;
 
@@ -18,10 +35,16 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		this.options = options;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async onTwoFactorAuthEnabled(): Promise<null> {
 		return null;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
@@ -41,6 +64,9 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		authenticationSession['2fa-token'] = token;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,

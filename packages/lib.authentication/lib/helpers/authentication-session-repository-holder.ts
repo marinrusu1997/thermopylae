@@ -3,6 +3,9 @@ import type { AuthenticationSessionRepository } from '../types/repositories';
 import type { AuthenticationSession } from '../types/sessions';
 import type { AuthenticationContext } from '../types/contexts';
 
+/**
+ * @private
+ */
 class AuthenticationSessionRepositoryHolder {
 	private readonly repository: AuthenticationSessionRepository;
 

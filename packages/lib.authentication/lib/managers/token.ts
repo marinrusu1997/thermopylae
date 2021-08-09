@@ -1,5 +1,8 @@
 import uidSafe from 'uid-safe';
 
+/**
+ * @private
+ */
 class TokenManager {
 	private readonly length: number;
 

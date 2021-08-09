@@ -5,6 +5,17 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
+/**
+ * Validates challenge-response *nonce*.
+ *
+ * @param pubKey			Public key from {@link AccountModel.pubKey}.
+ * @param nonce				Plaintext *nonce* sent to client.
+ * @param signature			Encrypted *nonce* sent by client.
+ * @param signAlgorithm		*nonce* signing algorithm used by client.
+ * @param encoding			*nonce* signing encoding used by client.
+ *
+ * @returns					Whether nonce sent by client matches the one that was sent by server to him.
+ */
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
 	nonce: string,
@@ -13,6 +24,9 @@ type ChallengeResponseValidator = (
 	encoding: BinaryToTextEncoding
 ) => Promise<boolean>;
 
+/**
+ * @private
+ */
 class ChallengeResponseStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly validator: ChallengeResponseValidator;
 

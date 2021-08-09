@@ -6,6 +6,9 @@ import type { AccountManager } from './account';
 import type { BaseContext } from '../types/contexts';
 import type { FailedAuthenticationAttemptSession } from '../types/sessions';
 
+/**
+ * @private
+ */
 class FailedAuthenticationsManager<Account extends AccountModel> {
 	private readonly failedAuthAttemptsAccountDisableThreshold: Threshold;
 

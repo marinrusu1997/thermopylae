@@ -11,8 +11,7 @@ type OnAccountDisabledHook<Account extends AccountModel> = (account: Account) =>
 
 /**
  * Hook called when account password has been changed. <br/>
- * > **Important!** The main purpose of this hook is to invalidate all of the active user sessions,
- * except the current one ({@link ChangePasswordContext.sessionId}), from where password change has been made.
+ * > **Important!** The main purpose of this hook is to invalidate all of the active user sessions.
  *
  * @param account                   User account password of which has been changed.
  * @param changePasswordContext     Context of the password change.

@@ -8,6 +8,9 @@ import type { PasswordHash, PasswordHashingAlgorithm } from './index';
  */
 type Argon2PasswordHashingOptions = Readonly<Omit<RequireSome<Options, 'hashLength' | 'memoryCost' | 'parallelism' | 'type'>, 'raw' | 'version' | 'salt'>>;
 
+/**
+ * Password hashing algorithm using [argon2](https://en.wikipedia.org/wiki/Argon2).
+ */
 class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 	private readonly hashingOptions: Argon2PasswordHashingOptions;
 

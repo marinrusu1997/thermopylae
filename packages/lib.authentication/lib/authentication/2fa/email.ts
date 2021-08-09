@@ -4,13 +4,30 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationContext } from '../../types/contexts';
 import { createException, ErrorCodes } from '../../error';
 
+/**
+ * Send email containing two factor authentication token to user.
+ *
+ * @param email		User email.
+ * @param token		Two factor authentication token.
+ */
 type SendEmailWithToken = (email: string, token: string) => Promise<void>;
 
 interface EmailTwoFactorAuthStrategyOptions {
+	/**
+	 * Two factor authentication token length.
+	 */
 	readonly tokenLength: number;
+	/**
+	 * Two factor authentication token email sender.
+	 */
 	readonly sendEmail: SendEmailWithToken;
 }
 
+/**
+ * Two factor authentication strategy which sends token to user via email. <br/>
+ * Generated token is stored in the {@link AuthenticationSession['2fa-token']} property
+ * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
+ */
 class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	private readonly options: EmailTwoFactorAuthStrategyOptions;
 
@@ -18,10 +35,16 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		this.options = options;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async onTwoFactorAuthEnabled(): Promise<null> {
 		return null;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
@@ -41,6 +64,9 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		authenticationSession['2fa-token'] = token;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,

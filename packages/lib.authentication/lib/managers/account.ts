@@ -7,6 +7,9 @@ import type { EmailSender } from '../types/side-channels';
 import type { AccountRepository } from '../types/repositories';
 import type { OnAccountDisabledHook } from '../types/hooks';
 
+/**
+ * @private
+ */
 class AccountManager<Account extends AccountModel> {
 	private readonly adminEmail: string;
 

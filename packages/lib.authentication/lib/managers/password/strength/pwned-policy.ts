@@ -1,4 +1,3 @@
-import { ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
 import type { Threshold } from '@thermopylae/core.declarations';
 import fetch from 'node-fetch';
 import { createHash } from 'crypto';
@@ -6,9 +5,17 @@ import { createException, ErrorCodes } from '../../../error';
 import type { PasswordStrengthPolicyValidator } from './policy';
 import type { AccountModel } from '../../../types/models';
 
+/**
+ * Validator which ensures that password wasn't breached before. <br/>
+ * In order to determine this, it makes an API call to [Have I Been Pwned](https://haveibeenpwned.com/Passwords).
+ */
 class PwnedPasswordValidator<Account extends AccountModel> implements PasswordStrengthPolicyValidator<Account> {
 	private readonly breachThreshold: Threshold;
 
+	/**
+	 * @param breachThreshold		Password breach threshold. When this threshold is reached or exceeded, password is considered unsecure. <br/>
+	 * 								Usually you will want to set this as low as possible, e.g. 1 or 2.
+	 */
 	public constructor(breachThreshold: Threshold) {
 		this.breachThreshold = breachThreshold;
 	}
@@ -21,7 +28,7 @@ class PwnedPasswordValidator<Account extends AccountModel> implements PasswordSt
 		const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
 		if (!response.ok) {
 			throw createException(
-				CoreErrorCodes.API_ERROR,
+				ErrorCodes.PWNED_PASSWORDS_API_ERROR,
 				`Pwned password query failed. ${response.status} ${response.statusText}. ${await response.text()}.`
 			);
 		}

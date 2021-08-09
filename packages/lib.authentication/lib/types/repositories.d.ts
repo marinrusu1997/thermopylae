@@ -4,16 +4,22 @@ import type { AuthenticationSession, FailedAuthenticationAttemptSession } from '
 
 /**
  * Repository which stores user accounts.
+ *
+ * @template Account	Type of the account.
  */
 interface AccountRepository<Account extends AccountModel> {
 	/**
 	 * Inserts a new account. <br/>
-	 * Accounts are unique, and therefore in case account with same {@link AccountModel.username} already exists,
-	 * an exception needs to be thrown. <br/>
 	 * On successful account insertion, it's generated id needs to be stored in the {@link AccountModel.id} property of the
-	 * `account` argument.
+	 * *`account`* argument and *`null`* will be returned. <br/>
+	 * It is clear that {@link AccountModel.id}, {@link AccountModel.username}, {@link AccountModel.email}, {@link AccountModel.telephone}
+	 * and maybe another properties will be unique ones. Therefore when duplicates are detected,
+	 * an array with names of the duplicated properties needs to be returned back.
+	 * This will inform {@link AuthenticationEngine} that insertion failed and account registration needs to be aborted.
 	 *
 	 * @param account	Account that needs to be inserted.
+	 *
+	 * @throws {Error}	When any problems (excepting duplicated fields) are encountered by the repository.
 	 *
 	 * @returns 		`null` or `undefined` when account was inserted successfully. <br/>
 	 * 					When account has duplicated fields, their names need to be returned inside of array.
@@ -25,6 +31,8 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @param accountId		Account id.
 	 *
+	 * @throws {Error}	When any problems are encountered by the repository.
+	 *
 	 * @returns				Account entity or null when not found.
 	 */
 	readById(accountId: string): Promise<Account | null | undefined>;
@@ -33,6 +41,8 @@ interface AccountRepository<Account extends AccountModel> {
 	 * Read account from repository by his username.
 	 *
 	 * @param username	Account username.
+	 *
+	 * @throws {Error}	When any problems are encountered by the repository.
 	 *
 	 * @returns			Account entity or null when not found.
 	 */
@@ -43,6 +53,8 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @param email		Account email.
 	 *
+	 * @throws {Error}	When any problems are encountered by the repository.
+	 *
 	 * @returns			Account entity or null when not found.
 	 */
 	readByEmail(email: string): Promise<Account | null | undefined>;
@@ -51,6 +63,8 @@ interface AccountRepository<Account extends AccountModel> {
 	 * Read account from repository by his telephone number.
 	 *
 	 * @param telephone	Account telephone.
+	 *
+	 * @throws {Error}	When any problems are encountered by the repository.
 	 *
 	 * @returns			Account entity or null when not found.
 	 */
@@ -67,7 +81,7 @@ interface AccountRepository<Account extends AccountModel> {
 	update(accountId: string, update: Partial<Account>): Promise<void>;
 
 	/**
-	 * Change account enable status.
+	 * Change account availability status by updating {@link AccountModel.disabledUntil} property.
 	 *
 	 * @param accountId		Account id.
 	 * @param until			Disabled until timestamp.
@@ -77,7 +91,11 @@ interface AccountRepository<Account extends AccountModel> {
 	setDisabledUntil(accountId: string, until: UnixTimestamp): Promise<void>;
 
 	/**
-	 * Change account password.
+	 * Change account password. <br/>
+	 * The following properties need to be updated: <br/>
+	 * - {@link AccountModel.passwordHash} <br/>
+	 * - {@link AccountModel.passwordSalt} <br/>
+	 * - {@link AccountModel.passwordAlg}
 	 *
 	 * @param accountId				Account id.
 	 * @param passwordHash			Password hash.
@@ -93,7 +111,7 @@ interface AccountRepository<Account extends AccountModel> {
 	 *
 	 * @param account		Account that needs to be checked whether it has duplicated fields.
 	 *
-	 * @returns 			`null` or `undefined` when account was inserted successfully. <br/>
+	 * @returns 			`null` or `undefined` when account has no duplicates. <br/>
 	 * 						When account has duplicated fields, their names need to be returned inside of array.
 	 */
 	isDuplicate(account: Account): Promise<(keyof Account)[] | null | undefined>;
@@ -104,15 +122,20 @@ interface AccountRepository<Account extends AccountModel> {
  */
 interface FailedAuthenticationAttemptsRepository {
 	/**
-	 * Insert failed auth attempt. <br/>
-	 * On successful attempt, {@link FailedAuthenticationModel.id} property should be set on the `attempt` parameter.
+	 * Insert failed authentication. <br/>
+	 * On successful authentication, {@link FailedAuthenticationModel.id} property should be set on the `authentication` parameter.
 	 *
-	 * @param attempt		Failed authentication attempt.
+	 * @param authentication		Failed authentication authentication.
 	 */
-	insert(attempt: FailedAuthenticationModel): Promise<void>;
+	insert(authentication: FailedAuthenticationModel): Promise<void>;
 
 	/**
-	 * Read multiple {@link FailedAuthenticationModel} based on a date range.
+	 * Read multiple {@link FailedAuthenticationModel} based on a date range. <br/>
+	 * Depending on the *`startingFrom`* and *`endingTo`* parameters, the following combinations are allowed: <br/>
+	 * - return all attempts <br/>
+	 * - return all attempts {@link FailedAuthenticationModel.detectedAt} starting from *`startingFrom`* <br/>
+	 * - return all attempts {@link FailedAuthenticationModel.detectedAt} ending to *`endingTo`* <br/>
+	 * - return all attempts {@link FailedAuthenticationModel.detectedAt} between *`startingFrom`* and *`endingTo`*
 	 *
 	 * @param accountId			Account id.
 	 * @param startingFrom		Starting timestamp.
@@ -136,7 +159,12 @@ interface SuccessfulAuthenticationsRepository {
 	insert(authentication: SuccessfulAuthenticationModel): Promise<void>;
 
 	/**
-	 * Read multiple {@link SuccessfulAuthenticationModel} based on a date range.
+	 * Read multiple {@link SuccessfulAuthenticationModel} based on a date range. <br/>
+	 * Depending on the *`startingFrom`* and *`endingTo`* parameters, the following combinations are allowed: <br/>
+	 * - return all attempts <br/>
+	 * - return all attempts {@link SuccessfulAuthenticationModel.authenticatedAt} starting from *`startingFrom`* <br/>
+	 * - return all attempts {@link SuccessfulAuthenticationModel.authenticatedAt} ending to *`endingTo`* <br/>
+	 * - return all attempts {@link SuccessfulAuthenticationModel.authenticatedAt} between *`startingFrom`* and *`endingTo`*
 	 *
 	 * @param accountId			Account id.
 	 * @param startingFrom		Starting timestamp.
@@ -147,10 +175,10 @@ interface SuccessfulAuthenticationsRepository {
 	readRange(accountId: string, startingFrom?: UnixTimestamp, endingTo?: UnixTimestamp): Promise<Array<SuccessfulAuthenticationModel>>;
 
 	/**
-	 * Detect whether user made a successful authentication attempt before from this `device`.
+	 * Detect whether user has made a successful authentication attempt in the past from this *`device`*.
 	 *
 	 * @param accountId		Account id.
-	 * @param device		Device from where authentication has been made.
+	 * @param device		Device from where current authentication has been made.
 	 *
 	 * @returns				Whether authentication has been made before.
 	 */
@@ -165,8 +193,7 @@ interface AuthenticationSessionRepository {
 	 * Insert/Replaces *on going* user authentication session.
 	 *
 	 * @param username		Account username.
-	 * @param deviceId		Id of the device from where authentication is made. <br/>
-	 * 						Might be a hash of 'User-Agent' header.
+	 * @param deviceId		Id of the device from where authentication is made.
 	 * @param session		User authentication session.
 	 * @param ttl			Session ttl in seconds. <br/>
 	 * 						In case session is already present, when replacing it, ttl needs to be reset too.
@@ -179,12 +206,14 @@ interface AuthenticationSessionRepository {
 	 * @param username		Account username.
 	 * @param deviceId		Id of the device from where authentication is made.
 	 *
-	 * @returns		User authentication session or `null` when not found.
+	 * @returns				User authentication session or *`null`* when not found.
 	 */
 	read(username: string, deviceId: string): Promise<AuthenticationSession | null | undefined>;
 
 	/**
-	 * Delete *on going* user authentication session.
+	 * Delete *on going* user authentication session. <br/>
+	 * In case session with `username` and `deviceId` doesn't exist,
+	 * this needs to be **shallowly ignored** and operation will be considered successful.
 	 *
 	 * @param username		Account username.
 	 * @param deviceId		Id of the device from where authentication is made.
@@ -211,12 +240,13 @@ interface FailedAuthAttemptSessionRepository {
 	 *
 	 * @param username		Account username.
 	 *
-	 * @returns		Failed authentication attempts session or `null` when not found.
+	 * @returns				Failed authentication attempts session or `null` when not found.
 	 */
 	read(username: string): Promise<FailedAuthenticationAttemptSession | null | undefined>;
 
 	/**
-	 * Delete failed authentication attempts session.
+	 * Delete failed authentication attempts session. <br/>
+	 * In case session with `username` doesn't exist, this needs to be **shallowly ignored** and operation will be considered successful.
 	 *
 	 * @param username		Account username.
 	 */
@@ -243,12 +273,13 @@ interface ActivateAccountSessionRepository<Account extends AccountModel> {
 	 *
 	 * @param token		Activate account token.
 	 *
-	 * @returns			Account that needs to be activated or `null` when token was not valid.
+	 * @returns			Account that needs to be activated or `null` when token was not found.
 	 */
 	read(token: string): Promise<Account | null | undefined>;
 
 	/**
-	 * Delete session.
+	 * Delete session. <br/>
+	 * In case token doesn't exist, this needs to be **shallowly ignored** and operation will be considered successful.
 	 *
 	 * @param token		Activate account token.
 	 */
@@ -277,7 +308,8 @@ interface ForgotPasswordSessionRepository {
 	exists(token: string): Promise<boolean>;
 
 	/**
-	 * Delete forgot password session.
+	 * Delete forgot password session. <br/>
+	 * In case token doesn't exist, this needs to be **shallowly ignored** and operation will be considered successful.
 	 *
 	 * @param token		Forgot password session token.
 	 */

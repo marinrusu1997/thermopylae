@@ -5,6 +5,9 @@ import type { AccountModel } from '../../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
+/**
+ * @private
+ */
 class PasswordStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly passwordsManager: PasswordsManager<Account>;
 

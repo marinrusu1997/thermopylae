@@ -1,10 +1,12 @@
-import { ErrorCodes } from '@thermopylae/core.declarations';
-import { createException } from '../../error';
+import { createException, ErrorCodes } from '../../error';
 import { AuthenticationStepName } from '../../types/enums';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
 import type { AuthenticationContext } from '../../types/contexts';
 
+/**
+ * @private
+ */
 class DispatchStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	public async process(_account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput<Account>> {
 		// generate challenge has the highest priority, needs to be used before checking response
@@ -27,7 +29,7 @@ class DispatchStep<Account extends AccountModel> implements AuthenticationStep<A
 
 		// configuration error, user input not validated properly
 		throw createException(
-			ErrorCodes.MISCONFIGURATION,
+			ErrorCodes.AUTH_STEP_MISCONFIGURATION,
 			`Can't resolve next step to move from ${AuthenticationStepName.DISPATCH}. Authentication context needs to be validated to contain at least one authentication related property.`
 		);
 	}

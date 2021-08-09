@@ -4,18 +4,29 @@ import type { AccountModel } from '../../types/models';
 import type { SecretEncryptor } from '../../helpers/secret-encryptor';
 import type { PasswordHashingAlgorithm } from './hash';
 
-interface PasswordHashing {
+interface PasswordHashingOptions {
+	/**
+	 * Mapping between password hashing algorithms and their id's.
+	 */
 	algorithms: ReadonlyMap<number, PasswordHashingAlgorithm>;
+	/**
+	 * Id the current password hashing algorithm.
+	 */
 	currentAlgorithmId: number;
+	/**
+	 * Current hashing algorithm. This algorithm will be used to hash passwords of the newly registered accounts.
+	 */
 	currentAlgorithm: PasswordHashingAlgorithm;
 }
 
 /**
  * Manages user passwords. <br/>
  * Implementation ideas were taken from [here](https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2).
+ *
+ * @private
  */
 class PasswordsManager<Account extends AccountModel> {
-	private readonly hashing: PasswordHashing;
+	private readonly hashing: PasswordHashingOptions;
 
 	private readonly encryptor: SecretEncryptor;
 
@@ -24,7 +35,7 @@ class PasswordsManager<Account extends AccountModel> {
 	private readonly accountRepository: AccountRepository<Account>;
 
 	public constructor(
-		passwordHashing: PasswordHashing,
+		passwordHashing: PasswordHashingOptions,
 		passwordEncryptor: SecretEncryptor,
 		passwordStrength: PasswordStrengthPolicyValidator<Account>[],
 		accountRepository: AccountRepository<Account>
@@ -58,4 +69,4 @@ class PasswordsManager<Account extends AccountModel> {
 	}
 }
 
-export { PasswordsManager, PasswordHashing };
+export { PasswordsManager, PasswordHashingOptions };

@@ -6,6 +6,9 @@ import type { TwoFactorAuthStrategy } from '../2fa/interface';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
 import type { AuthenticationContext } from '../../types/contexts';
 
+/**
+ * @private
+ */
 class TwoFactorAuthStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>;
 

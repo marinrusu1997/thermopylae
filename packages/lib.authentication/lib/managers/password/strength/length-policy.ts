@@ -2,6 +2,9 @@ import { createException, ErrorCodes } from '../../../error';
 import type { PasswordStrengthPolicyValidator } from './policy';
 import type { AccountModel } from '../../../types/models';
 
+/**
+ * Validator which ensures that password length is in the valid range.
+ */
 class PasswordLengthValidator<Account extends AccountModel> implements PasswordStrengthPolicyValidator<Account> {
 	private readonly minLength: number;
 

@@ -7,6 +7,9 @@ import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authen
 import type { AuthenticationContext } from '../../types/contexts';
 import type { FailedAuthenticationsManager } from '../../managers/failed-authentications';
 
+/**
+ * @private
+ */
 class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly failedAuthAttemptsThreshold: Threshold;
 
