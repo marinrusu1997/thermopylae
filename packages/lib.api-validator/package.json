@@ -2,11 +2,16 @@
     "name": "@thermopylae/lib.api-validator",
     "description": "User input validation and sanitization for api services.",
     "keywords": [
-        "library"
+        "thermopylae",
+        "library",
+        "api",
+        "validator",
+        "api-validator",
+        "ajv"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.api-validator",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",

@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { log, logError } from './utils';
-import { FormattingManager } from '../lib/formatting-manager';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
 import { GrayLogsManager } from '../lib/transports/graylog';
 
 const inputsEndpoints = [
@@ -13,6 +13,9 @@ describe(`${GrayLogsManager.name} spec`, () => {
 	it('registers inputs and provides transports for them', async () => {
 		const graylog = new GrayLogsManager();
 		const formatter = new FormattingManager();
+
+		formatter.setDefaultFormattingOrder(OutputFormat.PRINTF);
+
 		graylog.register('Test1', inputsEndpoints[0]);
 		graylog.register('Test2', inputsEndpoints[1]);
 

@@ -90,7 +90,7 @@ describe('geoip spec', () => {
 					regionCode: ['WA', 'VIC', null],
 					city: ['Broome', 'Melbourne', 'Balwyn North'],
 					timezone: ['Australia/Perth', 'Australia/Melbourne', null],
-					latitude: [-17.9668, -37.81425094604492, -37.7907],
+					latitude: [-17.9629, -37.81425094604492, -37.7907],
 					longitude: [122.2387, 144.96316528320312, 145.0839]
 				}
 			]
@@ -121,7 +121,7 @@ describe('geoip spec', () => {
 			const second = await geoip.locate('8.8.8.8', first.REPOSITORY_ID);
 			expect(first).to.be.deep.eq(second);
 		}
-	});
+	}).timeout(5000);
 
 	it('returns null when no one repo can find location', async () => {
 		const repo1 = new IpRepositoryMock(1);

@@ -2,11 +2,14 @@
     "name": "@thermopylae/lib.authentication",
     "description": "Authentication library.",
     "keywords": [
-        "library"
+        "thermopylae",
+        "library",
+        "authentication",
+        "user-authentication"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",

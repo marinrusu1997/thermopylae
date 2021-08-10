@@ -2,11 +2,16 @@
     "name": "@thermopylae/lib.indexed-store",
     "description": "Storage for records that might be indexed by multiple keys.",
     "keywords": [
-        "library"
+        "thermopylae",
+        "library",
+        "index",
+        "indexing",
+        "storage",
+        "indexed-store"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.indexed-store",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",

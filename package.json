@@ -33,5 +33,9 @@
     "packages/lib.user-session.commons",
     "packages/lib.utils"
   ],
+  "dependencies": {
+    "dependency-graph": "0",
+    "execa": "5"
+  },
   "license": "MIT"
 }

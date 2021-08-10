@@ -7,6 +7,6 @@ describe('Lib spec', () => {
 		expect(() => {
 			// @ts-ignore
 			LoggerManagerInstance.console = null;
-		}).to.throw("Cannot assign to read only property 'console' of object '#<Logger>'");
+		}).to.throw("Cannot assign to read only property 'console' of object '#<LoggerManager>'");
 	});
 });

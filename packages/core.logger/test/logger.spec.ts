@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
-import { LoggerManager } from '../lib';
+import { LoggerManager, OutputFormat } from '../lib';
 
 describe('Logger spec', () => {
 	it('returns logging managers', () => {
@@ -17,6 +17,8 @@ describe('Logger spec', () => {
 
 	it('creates logger for system, then does not cache it, but delegates this responsibility to the module which uses it', () => {
 		const logger = new LoggerManager();
+		logger.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF);
+
 		logger.graylog2.register('input', { host: 'fake', port: 1 });
 		logger.graylog2.setChannel('realsys', { level: 'fake', input: 'input' });
 		const loggerFirst = logger.for('realsys');
@@ -28,7 +30,9 @@ describe('Logger spec', () => {
 
 	it("can't alter created logger object", () => {
 		const logger = new LoggerManager();
+		logger.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF);
 		logger.console.createTransport({ level: 'info' });
+
 		const instance = logger.for('realsys');
 		expect(() => {
 			// @ts-ignore

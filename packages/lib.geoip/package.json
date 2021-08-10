@@ -2,11 +2,13 @@
     "name": "@thermopylae/lib.geoip",
     "description": "Geolocation based on ip address.",
     "keywords": [
-        "library"
+        "thermopylae",
+        "library",
+        "geoip"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.geoip",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "./dist/index.js",
     "exports": "./dist/index.js",
     "types": "./dist/index.d.ts",

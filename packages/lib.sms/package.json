@@ -2,11 +2,15 @@
     "name": "@thermopylae/lib.sms",
     "description": "Sms client.",
     "keywords": [
-        "library"
+        "thermopylae",
+        "library",
+        "sms",
+        "client",
+        "twilio"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.sms",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",

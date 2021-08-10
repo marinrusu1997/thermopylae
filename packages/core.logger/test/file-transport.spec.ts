@@ -1,10 +1,10 @@
 import { chai } from '@thermopylae/dev.unit-test';
-import { describe, it, afterEach } from 'mocha';
+import { afterEach, describe, it } from 'mocha';
 import fs from 'fs';
 import process from 'process';
-import { FormattingManager } from '../lib/formatting-manager';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
 import { FileLogsManager } from '../lib/transports/file';
-import { formatCurrentDate, expectToLogIntoFile, log, unlinkAsync } from './utils';
+import { expectToLogIntoFile, formatCurrentDate, log, unlinkAsync } from './utils';
 
 const { expect } = chai;
 
@@ -35,6 +35,8 @@ describe(`${FileLogsManager.name} spec`, () => {
 	it('modules can log to same file with same minimum level', async () => {
 		const filelogs = new FileLogsManager();
 		const formatter = new FormattingManager();
+
+		formatter.setDefaultFormattingOrder(OutputFormat.PRINTF);
 		filelogs.createTransport(config);
 
 		await log(formatter.formatterFor('module1'), filelogs.get()!, {

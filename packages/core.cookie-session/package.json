@@ -2,11 +2,15 @@
     "name": "@thermopylae/core.cookie-session",
     "description": "Cookie user session for HTTP interface.",
     "keywords": [
-        "core"
+        "thermopylae",
+        "core",
+        "session",
+        "user-session",
+        "cookie-session"
     ],
     "version": "0.0.1",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.cookie-session",
+    "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
     "exports": "./dist/index.js",
     "types": "dist/index.d.ts",
