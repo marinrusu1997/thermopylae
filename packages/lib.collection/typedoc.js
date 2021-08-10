@@ -11,9 +11,15 @@ typedoc.outline = [
     }
 ];
 
-typedoc.links = [{
-    "label": "Github",
-    "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.collection"
-}];
+typedoc.links = [
+    {
+        "label": "Thermopylae",
+        "url": "https://marinrusu1997.github.io/thermopylae"
+    },
+    {
+        "label": "Github",
+        "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.collection"
+    }
+];
 
 module.exports = typedoc;

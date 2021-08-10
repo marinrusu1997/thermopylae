@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>PwnedPasswordValidator | @thermopylae/lib.authentication</title>
+	<title>AuthenticationEngineThresholdsOptions | @thermopylae/lib.authentication</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,10 +56,10 @@
 		<div class="container">
 			<ul class="tsd-breadcrumb">
 				<li>
-					<a href="../modules/managers_password_strength_pwned_policy.html">managers/password/strength/pwned-policy</a>
+					<a href="../modules/engine.html">engine</a>
 				</li>
 				<li>
-					<a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html">PwnedPasswordValidator</a>
+					<a href="engine.authenticationenginethresholdsoptions.html">AuthenticationEngineThresholdsOptions</a>
 				</li>
 			</ul>
 		</div>
@@ -76,113 +76,54 @@
 			</nav>
 		</div>
 		<div class="col-7 offset-3 col-content">
-			<h1>Class PwnedPasswordValidator&lt;Account&gt;</h1>
-			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
-					<div class="lead">
-						<p>Validator which ensures that password wasn&#39;t breached before. <br/>
-						In order to determine this, it makes an API call to <a href="https://haveibeenpwned.com/Passwords">Have I Been Pwned</a>.</p>
-					</div>
-			</div></section>
-			<section class="tsd-panel tsd-type-parameters">
-				<h3>Type parameters</h3>
-				<ul class="tsd-type-parameters">
-					<li>
-						<h4>Account<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_models.accountmodel.html" class="tsd-signature-type">AccountModel</a></h4>
-					</li>
-				</ul>
-			</section>
+			<h1>Interface AuthenticationEngineThresholdsOptions</h1>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">PwnedPasswordValidator</span>
+						<span class="target">AuthenticationEngineThresholdsOptions</span>
 					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel">
-				<h3>Implements</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/managers_password_strength_policy.passwordstrengthpolicyvalidator.html" class="tsd-signature-type">PasswordStrengthPolicyValidator</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
-							<h3>Constructors</h3>
+							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter"><a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html#constructor" class="tsd-kind-icon">constructor</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section ">
-							<h3>Methods</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html#validate" class="tsd-kind-icon">validate</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationenginethresholdsoptions.html#failedauthattemptsrecaptcha" class="tsd-kind-icon">failed<wbr>Auth<wbr>Attempts<wbr>Recaptcha</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationenginethresholdsoptions.html#maxfailedauthattempts" class="tsd-kind-icon">max<wbr>Failed<wbr>Auth<wbr>Attempts</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
-					<a name="constructor" class="tsd-anchor"></a>
-					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Pwned<wbr>Password<wbr>Validator&lt;Account&gt;<span class="tsd-signature-symbol">(</span>breachThreshold<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html" class="tsd-signature-type">PwnedPasswordValidator</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-type-parameters-title">Type parameters</h4>
-							<ul class="tsd-type-parameters">
-								<li>
-									<h4>Account<span class="tsd-signature-symbol">: </span><a href="../interfaces/types_models.accountmodel.html" class="tsd-signature-type">AccountModel</a></h4>
-								</li>
-							</ul>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>breachThreshold: <span class="tsd-signature-type">number</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Password breach threshold. When this threshold is reached or exceeded, password is considered unsecure. <br/>
-										Usually you will want to set this as low as possible, e.g. 1 or 2.</p>
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html" class="tsd-signature-type">PwnedPasswordValidator</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="failedauthattemptsrecaptcha" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> failed<wbr>Auth<wbr>Attempts<wbr>Recaptcha</h3>
+					<div class="tsd-signature tsd-kind-icon">failed<wbr>Auth<wbr>Attempts<wbr>Recaptcha<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+					</aside>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Number of failed authentication attempts before recaptcha validation will be performed.</p>
+						</div>
+					</div>
 				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="validate" class="tsd-anchor"></a>
-					<h3>validate</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">validate<span class="tsd-signature-symbol">(</span>password<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/managers_password_strength_policy.passwordstrengthpolicyvalidator.html">PasswordStrengthPolicyValidator</a>.<a href="../interfaces/managers_password_strength_policy.passwordstrengthpolicyvalidator.html#validate">validate</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Validates password strength.</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>password: <span class="tsd-signature-type">string</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="maxfailedauthattempts" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> max<wbr>Failed<wbr>Auth<wbr>Attempts</h3>
+					<div class="tsd-signature tsd-kind-icon">max<wbr>Failed<wbr>Auth<wbr>Attempts<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+					</aside>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Number of allowed failed authentication attempts before account will be locked
+							for <a href="engine.authenticationenginettloptions.html#accountdisabletimeout">AuthenticationEngineTtlOptions.accountDisableTimeout</a> seconds.</p>
+						</div>
+					</div>
 				</section>
 			</section>
 			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Thermopylae&quot;,&quot;url&quot;:&quot;https://marinrusu1997.github.io/thermopylae&quot;},{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}],&quot;outline&quot;:[{&quot;Authentication Engine&quot;:&quot;engine&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Authentication&quot;:{&quot;Step&quot;:&quot;authentication_step&quot;,&quot;Challenge Response&quot;:&quot;authentication_steps_challenge_response_step&quot;,&quot;Recaptcha&quot;:&quot;authentication_steps_recaptcha_step&quot;,&quot;Two Factor&quot;:{&quot;Interface&quot;:&quot;authentication_2fa_interface&quot;,&quot;Email&quot;:&quot;authentication_2fa_email&quot;,&quot;Sms&quot;:&quot;authentication_2fa_sms&quot;,&quot;Totp&quot;:&quot;authentication_2fa_totp&quot;}},&quot;Password&quot;:{&quot;Hashing&quot;:{&quot;Options&quot;:&quot;managers_password&quot;,&quot;Interface&quot;:&quot;managers_password_hash&quot;,&quot;Argon2&quot;:&quot;managers_password_hash_argon2&quot;},&quot;Strength&quot;:{&quot;Interface&quot;:&quot;managers_password_strength_policy&quot;,&quot;Length&quot;:&quot;managers_password_strength_length_policy&quot;,&quot;Pwned&quot;:&quot;managers_password_strength_pwned_policy&quot;,&quot;Strength&quot;:&quot;managers_password_strength_strength_policy&quot;}},&quot;Typings&quot;:{&quot;Contexts&quot;:&quot;types_contexts&quot;,&quot;Enums&quot;:&quot;types_enums&quot;,&quot;Hooks&quot;:&quot;types_hooks&quot;,&quot;Models&quot;:&quot;types_models&quot;,&quot;Repositories&quot;:&quot;types_repositories&quot;,&quot;Sessions&quot;:&quot;types_sessions&quot;,&quot;Secret Encryption&quot;:&quot;helpers_secret_encryptor&quot;,&quot;Side Channels&quot;:&quot;types_side_channels&quot;}}]}-->
@@ -190,21 +131,33 @@
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../classes/engine.authenticationengine.html" class="tsd-kind-icon">Authentication<wbr>Engine</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="engine.authenticationengineoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Options</a>
+					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
-						<a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html" class="tsd-kind-icon">Pwned<wbr>Password<wbr>Validator</a>
+					<li class="current tsd-kind-interface tsd-parent-kind-module root">
+						<a href="engine.authenticationenginethresholdsoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Thresholds<wbr>Options</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter">
-								<a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html#constructor" class="tsd-kind-icon">constructor</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="engine.authenticationenginethresholdsoptions.html#failedauthattemptsrecaptcha" class="tsd-kind-icon">failed<wbr>Auth<wbr>Attempts<wbr>Recaptcha</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="managers_password_strength_pwned_policy.pwnedpasswordvalidator.html#validate" class="tsd-kind-icon">validate</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="engine.authenticationenginethresholdsoptions.html#maxfailedauthattempts" class="tsd-kind-icon">max<wbr>Failed<wbr>Auth<wbr>Attempts</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="engine.authenticationenginettloptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Ttl<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../modules/engine.html#accounttoberegistered" class="tsd-kind-icon">Account<wbr>ToBe<wbr>Registered</a>
+					</li>
 				</ul>
 			</nav>
 		</div>

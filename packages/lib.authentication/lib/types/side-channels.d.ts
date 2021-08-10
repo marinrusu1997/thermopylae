@@ -58,8 +58,9 @@ interface EmailSender<Account extends AccountModel> {
 	 *
 	 * @param account		Account that needs to be recovered.
 	 * @param token			Forgot password token.
+	 * @param isEncrypted	Whether token was encrypted with {@link AccountModel.pubKey}.
 	 */
-	sendForgotPasswordToken(account: Account, token: string): Promise<void>;
+	sendForgotPasswordToken(account: Account, token: string, isEncrypted: boolean): Promise<void>;
 }
 
 /**
@@ -72,8 +73,9 @@ interface SmsSender<Account extends AccountModel> {
 	 *
 	 * @param account		Account that needs to be recovered.
 	 * @param token			Forgot password token.
+	 * @param isEncrypted	Whether token was encrypted with {@link AccountModel.pubKey}.
 	 */
-	sendForgotPasswordToken(account: Account, token: string): Promise<void>;
+	sendForgotPasswordToken(account: Account, token: string, isEncrypted: boolean): Promise<void>;
 }
 
 export { EmailSender, SmsSender };

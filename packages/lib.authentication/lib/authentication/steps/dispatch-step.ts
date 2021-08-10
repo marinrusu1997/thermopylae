@@ -18,7 +18,7 @@ class DispatchStep<Account extends AccountModel> implements AuthenticationStep<A
 			return { nextStep: AuthenticationStepName.CHALLENGE_RESPONSE };
 		}
 
-		if (authenticationContext['2fa-token']) {
+		if (authenticationContext.twoFactorAuthenticationToken) {
 			// safe, because totp is verified with server secret or authentication session
 			return { nextStep: AuthenticationStepName.TWO_FACTOR_AUTH_CHECK };
 		}

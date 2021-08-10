@@ -31,7 +31,7 @@ export const enum AuthenticationStepName {
 	CHALLENGE_RESPONSE = 'CHALLENGE_RESPONSE',
 	/**
 	 * Recaptcha validation step. <br/>
-	 * This step will be sent to client when incorrect password has been submitted more than {@link AuthenticationEngineOptions.thresholds.failedAuthAttemptsRecaptcha} times.
+	 * This step will be sent to client when incorrect password has been submitted more than {@link AuthenticationEngineThresholdsOptions.failedAuthAttemptsRecaptcha} times.
 	 */
 	RECAPTCHA = 'RECAPTCHA',
 	/**

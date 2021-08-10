@@ -21,7 +21,6 @@
     "packages/lib.authentication",
     "packages/lib.cache",
     "packages/lib.collection",
-    "packages/lib.decorators",
     "packages/lib.email",
     "packages/lib.exception",
     "packages/lib.geoip",

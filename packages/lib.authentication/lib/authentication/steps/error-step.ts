@@ -74,7 +74,7 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 		if (previousAuthenticationStepName === AuthenticationStepName.TWO_FACTOR_AUTH_CHECK) {
 			const authenticationSession = await authenticationSessionRepositoryHolder.get();
 
-			if (authenticationSession['2fa-token'] != null) {
+			if (authenticationSession.twoFactorAuthenticationToken != null) {
 				nextStep = AuthenticationStepName.TWO_FACTOR_AUTH_CHECK;
 			} else {
 				nextStep = AuthenticationStepName.PASSWORD;

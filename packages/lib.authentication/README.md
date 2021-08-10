@@ -1,19 +1,16 @@
 <h1 align="center">@thermopylae/lib.authentication</h1>
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/node-%3E%3D%2016-blue.svg" />
-<a href="http:/localhost:8080/doc" target="_blank">
+  <img alt="Node Version" src="https://img.shields.io/badge/node-%3E%3D16-blue.svg"/>
+<a href="https://marinrusu1997.github.io/thermopylae/lib.authentication/index.html" target="_blank">
   <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 </a>
-<a href="http:/localhost:8080/license" target="_blank">
-  <img alt="License: ISC" src="https://img.shields.io/badge/License-ISC-yellow.svg" />
+<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 </a>
 </p>
 
 > Authentication library.
-
-### 🏠 [Homepage](http://localhost:8080)
-
 
 ## Install
 
@@ -21,20 +18,160 @@
 npm install @thermopylae/lib.authentication
 ```
 
-## Run tests
+## Usage
+```typescript
+import {
+	ActivateAccountSessionRedisRepository,
+	ForgotPasswordSessionRedisRepository,
+	FailedAuthenticationAttemptsSessionRedisRepository,
+	AuthenticationSessionRedisRepository,
+	FailedAuthenticationsMysqlRepository,
+	SuccessfulAuthenticationsMysqlRepository,
+	AccountMySqlRepository
+} from '@thermopylae/core.authentication';
+import { constants, createVerify, publicEncrypt } from 'crypto';
+import { argon2id } from 'argon2';
+import {
+	AccountWithTotpSecret,
+	Argon2PasswordHashingAlgorithm,
+	AuthenticationEngine,
+	PasswordLengthValidator,
+	PasswordStrengthValidator,
+	PwnedPasswordValidator,
+	TotpTwoFactorAuthStrategy
+} from '@thermopylae/lib.authentication';
 
-```sh
-npm run test
+const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
+	type: argon2id,
+	hashLength: 34,
+	memoryCost: 10240,
+	parallelism: 4
+});
+
+const engine = new AuthenticationEngine<AccountWithTotpSecret>({
+	thresholds: {
+		maxFailedAuthAttempts: 10,
+		failedAuthAttemptsRecaptcha: 5
+	},
+	ttl: {
+		authenticationSession: 180,
+		failedAuthAttemptsSession: 600,
+		activateAccountSession: 900,
+		forgotPasswordSession: 900,
+		accountDisableTimeout: 3600
+	},
+	repositories: {
+		account: new AccountMySqlRepository(),
+		successfulAuthentications: new SuccessfulAuthenticationsMysqlRepository(),
+		failedAuthenticationAttempts: new FailedAuthenticationsMysqlRepository(),
+		activateAccountSession: new ActivateAccountSessionRedisRepository('actv-acc'),
+		authenticationSession: new AuthenticationSessionRedisRepository('auth-sess'),
+		failedAuthAttemptSession: new FailedAuthenticationAttemptsSessionRedisRepository('fail-auth-atmpt'),
+		forgotPasswordSession: new ForgotPasswordSessionRedisRepository('fgt-pswd')
+	},
+	hooks: {
+		onAuthenticationFromDifferentContext: async () => {
+			// notify user about this
+		},
+		onAccountDisabled: async () => {
+			// invalidate all user sessions
+		},
+		onForgottenPasswordChanged: async () => {
+			// invalidate all user sessions
+		},
+		onPasswordChanged: async () => {
+			// invalidate all user sessions
+		}
+	},
+	validators: {
+		recaptcha: async () => {
+			// validate recaptcha
+			return true;
+		},
+		challengeResponse: async (pubKey, nonce, signature, _signAlgorithm, encoding) => {
+			return createVerify('RSA-SHA512')
+				.update(nonce)
+				.verify(pubKey, signature as string, encoding);
+		}
+	},
+	password: {
+		hashing: {
+			algorithms: new Map([[0, argon2PasswordHashingAlgorithm]]),
+			currentAlgorithmId: 0,
+			currentAlgorithm: argon2PasswordHashingAlgorithm
+		},
+		encryption: false,
+		strength: [
+			new PasswordLengthValidator(14, 4_096),
+			new PasswordStrengthValidator((account) => {
+				if (account.telephone == null) {
+					return ['thermopylae', account.username, account.email];
+				}
+
+				return ['thermopylae', account.username, account.email, account.telephone];
+			}),
+			new PwnedPasswordValidator(2)
+		],
+		similarity: 0.8,
+		forgotPasswordTokenEncrypt: async (pubKey, token) => {
+			return publicEncrypt(
+				{
+					key: pubKey,
+					oaepHash: 'sha256',
+					padding: constants.RSA_PKCS1_OAEP_PADDING
+				},
+				Buffer.from(token)
+			).toString('base64');
+		}
+	},
+	email: {
+		admin: 'admin@thermopylae.io',
+		sender: {} // you can use '@thermopylae/lib.email' to implement it
+	},
+	smsSender: {}, // you can use '@thermopylae/lib.sms' to implement it
+	twoFactorAuthStrategy: new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>({
+		serviceName: 'thermopylae',
+		totp: {
+			secretLength: 24,
+			encryption: {
+				algorithm: 'aes-256-ctr',
+				secret: 'OiALBf8zExAKQy86TwMezcUn/+aVtmIm',
+				iv: 'af137eb5b18fc663'
+			},
+			authenticator: {
+				algorithm: 'sha1',
+				encoding: 'hex',
+				step: 30,
+				window: 1,
+				digits: 6
+			}
+		}
+	}),
+	tokensLength: 24
+});
+```
+
+## API Reference
+API documentation is available [here][api-doc-link].
+
+It can also be generated by issuing the following commands:
+```shell
+git clone git@github.com:marinrusu1997/thermopylae.git
+cd thermopylae
+yarn install
+yarn workspace @thermopylae/lib.authentication run doc
 ```
 
 ## Author
-
 👤 **Rusu Marin**
 
 * GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+* LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
 
 ## 📝 License
+Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
+This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 
-Copyright © 2020 [Rusu Marin](https://github.com/marinrusu1997). <br/>
-This project is [ISC](http:/localhost:8080/license) licensed.
+[api-doc-link]: https://marinrusu1997.github.io/thermopylae/lib.authentication/index.html
+

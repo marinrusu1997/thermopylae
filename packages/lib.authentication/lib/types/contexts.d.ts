@@ -45,7 +45,7 @@ interface AuthenticationContextInterface extends BaseContext {
 	 * This is required only for password authentication in the {@link AuthenticationStepName.TWO_FACTOR_AUTH_CHECK} step. <br/>
 	 * When client receives this step as response from server, it needs to send back his 2fa token.
 	 */
-	readonly '2fa-token'?: string;
+	readonly twoFactorAuthenticationToken?: string;
 	/**
 	 * Perform password-less authentication using challenge-response mechanism. <br/>
 	 * When given this option, library will generate a *nonce* and store it
@@ -80,7 +80,10 @@ interface AuthenticationContextInterface extends BaseContext {
 /**
  * Minimal required properties required by the authentication context.
  */
-type AuthenticationContext = RequireAtLeastOne<AuthenticationContextInterface, 'password' | '2fa-token' | 'generateChallenge' | 'responseForChallenge'>;
+type AuthenticationContext = RequireAtLeastOne<
+	AuthenticationContextInterface,
+	'password' | 'twoFactorAuthenticationToken' | 'generateChallenge' | 'responseForChallenge'
+>;
 
 /**
  * Context of the set two factor authentication (i.e. enable/disable mfa).

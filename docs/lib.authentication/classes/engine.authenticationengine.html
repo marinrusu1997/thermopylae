@@ -26,6 +26,7 @@
 					<ul class="results-priority" style="display:none">
 					</ul>
 					<a href="../index.html" class="title">@thermopylae/lib.authentication</a>
+					&emsp;<a href="https://marinrusu1997.github.io/thermopylae" class="title">Thermopylae</a>
 					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication" class="title">Github</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
@@ -67,19 +68,20 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
-			<nav class="tsd-navigation primary">
-				<ul>
-					<li class=" ">
-						<a href="../modules.html">Exports</a>
-					</li>
-					<li class="current tsd-kind-module">
-						<a href="../modules/engine.html">engine</a>
-					</li>
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="../modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;Authentication Engine&quot;:&quot;engine&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Authentication&quot;:{&quot;Step&quot;:&quot;authentication_step&quot;,&quot;Challenge Response&quot;:&quot;authentication_steps_challenge_response_step&quot;,&quot;Recaptcha&quot;:&quot;authentication_steps_recaptcha_step&quot;,&quot;Two Factor&quot;:{&quot;Interface&quot;:&quot;authentication_2fa_interface&quot;,&quot;Email&quot;:&quot;authentication_2fa_email&quot;,&quot;Sms&quot;:&quot;authentication_2fa_sms&quot;,&quot;Totp&quot;:&quot;authentication_2fa_totp&quot;}},&quot;Password&quot;:{&quot;Hashing&quot;:{&quot;Options&quot;:&quot;managers_password&quot;,&quot;Interface&quot;:&quot;managers_password_hash&quot;,&quot;Argon2&quot;:&quot;managers_password_hash_argon2&quot;},&quot;Strength&quot;:{&quot;Interface&quot;:&quot;managers_password_strength_policy&quot;,&quot;Length&quot;:&quot;managers_password_strength_length_policy&quot;,&quot;Pwned&quot;:&quot;managers_password_strength_pwned_policy&quot;,&quot;Strength&quot;:&quot;managers_password_strength_strength_policy&quot;}},&quot;Typings&quot;:{&quot;Contexts&quot;:&quot;types_contexts&quot;,&quot;Enums&quot;:&quot;types_enums&quot;,&quot;Hooks&quot;:&quot;types_hooks&quot;,&quot;Models&quot;:&quot;types_models&quot;,&quot;Repositories&quot;:&quot;types_repositories&quot;,&quot;Sessions&quot;:&quot;types_sessions&quot;,&quot;Secret Encryption&quot;:&quot;helpers_secret_encryptor&quot;,&quot;Side Channels&quot;:&quot;types_side_channels&quot;}}
 				</ul>
 			</nav>
 		</div>
 		<div class="col-7 offset-3 col-content">
 			<h1>Class AuthenticationEngine&lt;Account&gt;</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p>Authentication Engine manages user authentication and account.</p>
+					</div>
+			</div></section>
 			<section class="tsd-panel tsd-type-parameters">
 				<h3>Type parameters</h3>
 				<ul class="tsd-type-parameters">
@@ -166,10 +168,27 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Activate previously registered account.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code:<br/>
+											- <a href="../enums/error.errorcodes.html#session_not_found">ErrorCodes.SESSION_NOT_FOUND</a> when token is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#account_with_duplicated_fields">ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS</a> when account contains duplicated fields.
+											This scenario might occur because unactivated accounts are stored in a temporary storage <a href="../interfaces/types_repositories.activateaccountsessionrepository.html">ActivateAccountSessionRepository</a>
+											and while user tries to activate his account, another user was able to register an account with same fields and activate it before (very unlikely, but still might happen).
+										In case this exception is thrown, user account registration is considered failed and user to register another account.</p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>activateAccountToken: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Activate account token.</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -186,13 +205,48 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Authenticates user. <br/>
+										<br/>
+										Authentication process consists from multiple <a href="../enums/types_enums.authenticationstepname.html">AuthenticationStepName</a> and is performed in a state machine fashion.
+										Authentication process state is persisted by <a href="../interfaces/types_sessions.authenticationsession.html">AuthenticationSession</a> and <a href="../interfaces/types_sessions.failedauthenticationattemptsession.html">FailedAuthenticationAttemptSession</a>. <br/>
+										<br/>
+										Transition to next state/step is announced to client via <a href="../interfaces/authentication_step.authenticationstatus.html#nextstep">AuthenticationStatus.nextStep</a>. Depending on this,
+										he needs to provide additional data. <br/>
+										When an error is encountered, it will be set into <a href="../interfaces/authentication_step.authenticationstatus.html#error">AuthenticationStatus.error</a>.
+										In case it is a <a href="../interfaces/authentication_step.authenticationstatuserror.html#soft">AuthenticationStatusError.soft</a> error caused by invalid credentials, user can continue authentication from <a href="../interfaces/authentication_step.authenticationstatus.html#nextstep">AuthenticationStatus.nextStep</a>.
+										In case it is a <a href="../interfaces/authentication_step.authenticationstatuserror.html#hard">AuthenticationStatusError.hard</a> error, user needs to abort authentication. <br/>
+										When password-less authentication by challenge-response mechanism is used, generated challenge will be sent by <a href="../interfaces/authentication_step.authenticationstatus.html#token">AuthenticationStatus.token</a> property. <br/>
+										When authentication completes successfully, only <a href="../interfaces/authentication_step.authenticationstatus.html#authenticated">AuthenticationStatus.authenticated</a> property will be present in the authentication status. <br/>
+									The following <a href="../interfaces/authentication_step.authenticationstatus.html">AuthenticationStatus</a> property combinations might be returned: <br/></p>
+									<ul>
+										<li><a href="../interfaces/authentication_step.authenticationstatus.html#nextstep">AuthenticationStatus.nextStep</a> - previous authentication step was performed successfully and client needs to move to next step <br/></li>
+										<li><a href="../interfaces/authentication_step.authenticationstatus.html#nextstep">AuthenticationStatus.nextStep</a> and <a href="../interfaces/authentication_step.authenticationstatus.html#token">AuthenticationStatus.token</a> - <em>nonce</em> was generated successfully by <a href="../enums/types_enums.authenticationstepname.html#generate_challenge">AuthenticationStepName.GENERATE_CHALLENGE</a> step and stored in this property, client needs to move to next step <a href="../enums/types_enums.authenticationstepname.html#challenge_response">AuthenticationStepName.CHALLENGE_RESPONSE</a> <br/></li>
+										<li><a href="../interfaces/authentication_step.authenticationstatus.html#nextstep">AuthenticationStatus.nextStep</a> and <a href="../interfaces/authentication_step.authenticationstatuserror.html#soft">AuthenticationStatusError.soft</a> - previous authentication step failed and client needs to move to next step (might be the same as previous one or differ) <br/></li>
+										<li><a href="../interfaces/authentication_step.authenticationstatuserror.html#hard">AuthenticationStatusError.hard</a> - authentication failed with hard error, account was disabled and client needs to abort authentication. <br/></li>
+										<li><a href="../interfaces/authentication_step.authenticationstatus.html#authenticated">AuthenticationStatus.authenticated</a> - authentication completed successfully <br/><br/>
+										Depending on the authentication next step, client needs to provide the following data: <br/></li>
+										<li><strong>NONE</strong> - authentication needs to be started by client by either providing <a href="../interfaces/types_contexts.authenticationcontextinterface.html#password">AuthenticationContextInterface.password</a> or <a href="../interfaces/types_contexts.authenticationcontextinterface.html#generatechallenge">AuthenticationContextInterface.generateChallenge</a> <br/></li>
+										<li><a href="../enums/types_enums.authenticationstepname.html#challenge_response">AuthenticationStepName.CHALLENGE_RESPONSE</a> - client needs to provide encrypted nonce in the <a href="../interfaces/types_contexts.authenticationcontextinterface.html#responseforchallenge">AuthenticationContextInterface.responseForChallenge</a> <br/></li>
+										<li><a href="../enums/types_enums.authenticationstepname.html#password">AuthenticationStepName.PASSWORD</a> - password was invalid and client needs to provide another <a href="../interfaces/types_contexts.authenticationcontextinterface.html#password">AuthenticationContextInterface.password</a> <br/></li>
+										<li><a href="../enums/types_enums.authenticationstepname.html#recaptcha">AuthenticationStepName.RECAPTCHA</a> - invalid password/nonce was provided too many times and client needs to provide another <a href="../interfaces/types_contexts.authenticationcontextinterface.html#password">AuthenticationContextInterface.password</a>/<a href="../interfaces/types_contexts.authenticationcontextinterface.html#responseforchallenge">AuthenticationContextInterface.responseForChallenge</a> and also <a href="../interfaces/types_contexts.authenticationcontextinterface.html#recaptcha">AuthenticationContextInterface.recaptcha</a> <br/></li>
+										<li><a href="../enums/types_enums.authenticationstepname.html#two_factor_auth_check">AuthenticationStepName.TWO_FACTOR_AUTH_CHECK</a> - client needs to provide 2fa token sent to him via side channel in the <a href="../interfaces/types_contexts.authenticationcontextinterface.html#twofactorauthenticationtoken">AuthenticationContextInterface.twoFactorAuthenticationToken</a> <br/><br/>
+										On successful authentication, <a href="../interfaces/authentication_step.authenticationstatus.html#authenticated">AuthenticationStatus.authenticated</a> property will contain user account.</li>
+									</ul>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>authenticationContext: <a href="../modules/types_contexts.html#authenticationcontext" class="tsd-signature-type">AuthenticationContext</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Authentication context.</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/authentication_step.authenticationstatus.html" class="tsd-signature-type">AuthenticationStatus</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Authentication status.</p>
 						</li>
 					</ul>
 				</section>
@@ -206,13 +260,39 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Change forgotten password. <br/>
+										On successful password change, <a href="../modules/types_hooks.html#onforgottenpasswordchangedhook">OnForgottenPasswordChangedHook</a> will be called. <br/>
+										In case any exception is thrown, operation is considered failed, and user needs
+										to start again account recovery (i.e. obtain a new forgot password token).
+										This restriction is imposed in order to prevent replay attacks.
+										The only exception from this rule is when <a href="../enums/error.errorcodes.html#session_not_found">ErrorCodes.SESSION_NOT_FOUND</a> error code is thrown,
+									as in this case forgot password token wasn&#39;t invalidated.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code: <br/>
+											- <a href="../enums/error.errorcodes.html#session_not_found">ErrorCodes.SESSION_NOT_FOUND</a> when token is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#account_not_found">ErrorCodes.ACCOUNT_NOT_FOUND</a> when account not found <br/>
+											- <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> when account is disabled <br/>
+										- <a href="../enums/error.errorcodes.html#weak_password">ErrorCodes.WEAK_PASSWORD</a> when new password is too weak</p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>token: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Forgot password token issued by <a href="engine.authenticationengine.html#createforgotpasswordsession">AuthenticationEngine.createForgotPasswordSession</a> procedure. <br/>
+										Token needs to be in plaintext.</p>
+									</div>
 								</li>
 								<li>
 									<h5>newPassword: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>New account password.</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -231,12 +311,23 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Changes users password. <br/></p>
-									<blockquote>
-										<p><strong>Important!</strong> This method has authorization implications.
-										It needs to be called only by authenticated users and they can change only their password.</p>
-									</blockquote>
+									<p>Changes user password. <br/>
+										After successful changing, <a href="../modules/types_hooks.html#onpasswordchangedhook">OnPasswordChangedHook</a> will be called and then email notification will be sent to user by <a href="../interfaces/types_side_channels.emailsender.html">EmailSender</a>. <br/>
+									In case any exception is thrown, operation is considered failed.</p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code:<br/>
+											- <a href="../enums/error.errorcodes.html#account_not_found">ErrorCodes.ACCOUNT_NOT_FOUND</a> when account id is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> when account is disabled. <br/>
+											- <a href="../enums/error.errorcodes.html#incorrect_password">ErrorCodes.INCORRECT_PASSWORD</a> when provided password is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#similar_passwords">ErrorCodes.SIMILAR_PASSWORDS</a> when <a href="../interfaces/types_contexts.changepasswordcontext.html#oldpassword">ChangePasswordContext.oldPassword</a> is too similar with <a href="../interfaces/types_contexts.changepasswordcontext.html#newpassword">ChangePasswordContext.newPassword</a> <br/>
+										- <a href="../enums/error.errorcodes.html#weak_password">ErrorCodes.WEAK_PASSWORD</a> when <a href="../interfaces/types_contexts.changepasswordcontext.html#newpassword">ChangePasswordContext.newPassword</a> is too weak</p>
+										<blockquote>
+											<p><strong>Important!</strong> This method has authorization implications.
+											It needs to be called only by authenticated users and they can change only their password.</p>
+										</blockquote>
+								</dd></dl>
 							</div>
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
 							<ul class="tsd-type-parameters">
@@ -267,27 +358,51 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-tags">
-								<dl class="tsd-comment-tags"><dt>fixme</dt>
-									<dd><p>When account not found err is thrown, REST API should not respond with error, in order to prevent user enumeration,
-										i.e it should respond with ok (something like token was sent to specified email, even if account doesn&#39;t exist)</p>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Creates forgot password session and starts account recovery procedure. <br/>
+										Creates forgot password token and sends it via specified <code>sideChannel</code>. <br/>
+										If account has <a href="../interfaces/types_models.accountmodel.html#pubkey">AccountModel.pubKey</a>, token will be encrypted before being sent to user.
+										In this case user needs to decrypt token with his Private Key and send plaintext token back to server. <br/>
+									In case any exception is thrown, operation is considered failed.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<blockquote>
+									<p><strong>Important!</strong> When account not found err is thrown, REST API should not respond with error, in order to prevent user enumeration,
+									i.e it should respond with ok (something like token was sent to specified email, even if account doesn&#39;t exist).</p>
+								</blockquote>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code:<br/>
+											- <a href="../enums/error.errorcodes.html#account_not_found">ErrorCodes.ACCOUNT_NOT_FOUND</a> when account unique field value is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> when account is disabled <br/>
+											- <a href="../enums/error.errorcodes.html#no_telephone_number">ErrorCodes.NO_TELEPHONE_NUMBER</a> when account has no telephone number <br/>
+										- <a href="../enums/error.errorcodes.html#unknown_create_forgot_password_session_side_channel">ErrorCodes.UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL</a> when invalid <code>sideChannel</code> was provided.</p>
 								</dd></dl>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>accountUniqueFieldName: <span class="tsd-signature-type">&#x60;readBy${Capitalize}&#x60;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Name of the account field, value of which user remembers.</p>
+									</div>
 								</li>
 								<li>
 									<h5>accountUniqueFieldValue: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Value of that field.</p>
+									</div>
 								</li>
 								<li>
 									<h5>sideChannel: <span class="tsd-signature-type">"email"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"sms"</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Side channel used to send token to user.</p>
 									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>User account.</p>
 						</li>
 					</ul>
 				</section>
@@ -321,7 +436,7 @@
 									<h5>until: <span class="tsd-signature-type">number</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>Unix timestamp until account will be disabled. <br/>
-										Use {@link UnixTimestamp | AccountStatus.DISABLED_UNTIL_ACTIVATION} to disable account for an undefined amount of time.</p>
+										Use {@link UnixTimestamp} or <a href="../enums/types_enums.accountstatus.html#disabled_until_activation">AccountStatus.DISABLED_UNTIL_ACTIVATION</a> to disable account for an undefined amount of time.</p>
 									</div>
 								</li>
 								<li>
@@ -464,10 +579,32 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Register user account. <br/>
+										When account is registered, multi factor authentication is disabled. <br/>
+									Depending on the <a href="../interfaces/types_models.accountmodel.html#disableduntil">AccountModel.disabledUntil</a> value: <br/></p>
+									<ul>
+										<li><a href="../enums/types_enums.accountstatus.html#enabled">AccountStatus.ENABLED</a> - account is enabled and stored by <a href="../interfaces/types_repositories.accountrepository.html">AccountRepository</a></li>
+										<li><a href="../enums/types_enums.accountstatus.html#disabled_until_activation">AccountStatus.DISABLED_UNTIL_ACTIVATION</a> - account is disabled until activation and stored by <a href="../interfaces/types_repositories.activateaccountsessionrepository.html">ActivateAccountSessionRepository</a>; token is generated and sent by <a href="../interfaces/types_side_channels.emailsender.html">EmailSender</a> <br/>
+										In case any exception is thrown, registration fails and needs to be repeated.</li>
+									</ul>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}        When: <br/>
+											- provided <a href="../interfaces/types_models.accountmodel.html#passwordhash">AccountModel.passwordHash</a> is weak. <br/>
+										- account contains duplicate fields. <br/></p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>account: <a href="../modules/engine.html#accounttoberegistered" class="tsd-signature-type">AccountToBeRegistered</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Account to be registered. <br/>
+										Plaintext password needs to be stored in the <a href="../interfaces/types_models.accountmodel.html#passwordhash">AccountModel.passwordHash</a> property.</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -486,12 +623,23 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Enable/Disable 2 factor authentication on the user&#39;s account.</p>
-									<blockquote>
-										<p><strong>Important!</strong> This method has authorization implications.
-										It needs to be called only by authenticated users for their account.</p>
-									</blockquote>
+									<p>Enable/Disable two factor authentication on the user&#39;s account. <br/>
+										When <a href="../interfaces/types_contexts.settwofactorauthenticationcontext.html#password">SetTwoFactorAuthenticationContext.password</a> is given, it will be verified against the account one.
+										If it is not valid, Exception with <a href="../enums/error.errorcodes.html#incorrect_password">ErrorCodes.INCORRECT_PASSWORD</a> will be thrown.
+									If invalid password was provided too many times, Exception with <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> will be thrown. <br/></p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<blockquote>
+									<p><strong>Important!</strong> This method has authorization implications.
+									It needs to be called only by authenticated users for their account.</p>
+								</blockquote>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code:<br/>
+											- <a href="../enums/error.errorcodes.html#account_not_found">ErrorCodes.ACCOUNT_NOT_FOUND</a> when account id is not valid <br/>
+											- <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> when account is disabled. <br/>
+										- <a href="../enums/error.errorcodes.html#incorrect_password">ErrorCodes.INCORRECT_PASSWORD</a> when provided password is not valid</p>
+								</dd></dl>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -510,12 +658,13 @@
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <a href="../interfaces/types_contexts.settwofactorauthenticationcontext.html" class="tsd-signature-type">SetTwoFactorAuthenticationContext</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>Operation context. @fixme detail it</p>
+										<p>Operation context.</p>
 									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<p>@fixme</p>
+							<p>Result of the <a href="../interfaces/authentication_2fa_interface.twofactorauthstrategy.html#ontwofactorauthenabled">TwoFactorAuthStrategy.onTwoFactorAuthEnabled</a> method. <br/>
+							Please check the result type of the <a href="../interfaces/engine.authenticationengineoptions.html#twofactorauthstrategy">AuthenticationEngineOptions.twoFactorAuthStrategy</a> that you&#39;ve chosen</p>
 						</li>
 					</ul>
 				</section>
@@ -529,24 +678,44 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Verifies user password.</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>{Exception}    With code:<br/>
+										- <a href="../enums/error.errorcodes.html#account_disabled">ErrorCodes.ACCOUNT_DISABLED</a> when invalid password was provided too many times</p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>password: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Password provided by user.</p>
+									</div>
 								</li>
 								<li>
 									<h5>account: <span class="tsd-signature-type">Account</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>User account.</p>
+									</div>
 								</li>
 								<li>
 									<h5>context: <a href="../interfaces/types_contexts.basecontext.html" class="tsd-signature-type">BaseContext</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Operation context.</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Whether password is valid or not.</p>
 						</li>
 					</ul>
 				</section>
 			</section>
-			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}]}-->
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Thermopylae&quot;,&quot;url&quot;:&quot;https://marinrusu1997.github.io/thermopylae&quot;},{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}],&quot;outline&quot;:[{&quot;Authentication Engine&quot;:&quot;engine&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Authentication&quot;:{&quot;Step&quot;:&quot;authentication_step&quot;,&quot;Challenge Response&quot;:&quot;authentication_steps_challenge_response_step&quot;,&quot;Recaptcha&quot;:&quot;authentication_steps_recaptcha_step&quot;,&quot;Two Factor&quot;:{&quot;Interface&quot;:&quot;authentication_2fa_interface&quot;,&quot;Email&quot;:&quot;authentication_2fa_email&quot;,&quot;Sms&quot;:&quot;authentication_2fa_sms&quot;,&quot;Totp&quot;:&quot;authentication_2fa_totp&quot;}},&quot;Password&quot;:{&quot;Hashing&quot;:{&quot;Options&quot;:&quot;managers_password&quot;,&quot;Interface&quot;:&quot;managers_password_hash&quot;,&quot;Argon2&quot;:&quot;managers_password_hash_argon2&quot;},&quot;Strength&quot;:{&quot;Interface&quot;:&quot;managers_password_strength_policy&quot;,&quot;Length&quot;:&quot;managers_password_strength_length_policy&quot;,&quot;Pwned&quot;:&quot;managers_password_strength_pwned_policy&quot;,&quot;Strength&quot;:&quot;managers_password_strength_strength_policy&quot;}},&quot;Typings&quot;:{&quot;Contexts&quot;:&quot;types_contexts&quot;,&quot;Enums&quot;:&quot;types_enums&quot;,&quot;Hooks&quot;:&quot;types_hooks&quot;,&quot;Models&quot;:&quot;types_models&quot;,&quot;Repositories&quot;:&quot;types_repositories&quot;,&quot;Sessions&quot;:&quot;types_sessions&quot;,&quot;Secret Encryption&quot;:&quot;helpers_secret_encryptor&quot;,&quot;Side Channels&quot;:&quot;types_side_channels&quot;}}]}-->
 		</div>
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">
@@ -601,6 +770,12 @@
 				<ul class="after-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="../interfaces/engine.authenticationengineoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/engine.authenticationenginethresholdsoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Thresholds<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/engine.authenticationenginettloptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Ttl<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="../modules/engine.html#accounttoberegistered" class="tsd-kind-icon">Account<wbr>ToBe<wbr>Registered</a>

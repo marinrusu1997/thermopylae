@@ -25,7 +25,7 @@ interface EmailTwoFactorAuthStrategyOptions {
 
 /**
  * Two factor authentication strategy which sends token to user via email. <br/>
- * Generated token is stored in the {@link AuthenticationSession['2fa-token']} property
+ * Generated token is stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property
  * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
  */
 class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
@@ -51,7 +51,7 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void> {
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
-		if (authenticationSession['2fa-token'] != null) {
+		if (authenticationSession.twoFactorAuthenticationToken != null) {
 			throw createException(
 				ErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY,
 				`Two factor authentication token was issued already for authentication session with id '${authenticationSessionRepositoryHolder.sessionId}' belonging to account with id '${account.id}'.`
@@ -61,7 +61,7 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		const token = EmailTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
 
 		await this.options.sendEmail(account.email, token);
-		authenticationSession['2fa-token'] = token;
+		authenticationSession.twoFactorAuthenticationToken = token;
 	}
 
 	/**
@@ -74,8 +74,8 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 	): Promise<boolean> {
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 
-		if (authenticationContext['2fa-token'] === authenticationSession['2fa-token']) {
-			delete authenticationSession['2fa-token']; // prevent replay attacks
+		if (authenticationContext.twoFactorAuthenticationToken === authenticationSession.twoFactorAuthenticationToken) {
+			delete authenticationSession.twoFactorAuthenticationToken; // prevent replay attacks
 			return true;
 		}
 

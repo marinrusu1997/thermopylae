@@ -24,7 +24,7 @@ describe('Two Factor Authentication spec', function suite() {
 	describe(`${TotpTwoFactorAuthStrategy.name} spec`, () => {
 		it('returns soft error when totp was not valid', async () => {
 			assert(
-				AuthenticationEngineDefaultOptions['2fa-strategy'] instanceof TotpTwoFactorAuthStrategy,
+				AuthenticationEngineDefaultOptions.twoFactorAuthStrategy instanceof TotpTwoFactorAuthStrategy,
 				'TotpTwoFactorAuthStrategy needs to be used in auth engine opts'
 			);
 
@@ -38,7 +38,7 @@ describe('Two Factor Authentication spec', function suite() {
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 			expect(authStatus.authenticated).to.be.eq(undefined);
 
-			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': "some garbage, we don't care" });
+			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: "some garbage, we don't care" });
 
 			expect(authStatus.token).to.be.eq(undefined);
 			expect(authStatus.error!.soft).to.be.instanceOf(Exception);
@@ -53,7 +53,7 @@ describe('Two Factor Authentication spec', function suite() {
 
 		it("doesn't allow to bypass password step, by providing totp token directly without password", async () => {
 			assert(
-				AuthenticationEngineDefaultOptions['2fa-strategy'] instanceof TotpTwoFactorAuthStrategy,
+				AuthenticationEngineDefaultOptions.twoFactorAuthStrategy instanceof TotpTwoFactorAuthStrategy,
 				'TotpTwoFactorAuthStrategy needs to be used in auth engine opts'
 			);
 
@@ -65,7 +65,7 @@ describe('Two Factor Authentication spec', function suite() {
 			account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
 
 			/* TRY BYPASS PASSWORD */
-			let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'password-bypassing' });
+			let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'password-bypassing' });
 			const failedAuthAttemptsSession = (await AuthenticationEngineDefaultOptions.repositories.failedAuthAttemptSession.read(account.username))!;
 
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
@@ -90,7 +90,10 @@ describe('Two Factor Authentication spec', function suite() {
 			// w8 till auth session that contains totp marker to expire
 			await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.authenticationSession) + 50);
 
-			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': generateTotp(account.totpSecret) });
+			authStatus = await AuthEngineInstance.authenticate({
+				...GlobalAuthenticationContext,
+				twoFactorAuthenticationToken: generateTotp(account.totpSecret)
+			});
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 			expect(authStatus.authenticated).to.be.eq(undefined);
 			expect(authStatus.token).to.be.eq(undefined);
@@ -106,7 +109,7 @@ describe('Two Factor Authentication spec', function suite() {
 
 		it("doesn't allow to bypass 2 factor auth step, by not providing totp token", async () => {
 			assert(
-				AuthenticationEngineDefaultOptions['2fa-strategy'] instanceof TotpTwoFactorAuthStrategy,
+				AuthenticationEngineDefaultOptions.twoFactorAuthStrategy instanceof TotpTwoFactorAuthStrategy,
 				'TotpTwoFactorAuthStrategy needs to be used in auth engine opts'
 			);
 
@@ -138,7 +141,7 @@ describe('Two Factor Authentication spec', function suite() {
 
 		it("can't use same totp twice (prevents replay attacks)", async () => {
 			assert(
-				AuthenticationEngineDefaultOptions['2fa-strategy'] instanceof TotpTwoFactorAuthStrategy,
+				AuthenticationEngineDefaultOptions.twoFactorAuthStrategy instanceof TotpTwoFactorAuthStrategy,
 				'TotpTwoFactorAuthStrategy needs to be used in auth engine opts'
 			);
 
@@ -155,11 +158,11 @@ describe('Two Factor Authentication spec', function suite() {
 			const totp = generateTotp(account.totpSecret);
 
 			/* VALIDATE 2FA TOKEN */
-			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': totp });
+			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: totp });
 			validateSuccessfulLogin(authStatus);
 
 			/* REPLAY 2FA TOKEN */
-			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': totp });
+			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: totp });
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 			expect(authStatus.authenticated).to.be.eq(undefined);
 			expect(authStatus.token).to.be.eq(undefined);
@@ -205,7 +208,7 @@ describe('Two Factor Authentication spec', function suite() {
 		for (const strategy of strategies) {
 			const AuthenticationEngineInstance = new AuthenticationEngine({
 				...AuthenticationEngineDefaultOptions,
-				'2fa-strategy': strategy
+				twoFactorAuthStrategy: strategy
 			});
 
 			it('authenticates with 2 factor auth code', async () => {
@@ -221,7 +224,10 @@ describe('Two Factor Authentication spec', function suite() {
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 				/* AUTHENTICATE WITH 2 FACTOR TOKEN */
-				authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': getToken(strategy, account) });
+				authStatus = await AuthenticationEngineInstance.authenticate({
+					...GlobalAuthenticationContext,
+					twoFactorAuthenticationToken: getToken(strategy, account)
+				});
 				validateSuccessfulLogin(authStatus);
 			});
 
@@ -260,7 +266,7 @@ describe('Two Factor Authentication spec', function suite() {
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 				/* AUTHENTICATE WITH INVALID TOKEN */
-				authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'invalid' });
+				authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 				expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 				expect(authStatus.token).to.be.eq(undefined);
@@ -276,7 +282,7 @@ describe('Two Factor Authentication spec', function suite() {
 				await AuthenticationEngineInstance.setTwoFactorAuthEnabled(account.id, true);
 
 				/* AUTHENTICATE WITH INVALID TOKEN */
-				const authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'invalid' });
+				const authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD); // we bypassed password
 				expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 				expect(authStatus.token).to.be.eq(undefined);
@@ -298,7 +304,7 @@ describe('Two Factor Authentication spec', function suite() {
 				/* TRIGGER RECAPTCHA */
 				let recaptchaThreshold = AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha;
 				while (recaptchaThreshold--) {
-					authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'invalid' });
+					authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				}
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 				expect((await AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId))!.recaptchaRequired).to.be.eq(
@@ -306,7 +312,10 @@ describe('Two Factor Authentication spec', function suite() {
 				);
 
 				/* AUTHENTICATE WITH 2 FACTOR TOKEN */
-				authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': getToken(strategy, account) });
+				authStatus = await AuthenticationEngineInstance.authenticate({
+					...GlobalAuthenticationContext,
+					twoFactorAuthenticationToken: getToken(strategy, account)
+				});
 				validateSuccessfulLogin(authStatus);
 			});
 		}

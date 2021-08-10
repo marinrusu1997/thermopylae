@@ -5,6 +5,20 @@ import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentic
 import type { AuthenticationContext } from '../types/contexts';
 
 /**
+ * Error encountered in the authentication process.
+ */
+interface AuthenticationStatusError {
+	/**
+	 * Hard error encountered, account was disabled and authentication needs to be aborted.
+	 */
+	hard?: Exception;
+	/**
+	 * Soft error encountered. Client can contain authentication from the {@link AuthenticationStatus.nextStep}.
+	 */
+	soft?: Exception;
+}
+
+/**
  * Authentication status returned by {@link AuthenticationEngine}.
  */
 interface AuthenticationStatus<Account extends AccountModel> {
@@ -20,16 +34,7 @@ interface AuthenticationStatus<Account extends AccountModel> {
 	/**
 	 * Error encountered in the authentication process.
 	 */
-	error?: {
-		/**
-		 * Hard error encountered, account was disabled and authentication needs to be aborted.
-		 */
-		hard?: Exception;
-		/**
-		 * Soft error encountered. Client can contain authentication from the {@link AuthenticationStatus.nextStep}.
-		 */
-		soft?: Exception;
-	};
+	error?: AuthenticationStatusError;
 	/**
 	 * Property set only when authentication is completed successfully.
 	 * Contains user account model.
@@ -57,4 +62,4 @@ interface AuthenticationStep<Account extends AccountModel> {
 	): Promise<AuthenticationStepOutput<Account>>;
 }
 
-export { AuthenticationStatus, AuthenticationStepOutput, AuthenticationStep };
+export { AuthenticationStatus, AuthenticationStatusError, AuthenticationStepOutput, AuthenticationStep };

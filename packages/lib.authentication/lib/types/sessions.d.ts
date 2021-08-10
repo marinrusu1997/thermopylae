@@ -13,7 +13,7 @@ interface AuthenticationSession {
 	 * Two factor authentication token that was generated and sent to client. <br/>
 	 * After it has been validated, it will removed from session, in order to prevent [replay attacks](https://en.wikipedia.org/wiki/Replay_attack).
 	 */
-	'2fa-token'?: string; // preventing replay attacks
+	twoFactorAuthenticationToken?: string; // preventing replay attacks
 	/**
 	 * Challenge Response nonce that was generated and sent to client. <br/>
 	 * After it has been validated, it will removed from session, in order to prevent [replay attacks](https://en.wikipedia.org/wiki/Replay_attack).

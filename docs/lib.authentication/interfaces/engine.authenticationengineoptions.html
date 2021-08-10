@@ -26,6 +26,7 @@
 					<ul class="results-priority" style="display:none">
 					</ul>
 					<a href="../index.html" class="title">@thermopylae/lib.authentication</a>
+					&emsp;<a href="https://marinrusu1997.github.io/thermopylae" class="title">Thermopylae</a>
 					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication" class="title">Github</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
@@ -67,14 +68,10 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-3 col-menu menu-sticky-wrap menu-highlight">
-			<nav class="tsd-navigation primary">
-				<ul>
-					<li class=" ">
-						<a href="../modules.html">Exports</a>
-					</li>
-					<li class="current tsd-kind-module">
-						<a href="../modules/engine.html">engine</a>
-					</li>
+			<nav class="tsd-navigation outline primary">
+				<a style="margin-left:0em" href="../modules.html">Modules</a>
+				<ul style="display:none">
+					{&quot;Authentication Engine&quot;:&quot;engine&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Authentication&quot;:{&quot;Step&quot;:&quot;authentication_step&quot;,&quot;Challenge Response&quot;:&quot;authentication_steps_challenge_response_step&quot;,&quot;Recaptcha&quot;:&quot;authentication_steps_recaptcha_step&quot;,&quot;Two Factor&quot;:{&quot;Interface&quot;:&quot;authentication_2fa_interface&quot;,&quot;Email&quot;:&quot;authentication_2fa_email&quot;,&quot;Sms&quot;:&quot;authentication_2fa_sms&quot;,&quot;Totp&quot;:&quot;authentication_2fa_totp&quot;}},&quot;Password&quot;:{&quot;Hashing&quot;:{&quot;Options&quot;:&quot;managers_password&quot;,&quot;Interface&quot;:&quot;managers_password_hash&quot;,&quot;Argon2&quot;:&quot;managers_password_hash_argon2&quot;},&quot;Strength&quot;:{&quot;Interface&quot;:&quot;managers_password_strength_policy&quot;,&quot;Length&quot;:&quot;managers_password_strength_length_policy&quot;,&quot;Pwned&quot;:&quot;managers_password_strength_pwned_policy&quot;,&quot;Strength&quot;:&quot;managers_password_strength_strength_policy&quot;}},&quot;Typings&quot;:{&quot;Contexts&quot;:&quot;types_contexts&quot;,&quot;Enums&quot;:&quot;types_enums&quot;,&quot;Hooks&quot;:&quot;types_hooks&quot;,&quot;Models&quot;:&quot;types_models&quot;,&quot;Repositories&quot;:&quot;types_repositories&quot;,&quot;Sessions&quot;:&quot;types_sessions&quot;,&quot;Secret Encryption&quot;:&quot;helpers_secret_encryptor&quot;,&quot;Side Channels&quot;:&quot;types_side_channels&quot;}}
 				</ul>
 			</nav>
 		</div>
@@ -102,7 +99,6 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#2fa_strategy" class="tsd-kind-icon">2fa-<wbr>strategy</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#email" class="tsd-kind-icon">email</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#hooks" class="tsd-kind-icon">hooks</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#password" class="tsd-kind-icon">password</a></li>
@@ -111,6 +107,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#thresholds" class="tsd-kind-icon">thresholds</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#tokenslength" class="tsd-kind-icon">tokens<wbr>Length</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#ttl" class="tsd-kind-icon">ttl</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#twofactorauthstrategy" class="tsd-kind-icon">two<wbr>Factor<wbr>Auth<wbr>Strategy</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="engine.authenticationengineoptions.html#validators" class="tsd-kind-icon">validators</a></li>
 							</ul>
 						</section>
@@ -119,13 +116,6 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="2fa_strategy" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> 2fa-<wbr>strategy</h3>
-					<div class="tsd-signature tsd-kind-icon">2fa-<wbr>strategy<span class="tsd-signature-symbol">:</span> <a href="authentication_2fa_interface.twofactorauthstrategy.html" class="tsd-signature-type">TwoFactorAuthStrategy</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-					</aside>
-				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="email" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> email</h3>
@@ -137,6 +127,11 @@
 						<ul class="tsd-parameters">
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> admin<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Email of the administrator.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> sender<span class="tsd-signature-symbol">: </span><a href="types_side_channels.emailsender.html" class="tsd-signature-type">EmailSender</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
@@ -150,20 +145,45 @@
 					<div class="tsd-signature tsd-kind-icon">hooks<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 					</aside>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Hooks called by <a href="../classes/engine.authenticationengine.html">AuthenticationEngine</a>.</p>
+						</div>
+					</div>
 					<div class="tsd-type-declaration">
 						<h4>Type declaration</h4>
 						<ul class="tsd-parameters">
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> on<wbr>Account<wbr>Disabled<span class="tsd-signature-symbol">: </span><a href="../modules/types_hooks.html#onaccountdisabledhook" class="tsd-signature-type">OnAccountDisabledHook</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Hook called when account has been disabled due to authentication error or explicitly by admin.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> on<wbr>Authentication<wbr>From<wbr>Different<wbr>Context<span class="tsd-signature-symbol">: </span><a href="../modules/types_hooks.html#onauthenticationfromdifferentcontexthook" class="tsd-signature-type">OnAuthenticationFromDifferentContextHook</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Hook called when authentication from different context (i.e. different device, location etc.) has been detected.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> on<wbr>Forgotten<wbr>Password<wbr>Changed<span class="tsd-signature-symbol">: </span><a href="../modules/types_hooks.html#onforgottenpasswordchangedhook" class="tsd-signature-type">OnForgottenPasswordChangedHook</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Hook called when forgotten password has been changed.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> on<wbr>Password<wbr>Changed<span class="tsd-signature-symbol">: </span><a href="../modules/types_hooks.html#onpasswordchangedhook" class="tsd-signature-type">OnPasswordChangedHook</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Hook called when password has been changed.</p>
+									</div>
+								</div>
 							</li>
 						</ul>
 					</div>
@@ -179,18 +199,46 @@
 						<ul class="tsd-parameters">
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> encryption<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><a href="helpers_secret_encryptor.secretencryptionoptions.html" class="tsd-signature-type">SecretEncryptionOptions</a></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Password encryption options. <br/>
+										Depending of this option value, following behaviours will occur: <br/></p>
+										<ul>
+											<li><em>false</em> - password hash will be stored in plaintext in the <a href="types_models.accountmodel.html#passwordhash">AccountModel.passwordHash</a> <br/></li>
+											<li><em><a href="helpers_secret_encryptor.secretencryptionoptions.html">SecretEncryptionOptions</a></em> - password hash will be encrypted before being stored in the <a href="types_models.accountmodel.html#passwordhash">AccountModel.passwordHash</a></li>
+										</ul>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> forgot<wbr>Password<wbr>Token<wbr>Encrypt<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EncryptForgotPasswordToken</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Forgot password token encryptor.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> hashing<span class="tsd-signature-symbol">: </span><a href="managers_password.passwordhashing.html" class="tsd-signature-type">PasswordHashing</a></h5>
+								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> hashing<span class="tsd-signature-symbol">: </span><a href="managers_password.passwordhashingoptions.html" class="tsd-signature-type">PasswordHashingOptions</a></h5>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> similarity<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Password similarity threshold used when password is changed.
+											When old and new password have a similarity equal or greater with this one,
+											error will be thrown and password change process will be aborted. <br/>
+										Ranges between [0, 1], <strong>0</strong> being completely different and <strong>1</strong> being completely similar.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> strength<span class="tsd-signature-symbol">: </span><a href="managers_password_strength_policy.passwordstrengthpolicyvalidator.html" class="tsd-signature-type">PasswordStrengthPolicyValidator</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Password strength policy validators.</p>
+									</div>
+								</div>
 							</li>
 						</ul>
 					</div>
@@ -243,35 +291,13 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="thresholds" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> thresholds</h3>
-					<div class="tsd-signature tsd-kind-icon">thresholds<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-signature tsd-kind-icon">thresholds<span class="tsd-signature-symbol">:</span> <a href="engine.authenticationenginethresholdsoptions.html" class="tsd-signature-type">AuthenticationEngineThresholdsOptions</a></div>
 					<aside class="tsd-sources">
 					</aside>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
 							<p>Threshold options.</p>
 						</div>
-					</div>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> failed<wbr>Auth<wbr>Attempts<wbr>Recaptcha<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Number of failed authentication attempts before recaptcha validation will be performed.</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> max<wbr>Failed<wbr>Auth<wbr>Attempts<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Number of allowed failed authentication attempts before account will be locked
-										for {@link AuthenticationEngineOptions.ttl.accountDisableTimeout} seconds.</p>
-									</div>
-								</div>
-							</li>
-						</ul>
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
@@ -280,11 +306,17 @@
 					<div class="tsd-signature tsd-kind-icon">tokens<wbr>Length<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 					</aside>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Length of the issued tokens (e.g. forgot password token, account activation token etc.). <br/>
+							Recommended value is 24.</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="ttl" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> ttl</h3>
-					<div class="tsd-signature tsd-kind-icon">ttl<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-signature tsd-kind-icon">ttl<span class="tsd-signature-symbol">:</span> <a href="engine.authenticationenginettloptions.html" class="tsd-signature-type">AuthenticationEngineTtlOptions</a></div>
 					<aside class="tsd-sources">
 					</aside>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -292,51 +324,13 @@
 							<p>Time to live options.</p>
 						</div>
 					</div>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> account<wbr>Disable<wbr>Timeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Timeout in seconds for which account will be disabled by internal procedures.</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> activate<wbr>Account<wbr>Session<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>TTL in seconds of the activate account token.</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> authentication<wbr>Session<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>TTL in seconds of the <a href="types_sessions.authenticationsession.html">AuthenticationSession</a>.</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> failed<wbr>Auth<wbr>Attempts<wbr>Session<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>TTL in seconds of the <a href="types_sessions.failedauthenticationattemptsession.html">FailedAuthenticationAttemptSession</a>.</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> forgot<wbr>Password<wbr>Session<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>TTL in seconds of the forgot password token.</p>
-									</div>
-								</div>
-							</li>
-						</ul>
-					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="twofactorauthstrategy" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> two<wbr>Factor<wbr>Auth<wbr>Strategy</h3>
+					<div class="tsd-signature tsd-kind-icon">two<wbr>Factor<wbr>Auth<wbr>Strategy<span class="tsd-signature-symbol">:</span> <a href="authentication_2fa_interface.twofactorauthstrategy.html" class="tsd-signature-type">TwoFactorAuthStrategy</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Account</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="validators" class="tsd-anchor"></a>
@@ -349,6 +343,13 @@
 						<ul class="tsd-parameters">
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagOptional">Optional</span> <span class="tsd-flag ts-flagReadonly">Readonly</span> challenge<wbr>Response<span class="tsd-signature-symbol">?: </span><a href="../modules/authentication_steps_challenge_response_step.html#challengeresponsevalidator" class="tsd-signature-type">ChallengeResponseValidator</a></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Challenge response validator. <br/>
+											It is optional in case you won&#39;t use password-less authentication. <br/>
+										If you provide it, challenge response authentication will be enabled.</p>
+									</div>
+								</div>
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagReadonly">Readonly</span> recaptcha<span class="tsd-signature-symbol">: </span><a href="../modules/authentication_steps_recaptcha_step.html#recaptchavalidator" class="tsd-signature-type">RecaptchaValidator</a></h5>
@@ -357,7 +358,7 @@
 					</div>
 				</section>
 			</section>
-			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}]}-->
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/lib.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Thermopylae&quot;,&quot;url&quot;:&quot;https://marinrusu1997.github.io/thermopylae&quot;},{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.authentication&quot;}],&quot;outline&quot;:[{&quot;Authentication Engine&quot;:&quot;engine&quot;,&quot;Error&quot;:&quot;error&quot;,&quot;Authentication&quot;:{&quot;Step&quot;:&quot;authentication_step&quot;,&quot;Challenge Response&quot;:&quot;authentication_steps_challenge_response_step&quot;,&quot;Recaptcha&quot;:&quot;authentication_steps_recaptcha_step&quot;,&quot;Two Factor&quot;:{&quot;Interface&quot;:&quot;authentication_2fa_interface&quot;,&quot;Email&quot;:&quot;authentication_2fa_email&quot;,&quot;Sms&quot;:&quot;authentication_2fa_sms&quot;,&quot;Totp&quot;:&quot;authentication_2fa_totp&quot;}},&quot;Password&quot;:{&quot;Hashing&quot;:{&quot;Options&quot;:&quot;managers_password&quot;,&quot;Interface&quot;:&quot;managers_password_hash&quot;,&quot;Argon2&quot;:&quot;managers_password_hash_argon2&quot;},&quot;Strength&quot;:{&quot;Interface&quot;:&quot;managers_password_strength_policy&quot;,&quot;Length&quot;:&quot;managers_password_strength_length_policy&quot;,&quot;Pwned&quot;:&quot;managers_password_strength_pwned_policy&quot;,&quot;Strength&quot;:&quot;managers_password_strength_strength_policy&quot;}},&quot;Typings&quot;:{&quot;Contexts&quot;:&quot;types_contexts&quot;,&quot;Enums&quot;:&quot;types_enums&quot;,&quot;Hooks&quot;:&quot;types_hooks&quot;,&quot;Models&quot;:&quot;types_models&quot;,&quot;Repositories&quot;:&quot;types_repositories&quot;,&quot;Sessions&quot;:&quot;types_sessions&quot;,&quot;Secret Encryption&quot;:&quot;helpers_secret_encryptor&quot;,&quot;Side Channels&quot;:&quot;types_side_channels&quot;}}]}-->
 		</div>
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">
@@ -370,9 +371,6 @@
 					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="engine.authenticationengineoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Options</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="engine.authenticationengineoptions.html#2fa_strategy" class="tsd-kind-icon">2fa-<wbr>strategy</a>
-							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="engine.authenticationengineoptions.html#email" class="tsd-kind-icon">email</a>
 							</li>
@@ -398,12 +396,21 @@
 								<a href="engine.authenticationengineoptions.html#ttl" class="tsd-kind-icon">ttl</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="engine.authenticationengineoptions.html#twofactorauthstrategy" class="tsd-kind-icon">two<wbr>Factor<wbr>Auth<wbr>Strategy</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="engine.authenticationengineoptions.html#validators" class="tsd-kind-icon">validators</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="engine.authenticationenginethresholdsoptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Thresholds<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="engine.authenticationenginettloptions.html" class="tsd-kind-icon">Authentication<wbr>Engine<wbr>Ttl<wbr>Options</a>
+					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="../modules/engine.html#accounttoberegistered" class="tsd-kind-icon">Account<wbr>ToBe<wbr>Registered</a>
 					</li>

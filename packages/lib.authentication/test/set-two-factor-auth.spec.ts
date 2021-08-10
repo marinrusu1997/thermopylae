@@ -15,7 +15,7 @@ describe('Two Factor Auth Enable spec', function suite() {
 
 	it('enables two factor auth', async () => {
 		assert(
-			AuthenticationEngineDefaultOptions['2fa-strategy'] instanceof TotpTwoFactorAuthStrategy,
+			AuthenticationEngineDefaultOptions.twoFactorAuthStrategy instanceof TotpTwoFactorAuthStrategy,
 			'TotpTwoFactorAuthStrategy needs to be used in auth engine opts'
 		);
 

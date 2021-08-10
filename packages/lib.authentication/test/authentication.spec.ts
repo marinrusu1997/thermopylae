@@ -189,7 +189,7 @@ describe('Authenticate spec', function suite() {
 		expect(authStatus.error).to.be.eq(undefined);
 
 		/* FAIL AUTH WITH TOTP */
-		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'invalid' });
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(authStatus.error).to.not.be.eq(undefined);
 		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyMultiFactorAuthenticationFailed')).to.be.ofSize(1);
@@ -202,7 +202,7 @@ describe('Authenticate spec', function suite() {
 		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).to.eventually.not.be.oneOf([null, undefined]);
 
 		/* AUTHENTICATE SUCCESSFULLY */
-		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': generateTotp(account.totpSecret) });
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: generateTotp(account.totpSecret) });
 		validateSuccessfulLogin(authStatus);
 
 		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar, trust me
@@ -428,7 +428,7 @@ describe('Authenticate spec', function suite() {
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 		/* CONTINUE 2FA */
-		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': generateTotp(account.totpSecret) });
+		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: generateTotp(account.totpSecret) });
 		validateSuccessfulLogin(authStatus);
 	});
 
@@ -511,7 +511,7 @@ describe('Authenticate spec', function suite() {
 			i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts;
 			i++
 		) {
-			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, '2fa-token': 'invalid' });
+			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 		}
 		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 

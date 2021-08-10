@@ -134,7 +134,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 		sender: EmailSenderInstance
 	},
 	smsSender: SmsSenderInstance,
-	'2fa-strategy': new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>(TotpDefaultOptions),
+	twoFactorAuthStrategy: new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>(TotpDefaultOptions),
 	tokensLength: 15
 };
 Object.freeze(AuthenticationEngineDefaultOptions);
