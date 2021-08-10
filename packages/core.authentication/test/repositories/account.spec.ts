@@ -4,8 +4,7 @@ import { AccountStatus, AccountWithTotpSecret } from '@thermopylae/lib.authentic
 import faker from 'faker';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { AccountMySqlRepository } from '../../lib';
-import { ErrorCodes } from '../../lib/error';
+import { AccountMySqlRepository, ErrorCodes } from '../../lib';
 
 describe(`${AccountMySqlRepository.name} spec`, function suite() {
 	this.timeout(2_500);

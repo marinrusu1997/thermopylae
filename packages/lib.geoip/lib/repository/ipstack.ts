@@ -11,10 +11,10 @@ const AVAILABLE_NOW = -1;
  * Ipstack [subscription plan](https://ipstack.com/plan).
  */
 const enum IpstackSubscriptionPlan {
-	FREE,
-	BASIC,
-	PROFESSIONAL,
-	PROFESSIONAL_PLUS
+	FREE = 'FREE',
+	BASIC = 'BASIC',
+	PROFESSIONAL = 'PROFESSIONAL',
+	PROFESSIONAL_PLUS = 'PROFESSIONAL_PLUS'
 }
 
 /**

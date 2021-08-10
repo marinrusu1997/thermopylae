@@ -40,11 +40,11 @@ interface FailedAuthenticationAttemptSession {
 	/**
 	 * Device from where authentication has been made.
 	 */
-	device?: HttpDevice;
+	device?: HttpDevice | null;
 	/**
 	 * Location from where authentication has been made.
 	 */
-	location?: HTTPRequestLocation;
+	location?: HTTPRequestLocation | null;
 	/**
 	 * Number of failed authentication attempts detected. <br/>
 	 * Each time a new attempt is detected, this counter gets incremented.

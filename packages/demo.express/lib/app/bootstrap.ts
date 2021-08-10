@@ -22,13 +22,11 @@ import {
 	ActivateAccountSessionRedisRepository,
 	AuthenticationSessionRedisRepository,
 	FailedAuthenticationAttemptsSessionRedisRepository,
-	ForgotPasswordSessionRedisRepository,
-	initLogger as initCoreAuthenticationLogger
+	ForgotPasswordSessionRedisRepository
 } from '@thermopylae/core.authentication';
-import { ErrorCodes } from '@thermopylae/core.declarations';
 import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
-import { LoggerInstance } from '@thermopylae/core.logger';
+import { LoggerManagerInstance } from '@thermopylae/core.logger';
 import { publicEncrypt, constants } from 'crypto';
 import express, { Router } from 'express';
 import bodyParser from 'body-parser';
@@ -41,7 +39,7 @@ import path from 'path';
 import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
 import { Config } from '../config';
 import { EnvironmentVariables, ROUTER_OPTIONS, SERVICE_NAME } from './constants';
-import { createException } from '../error';
+import { createException, ErrorCodes } from '../error';
 import { initLogger, logger } from '../logger';
 import { authenticationRouter } from '../api/routes/authentication/router';
 import { morganMiddleware } from '../api/middleware/morgan';
@@ -89,7 +87,7 @@ async function bootstrap() {
 		delete loggingConfig.formatting.colorize;
 	}
 
-	LoggerInstance.formatting.setDefaultRecipe(loggingConfig.formatting.format, {
+	LoggerManagerInstance.formatting.setDefaultFormattingOrder(loggingConfig.formatting.format, {
 		colorize: loggingConfig.formatting.colorize ? { [SERVICE_NAME]: 'olive' } : false,
 		ignoredLabels: loggingConfig.formatting.ignoredLabels != null ? new Set(loggingConfig.formatting.ignoredLabels) : undefined,
 		levelForLabel: loggingConfig.formatting.levelForLabel,
@@ -97,23 +95,22 @@ async function bootstrap() {
 	});
 
 	if (loggingConfig.transports.CONSOLE != null) {
-		LoggerInstance.console.createTransport(loggingConfig.transports.CONSOLE);
+		LoggerManagerInstance.console.createTransport(loggingConfig.transports.CONSOLE);
 	}
 	if (loggingConfig.transports.FILE != null) {
-		LoggerInstance.file.createTransport(loggingConfig.transports.FILE);
+		LoggerManagerInstance.file.createTransport(loggingConfig.transports.FILE);
 	}
 	if (loggingConfig.transports.GRAYLOG2 != null) {
 		for (const [input, endpoint] of Object.entries(loggingConfig.transports.GRAYLOG2.endpoints)) {
-			LoggerInstance.graylog2.register(input, endpoint);
+			LoggerManagerInstance.graylog2.register(input, endpoint);
 		}
 		for (const [module, channel] of Object.entries(loggingConfig.transports.GRAYLOG2.channels)) {
-			LoggerInstance.graylog2.setChannel(module, channel);
+			LoggerManagerInstance.graylog2.setChannel(module, channel);
 		}
 	}
 
 	/* INIT CORE LOGGERS */
 	initLogger();
-	initCoreAuthenticationLogger();
 	initCoreUserSessionCommonsLogger();
 	initCoreJwtUserSessionLogger();
 	initMysqlClientLogger();
@@ -391,7 +388,7 @@ async function bootstrap() {
 					}
 				}
 			},
-			'2fa-strategy': new TotpTwoFactorAuthStrategy(authEngineConfig['2faStrategy']),
+			twoFactorAuthStrategy: new TotpTwoFactorAuthStrategy(authEngineConfig['2faStrategy']),
 			tokensLength: authEngineConfig.tokensLength
 		})
 	);

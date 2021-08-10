@@ -3,8 +3,7 @@ import { expect } from '@thermopylae/dev.unit-test';
 import faker from 'faker';
 import { chrono } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
-import { ForgotPasswordSessionRedisRepository } from '../../lib';
-import { ErrorCodes } from '../../lib/error';
+import { ForgotPasswordSessionRedisRepository, ErrorCodes } from '../../lib';
 
 describe(`${ForgotPasswordSessionRedisRepository.name} spec`, function suite() {
 	const forgotPasswordSessionRedisRepository = new ForgotPasswordSessionRedisRepository('fgt-pwd');

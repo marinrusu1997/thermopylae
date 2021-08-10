@@ -26,6 +26,7 @@
 					<ul class="results-priority" style="display:none">
 					</ul>
 					<a href="index.html" class="title">@thermopylae/core.authentication</a>
+					&emsp;<a href="https://marinrusu1997.github.io/thermopylae" class="title">Thermopylae</a>
 					&emsp;<a href="https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.authentication" class="title">Github</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
@@ -79,7 +80,7 @@
 						<img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
 					</a>
 					<a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE" target="_blank">
-						<img alt="License: ISC" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+						<img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 					</a>
 				</p>
 				<blockquote>
@@ -104,10 +105,10 @@
 					<li><p>Configure core logging. Example:</p>
 					</li>
 				</ol>
-				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">, </span><span style="color: #001080">LoggerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
+				<pre><code class="language-typescript"><span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">, </span><span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">, </span><span style="color: #001080">OutputFormat</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.logger&#039;</span><span style="color: #000000">;</span>
 <span style="color: #AF00DB">import</span><span style="color: #000000"> { </span><span style="color: #001080">ClientModule</span><span style="color: #000000"> } </span><span style="color: #AF00DB">from</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;@thermopylae/core.declarations&#039;</span><span style="color: #000000">;</span>
 
-<span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultRecipe</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">formatting</span><span style="color: #000000">.</span><span style="color: #795E26">setDefaultFormattingOrder</span><span style="color: #000000">(</span><span style="color: #001080">OutputFormat</span><span style="color: #000000">.</span><span style="color: #0070C1">PRINTF</span><span style="color: #000000">, {</span>
 <span style="color: #000000">  </span><span style="color: #001080">colorize:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
 <span style="color: #000000">  </span><span style="color: #001080">skippedFormatters:</span><span style="color: #000000"> </span><span style="color: #0000FF">new</span><span style="color: #000000"> </span><span style="color: #267F99">Set</span><span style="color: #000000">([</span><span style="color: #001080">DefaultFormatters</span><span style="color: #000000">.</span><span style="color: #0070C1">TIMESTAMP</span><span style="color: #000000">]),</span>
 <span style="color: #000000">  </span><span style="color: #001080">levelForLabel:</span><span style="color: #000000"> {</span>
@@ -115,7 +116,7 @@
 <span style="color: #000000">    </span><span style="color: #001080">[ClientModule.</span><span style="color: #0070C1">REDIS</span><span style="color: #001080">]:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span>
 <span style="color: #000000">  }</span>
 <span style="color: #000000">});</span>
-<span style="color: #001080">LoggerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({ </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000"> });</span>
+<span style="color: #001080">LoggerManagerInstance</span><span style="color: #000000">.</span><span style="color: #001080">console</span><span style="color: #000000">.</span><span style="color: #795E26">createTransport</span><span style="color: #000000">({ </span><span style="color: #001080">level:</span><span style="color: #000000"> </span><span style="color: #A31515">&#039;info&#039;</span><span style="color: #000000"> });</span>
 </code></pre>
 				<ol start="4">
 					<li>Enable loggers of database clients. Example:</li>
@@ -167,7 +168,7 @@
 							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_mysql_successful_authentication.successfulauthenticationsmysqlrepository.html">SuccessfulAuthenticationsMysqlRepository</a></li>
 						</ul>
 					</li>
-					<li><em>redis</em> - these repositories use Redis database as underlying storage<ul>
+					<li><strong>redis</strong> - these repositories use Redis database as underlying storage<ul>
 							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_activate_account_session.activateaccountsessionredisrepository.html">ActivateAccountSessionRedisRepository</a></li>
 							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_authentication_session.authenticationsessionredisrepository.html">AuthenticationSessionRedisRepository</a></li>
 							<li><a href="https://marinrusu1997.github.io/thermopylae/core.authentication/classes/repositories_redis_failed_authentications_session.failedauthenticationattemptssessionredisrepository.html">FailedAuthenticationAttemptsSessionRedisRepository</a></li>
@@ -225,7 +226,7 @@
 				<ul>
 					<li>GitHub: <a href="https://github.com/marinrusu1997">@marinrusu1997</a></li>
 					<li>Email: <a href="mailto:dimarusu2000@gmail.com">dimarusu2000@gmail.com</a></li>
-					<li>LinkedIn: <a href="https://linkedin.com/in/marinrusu1997">@marinrusu1997</a></li>
+					<li>LinkedIn: <a href="https://www.linkedin.com/in/rusu-marin-1638b0156/">@marinrusu1997</a></li>
 				</ul>
 				<a href="#📝-license" id="📝-license" style="color: inherit; text-decoration: none;">
 					<h2>📝 License</h2>
@@ -233,7 +234,7 @@
 				<p>Copyright © 2021 <a href="https://github.com/marinrusu1997">Rusu Marin</a>. <br/>
 				This project is <a href="https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE">MIT</a> licensed.</p>
 			</div>
-			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/repositories/constants.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.authentication&quot;}],&quot;outline&quot;:[{&quot;Error&quot;:&quot;error&quot;,&quot;MySQL&quot;:{&quot;Account&quot;:&quot;repositories_mysql_account&quot;,&quot;Failed Authentications&quot;:&quot;repositories_mysql_failed_authentications&quot;,&quot;Successful Authentications&quot;:&quot;repositories_mysql_successful_authentication&quot;},&quot;Redis&quot;:{&quot;Activate Account Session&quot;:&quot;repositories_redis_activate_account_session&quot;,&quot;Authentication Session&quot;:&quot;repositories_redis_authentication_session&quot;,&quot;Failed Authentication Attempts Session&quot;:&quot;repositories_redis_failed_authentications_session&quot;,&quot;Forgot Password Session&quot;:&quot;repositories_redis_forgot_password_session&quot;}}]}-->
+			<!--{&quot;options&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.authentication&quot;,&quot;tsconfig&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/packages/core.authentication&quot;,&quot;entryPoints&quot;:[&quot;lib/&quot;],&quot;exclude&quot;:[&quot;test/**/*&quot;,&quot;lib/index.ts&quot;,&quot;lib/repositories/constants.ts&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:true,&quot;disableSources&quot;:true,&quot;disableAliases&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;doc/html&quot;,&quot;json&quot;:&quot;doc/json/index.json&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;/home/marin/secondary-hard-drive/node-projects/framework/node_modules/typedoc-neo-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;README.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:true,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[&quot;typedoc-neo-theme&quot;],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;listInvalidSymbolLinks&quot;:true,&quot;links&quot;:[{&quot;label&quot;:&quot;Thermopylae&quot;,&quot;url&quot;:&quot;https://marinrusu1997.github.io/thermopylae&quot;},{&quot;label&quot;:&quot;Github&quot;,&quot;url&quot;:&quot;https://github.com/marinrusu1997/thermopylae/tree/master/packages/core.authentication&quot;}],&quot;outline&quot;:[{&quot;Error&quot;:&quot;error&quot;,&quot;MySQL&quot;:{&quot;Account&quot;:&quot;repositories_mysql_account&quot;,&quot;Failed Authentications&quot;:&quot;repositories_mysql_failed_authentications&quot;,&quot;Successful Authentications&quot;:&quot;repositories_mysql_successful_authentication&quot;},&quot;Redis&quot;:{&quot;Activate Account Session&quot;:&quot;repositories_redis_activate_account_session&quot;,&quot;Authentication Session&quot;:&quot;repositories_redis_authentication_session&quot;,&quot;Failed Authentication Attempts Session&quot;:&quot;repositories_redis_failed_authentications_session&quot;,&quot;Forgot Password Session&quot;:&quot;repositories_redis_forgot_password_session&quot;}}]}-->
 		</div>
 		<div class="col-2 col-menu secondary-menu">
 			<nav class="tsd-navigation secondary menu-sticky">

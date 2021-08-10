@@ -6,6 +6,7 @@ import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
 // eslint-disable-next-line node/no-extraneous-import
 import type { Algorithm } from 'jsonwebtoken';
 import type { UserSessionOptions } from '@thermopylae/core.jwt-session';
+import type { IpstackSubscriptionPlan } from '@thermopylae/lib.geoip';
 
 interface GeoIpConfig {
 	readonly GEOIP_LITE: {
@@ -17,7 +18,7 @@ interface GeoIpConfig {
 	};
 	readonly IPSTACK: {
 		readonly apiKey: string;
-		readonly proto: 'http' | 'https';
+		readonly plan: IpstackSubscriptionPlan;
 		readonly lang: 'en' | 'de' | 'es' | 'fr' | 'ja' | 'pt-br' | 'ru' | 'zh';
 		readonly weight: number;
 	};

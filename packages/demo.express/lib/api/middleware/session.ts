@@ -1,6 +1,8 @@
-import { CoreModule, HttpStatusCode, ObjMap, ErrorCodes as CoreErrorCodes, Library } from '@thermopylae/core.declarations';
+import { CoreModule, HttpStatusCode, ObjMap, Library } from '@thermopylae/core.declarations';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { JsonWebTokenError, TokenExpiredError } from '@thermopylae/lib.jwt-user-session';
+import { ErrorCodes as CoreUserSessionCommonsErrorCodes } from '@thermopylae/core.user-session.commons';
+import { JsonWebTokenError, TokenExpiredError, ErrorCodes as LibraryJwtSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
+import { ErrorCodes as CoreJwtSessionErrorCodes } from '@thermopylae/core.jwt-session';
 import { Exception } from '@thermopylae/lib.exception';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import unless, { Options } from 'express-unless';
@@ -39,7 +41,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 					logger.error('Verify user session failed.', e);
 
 					if (e.emitter === CoreModule.USER_SESSION_COMMONS) {
-						if (e.code === CoreErrorCodes.NOT_FOUND) {
+						if (e.code === CoreUserSessionCommonsErrorCodes.AUTHORIZATION_HEADER_HAS_NO_ACCESS_TOKEN) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
 									code: ErrorCodes.AUTHORIZATION_HEADER_INVALID_VALUE,
@@ -48,7 +50,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 							});
 							return;
 						}
-						if (e.code === CoreErrorCodes.UNPROCESSABLE) {
+						if (e.code === CoreUserSessionCommonsErrorCodes.AUTHORIZATION_HEADER_INVALID_SCHEME) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
 									code: ErrorCodes.AUTHORIZATION_HEADER_INVALID_SCHEME,
@@ -60,7 +62,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 					}
 
 					if (e.emitter === CoreModule.JWT_USER_SESSION) {
-						if (e.code === CoreErrorCodes.NOT_FOUND) {
+						if (e.code === CoreJwtSessionErrorCodes.REFRESH_TOKEN_NOT_FOUND_IN_THE_REQUEST) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
 									code: ErrorCodes.ACCESS_TOKEN_REQUIRED,
@@ -69,7 +71,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 							});
 							return;
 						}
-						if (e.code === CoreErrorCodes.CHECK_FAILED) {
+						if (e.code === CoreJwtSessionErrorCodes.CSRF_HEADER_INVALID_VALUE) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
 									code: ErrorCodes.CSRF_HEADER_REQUIRED,
@@ -80,7 +82,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 						}
 					}
 
-					if (e.emitter === Library.JWT_USER_SESSION && e.code === CoreErrorCodes.INVALID) {
+					if (e.emitter === Library.JWT_USER_SESSION && e.code === LibraryJwtSessionErrorCodes.USER_SESSION_NOT_FOUND) {
 						res.status(HttpStatusCode.Unauthorized).send({
 							error: {
 								code: ErrorCodes.INVALID_SESSION,

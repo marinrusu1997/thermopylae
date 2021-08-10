@@ -12,7 +12,7 @@ describe(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
 		const username = faker.internet.userName();
 		const deviceId = faker.datatype.string();
 		const session: AuthenticationSession = {
-			'2fa-token': faker.datatype.string(8),
+			twoFactorAuthenticationToken: faker.datatype.string(8),
 			recaptchaRequired: true
 		};
 		await authenticationSessionRedisRepository.upsert(username, deviceId, session, 5);
@@ -25,7 +25,7 @@ describe(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
 		const username = faker.internet.userName();
 		const deviceId = faker.datatype.string();
 		const session: AuthenticationSession = {
-			'2fa-token': faker.datatype.string(8),
+			twoFactorAuthenticationToken: faker.datatype.string(8),
 			recaptchaRequired: true
 		};
 		await authenticationSessionRedisRepository.upsert(username, deviceId, session, 2);
@@ -49,7 +49,7 @@ describe(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
 
 		/* READ EXPIRED */
 		const session: AuthenticationSession = {
-			'2fa-token': faker.datatype.string(8),
+			twoFactorAuthenticationToken: faker.datatype.string(8),
 			recaptchaRequired: true
 		};
 		await authenticationSessionRedisRepository.upsert(username, deviceId, session, 1);
@@ -63,7 +63,7 @@ describe(`${AuthenticationSessionRedisRepository.name} spec`, function suite() {
 		const username = faker.internet.userName();
 		const deviceId = faker.datatype.string();
 		const session: AuthenticationSession = {
-			'2fa-token': faker.datatype.string(8),
+			twoFactorAuthenticationToken: faker.datatype.string(8),
 			recaptchaRequired: true
 		};
 		await authenticationSessionRedisRepository.upsert(username, deviceId, session, 5);

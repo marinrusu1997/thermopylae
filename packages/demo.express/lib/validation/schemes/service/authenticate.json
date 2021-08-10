@@ -11,7 +11,7 @@
     "password": {
       "$ref": "../core/credentials.json#/properties/password"
     },
-    "2fa-token": {
+    "twoFactorAuthenticationToken": {
       "type": "string",
       "pattern": "^[0-9]{6,8}$"
     },
@@ -27,9 +27,9 @@
     {
       "if": {
         "properties": {
-          "2fa-token": true
+          "twoFactorAuthenticationToken": true
         },
-        "required": ["2fa-token"]
+        "required": ["twoFactorAuthenticationToken"]
       },
       "then": {
         "properties": {
@@ -48,14 +48,14 @@
       "then": {
         "properties": {
           "password": true,
-          "2fa-token": false
+          "twoFactorAuthenticationToken": false
         }
       }
     },
     {
       "if": {
         "properties": {
-          "2fa-token": false,
+          "twoFactorAuthenticationToken": false,
           "recaptcha": false
         }
       },

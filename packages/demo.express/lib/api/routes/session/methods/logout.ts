@@ -1,7 +1,8 @@
 import handler from 'express-async-handler';
 import { Response } from 'express';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, CoreModule, ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { HttpStatusCode, ObjMap, CoreModule } from '@thermopylae/core.declarations';
+import { ErrorCodes as CoreJwtUserSessionErrorCodes } from '@thermopylae/core.jwt-session';
 import { Exception } from '@thermopylae/lib.exception';
 import { JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { RequestWithUserSession } from '../../../../typings';
@@ -29,7 +30,7 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 	} catch (e) {
 		if (e instanceof Exception) {
 			if (e.emitter === CoreModule.JWT_USER_SESSION) {
-				if (e.code === CoreErrorCodes.NOT_FOUND) {
+				if (e.code === CoreJwtUserSessionErrorCodes.REFRESH_TOKEN_NOT_FOUND_IN_THE_REQUEST) {
 					res.status(HttpStatusCode.BadRequest).send({
 						error: {
 							code: ErrorCodes.REFRESH_TOKEN_REQUIRED,
@@ -39,7 +40,7 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 					return;
 				}
 
-				if (e.code === CoreErrorCodes.CHECK_FAILED) {
+				if (e.code === CoreJwtUserSessionErrorCodes.CSRF_HEADER_INVALID_VALUE) {
 					res.status(HttpStatusCode.BadRequest).send({
 						error: {
 							code: ErrorCodes.CSRF_HEADER_REQUIRED,

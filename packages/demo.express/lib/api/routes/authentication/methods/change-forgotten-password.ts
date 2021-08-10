@@ -1,13 +1,13 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
-import { HttpStatusCode, Library, ObjMap, ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { HttpStatusCode, Library, ObjMap } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
 import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
 import { logger } from '../../../../logger';
-import { createException } from '../../../../error';
+import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -69,7 +69,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 					break;
 				default:
 					throw createException(
-						CoreErrorCodes.MISCONFIGURATION,
+						AppErrorCodes.MISCONFIGURATION,
 						`Could not determine http response code from Exception thrown by AuthenticationEngine.changeForgottenPassword method. Error code: ${e.code}.`
 					);
 			}

@@ -4,8 +4,7 @@ import faker from 'faker';
 import { array, chrono } from '@thermopylae/lib.utils';
 import { AccountStatus, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { ActivateAccountSessionRedisRepository } from '../../lib';
-import { ErrorCodes } from '../../lib/error';
+import { ActivateAccountSessionRedisRepository, ErrorCodes } from '../../lib';
 
 describe(`${ActivateAccountSessionRedisRepository.name} spec`, function suite() {
 	const activateAccountSessionRedisRepository = new ActivateAccountSessionRedisRepository('activ-acc');

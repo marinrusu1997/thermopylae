@@ -1,4 +1,4 @@
-import { HttpStatusCode, Library, Mutable, ObjMap, ErrorCodes as CoreErrorCodes } from '@thermopylae/core.declarations';
+import { HttpStatusCode, Library, Mutable, ObjMap } from '@thermopylae/core.declarations';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
 import { ValidationError } from '@thermopylae/lib.api-validator';
@@ -8,7 +8,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
 import { logger } from '../../../../logger';
 import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
-import { createException } from '../../../../error';
+import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
 import { RequestWithUserSession } from '../../../../typings';
 import { stringifyOperationContext } from '../../../../utils';
 
@@ -84,7 +84,7 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 					break;
 				default:
 					throw createException(
-						CoreErrorCodes.MISCONFIGURATION,
+						AppErrorCodes.MISCONFIGURATION,
 						`Could not determine http response code from Exception thrown by AuthenticationEngine.changePassword method. Error code: ${e.code}.`
 					);
 			}

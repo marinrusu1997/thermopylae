@@ -35,8 +35,8 @@
         "apiKey": {
           "type": "string"
         },
-        "proto": {
-          "enum": ["http", "https"]
+        "plan": {
+          "enum": ["FREE", "BASIC", "PROFESSIONAL", "PROFESSIONAL_PLUS"]
         },
         "lang": {
           "enum": ["en", "de", "es", "fr", "ja", "pt-br", "ru", "zh"]
@@ -46,7 +46,7 @@
           "minimum": 1
         }
       },
-      "required": ["apiKey", "proto", "lang", "weight"],
+      "required": ["apiKey", "plan", "lang", "weight"],
       "additionalProperties": false
     }
   },

@@ -1,5 +1,6 @@
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, Mutable, Library, ErrorCodes as CoreErrorCodes, CoreModule } from '@thermopylae/core.declarations';
+import { HttpStatusCode, ObjMap, Mutable, Library, CoreModule } from '@thermopylae/core.declarations';
+import { ErrorCodes as CoreUserSessionCommonsErrorCodes } from '@thermopylae/core.user-session.commons';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { AccountWithTotpSecret, AuthenticationContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
@@ -8,7 +9,7 @@ import { NextFunction, Request, RequestHandler, Response } from 'express';
 import farmhash from 'farmhash';
 import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
 import { logger } from '../../../../logger';
-import { createException } from '../../../../error';
+import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { stringifyOperationContext } from '../../../../utils';
 
@@ -119,7 +120,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 		}
 
 		throw createException(
-			CoreErrorCodes.MISCONFIGURATION,
+			AppErrorCodes.MISCONFIGURATION,
 			`Authentication completed, but it's status couldn't be resolved. Authentication status: ${JSON.stringify(authenticationStatus)}.`
 		);
 	} catch (e) {
@@ -158,7 +159,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 				}
 			}
 
-			if (e.emitter === CoreModule.USER_SESSION_COMMONS && e.code === CoreErrorCodes.OVERFLOW) {
+			if (e.emitter === CoreModule.USER_SESSION_COMMONS && e.code === CoreUserSessionCommonsErrorCodes.TOO_MANY_CONCURRENT_USER_SESSIONS) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.TOO_MANY_SESSIONS,
