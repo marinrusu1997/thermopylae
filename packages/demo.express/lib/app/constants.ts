@@ -17,6 +17,8 @@ const enum EnvironmentVariables {
 
 const SERVICE_NAME = 'AUTH_SERVICE';
 
+const APP_NODE_ID = typeof process.env['INSTANCE_ID'] === 'string' ? process.env['INSTANCE_ID'] : String(process.pid);
+
 const REQUEST_SESSION_SYM = Symbol('REQUEST_SESSION_SYM');
 
 const ROUTER_OPTIONS: RouterOptions = {
@@ -26,4 +28,4 @@ const ROUTER_OPTIONS: RouterOptions = {
 };
 Object.freeze(ROUTER_OPTIONS);
 
-export { SERVICE_NAME, REQUEST_SESSION_SYM, ROUTER_OPTIONS, ServiceMethod, EnvironmentVariables };
+export { SERVICE_NAME, APP_NODE_ID, REQUEST_SESSION_SYM, ROUTER_OPTIONS, ServiceMethod, EnvironmentVariables };

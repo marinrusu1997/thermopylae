@@ -9,11 +9,17 @@ import { SERVICE_NAME } from './app/constants';
 let logger: WinstonLogger;
 
 /**
- * Init internal logger used by the library. <br/>
- * This method should be called once, at the application start, before using library.
+ * @private
  */
+// eslint-disable-next-line import/no-mutable-exports
+let kafkaLogger: WinstonLogger;
+
 function initLogger(): void {
 	logger = LoggerManagerInstance.for(SERVICE_NAME);
 }
 
-export { logger, initLogger };
+function initKafkaLogger(): void {
+	kafkaLogger = LoggerManagerInstance.for('KAFKA_CLIENT');
+}
+
+export { logger, kafkaLogger, initLogger, initKafkaLogger };

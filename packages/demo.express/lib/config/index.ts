@@ -6,6 +6,7 @@ import { readFile } from 'jsonfile';
 import path from 'path';
 import { AppConfig, AuthenticationEngineConfig, EmailConfig, GeoIpConfig, JwtUserSessionMiddlewareConfig, LoggerConfig } from './typings';
 import { createException, ErrorCodes } from '../error';
+import { KafkaClientOptions } from '../clients/kafka';
 
 const enum ConfigName {
 	REDIS = 'REDIS',
@@ -16,7 +17,8 @@ const enum ConfigName {
 	SMS = 'SMS',
 	LOGGER = 'LOGGER',
 	JWT = 'JWT',
-	APP = 'APP'
+	APP = 'APP',
+	KAFKA = 'KAFKA'
 }
 
 class Config {
@@ -86,6 +88,17 @@ class Config {
 		} catch (e) {
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Mysql config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
+			}
+			throw e;
+		}
+	}
+
+	public async getKafkaConfig(): Promise<KafkaClientOptions> {
+		try {
+			return (await this.validator.validate('CONFIG', ConfigName.KAFKA, await readFile(path.join(this.basePath, 'kafka.json')))) as KafkaClientOptions;
+		} catch (e) {
+			if (e instanceof ValidationError) {
+				throw createException(ErrorCodes.INVALID_CONFIG, `Kafka config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
 			throw e;
 		}

@@ -216,7 +216,21 @@
           ]
         },
         "colorize": {
-          "type": "boolean"
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "patternProperties": {
+                "^[A-Z_]+$": {
+                  "type": "string",
+                  "minLength": 2
+                }
+              },
+              "minProperties": 1
+            }
+          ]
         },
         "ignoredLabels": {
           "type": "array",

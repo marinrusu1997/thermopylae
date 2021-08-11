@@ -82,7 +82,7 @@ interface LoggerConfig {
 	>;
 	formatting: {
 		format: OutputFormat;
-		colorize?: boolean;
+		colorize?: boolean | Record<string, string>;
 		ignoredLabels?: Array<string>;
 		levelForLabel?: Readonly<Record<string, keyof SyslogConfigSetLevels>>;
 		skippedFormatters?: Array<DefaultFormatters.TIMESTAMP | DefaultFormatters.ERRORS | DefaultFormatters.ALIGN | string>;

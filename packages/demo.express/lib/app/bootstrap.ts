@@ -39,9 +39,9 @@ import path from 'path';
 import { IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
 import { ObjMap } from '@thermopylae/core.declarations';
 import { Config } from '../config';
-import { EnvironmentVariables, ROUTER_OPTIONS, SERVICE_NAME } from './constants';
+import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from './constants';
 import { createException, ErrorCodes } from '../error';
-import { initLogger, logger } from '../logger';
+import { initKafkaLogger, initLogger, logger } from '../logger';
 import { authenticationRouter } from '../api/routes/authentication/router';
 import { morganMiddleware } from '../api/middleware/morgan';
 import {
@@ -92,11 +92,12 @@ async function bootstrap() {
 	}
 
 	LoggerManagerInstance.formatting.setDefaultFormattingOrder(loggingConfig.formatting.format, {
-		colorize: loggingConfig.formatting.colorize ? { [SERVICE_NAME]: 'olive' } : false,
+		colorize: loggingConfig.formatting.colorize,
 		ignoredLabels: loggingConfig.formatting.ignoredLabels != null ? new Set(loggingConfig.formatting.ignoredLabels) : undefined,
 		levelForLabel: loggingConfig.formatting.levelForLabel,
 		skippedFormatters: loggingConfig.formatting.skippedFormatters != null ? new Set(loggingConfig.formatting.skippedFormatters) : undefined
 	});
+	LoggerManagerInstance.formatting.setClusterNodeId(APP_NODE_ID);
 
 	if (loggingConfig.transports.CONSOLE != null) {
 		LoggerManagerInstance.console.createTransport(loggingConfig.transports.CONSOLE);
@@ -115,6 +116,7 @@ async function bootstrap() {
 
 	/* INIT CORE LOGGERS */
 	initLogger();
+	initKafkaLogger();
 	initCoreUserSessionCommonsLogger();
 	initCoreJwtUserSessionLogger();
 	initMysqlClientLogger();
@@ -436,15 +438,7 @@ async function bootstrap() {
 	logger.debug('Jwt user session middleware initialized.');
 
 	/* CONNECT TO KAFKA */
-	initKafkaClient(
-		new KafkaClient({
-			// @fixme
-			clientId: 'thermopylae',
-			groupId: 'thermopylae',
-			topic: 'jwt-session',
-			brokers: ['localhost:9093']
-		})
-	);
+	initKafkaClient(new KafkaClient(await config.getKafkaConfig()));
 	KAFKA_CLIENT.onMessage = (message: KafkaMessage<'invalidate/one' | 'invalidate/all', ObjMap>) => {
 		if (message.type === 'invalidate/one') {
 			JWT_USER_SESSION_MIDDLEWARE.sessionManager.restrictOne(message.payload as IssuedJwtPayload);

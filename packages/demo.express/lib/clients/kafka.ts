@@ -1,6 +1,10 @@
-import { Kafka, Producer, Consumer, logLevel } from 'kafkajs';
+import { Consumer, Kafka, logLevel, Producer } from 'kafkajs';
 import { ObjMap } from '@thermopylae/core.declarations';
-import { logger } from '../logger';
+// eslint-disable-next-line import/extensions, node/no-extraneous-import
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
+import { createException, ErrorCodes } from '../error';
+import { kafkaLogger, logger } from '../logger';
+import { APP_NODE_ID } from '../app/constants';
 
 interface KafkaClientOptions {
 	clientId: string;
@@ -15,22 +19,6 @@ interface KafkaMessage<Type, Payload> {
 }
 
 type OnKafkaMessageHandler<Type, Payload> = (message: KafkaMessage<Type, Payload>) => void;
-
-const toWinstonLogLevel = (level: logLevel): string => {
-	switch (level) {
-		case logLevel.ERROR:
-		case logLevel.NOTHING:
-			return 'error';
-		case logLevel.WARN:
-			return 'warn';
-		case logLevel.INFO:
-			return 'info';
-		case logLevel.DEBUG:
-			return 'debug';
-		default:
-			throw new Error('Unknown kafka log level');
-	}
-};
 
 class KafkaClient {
 	private readonly client: Kafka;
@@ -48,15 +36,15 @@ class KafkaClient {
 			clientId: options.clientId,
 			brokers: options.brokers,
 			logCreator: () => (logEntry) => {
-				logger.log({
-					level: toWinstonLogLevel(logEntry.level),
-					message: `KAFKA [${logEntry.namespace}] ${logEntry.log.message}` // @fixme
+				kafkaLogger.log({
+					level: KafkaClient.toWinstonLogLevel(logEntry.level) as string,
+					message: `[${logEntry.namespace}] ${logEntry.log.message}`
 				});
 			}
 		});
 		this.producer = this.client.producer();
 		this.consumer = this.client.consumer({
-			groupId: options.groupId
+			groupId: options.groupId + APP_NODE_ID
 		});
 		this.topic = options.topic;
 	}
@@ -69,15 +57,19 @@ class KafkaClient {
 			.run({
 				eachMessage: async (payload) => {
 					try {
-						if (Number(payload.message.key.toString()) !== process.pid) {
-							this.onMessage!(JSON.parse(payload.message.value!.toString()));
+						const key = payload.message.key.toString();
+						const value = payload.message.value!.toString();
+						kafkaLogger.debug(`Received message with key '${key}' and value '${value}'.`);
+
+						if (key !== APP_NODE_ID) {
+							this.onMessage!(JSON.parse(value));
 						}
 					} catch (e) {
-						logger.error('Error occurred in Kafka each message handler.', e);
+						logger.error('Error occurred in Kafka eachMessage handler.', e);
 					}
 				}
 			})
-			.catch((e) => logger.error('Kafka consumer caught exception.', e));
+			.catch((e) => kafkaLogger.error('Consumer run method caught exception.', e));
 	}
 
 	public async disconnect(): Promise<void> {
@@ -90,7 +82,7 @@ class KafkaClient {
 				topic: this.topic,
 				messages: [
 					{
-						key: String(process.pid),
+						key: APP_NODE_ID,
 						value: JSON.stringify(msg)
 					}
 				]
@@ -99,6 +91,22 @@ class KafkaClient {
 			logger.error(`Failed to publish message to Kafka topic '${this.topic}'.`, e);
 		}
 	}
+
+	private static toWinstonLogLevel(level: logLevel): keyof SyslogConfigSetLevels {
+		switch (level) {
+			case logLevel.ERROR:
+			case logLevel.NOTHING:
+				return 'error';
+			case logLevel.WARN:
+				return 'warn';
+			case logLevel.INFO:
+				return 'info';
+			case logLevel.DEBUG:
+				return 'debug';
+			default:
+				throw createException(ErrorCodes.UNKNOWN, `Unknown kafka log level '${level}'.`);
+		}
+	}
 }
 
-export { KafkaClient, KafkaMessage };
+export { KafkaClient, KafkaMessage, KafkaClientOptions, OnKafkaMessageHandler };
