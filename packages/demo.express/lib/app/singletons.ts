@@ -6,6 +6,7 @@ import { JwtUserSessionMiddleware } from '@thermopylae/core.jwt-session';
 import { SmsClient } from '@thermopylae/lib.sms';
 import { EmailClient } from '@thermopylae/lib.email';
 import { createException, ErrorCodes } from '../error';
+import { KafkaClient } from '../clients/kafka';
 
 // eslint-disable-next-line import/no-mutable-exports
 let API_VALIDATOR: ApiValidator;
@@ -24,6 +25,8 @@ let SMS_CLIENT: SmsClient;
 
 // eslint-disable-next-line import/no-mutable-exports
 let EMAIL_CLIENT: EmailClient;
+
+let KAFKA_CLIENT: KafkaClient;
 
 // eslint-disable-next-line import/no-mutable-exports
 let SERVER: Server;
@@ -77,5 +80,21 @@ function initApiServer(sever: Server): void {
 	SERVER = sever;
 }
 
-export { API_VALIDATOR, GEOIP_LOCATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE, SMS_CLIENT, EMAIL_CLIENT, SERVER };
-export { initApiServer, initApiValidator, initAuthenticationEngine, initEmailClient, initGeoipLocator, initJwtUserSessionMiddleware, initSmsClient };
+function initKafkaClient(client: KafkaClient): void {
+	if (KAFKA_CLIENT != null) {
+		throw createException(ErrorCodes.ALREADY_INITIALIZED, 'Kafka Client was initialized already.');
+	}
+	KAFKA_CLIENT = client;
+}
+
+export { API_VALIDATOR, GEOIP_LOCATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE, SMS_CLIENT, EMAIL_CLIENT, SERVER, KAFKA_CLIENT };
+export {
+	initApiServer,
+	initApiValidator,
+	initAuthenticationEngine,
+	initEmailClient,
+	initGeoipLocator,
+	initJwtUserSessionMiddleware,
+	initSmsClient,
+	initKafkaClient
+};

@@ -14,6 +14,7 @@ import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
 const enum ErrorCodes {
 	INVALID_SESSION = 'INVALID_SESSION',
 	ACCESS_TOKEN_REQUIRED = 'ACCESS_TOKEN_REQUIRED',
+	AUTHORIZATION_HEADER_REQUIRED = 'AUTHORIZATION_HEADER_REQUIRED',
 	AUTHORIZATION_HEADER_INVALID_VALUE = 'AUTHORIZATION_HEADER_INVALID_VALUE',
 	AUTHORIZATION_HEADER_INVALID_SCHEME = 'AUTHORIZATION_HEADER_INVALID_SCHEME',
 	CSRF_HEADER_REQUIRED = 'CSRF_HEADER_REQUIRED'
@@ -40,11 +41,11 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 				if (e instanceof Exception) {
 					logger.error('Verify user session failed.', e);
 
-					if (e.emitter === CoreModule.USER_SESSION_COMMONS) {
-						if (e.code === CoreUserSessionCommonsErrorCodes.AUTHORIZATION_HEADER_HAS_NO_ACCESS_TOKEN) {
+					if (e.emitter === CoreModule.JWT_USER_SESSION) {
+						if (e.code === CoreUserSessionCommonsErrorCodes.AUTHORIZATION_HEADER_NOT_FOUND) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
-									code: ErrorCodes.AUTHORIZATION_HEADER_INVALID_VALUE,
+									code: ErrorCodes.AUTHORIZATION_HEADER_REQUIRED,
 									message: e.message
 								}
 							});
@@ -59,10 +60,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 							});
 							return;
 						}
-					}
-
-					if (e.emitter === CoreModule.JWT_USER_SESSION) {
-						if (e.code === CoreJwtSessionErrorCodes.REFRESH_TOKEN_NOT_FOUND_IN_THE_REQUEST) {
+						if (e.code === CoreUserSessionCommonsErrorCodes.AUTHORIZATION_HEADER_HAS_NO_ACCESS_TOKEN) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {
 									code: ErrorCodes.ACCESS_TOKEN_REQUIRED,
@@ -71,6 +69,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 							});
 							return;
 						}
+
 						if (e.code === CoreJwtSessionErrorCodes.CSRF_HEADER_INVALID_VALUE) {
 							res.status(HttpStatusCode.BadRequest).send({
 								error: {

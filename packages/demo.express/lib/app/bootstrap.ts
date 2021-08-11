@@ -36,7 +36,8 @@ import helmet from 'helmet';
 import fetch from 'node-fetch';
 import process from 'process';
 import path from 'path';
-import { JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
+import { IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
+import { ObjMap } from '@thermopylae/core.declarations';
 import { Config } from '../config';
 import { EnvironmentVariables, ROUTER_OPTIONS, SERVICE_NAME } from './constants';
 import { createException, ErrorCodes } from '../error';
@@ -52,8 +53,10 @@ import {
 	initEmailClient,
 	initGeoipLocator,
 	initJwtUserSessionMiddleware,
+	initKafkaClient,
 	initSmsClient,
 	JWT_USER_SESSION_MIDDLEWARE,
+	KAFKA_CLIENT,
 	SERVER,
 	SMS_CLIENT
 } from './singletons';
@@ -63,6 +66,7 @@ import { stringifyOperationContext } from '../utils';
 import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema';
 import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema';
 import { userSessionRouter } from '../api/routes/session/router';
+import { KafkaClient, KafkaMessage } from '../clients/kafka';
 
 let bootstrapPerformed = false;
 
@@ -73,7 +77,7 @@ async function bootstrap() {
 
 	/* INIT API VALIDATOR */
 	initApiValidator(new ApiValidator());
-	await API_VALIDATOR.init('./validation/schemes', ['core']);
+	await API_VALIDATOR.init(path.join(__dirname, '../validation/schemes'), ['core']);
 
 	/* VALIDATE ENVIRONMENT */
 	await API_VALIDATOR.validate('CONFIG', 'ENV_VARS', process.env);
@@ -416,24 +420,58 @@ async function bootstrap() {
 			session: jwtConfig.session
 		})
 	);
-	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.SESSION_INVALIDATED, () => {
-		logger.crit(
-			'JWT session was invalidated. Reminder in case app is run in cluster mode, it needs to send event to other nodes, so that they can invalidate this session.'
-		);
+	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.SESSION_INVALIDATED, (jwtAccessToken) => {
+		KAFKA_CLIENT.publishMessage({
+			type: 'invalidate/one',
+			payload: jwtAccessToken
+		});
 	});
-	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.ALL_SESSIONS_INVALIDATED, () => {
-		logger.crit(
-			'All JWT session were invalidated. Reminder in case app is run in cluster mode, it needs to send event to other nodes, so that they can invalidate this session.'
-		);
+	JWT_USER_SESSION_MIDDLEWARE.sessionManager.on(JwtUserSessionManagerEvent.ALL_SESSIONS_INVALIDATED, (subject, accessTokenTtl) => {
+		KAFKA_CLIENT.publishMessage({
+			type: 'invalidate/all',
+			payload: { subject, accessTokenTtl }
+		});
 	});
 
 	logger.debug('Jwt user session middleware initialized.');
 
+	/* CONNECT TO KAFKA */
+	initKafkaClient(
+		new KafkaClient({
+			// @fixme
+			clientId: 'thermopylae',
+			groupId: 'thermopylae',
+			topic: 'jwt-session',
+			brokers: ['localhost:9093']
+		})
+	);
+	KAFKA_CLIENT.onMessage = (message: KafkaMessage<'invalidate/one' | 'invalidate/all', ObjMap>) => {
+		if (message.type === 'invalidate/one') {
+			JWT_USER_SESSION_MIDDLEWARE.sessionManager.restrictOne(message.payload as IssuedJwtPayload);
+			return;
+		}
+		if (message.type === 'invalidate/all') {
+			JWT_USER_SESSION_MIDDLEWARE.sessionManager.restrictAll(message.payload['subject'], message.payload['accessTokenTtl']);
+			return;
+		}
+		logger.alert(`Unknown message type '${message.type}' received on Kafka handler.`);
+	};
+
+	await KAFKA_CLIENT.connect();
+
 	/* CONNECT TO DATABASES */
-	await RedisClientInstance.connect(await config.getRedisConfig());
 	try {
+		await RedisClientInstance.connect(await config.getRedisConfig());
+	} catch (e) {
+		await KAFKA_CLIENT.disconnect();
+		throw e;
+	}
+
+	try {
+		await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
 		MySqlClientInstance.init(await config.getMysqlConfig());
 	} catch (e) {
+		await KAFKA_CLIENT.disconnect();
 		await RedisClientInstance.disconnect();
 		throw e;
 	}
@@ -493,14 +531,22 @@ async function bootstrap() {
 	process.on('uncaughtException', async (error) => {
 		logger.crit(`Caught uncaught exception. Shutting down.`, error);
 		await shutdown();
+		process.exitCode = 1;
 	});
 	process.on('unhandledRejection', async (reason) => {
 		logger.crit(`Caught unhandled rejection. Shutting down.`, reason);
 		await shutdown();
+		// eslint-disable-next-line no-process-exit
+		process.exit(1);
 	});
 	process.on('warning', (warning) => {
 		logger.warning(`NodeJs process warning.`, warning);
 	});
+
+	// Here we send the ready signal to PM2
+	if (process.send) {
+		process.send('ready');
+	}
 
 	bootstrapPerformed = true;
 }
@@ -531,6 +577,14 @@ async function shutdown(): Promise<void> {
 		logger.info('Redis client successful disconnect.');
 	} catch (e) {
 		logger.error('Failed to disconnect redis client.', e);
+	}
+
+	/* CLOSE KAFKA CONNECTION */
+	try {
+		await KAFKA_CLIENT.disconnect();
+		logger.info('Kafka client successful disconnect.');
+	} catch (e) {
+		logger.error('Failed to disconnect kafka client.', e);
 	}
 
 	/* CLOSE EMAIL CLIENT */

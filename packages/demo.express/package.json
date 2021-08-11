@@ -54,12 +54,13 @@
         "helmet": "4",
         "is-string-int": "1",
         "jsonfile": "6",
+        "kafkajs": "1",
         "morgan": "1",
         "node-fetch": "2"
     },
     "devDependencies": {
-        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/dev.environment": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@types/cookie-parser": "1",
         "@types/deep-freeze": "0",
         "@types/express-request-id": "1",
@@ -69,8 +70,8 @@
         "@types/node-fetch": "2"
     },
     "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
+        "chai": "4",
+        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [
