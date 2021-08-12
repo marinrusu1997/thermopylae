@@ -39,9 +39,9 @@ import path from 'path';
 import { IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
 import { ObjMap } from '@thermopylae/core.declarations';
 import { Config } from '../config';
-import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from './constants';
+import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from '../constants';
 import { createException, ErrorCodes } from '../error';
-import { initKafkaLogger, initLogger, logger } from '../logger';
+import { initLoggers, logger } from '../logger';
 import { authenticationRouter } from '../api/routes/authentication/router';
 import { morganMiddleware } from '../api/middleware/morgan';
 import {
@@ -115,8 +115,7 @@ async function bootstrap() {
 	}
 
 	/* INIT CORE LOGGERS */
-	initLogger();
-	initKafkaLogger();
+	initLoggers();
 	initCoreUserSessionCommonsLogger();
 	initCoreJwtUserSessionLogger();
 	initMysqlClientLogger();

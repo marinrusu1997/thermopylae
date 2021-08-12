@@ -1,12 +1,12 @@
-import { Server } from 'http';
-import { ApiValidator } from '@thermopylae/lib.api-validator';
-import { GeoIpLocator } from '@thermopylae/lib.geoip';
-import { AccountWithTotpSecret, AuthenticationEngine } from '@thermopylae/lib.authentication';
-import { JwtUserSessionMiddleware } from '@thermopylae/core.jwt-session';
-import { SmsClient } from '@thermopylae/lib.sms';
-import { EmailClient } from '@thermopylae/lib.email';
+import type { Server } from 'http';
+import type { ApiValidator } from '@thermopylae/lib.api-validator';
+import type { GeoIpLocator } from '@thermopylae/lib.geoip';
+import type { AccountWithTotpSecret, AuthenticationEngine } from '@thermopylae/lib.authentication';
+import type { JwtUserSessionMiddleware } from '@thermopylae/core.jwt-session';
+import type { SmsClient } from '@thermopylae/lib.sms';
+import type { EmailClient } from '@thermopylae/lib.email';
+import type { KafkaClient } from '../clients/kafka';
 import { createException, ErrorCodes } from '../error';
-import { KafkaClient } from '../clients/kafka';
 
 // eslint-disable-next-line import/no-mutable-exports
 let API_VALIDATOR: ApiValidator;
@@ -26,6 +26,7 @@ let SMS_CLIENT: SmsClient;
 // eslint-disable-next-line import/no-mutable-exports
 let EMAIL_CLIENT: EmailClient;
 
+// eslint-disable-next-line import/no-mutable-exports
 let KAFKA_CLIENT: KafkaClient;
 
 // eslint-disable-next-line import/no-mutable-exports

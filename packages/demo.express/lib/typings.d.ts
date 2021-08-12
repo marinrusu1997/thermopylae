@@ -3,7 +3,7 @@ import { IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
 // eslint-disable-next-line node/no-extraneous-import, import/no-extraneous-dependencies
 import { ParsedQs } from 'qs';
 import type { HttpVerb } from '@thermopylae/core.declarations';
-import { REQUEST_SESSION_SYM } from './app/constants';
+import { REQUEST_USER_SESSION_SYM } from './constants';
 
 interface RequestWithUserSession<
 	P = Record<string, string>,
@@ -12,7 +12,7 @@ interface RequestWithUserSession<
 	ReqQuery = ParsedQs,
 	Locals extends Record<string, any> = Record<string, any>
 > extends Request<P, ResBody, ReqBody, ReqQuery, Locals> {
-	readonly [REQUEST_SESSION_SYM]?: IssuedJwtPayload;
+	readonly [REQUEST_USER_SESSION_SYM]?: IssuedJwtPayload;
 }
 
 type ApiSchema<ServiceMethod extends string> = Record<

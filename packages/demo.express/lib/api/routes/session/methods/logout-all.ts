@@ -4,7 +4,7 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core
 import { HttpStatusCode } from '@thermopylae/core.declarations';
 import { JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_SESSION_SYM } from '../../../../app/constants';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
 
 interface ResponseBody {
 	numberOfDeletedSessions: number;
@@ -15,7 +15,13 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 	const response = new ExpressResponseAdapter(res);
 
 	const responseBody: ResponseBody = {
-		numberOfDeletedSessions: await JWT_USER_SESSION_MIDDLEWARE.deleteAll(request, response, req[REQUEST_SESSION_SYM]!.sub, req[REQUEST_SESSION_SYM]!, true)
+		numberOfDeletedSessions: await JWT_USER_SESSION_MIDDLEWARE.deleteAll(
+			request,
+			response,
+			req[REQUEST_USER_SESSION_SYM]!.sub,
+			req[REQUEST_USER_SESSION_SYM]!,
+			true
+		)
 	};
 
 	res.status(HttpStatusCode.Ok).send(responseBody);

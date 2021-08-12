@@ -4,7 +4,7 @@ import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { REQUEST_USER_SESSION_SYM, ApplicationServices, ServiceMethod } from '../../../../constants';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -24,7 +24,7 @@ interface ResponseBody {
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.LOGOUT_ONE, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.LOGOUT_ONE, req.body);
 			next();
 		} catch (e) {
 			if (e instanceof ValidationError) {
@@ -42,7 +42,7 @@ const validateRequestBody: RequestHandler = handler(
 );
 
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>) => {
-	await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteOne(req[REQUEST_SESSION_SYM]!.sub, req.body['refresh-token']);
+	await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteOne(req[REQUEST_USER_SESSION_SYM]!.sub, req.body['refresh-token']);
 	res.status(HttpStatusCode.NoContent).send();
 });
 

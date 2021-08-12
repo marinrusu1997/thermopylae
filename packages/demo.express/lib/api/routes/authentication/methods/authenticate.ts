@@ -7,7 +7,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import handler from 'express-async-handler';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import farmhash from 'farmhash';
-import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { ApplicationServices, ServiceMethod } from '../../../../constants';
 import { logger } from '../../../../logger';
 import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
@@ -38,7 +38,7 @@ interface ResponseBody {
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.AUTHENTICATE, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.AUTHENTICATE, req.body);
 			next();
 		} catch (e) {
 			if (e instanceof ValidationError) {

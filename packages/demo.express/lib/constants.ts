@@ -15,11 +15,15 @@ const enum EnvironmentVariables {
 	CONFIG_FILES_PATH = 'CONFIG_FILES_PATH'
 }
 
-const SERVICE_NAME = 'AUTH_SERVICE';
+const enum ApplicationServices {
+	AUTHENTICATION = 'AUTH_SERVICE',
+	KAFKA = 'KAFKA_CLIENT'
+}
 
+// 'INSTANCE_ID' env var might be injected by PM2
 const APP_NODE_ID = typeof process.env['INSTANCE_ID'] === 'string' ? process.env['INSTANCE_ID'] : String(process.pid);
 
-const REQUEST_SESSION_SYM = Symbol('REQUEST_SESSION_SYM');
+const REQUEST_USER_SESSION_SYM = Symbol('REQUEST_USER_SESSION_SYM');
 
 const ROUTER_OPTIONS: RouterOptions = {
 	caseSensitive: true,
@@ -28,4 +32,4 @@ const ROUTER_OPTIONS: RouterOptions = {
 };
 Object.freeze(ROUTER_OPTIONS);
 
-export { SERVICE_NAME, APP_NODE_ID, REQUEST_SESSION_SYM, ROUTER_OPTIONS, ServiceMethod, EnvironmentVariables };
+export { ApplicationServices, ServiceMethod, EnvironmentVariables, APP_NODE_ID, REQUEST_USER_SESSION_SYM, ROUTER_OPTIONS };

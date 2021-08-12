@@ -5,7 +5,7 @@ import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { ApplicationServices, ServiceMethod } from '../../../../constants';
 import { logger } from '../../../../logger';
 
 const enum ErrorCodes {
@@ -32,7 +32,7 @@ interface ResponseBody {
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.CREATE_FORGOT_PASSWORD_SESSION, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.CREATE_FORGOT_PASSWORD_SESSION, req.body);
 			next();
 		} catch (e) {
 			if (e instanceof ValidationError) {

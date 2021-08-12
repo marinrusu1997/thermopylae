@@ -21,7 +21,7 @@ import {
 	route as createForgotPasswordSessionRoute
 } from './methods/create-forgot-password-session';
 import { validateRequestBody as validateChangeForgottenPasswordRequestBody, route as changeForgottenPasswordRoute } from './methods/change-forgotten-password';
-import { ROUTER_OPTIONS } from '../../../app/constants';
+import { ROUTER_OPTIONS } from '../../../constants';
 
 const authenticationRouter = Router(ROUTER_OPTIONS);
 

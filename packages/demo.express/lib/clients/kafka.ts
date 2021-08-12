@@ -4,7 +4,7 @@ import { ObjMap } from '@thermopylae/core.declarations';
 import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
 import { createException, ErrorCodes } from '../error';
 import { kafkaLogger, logger } from '../logger';
-import { APP_NODE_ID } from '../app/constants';
+import { APP_NODE_ID } from '../constants';
 
 interface KafkaClientOptions {
 	clientId: string;

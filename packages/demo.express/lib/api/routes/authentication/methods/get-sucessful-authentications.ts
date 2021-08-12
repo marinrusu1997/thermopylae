@@ -6,7 +6,7 @@ import handler from 'express-async-handler';
 import { SuccessfulAuthenticationModel } from '@thermopylae/lib.authentication';
 import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
 import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_SESSION_SYM } from '../../../../app/constants';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -69,7 +69,7 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, never, RequestQuery>, res: Response<ResponseBody>) => {
 	res.status(HttpStatusCode.Ok).send(
 		await AUTHENTICATION_ENGINE.getSuccessfulAuthentications(
-			req[REQUEST_SESSION_SYM]!.sub,
+			req[REQUEST_USER_SESSION_SYM]!.sub,
 			req.query.from as number | undefined,
 			req.query.to as number | undefined
 		)

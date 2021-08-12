@@ -7,7 +7,7 @@ import { ErrorCodes as LibraryJwtUserSessionErrorCodes } from '@thermopylae/lib.
 import { Exception } from '@thermopylae/lib.exception';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { ApplicationServices, ServiceMethod } from '../../../../constants';
 
 const enum ErrorCodes {
 	AUTHENTICATION_DEVICE_MISMATCH = 'AUTHENTICATION_DEVICE_MISMATCH',
@@ -31,7 +31,7 @@ interface ResponseBody {
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.REFRESH_USER_SESSION, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.REFRESH_USER_SESSION, req.body);
 			next();
 		} catch (e) {
 			if (e instanceof ValidationError) {

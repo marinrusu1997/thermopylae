@@ -6,7 +6,7 @@ import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, ErrorCodes
 import { Exception } from '@thermopylae/lib.exception';
 import { publicEncrypt } from 'crypto';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { ApplicationServices, ServiceMethod } from '../../../../constants';
 import { logger } from '../../../../logger';
 
 const enum ErrorCodes {
@@ -33,7 +33,7 @@ const PUBLIC_KEY_TEST_BUFFER = Buffer.from('1');
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.REGISTER, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.REGISTER, req.body);
 		} catch (e) {
 			if (e instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({

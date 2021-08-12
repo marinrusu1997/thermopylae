@@ -6,7 +6,7 @@ import { ErrorCodes as CoreJwtUserSessionErrorCodes } from '@thermopylae/core.jw
 import { Exception } from '@thermopylae/lib.exception';
 import { JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
 import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_SESSION_SYM } from '../../../../app/constants';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
 
 const enum ErrorCodes {
 	REFRESH_TOKEN_REQUIRED = 'REFRESH_TOKEN_REQUIRED',
@@ -25,7 +25,7 @@ const route = handler(async (req: RequestWithUserSession, res: Response<Response
 	const response = new ExpressResponseAdapter(res);
 
 	try {
-		await JWT_USER_SESSION_MIDDLEWARE.delete(request, response, req[REQUEST_SESSION_SYM]!.sub, req[REQUEST_SESSION_SYM]!, true);
+		await JWT_USER_SESSION_MIDDLEWARE.delete(request, response, req[REQUEST_USER_SESSION_SYM]!.sub, req[REQUEST_USER_SESSION_SYM]!, true);
 		res.status(HttpStatusCode.NoContent).send();
 	} catch (e) {
 		if (e instanceof Exception) {

@@ -39,8 +39,9 @@ The **CONFIG_FILES_PATH** env var needs to be set with a value equal to director
 where application config files described in previous step are located.
 
 ### Databases
-MySQL 8 and Redis 6 Server instances need to be started. 
+MySQL 8 and Redis 6 Server instances need to be started.
 Keyspace notification events need to be enabled on Redis Server.
+Apache Kafka broker needs to be started.
 
 ## Usage
 ```typescript

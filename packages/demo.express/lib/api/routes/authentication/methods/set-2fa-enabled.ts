@@ -7,7 +7,7 @@ import { SetTwoFactorAuthenticationContext, ErrorCodes as AuthenticationErrorCod
 import { Exception } from '@thermopylae/lib.exception';
 import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
 import { logger } from '../../../../logger';
-import { REQUEST_SESSION_SYM, SERVICE_NAME, ServiceMethod } from '../../../../app/constants';
+import { REQUEST_USER_SESSION_SYM, ApplicationServices, ServiceMethod } from '../../../../constants';
 import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
 import { RequestWithUserSession } from '../../../../typings';
 import { stringifyOperationContext } from '../../../../utils';
@@ -31,7 +31,7 @@ interface ResponseBody extends Partial<OnTwoFactorEnabledHookResult> {
 const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
-			await API_VALIDATOR.validate(SERVICE_NAME, ServiceMethod.SET_TWO_FACTOR_AUTH_ENABLED, req.body);
+			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.SET_TWO_FACTOR_AUTH_ENABLED, req.body);
 			next();
 		} catch (e) {
 			if (e instanceof ValidationError) {
@@ -57,7 +57,7 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 	context.device = request.device;
 
 	try {
-		const result = (await AUTHENTICATION_ENGINE.setTwoFactorAuthEnabled(req[REQUEST_SESSION_SYM]!.sub, req.body.enabled, context)) as
+		const result = (await AUTHENTICATION_ENGINE.setTwoFactorAuthEnabled(req[REQUEST_USER_SESSION_SYM]!.sub, req.body.enabled, context)) as
 			| OnTwoFactorEnabledHookResult
 			| null
 			| undefined;

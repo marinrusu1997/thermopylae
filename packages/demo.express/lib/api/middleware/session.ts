@@ -7,7 +7,7 @@ import { Exception } from '@thermopylae/lib.exception';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import unless, { Options } from 'express-unless';
 import handler from 'express-async-handler';
-import { REQUEST_SESSION_SYM } from '../../app/constants';
+import { REQUEST_USER_SESSION_SYM } from '../../constants';
 import { logger } from '../../logger';
 import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
 
@@ -34,7 +34,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 				const request = new ExpressRequestAdapter(req);
 				const response = new ExpressResponseAdapter(res);
 
-				(req as any)[REQUEST_SESSION_SYM] = await JWT_USER_SESSION_MIDDLEWARE.verify(request, response, undefined, true);
+				(req as any)[REQUEST_USER_SESSION_SYM] = await JWT_USER_SESSION_MIDDLEWARE.verify(request, response, undefined, true);
 
 				next();
 			} catch (e) {

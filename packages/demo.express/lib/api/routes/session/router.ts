@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ROUTER_OPTIONS } from '../../../app/constants';
+import { ROUTER_OPTIONS } from '../../../constants';
 import { API_SCHEMA } from './schema';
 import { userAgent } from '../../middleware/user-agent';
 import { jsonBody } from '../../middleware/json-body';
