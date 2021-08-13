@@ -15,6 +15,14 @@
 npm install @thermopylae/demo.express
 ```
 
+### Postinstall
+Although [farmhash](https://www.npmjs.com/package/farmhash), a dependency used by this package, has prebuilt binaries
+it would be recommended to rebuild them.
+```shell
+npm rebuild --build-from-source farmhash
+```
+Also, please consider to [update geoip-lite local database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
+
 ## Description
 This package contains an implementation of authentication service using Thermopylae framework.
 

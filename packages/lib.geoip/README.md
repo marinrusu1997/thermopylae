@@ -18,6 +18,9 @@
 npm install @thermopylae/lib.geoip
 ```
 
+### Postinstall
+After installing this library, please consider to [update geoip-lite local database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
+
 ## Description
 This package allows you to retrieve location of the ip by using [GeoIpLocator][geo-ip-locator-link]. <br/>
 This class allows you to register a set of repositories from where location of the ip can be retrieved.

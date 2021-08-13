@@ -6,7 +6,8 @@ import type { IpLocation, IpLocationsRepository } from './index';
 type GeoIPLite = typeof import('geoip-lite');
 
 /**
- * Repository which fetches ip locations from [geoip-lite](https://www.npmjs.com/package/geoip-lite) local database.
+ * Repository which fetches ip locations from [geoip-lite](https://www.npmjs.com/package/geoip-lite) local database. <br/>
+ * When using this repository, please take care to [update your local geoip database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
  */
 class GeoIpLiteRepository implements IpLocationsRepository {
 	private static geoipLite: GeoIPLite;

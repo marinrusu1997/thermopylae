@@ -18,6 +18,13 @@
 npm install @thermopylae/core.authentication
 ```
 
+### Postinstall
+Although [farmhash](https://www.npmjs.com/package/farmhash), a dependency used by this package, has prebuilt binaries
+it would be recommended to rebuild them.
+```shell
+npm rebuild --build-from-source farmhash
+```
+
 ## Prerequisites
 Before being able to use this package you need to take following actions:
 

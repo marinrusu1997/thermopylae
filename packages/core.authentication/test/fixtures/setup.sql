@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS Account (
     telephone VARCHAR(16) UNIQUE,
     disabledUntil INT NOT NULL,
     mfa BOOLEAN NOT NULL,
-    totpSecret VARCHAR(50),
-    pubKey VARCHAR(255),
+    totpSecret VARCHAR(100),
+    pubKey VARCHAR(450),
 
     PRIMARY KEY (id)
 );
