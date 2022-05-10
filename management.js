@@ -34,5 +34,5 @@ function run(command) {
     }
 }
 
-// run('test');
 console.log(overallOrder().map(pkg => `-> ${pkg}`).join('\n'));
+//run('purge');

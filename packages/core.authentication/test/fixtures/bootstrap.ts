@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { after, before, beforeEach } from 'mocha';
 import {
 	bootMySqlContainer,
@@ -5,9 +6,7 @@ import {
 	DockerContainer,
 	initLogger as initUnitTestLogger,
 	logger,
-	recreateMySqlDatabase,
-	createMySqlStorageSchema,
-	truncateMySqlTables,
+	MYSQL_COMMAND_LINE_CLIENT,
 	ConnectionDetails,
 	bootRedisContainer
 } from '@thermopylae/dev.unit-test';
@@ -61,10 +60,10 @@ before(async function boot() {
 	});
 
 	if (process.env['MYSQL_ENV_DROP_SCHEMA_ON_START'] === 'true') {
-		await recreateMySqlDatabase();
-		await createMySqlStorageSchema(schemaScriptLocation);
+		await MYSQL_COMMAND_LINE_CLIENT.recreateDatabase();
+		await MYSQL_COMMAND_LINE_CLIENT.createStorageSchema(schemaScriptLocation);
 	} else {
-		await truncateMySqlTables();
+		await MYSQL_COMMAND_LINE_CLIENT.truncateTables();
 	}
 
 	/* REDIS */
@@ -85,7 +84,7 @@ before(async function boot() {
 });
 
 beforeEach(async () => {
-	await truncateMySqlTables();
+	await MYSQL_COMMAND_LINE_CLIENT.truncateTables();
 	await RedisClientInstance.client.flushall();
 });
 

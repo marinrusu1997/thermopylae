@@ -142,7 +142,7 @@ class Heap<T = number> {
 	 * @param itemOrPredicate		Item or function which checks for equality with that item.
 	 */
 	public contains(itemOrPredicate: ArrayEqualsPredicate<T> | T): boolean {
-		// @ts-ignore
+		// @ts-ignore `isFunction` does not have typings
 		const pos = isFunction(itemOrPredicate) ? this.nodes.findIndex(itemOrPredicate) : this.nodes.indexOf(itemOrPredicate);
 		return pos !== -1;
 	}

@@ -10,11 +10,17 @@
     "declarationMap": false,
 
     "target": "ESNext",
-    "module": "CommonJS",
+    "module": "ESNext",
     "moduleResolution": "Node",
     "lib": [
       "ESNext",
       "DOM"
+    ],
+    "plugins": [
+      {
+        "transform": "@zoltu/typescript-transformer-append-js-extension/output/index.js",
+        "after": true
+      }
     ],
 
     "removeComments": false,
@@ -30,15 +36,21 @@
     "noImplicitAny": true,
     "noImplicitThis": true,
     "noImplicitReturns": true,
+    "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
+    "useUnknownInCatchVariables": false,
+    "exactOptionalPropertyTypes": false,
+
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
 
     "esModuleInterop": true,
+
+    "disableSizeLimit": true,
 
     "forceConsistentCasingInFileNames": true,
 

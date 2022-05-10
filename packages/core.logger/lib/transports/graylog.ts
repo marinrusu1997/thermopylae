@@ -1,8 +1,7 @@
-import { Nullable } from '@thermopylae/core.declarations';
+import type { Nullable } from '@thermopylae/core.declarations';
 import * as TransportStream from 'winston-transport';
 import WinstonGraylog2 from 'winston-graylog2';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { AbstractTransportManager } from '../typings';
+import type { AbstractTransportManager } from '../typings';
 import { createException, ErrorCodes } from '../error';
 
 interface GraylogEndpoint {

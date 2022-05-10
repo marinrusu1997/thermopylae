@@ -46,7 +46,7 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onHit(): EntryValidity {
+	public override onHit(): EntryValidity {
 		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return EntryValidity.VALID;
 	}
@@ -54,7 +54,7 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onSet(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public override onSet(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || ProactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
 		}
@@ -66,7 +66,7 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
+	public override onUpdate(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.expiresAfter == null) {
 			return undefined;
 		}
@@ -104,7 +104,7 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
+	public override onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
 		this.gc.leave(entry); // do not track it anymore for expiration
 		super.onDelete(entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 	}
@@ -112,7 +112,7 @@ class ProactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onClear(): void {
+	public override onClear(): void {
 		this.gc.clear();
 	}
 

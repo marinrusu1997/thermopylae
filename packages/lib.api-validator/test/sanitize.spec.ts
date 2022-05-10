@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'chai';
 import { ApiValidator } from '../lib';
 import { apiValidator } from './bootstrap';

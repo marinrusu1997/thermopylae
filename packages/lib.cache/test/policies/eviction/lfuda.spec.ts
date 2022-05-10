@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect, logger } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
@@ -55,7 +56,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 			/* Add entries */
 			for (const [key, value] of ENTRIES) {
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
@@ -81,7 +82,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
@@ -107,7 +108,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
 			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
 
-			// @ts-ignore
+			// @ts-ignore This is for testing purposes
 			const entry: EvictableCacheEntry<string, number> = { key: 'x', value: number.randomInt(10, 20) };
 			policy.onSet(entry);
 

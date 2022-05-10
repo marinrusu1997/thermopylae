@@ -70,6 +70,7 @@ class IpstackRepository implements IpLocationsRepository {
 	private availableAt: number;
 
 	public constructor(options: IpstackRepositoryOptions) {
+		/* c8 ignore next 3 */
 		if (options.weight <= 0) {
 			throw new Error(`Weight can't be lower or equal to 0. Given: ${options.weight}.`);
 		}
@@ -108,6 +109,7 @@ class IpstackRepository implements IpLocationsRepository {
 		if (this.availableAt === AVAILABLE_NOW) {
 			try {
 				location = await this.retrieve(ip);
+				/* c8 ignore start */
 			} catch (error) {
 				// error thrown after successful request has been made, check if limit reached, see https://ipstack.com/documentation
 				if (!(error instanceof Error) && error.code === 104 && (error.type === 'usage_limit_reached' || error.type === 'monthly_limit_reached')) {
@@ -128,6 +130,7 @@ class IpstackRepository implements IpLocationsRepository {
 				this.options.hooks.onIpRetrievalError(error);
 			}
 		}
+		/* c8 ignore stop */
 
 		return location;
 	}
@@ -136,6 +139,7 @@ class IpstackRepository implements IpLocationsRepository {
 		const response = await fetch(this.buildUrl(ip), { method: 'get' });
 		const location = await response.json();
 
+		/* c8 ignore next 3 */
 		if (location.success === false) {
 			throw location.error;
 		}

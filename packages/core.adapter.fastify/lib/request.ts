@@ -134,7 +134,7 @@ class FastifyRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	 * @inheritDoc
 	 */
 	public cookie(name: string): string | undefined {
-		// @ts-ignore
+		// @ts-ignore We embed cookie in the request cookies object
 		return this.req.cookies[name];
 	}
 

@@ -4,6 +4,7 @@ const fs = require("fs");
 const spawn = require("child_process").spawn;
 const npmRun = require("npm-run");
 const constants = require('../../constants');
+const c8Config = require("../../configs/c8");
 
 const SPAWN_OPTIONS = constants.SPAWN_OPTIONS;
 
@@ -18,27 +19,42 @@ function stageTsConfig(done) {
     if (!testIndex) {
         config.include.push("test/**/*.ts");
     }
-    config.compilerOptions.module = 'commonjs'; // just to be sure nothing breaks
 
     fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
   });
 }
 
-function unStageTsConfig(done) {
-  fs.readFile("tsconfig.json", "utf8", (err, content) => {
-    if (err) {
-      done(err);
+function c8ConfigToCommandArgs() {
+  const args = [];
+
+  for (const [key, value] of Object.entries(c8Config)) {
+    if (typeof value === 'boolean') {
+      if (value === true) {
+        args.push(`--${key}`);
+      }
+      continue;
     }
 
-    const config = JSON.parse(content);
-    config.compilerOptions.module = 'commonjs'; // we stick with commonjs for the moment
+    if (Array.isArray(value) && value.length > 0) {
+      for (const v of value) {
+        args.push(`--${key}`, v);
+      }
+      continue;
+    }
 
-    fs.writeFile("tsconfig.json", JSON.stringify(config, null, 4), done);
-  });
+    if (typeof value === 'string' || typeof value === 'number') {
+      args.push(`--${key}`, `${value}`);
+      continue;
+    }
+
+    throw new Error(`Unknown c8 config property '${key}' having value '${JSON.stringify(value)}'.`);
+  }
+
+  return args;
 }
 
 function runCoverageTests() {
-  return npmRun.spawn("nyc", ["mocha"], SPAWN_OPTIONS);
+  return npmRun.spawn("c8", [...c8ConfigToCommandArgs(), "mocha"], SPAWN_OPTIONS);
 }
 
 function coverageShow() {
@@ -47,7 +63,7 @@ function coverageShow() {
 
 function coverageFactory(module, gulp) {
    if (module === constants.ModuleLang.TS) {
-      return gulp.series(stageTsConfig, runCoverageTests, unStageTsConfig);
+      return gulp.series(stageTsConfig, runCoverageTests);
    }
 }
 

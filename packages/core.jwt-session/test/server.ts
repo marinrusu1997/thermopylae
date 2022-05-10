@@ -109,7 +109,7 @@ server[routes.login.method](routes.login.path, async (req, res) => {
 	const response = new FastifyResponseAdapter(res);
 
 	if (request.query('location') === '1') {
-		// @ts-ignore
+		// @ts-ignore This is for testing purposes
 		req[LOCATION_SYM] = {
 			countryCode: 'RO',
 			regionCode: null,

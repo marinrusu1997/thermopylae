@@ -162,11 +162,11 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 
 	private static buildPromiseHolder<T>(): PromiseHolder<T> {
 		const promiseHolder: PromiseHolder<T> = {
-			// @ts-ignore
+			// @ts-ignore They will be assigned bellow by Promise executor
 			promise: null,
-			// @ts-ignore
+			// @ts-ignore They will be assigned bellow by Promise executor
 			reject: null,
-			// @ts-ignore
+			// @ts-ignore They will be assigned bellow by Promise executor
 			resolve: null
 		};
 		promiseHolder.promise = new Promise<T>((resolve, reject) => {

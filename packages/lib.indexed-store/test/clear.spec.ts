@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { IndexedStore, PK_INDEX_NAME } from '../lib';

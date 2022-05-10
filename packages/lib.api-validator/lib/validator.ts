@@ -78,7 +78,7 @@ class ApiValidator {
 					for (let j = 0; j < schemas.length; j++) {
 						schemasPromises.push(
 							fs.readJsonFromFile(`${validationSchemasDir}/${servicesSchemasDirs[i]}/${schemas[j]}`).then((schema) => {
-								// @ts-ignore
+								// @ts-ignore The schema as incorrect typings
 								schema.$async = true;
 								this.validator!.addSchema(schema);
 								return this.validator!.compileAsync(schema);

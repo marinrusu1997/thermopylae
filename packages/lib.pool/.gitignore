@@ -12,6 +12,7 @@
 # testing
 /.nyc_output
 /coverage
+/report
 
 # environment
 .env

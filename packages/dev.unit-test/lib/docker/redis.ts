@@ -15,7 +15,7 @@ const CONNECTION_DETAILS: ConnectionDetails = {
 };
 
 function extractRedisServerPort(containerPort: Port): boolean {
-	if (containerPort.PrivatePort === PRIVATE_PORT && typeof containerPort.PublicPort === 'number') {
+	if (containerPort.PrivatePort === PRIVATE_PORT && containerPort.PublicPort != null) {
 		CONNECTION_DETAILS.port = containerPort.PublicPort;
 		return true;
 	}

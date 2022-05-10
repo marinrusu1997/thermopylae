@@ -40,7 +40,7 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 	next();
 };
 
-// @ts-ignore
+// @ts-ignore The typings are not correct
 const route = handler(async (req: Request<ObjMap, ResponseBody, never, RequestQuery>, res: Response<ResponseBody>) => {
 	try {
 		await AUTHENTICATION_ENGINE.activateAccount(req.query.token);

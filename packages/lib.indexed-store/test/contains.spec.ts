@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Person } from '@thermopylae/dev.unit-test';
 import { string } from '@thermopylae/lib.utils';

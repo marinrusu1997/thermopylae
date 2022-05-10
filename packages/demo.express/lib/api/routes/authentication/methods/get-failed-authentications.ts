@@ -1,6 +1,6 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
-// @ts-ignore
+// @ts-ignore This module has no typings
 import isStringInt from 'is-string-int';
 import handler from 'express-async-handler';
 import { FailedAuthenticationModel } from '@thermopylae/lib.authentication';
@@ -65,7 +65,7 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 	next();
 };
 
-// @ts-ignore
+// @ts-ignore  The typings are not correct
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, never, RequestQuery>, res: Response<ResponseBody>) => {
 	res.status(HttpStatusCode.Ok).send(
 		await AUTHENTICATION_ENGINE.getFailedAuthentications(

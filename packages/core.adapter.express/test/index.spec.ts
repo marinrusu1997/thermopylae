@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { after, before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, HTTPRequestLocation, ObjMap } from '@thermopylae/core.declarations';

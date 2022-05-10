@@ -1,9 +1,10 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import chai, { Assertion } from 'chai';
 import chaiArrays from 'chai-arrays';
 import chaiAsPromised from 'chai-as-promised';
-// @ts-ignore
+// @ts-ignore We use them for testing
 import chaiAssertType from 'chai-asserttype';
-// @ts-ignore
+// @ts-ignore We use them for testing
 import chaiDateString from 'chai-date-string';
 
 chai.use(chaiArrays);

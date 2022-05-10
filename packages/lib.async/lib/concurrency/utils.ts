@@ -80,11 +80,11 @@ function synchronize<T>(operation: AsyncFunction<void, T>): AsyncFunction<void, 
  */
 function buildPromiseHolder<T>(): PromiseHolder<T> {
 	const promiseHolder: PromiseHolder<T> = {
-		// @ts-ignore
+		// @ts-ignore They will be assigned in the promise executor
 		promise: null,
-		// @ts-ignore
+		// @ts-ignore They will be assigned in the promise executor
 		reject: null,
-		// @ts-ignore
+		// @ts-ignore They will be assigned in the promise executor
 		resolve: null
 	};
 	promiseHolder.promise = new Promise<T>((resolve, reject) => {

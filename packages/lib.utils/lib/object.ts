@@ -184,7 +184,7 @@ function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 		Object.keys(obj)
 			.sort((a, b) => a.localeCompare(b))
 			.forEach((key) => {
-				// @ts-ignore
+				// @ts-ignore It was tested and works
 				out[key] = sort(obj[key], sortArray);
 			});
 		return out;

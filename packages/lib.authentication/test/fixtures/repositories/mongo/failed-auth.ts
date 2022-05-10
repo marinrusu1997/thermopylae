@@ -10,7 +10,7 @@ const FailedAuthAttemptSchema = new mongoose.Schema({
 	detectedAt: { type: Number, required: true, unique: true }
 });
 FailedAuthAttemptSchema.virtual('id').get(function getter() {
-	// @ts-ignore
+	// @ts-ignore This is for test purposes
 	return String(this._id);
 });
 

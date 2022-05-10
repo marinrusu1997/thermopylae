@@ -39,7 +39,7 @@ class Exception extends Error {
 	/**
 	 * Format {@link Exception} into string.
 	 */
-	public toString(): string {
+	public override toString(): string {
 		return `[${this.emitter}] ${this.code}: ${this.message}${this.origin ? ` :${JSON.stringify(this.origin)}` : ''}`;
 	}
 }

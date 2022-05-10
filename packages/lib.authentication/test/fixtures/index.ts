@@ -1,5 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { after, afterEach, before } from 'mocha';
-import { argon2id } from 'argon2';
+import argon2 from 'argon2';
 import { createHash, privateDecrypt, publicEncrypt, randomBytes } from 'crypto';
 import {
 	AccountWithTotpSecret,
@@ -28,7 +29,7 @@ import { challengeResponseValidator, recaptchaValidator } from './validators';
 import { BcryptPasswordHashingAlgorithm } from './password/bcrypt';
 
 const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
-	type: argon2id,
+	type: argon2.argon2id,
 	hashLength: 5,
 	memoryCost: 8192,
 	parallelism: 4,

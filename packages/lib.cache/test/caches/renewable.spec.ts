@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
@@ -71,12 +72,12 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			expect(results).to.be.ofSize(5);
 			for (let i = 0; i < 3; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore
+				// @ts-ignore For testing purposes
 				expect(results[i].reason).to.be.deep.eq(errors[0]);
 			}
 			for (let i = 3; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore
+				// @ts-ignore For testing purposes
 				expect(results[i].reason).to.be.deep.eq(errors[1]);
 			}
 

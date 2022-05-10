@@ -1,4 +1,5 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { ObjMap } from '@thermopylae/core.declarations';
 import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse, TraverseProcessor } from '../lib/object';
@@ -127,13 +128,13 @@ describe('object spec', () => {
 			expect(obj.objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[1]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[2]).to.be.eq('processedValue');
-			// @ts-ignore
+			// @ts-ignore This is just a test
 			expect(obj.objVal.objVal.arrVal[3].strKey).to.be.eq('processedValue');
 			expect(obj.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.arrVal[1]).to.be.eq('processedValue');
-			// @ts-ignore
+			// @ts-ignore This is just a test
 			expect(obj.arrVal[2].strVal).to.be.eq('processedValue');
-			// @ts-ignore
+			// @ts-ignore This is just a test
 			expect(obj.arrVal[2].objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 		});
 

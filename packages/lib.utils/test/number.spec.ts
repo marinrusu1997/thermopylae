@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'chai';
 
 import { Exception } from '@thermopylae/lib.exception';
@@ -67,6 +69,9 @@ describe('number spec', () => {
 		});
 
 		it('throws when passing null or undefined and strict mode is enabled', () => {
+			let value: null | undefined;
+			let err: Undefinable<Error>;
+
 			function doTest() {
 				try {
 					convertFrom(value, true);
@@ -76,8 +81,6 @@ describe('number spec', () => {
 				expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
 			}
 
-			let value: null | undefined;
-			let err: Undefinable<Error>;
 			doTest();
 
 			value = null;

@@ -458,7 +458,7 @@ class RedisClient {
 	private static formatRedisError(redisError: RedisError): string {
 		if (redisError instanceof AggregateError) {
 			const message = new Array<string>(error.format(redisError, RedisClient.EXCLUDE_PROPS_FROM_FORMATTED_REDIS_ERR), 'Aggregated Errors:');
-			// @ts-ignore
+			// @ts-ignore The RedisError has incorrect typings
 			for (const err of redisError.errors) {
 				message.push(error.format(err, error.format.NO_STACK_TRACE), '\n');
 			}

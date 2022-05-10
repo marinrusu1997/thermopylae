@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const spawn = require("child_process").spawn;
+const strip = require('gulp-strip-comments');
 const {
     SPAWN_OPTIONS,
     ModuleLang
@@ -36,10 +37,7 @@ function stagePackageJson(done) {
     }
 
     const pkg = JSON.parse(content);
-
-    if (pkg.type == null) {
-      pkg.type = 'commonjs';
-    }
+    pkg.type = 'module';
 
     fs.writeFile("package.json", JSON.stringify(pkg, null, 4), done);
   });
@@ -90,9 +88,10 @@ function buildFactory(module, gulp) {
 function buildWithDeclarationsFileFactory(module, gulp) {
   return function buildWithDeclarationFiles(done) {
     const buildModuleTask = buildFactory(module, gulp);
+    const stripCommentsFromProdFiles = () => gulp.src(['dist/**/*.js']).pipe(strip()).pipe(gulp.dest('dist'));
     const copyDeclarationFiles = () => gulp.src(['lib/**/*.d.ts']).pipe(gulp.dest('dist'));
     const copyJsonFiles = () => gulp.src(['lib/**/*.json']).pipe(gulp.dest('dist'));
-    const buildTask = gulp.series(buildModuleTask, copyDeclarationFiles, copyJsonFiles);
+    const buildTask = gulp.series(buildModuleTask, stripCommentsFromProdFiles, copyDeclarationFiles, copyJsonFiles);
     buildTask();
     done();
   };

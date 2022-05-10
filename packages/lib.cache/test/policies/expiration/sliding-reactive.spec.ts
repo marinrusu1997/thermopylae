@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { expect } from '@thermopylae/dev.unit-test';

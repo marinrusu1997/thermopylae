@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'chai';
 import { ConcurrencyType } from '@thermopylae/core.declarations';
 import { filledWith, filterAsync, peek, randomElement, remove, shuffle, unique } from '../lib/array';
@@ -142,7 +144,7 @@ describe('array spec', () => {
 			shuffle(arr);
 			try {
 				expect(arr).not.to.be.equalTo(original);
-			} catch (e) {
+			} catch {
 				expect(arr).to.be.equalTo(original); // sometimes random order might be the same as the input one
 			}
 		});

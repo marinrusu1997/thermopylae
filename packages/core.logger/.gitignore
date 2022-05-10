@@ -13,6 +13,7 @@
 /coverage/
 /report/
 /doc/
+/test/log.**
 
 # environment
 .env

@@ -1,4 +1,5 @@
 import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { IndexedStore, PK_INDEX_NAME } from '../lib';
 import { expect, PersonsRepo } from './utils';

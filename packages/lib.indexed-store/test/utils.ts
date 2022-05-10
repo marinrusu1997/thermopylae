@@ -1,4 +1,5 @@
 import { chai, getPersonRepositoryClone, Person } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { beforeEach } from 'mocha';
 import { array } from '@thermopylae/lib.utils';
 

@@ -4,7 +4,7 @@ import {
 	PoolClusterOptions,
 	PoolConnection,
 	PoolOptions,
-	// @ts-ignore
+	// @ts-ignore Poor typings for this package
 	PromisePoolConnection
 	// eslint-disable-next-line import/extensions
 } from 'mysql2/promise';
@@ -87,10 +87,10 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 	}
 
 	public init(configurator: PoolConfigurator, configOptions: ObjMap): void {
-		// @ts-ignore
+		// @ts-ignore Poor typings for this package
 		// eslint-disable-next-line no-restricted-syntax, guard-for-in, no-underscore-dangle
 		for (const nodeName in this.poolCluster._nodes) {
-			// @ts-ignore
+			// @ts-ignore Poor typings for this package
 			// eslint-disable-next-line no-underscore-dangle
 			configurator(this.poolCluster._nodes[nodeName].pool, configOptions);
 		}
@@ -98,7 +98,7 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 
 	public shutdown(): Promise<void> {
 		return new Promise((resolve, reject) => {
-			// @ts-ignore
+			// @ts-ignore Poor typings for this package
 			this.poolCluster.end((err) => (err ? reject(err) : resolve()));
 		});
 	}

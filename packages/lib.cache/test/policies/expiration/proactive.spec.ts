@@ -1,5 +1,6 @@
 import { array, chrono, number } from '@thermopylae/lib.utils';
 import { expect, logger } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import colors from 'colors';
 import { ProactiveExpirationPolicy, GarbageCollector, HeapGarbageCollector, BucketGarbageCollector } from '../../../lib';
@@ -16,7 +17,7 @@ function generateEntry<K>(key: K): ExpirableCacheEntryHeapNode<K, any> {
 		key,
 		value: array.randomElement(generateEntry.VALUES),
 		[EXPIRES_AT_SYM]: undefined,
-		// @ts-ignore
+		// @ts-ignore This is for testing purposes
 		[HEAP_NODE_IDX_SYM]: undefined! // it does need to be here initially when entry is created
 	};
 }

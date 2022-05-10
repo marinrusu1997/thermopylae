@@ -1,12 +1,15 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { setTimeout } from 'timers/promises';
 import type { MutableSome, PublicPrivateKeys } from '@thermopylae/core.declarations';
-import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import jsonwebtoken from 'jsonwebtoken';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import { IssuedJwtPayload, JwtUserSessionManagerEvent, JwtUserSessionManager, JwtUserSessionManagerOptions, InvalidationStrategyOptions } from '../lib';
 import { InvalidAccessTokensCacheAdapter } from './mocks/invalid-access-tokens-cache';
 import { RefreshTokensStorageAdapter } from './mocks/refresh-tokens-storage';
+
+const { JsonWebTokenError, TokenExpiredError } = jsonwebtoken;
 
 function jwtSessionManagerOpts(accessTokenTtl: number, refreshTokenTtl: number, secret: string | Buffer | PublicPrivateKeys): JwtUserSessionManagerOptions {
 	return {
@@ -52,7 +55,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		expect(sessionTokens.refreshToken).to.be.of.length(20);
 
 		/* After 1 sec */
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 
 		const accessTokenPayload = await sessionManager.read(sessionTokens.accessToken);
 		expect(accessTokenPayload.anc).to.be.eq(sessionTokens.refreshToken.slice(0, 5));
@@ -62,7 +65,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		const refreshedAccessToken = await sessionManager.update(sessionTokens.refreshToken, { role: 'admin' }, { subject: 'uid1' }, sessionContext());
 
 		/* After 2 sec 100 ms */
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 
 		await expect(sessionManager.read(sessionTokens.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 
@@ -76,7 +79,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		await expect(sessionManager.read(lastRefreshedAccessToken)).to.eventually.have.property('role', 'admin');
 
 		/* After 3 sec 100 ms */
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 
 		await expect(sessionManager.read(refreshedAccessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 		// expired refresh token
@@ -134,9 +137,9 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 
 		// issue tokens at different time points
 		const userSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
-		await setTimeout(500);
+		await setTimeout(500, { ref: true });
 		const secondAccessToken = await sessionManager.update(userSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext());
-		await setTimeout(500);
+		await setTimeout(500, { ref: true });
 		const thirdAccessToken = await sessionManager.update(userSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext());
 
 		const secondUserSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
@@ -192,7 +195,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 
 		const userSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		const accessTokenPayload = await sessionManager.read(userSession.accessToken);
 
 		await expect(sessionManager.update(userSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext())).to.eventually.be.rejectedWith(
@@ -204,7 +207,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 
 		await expect(sessionManager.read(userSession.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		await expect(sessionManager.read(userSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 	}).timeout(2500);
 
@@ -219,7 +222,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		});
 
 		const firstSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
-		await setTimeout(500);
+		await setTimeout(500, { ref: true });
 		const secondSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 		const adminSession = await sessionManager.create({ role: 'admin' }, { subject: 'uid2' }, sessionContext());
 
@@ -253,7 +256,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		);
 
 		// try to open another user session later
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const thirdSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 		await expect(sessionManager.read(thirdSession.accessToken)).to.eventually.have.property('sub', 'uid1');
 		await expect(sessionManager.update(thirdSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext())).to.eventually.be.a('string');
@@ -261,9 +264,9 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		// admin session remains untouched
 		await expect(sessionManager.read(adminSession.accessToken)).to.eventually.have.property('role', 'admin');
 
-		await setTimeout(500);
+		await setTimeout(500, { ref: true });
 		await expect(sessionManager.read(firstSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
-		await setTimeout(500);
+		await setTimeout(500, { ref: true });
 		await expect(sessionManager.read(secondSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 	}).timeout(3000);
 
@@ -281,11 +284,11 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		const session = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 
 		// issue access token right before refresh token expires
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const renewedAccessToken = await sessionManager.update(session.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext());
 
 		// w8 for session expiration
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 
 		// invalidate sessions
 		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(0);
@@ -294,7 +297,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 
 		try {
 			await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
-		} catch (e) {
+		} catch {
 			// might interfere conversion from milliseconds to seconds
 			await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 		}
@@ -302,15 +305,15 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		await expect(sessionManager.read(renewedAccessToken)).to.eventually.be.rejectedWith(/Token '.+' was forcibly invalidated\./);
 
 		// try to open another user session later
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 
 		const secondSession = await sessionManager.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 		await expect(sessionManager.read(secondSession.accessToken)).to.eventually.have.property('sub', 'uid1');
 		await expect(sessionManager.update(secondSession.refreshToken, { role: 'user' }, { subject: 'uid1' }, sessionContext())).to.eventually.be.a('string');
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		await expect(sessionManager.read(session.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
-		await setTimeout(2000);
+		await setTimeout(2000, { ref: true });
 		await expect(sessionManager.read(renewedAccessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 	}).timeout(6500);
 
@@ -345,7 +348,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 			/^Refresh token '.{20}' for subject uid1 doesn't exist\.$/
 		);
 
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		await expect(node1.read(userSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 		await expect(node2.read(userSession.accessToken)).to.eventually.be.rejectedWith(TokenExpiredError);
 	});
@@ -385,7 +388,7 @@ describe(`${JwtUserSessionManager.name} spec`, () => {
 		);
 
 		// creating new session should work
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const node1SecondSession = await node1.create({ role: 'user' }, { subject: 'uid1' }, sessionContext());
 		await expect(node1.read(node1SecondSession.accessToken)).to.eventually.have.property('role', 'user');
 		await expect(node2.read(node1SecondSession.accessToken)).to.eventually.have.property('role', 'user');

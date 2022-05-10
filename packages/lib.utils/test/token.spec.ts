@@ -1,5 +1,6 @@
 import { Exception } from '@thermopylae/lib.exception';
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { ObjMap } from '@thermopylae/core.declarations';
 import { token as tokenModule } from '../lib';
@@ -38,7 +39,7 @@ describe('token spec', () => {
 		it('throws when unknown token generation mechanism is specified', () => {
 			let err;
 			try {
-				// @ts-ignore
+				// @ts-ignore This is just a test
 				generate('invalid');
 			} catch (e) {
 				err = e;

@@ -14,15 +14,16 @@ import {
 	getPersonRepositoryClone
 } from '@thermopylae/dev.unit-test';
 
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { beforeEach, describe, it } from 'mocha';
 import { $enum } from 'ts-enum-util';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import range from 'range-generator';
 import uniqBy from 'lodash.uniqby';
 import orderBy from 'lodash.orderby';
 import dotProp from 'dot-prop';
 import difference from 'array-differ';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import duplicates from 'array-find-duplicates';
 // eslint-disable-next-line import/no-unresolved
 import { QueryConditions } from '@b4dnewz/mongodb-operators';
@@ -181,7 +182,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const person = array.randomElement(PersonsRepo);
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			delete person.birthYear;
 
 			const throwable = () => collection.insert(new PersonDocument(person));
@@ -655,7 +656,7 @@ describe(`${Collection.name} spec`, () => {
 					$gte: 1990,
 					$lt: 2000
 				},
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				'address.countryCode': {
 					$in: ['EN', 'RU', 'DE']
 				}
@@ -674,7 +675,7 @@ describe(`${Collection.name} spec`, () => {
 				const isInBirthYearRange = birthYearRange.includes(doc.birthYear);
 
 				const countryCode = dotProp.get(doc, 'address.countryCode');
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				const isInCountryCodeRange = query['address.countryCode'].$in.includes(countryCode);
 
 				return isInBirthYearRange && isInCountryCodeRange;
@@ -914,7 +915,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				[PersonIndexes.II_COUNTRY_CODE]: {
 					$in: array.filledWith(5, () => dotProp.get(array.randomElement(PersonsRepo), PersonIndexes.II_COUNTRY_CODE))
 				}
@@ -930,7 +931,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(matches.length).to.be.gt(0);
 
 			const crossCheck = PersonsRepo.filter((person) => {
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as Array<string>;
 				const actual = dotProp.get(person, PersonIndexes.II_COUNTRY_CODE) as string;
 				return expected.includes(actual);
@@ -939,7 +940,7 @@ describe(`${Collection.name} spec`, () => {
 
 			for (const match of matches) {
 				const actual = dotProp.get(match, PersonIndexes.II_COUNTRY_CODE) as string;
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as Array<string>;
 				expect(actual).to.be.oneOf(expected);
 			}
@@ -1013,7 +1014,7 @@ describe(`${Collection.name} spec`, () => {
 					$gte: minBirthYear,
 					$lte: maxBirthYear
 				},
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				'address.countryCode': {
 					$in: countryCodes
 				},
@@ -1036,7 +1037,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				[PersonIndexes.II_COUNTRY_CODE]: string.random({ length: 5, allowedCharRegex: /[0-9]/ })
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {

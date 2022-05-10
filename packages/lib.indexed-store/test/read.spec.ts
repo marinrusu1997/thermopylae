@@ -1,9 +1,10 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { number, string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 import dotprop from 'dot-prop';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import range from 'range-generator';
 import { IndexedStore, IndexValue, PK_INDEX_NAME, ErrorCodes } from '../lib';
 import { expect, PersonsRepo } from './utils';

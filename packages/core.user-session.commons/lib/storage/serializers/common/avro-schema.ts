@@ -1,4 +1,4 @@
-import { Schema } from 'avsc';
+import type { Schema } from 'avsc';
 
 /**
  * @private

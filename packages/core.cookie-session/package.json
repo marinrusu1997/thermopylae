@@ -19,15 +19,15 @@
     ],
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-        "build": "gulp build",
-        "doc": "gulp doc",
-        "test": "gulp test",
-        "report": "gulp report",
-        "coverage": "gulp coverage",
-        "coverage:show": "gulp coverageShow",
-        "debug": "gulp debug",
-        "clean": "gulp clean",
-        "purge": "gulp purge",
+        "build": "gulp --gulpfile gulpfile.cjs build",
+        "doc": "gulp --gulpfile gulpfile.cjs doc",
+        "test": "gulp --gulpfile gulpfile.cjs test",
+        "report": "gulp --gulpfile gulpfile.cjs report",
+        "coverage": "gulp --gulpfile gulpfile.cjs coverage",
+        "coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
+        "debug": "gulp --gulpfile gulpfile.cjs debug",
+        "clean": "gulp --gulpfile gulpfile.cjs clean",
+        "purge": "gulp --gulpfile gulpfile.cjs purge",
         "prepublishOnly": "npm run lint && npm run clean && npm run build",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
@@ -62,10 +62,6 @@
         "node-fetch": "2",
         "unix-timestamp": "0"
     },
-    "peerDependencies": {
-        "mocha": "8",
-        "chai": "4"
-    },
     "lint-staged": {
         "*.ts": [
             "eslint"
@@ -75,5 +71,5 @@
         "node": ">= 16"
     },
     "license": "MIT",
-    "type": "commonjs"
+    "type": "module"
 }

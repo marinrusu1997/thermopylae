@@ -1,4 +1,5 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import fs from 'fs';
 import process from 'process';

@@ -35,22 +35,44 @@ module.exports = {
 		"for-direction": "warn",
 		"consistent-return": "warn",
 		"dot-notation": "off",
+		"quote-props": "off",
+		"func-names": "off",
 
 		"no-console": "error",
 		"no-param-reassign": "off",
 		"no-use-before-define": "off",
 		"no-await-in-loop": "warn",
 		"no-continue": "off",
-		"no-undef": "off",
+		"no-undef": "error",
 		"no-case-declarations": "error",
 		"no-cond-assign": "warn",
-		"no-restricted-syntax": "off",
+		"no-restricted-syntax": [
+			"error",
+			{
+				"selector": "CallExpression[callee.name='setTimeout'][arguments.length!=2]",
+				"message": "setTimeout must always be invoked with two arguments."
+			},
+			{
+				"selector": "BinaryExpression[operator='in']",
+				"message": "Usage of 'in' operator is not allowed. Prefer Object.getOwnPropertyNames()."
+			},
+			{
+				"selector": "BinaryExpression[operator=instanceof][right.name=Array]",
+				"message": "`instanceof Array` is disallowed. Prefer `Array.isArray()`."
+			},
+			{
+				"selector": "CallExpression[arguments.length=1][callee.property.name='reduce']",
+				"message": "Provide initialValue to .reduce()."
+			}
+		],
 		"no-bitwise": "warn",
 		"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
 		// base rule can report incorrect errors for TS code
 		"no-shadow": "off",
 		"no-nested-ternary": "warn",
-		"no-underscore-dangle": "warn",
+		"no-underscore-dangle": ["warn", { "allow": ["__dirname", "__iter__"] }],
+		"no-return-assign": ["error", "always"],
+		"no-unused-vars": "off",
 
 		"import/no-unresolved": [
 			"error",
@@ -65,7 +87,14 @@ module.exports = {
 		"import/namespace": "error",
 		"import/no-absolute-path": "error",
 		"import/no-dynamic-require": "error",
-		"import/no-extraneous-dependencies": "error",
+		"import/no-extraneous-dependencies": [
+			"error",
+			{
+				"devDependencies": ["test/**/*.ts"],
+				"optionalDependencies": false,
+				"bundledDependencies": false
+			}
+		],
 		"import/prefer-default-export": "off",
 		"import/extensions": [
 			"error",
@@ -78,11 +107,38 @@ module.exports = {
 		],
 		"import/no-cycle": "error",
 
-		"@typescript-eslint/ban-ts-comment": "off",
-		"@typescript-eslint/no-explicit-any": "warn",
-		"@typescript-eslint/no-use-before-define": "off",
+		"@typescript-eslint/ban-ts-comment": ["error", {
+			"ts-expect-error": "allow-with-description",
+			"ts-ignore": "allow-with-description",
+			"ts-nocheck": true,
+			"ts-check": false,
+			"minimumDescriptionLength": 7
+		}],
+		"@typescript-eslint/no-explicit-any": ["warn", {
+			"ignoreRestArgs": true
+		}],
+		"@typescript-eslint/no-use-before-define": ["warn", { "functions": false, "classes": true, "variables": true }],
 		"@typescript-eslint/no-namespace": "warn",
 		"@typescript-eslint/no-shadow": "error",
+		"@typescript-eslint/no-var-requires": "error",
+		"@typescript-eslint/no-unused-vars": [
+			"error",
+			{
+				"vars": "all",
+				"varsIgnorePattern": "^_",
+				"argsIgnorePattern": "^_",
+				"destructuredArrayIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_",
+				"args": "after-used",
+				"ignoreRestSiblings": false,
+				"caughtErrors": "all"
+			}
+		],
+		"@typescript-eslint/triple-slash-reference": ["error", {
+			"path": "always",
+			"types": "never",
+			"lib": "never"
+		}],
 
 		"node/no-unsupported-features/es-syntax": "off",
 		"node/no-missing-import": "off", // never works as expected, broken rule
@@ -97,7 +153,8 @@ module.exports = {
 	},
 	"globals": {
 		"Atomics": "readonly",
-		"SharedArrayBuffer": "readonly"
+		"SharedArrayBuffer": "readonly",
+		"NodeJS": true
 	},
 	"settings": {
 		"import/extensions": [
@@ -116,9 +173,6 @@ module.exports = {
 					".ts"
 				]
 			}
-		},
-		"import/no-extraneous-dependencies": {
-			"devDependencies": ["**/*.spec.ts"]
 		},
 
 		"node": {

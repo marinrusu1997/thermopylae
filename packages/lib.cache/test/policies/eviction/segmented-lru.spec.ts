@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect, logger } from '@thermopylae/dev.unit-test';
 import { array, number, string } from '@thermopylae/lib.utils';
@@ -35,7 +36,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key,
 					value: Number(key),
-					// @ts-expect-error
+					// @ts-expect-error This is for testing purposes
 					[SEGMENT_SYM]: null
 				};
 
@@ -97,7 +98,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
-					// @ts-expect-error
+					// @ts-expect-error This is for testing purposes
 					[SEGMENT_SYM]: null
 				};
 				return [entry.key, entry];
@@ -108,7 +109,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
-					// @ts-expect-error
+					// @ts-expect-error This is for testing purposes
 					[SEGMENT_SYM]: null
 				};
 				return [entry.key, entry];
@@ -173,7 +174,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
-					// @ts-expect-error
+					// @ts-expect-error This is for testing purposes
 					[SEGMENT_SYM]: null
 				};
 				return [entry.key, entry];
@@ -186,7 +187,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
-					// @ts-expect-error
+					// @ts-expect-error This is for testing purposes
 					[SEGMENT_SYM]: null
 				};
 				return [entry.key, entry];
@@ -257,7 +258,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			const entry: EvictableCacheEntry<string, number> = {
 				key: string.random(),
 				value: number.random(CAPACITY, CAPACITY + 10),
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				[SEGMENT_SYM]: null
 			};
 			policy.onSet(entry);
@@ -306,13 +307,13 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const firstEntry: EvictableCacheEntry<string, number> = {
 			key: 'a',
 			value: 1,
-			// @ts-ignore
+			// @ts-ignore This is for testing purposes
 			[SEGMENT_SYM]: null
 		};
 		const secondEntry: EvictableCacheEntry<string, number> = {
 			key: 'b',
 			value: 2,
-			// @ts-ignore
+			// @ts-ignore This is for testing purposes
 			[SEGMENT_SYM]: null
 		};
 

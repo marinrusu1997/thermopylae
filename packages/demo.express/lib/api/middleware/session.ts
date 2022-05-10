@@ -105,7 +105,7 @@ function requiresAuthentication(unlessOptions: Options): RequestHandler {
 				throw e;
 			}
 		}),
-		// @ts-ignore
+		// @ts-ignore The typings are wrong
 		unlessOptions
 	);
 }

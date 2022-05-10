@@ -163,7 +163,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	/**
 	 * @inheritDoc
 	 */
-	public on(event: CacheEvent, listener: CacheEventListener<Key, MaybePromise<Value, 'plain'>>): this {
+	public override on(event: CacheEvent, listener: CacheEventListener<Key, MaybePromise<Value, 'plain'>>): this {
 		return super.on(event, listener);
 	}
 

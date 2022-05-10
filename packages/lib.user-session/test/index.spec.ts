@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it, before } from 'mocha';
 import { expect, logger, initLogger } from '@thermopylae/dev.unit-test';
 import { LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
@@ -65,7 +66,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session.expiresAt).to.be.greaterThan(currentTimestamp);
 		expect(session.expiresAt).to.be.lessThan(currentTimestamp + 3); // rounding to 3
 
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
@@ -116,11 +117,11 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session.location).to.be.eq('Bucharest');
 		const accessedAtSnapshot = session.accessedAt;
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		await sessionManager.read('uid1', sessionId, buildContext());
 		expect(session.accessedAt).to.not.be.eq(accessedAtSnapshot);
 
-		await setTimeout(2100);
+		await setTimeout(2100, { ref: true });
 		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' it's expired, because it was idle`)
 		);
@@ -144,7 +145,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		const [session] = await sessionManager.read('uid1', sessionId, context);
 		expect(storage.invocations.get('updateAccessedAt')).to.be.eq(1);
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const [[session1, renewSessionId1], [session2, renewSessionId2]] = await Promise.all([
 			sessionManager.read('uid1', sessionId, context),
 			sessionManager.read('uid1', sessionId, context)
@@ -166,7 +167,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			expect(renewSessionId1).to.be.eq(null);
 		}
 
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		await expect(sessionManager.read('uid1', sessionId, context)).to.eventually.be.rejectedWith(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
@@ -195,7 +196,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		const sessionId = await process1.create('uid1', context);
 		const [session] = await process2.read('uid1', sessionId, context);
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const [[session1, renewSessionId1], [session2, renewSessionId2]] = await Promise.all([
 			process1.read('uid1', sessionId, context),
 			process2.read('uid1', sessionId, context)
@@ -213,7 +214,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			expect(renewSessionId1).to.be.eq(null);
 		}
 
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		await expect(process1.read('uid1', sessionId, context)).to.eventually.be.rejectedWith(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
@@ -238,12 +239,12 @@ describe(`${UserSessionManager.name} spec`, () => {
 
 		const sessionId = await sessionManager.create('uid1', context);
 
-		await setTimeout(1000);
+		await setTimeout(1000, { ref: true });
 		const [, renewedSessionId] = await sessionManager.read('uid1', sessionId, context);
 		expect(renewedSessionId).to.not.be.eq(null); // renew performed
 
 		await sessionManager.delete('uid1', sessionId);
-		await setTimeout(1100);
+		await setTimeout(1100, { ref: true });
 		expect(storage.invocations.get('delete')).to.be.eq(1);
 	}).timeout(2500);
 

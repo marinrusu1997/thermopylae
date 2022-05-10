@@ -26,7 +26,9 @@ interface TimedExecutionResult<R> {
  * @returns {Promise<void>}
  */
 function sleep(ms: Milliseconds): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+	return new Promise<void>((resolve) => {
+		setTimeout(resolve, ms);
+	});
 }
 
 /**

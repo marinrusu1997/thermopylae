@@ -96,19 +96,17 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 	 */
 	public [Symbol.iterator](): IterableIterator<[Key, Entry]> {
 		return {
-			// @ts-ignore
+			// @ts-ignore The typings are correct
 			__iter__: this.store[Symbol.iterator](),
 			next(): IteratorResult<[Key, Entry]> {
-				// @ts-ignore
-				// eslint-disable-next-line no-underscore-dangle
+				// @ts-ignore The typings are correct
 				const res = this.__iter__.next() as IteratorResult<[Key, ObjectResource<Entry>]>;
 				if (res.done) {
-					// @ts-ignore
-					// eslint-disable-next-line no-underscore-dangle
+					// @ts-ignore The typings are correct
 					this.__iter__ = null!; // prevent leaks
 					return res;
 				}
-				// @ts-ignore
+				// @ts-ignore The typings are correct
 				res.value[1] = res.value[1].value;
 				return res as unknown as IteratorResult<[Key, Entry]>;
 			}
@@ -127,19 +125,19 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 	 */
 	public values(): IterableIterator<Entry> {
 		let iter = this.store.values();
-		// @ts-ignore
+		// @ts-ignore The typings are correct
 		return {
 			[Symbol.iterator](): IterableIterator<Entry> {
-				// @ts-ignore
+				// @ts-ignore The typings are correct
 				return {
 					next(): IteratorResult<Entry> {
-						// @ts-ignore
+						// @ts-ignore The typings are correct
 						const res = iter.next() as IteratorResult<ObjectResource<Entry>>;
 						if (res.done) {
 							iter = null!; // prevent leaks
 							return res;
 						}
-						// @ts-ignore
+						// @ts-ignore The typings are correct
 						res.value = res.value.value;
 						return res as unknown as IteratorResult<Entry>;
 					}

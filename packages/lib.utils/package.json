@@ -17,23 +17,23 @@
     ],
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-        "build": "gulp build",
-        "doc": "gulp doc",
-        "test": "gulp test",
-        "report": "gulp report",
-        "coverage": "gulp coverage",
-        "coverage:show": "gulp coverageShow",
-        "debug": "gulp debug",
-        "clean": "gulp clean",
-        "purge": "gulp purge",
+        "build": "gulp --gulpfile gulpfile.cjs build",
+        "doc": "gulp --gulpfile gulpfile.cjs doc",
+        "test": "gulp --gulpfile gulpfile.cjs test",
+        "report": "gulp --gulpfile gulpfile.cjs report",
+        "coverage": "gulp --gulpfile gulpfile.cjs coverage",
+        "coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
+        "debug": "gulp --gulpfile gulpfile.cjs debug",
+        "clean": "gulp --gulpfile gulpfile.cjs clean",
+        "purge": "gulp --gulpfile gulpfile.cjs purge",
         "prepublishOnly": "npm run lint && npm run clean && npm run build",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/core.declarations": "0",
         "@otplib/core": "12",
         "@otplib/plugin-crypto": "12",
         "@otplib/plugin-thirty-two": "12",
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/lib.exception": "0",
         "convert-hrtime": "3",
         "fast-copy": "2",
@@ -41,14 +41,10 @@
         "uuid": "8"
     },
     "devDependencies": {
-        "@thermopylae/dev.unit-test": "0",
         "@thermopylae/dev.environment": "0",
+        "@thermopylae/dev.unit-test": "0",
         "@types/lodash.clone": "4",
         "@types/uuid": "8"
-    },
-    "peerDependencies": {
-        "chai": "4",
-        "mocha": "8"
     },
     "lint-staged": {
         "*.ts": [
@@ -59,5 +55,5 @@
         "node": ">= 16"
     },
     "license": "MIT",
-    "type": "commonjs"
+    "type": "module"
 }

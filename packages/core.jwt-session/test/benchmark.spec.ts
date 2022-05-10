@@ -1,7 +1,8 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect, logger } from '@thermopylae/dev.unit-test';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
-import { Suite } from 'benchmark';
+import benchmark from 'benchmark';
 import type { Event } from 'benchmark';
 import type { UserSessionMetaData } from '@thermopylae/lib.user-session.commons';
 import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
@@ -11,6 +12,8 @@ import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/sto
 import { FAST_JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/fast-json';
 // eslint-disable-next-line import/extensions
 import { JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/json';
+
+const { Suite } = benchmark;
 
 const samples: Array<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>> = [
 	{
@@ -241,7 +244,7 @@ describe.skip(`user session meta data serializers spec`, () => {
 			.on('cycle', function onCycle(event: Event) {
 				logger.crit(String(event.target));
 			})
-			.on('complete', function onComplete(this: Suite) {
+			.on('complete', function onComplete(this: benchmark.Suite) {
 				logger.crit(`Fastest is ${this.filter('fastest').map('name')}`);
 				done();
 			})

@@ -1,12 +1,14 @@
 import type { MutableSome, PublicPrivateKeys, RequireAtLeastOne, RequireSome, Seconds } from '@thermopylae/core.declarations';
 import type { DeviceBase, SessionId, Subject, UserSessionMetaData, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
 import type { SignOptions, VerifyOptions } from 'jsonwebtoken';
-import { sign, verify } from 'jsonwebtoken';
+import jsonwebtoken from 'jsonwebtoken';
 import { EventEmitter } from 'events';
 import type { IssuedJwtPayload, JwtPayload } from './declarations';
 import { createException, ErrorCodes } from './error';
 import type { InvalidationStrategyOptions } from './invalidation';
 import { InvalidationStrategy } from './invalidation';
+
+const { sign, verify } = jsonwebtoken;
 
 /**
  * Payload of the JWT that will be actually signed.
@@ -141,7 +143,7 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 		verifyOptions = verifyOptions ? { ...this.config.verifyOptions, ...verifyOptions } : this.config.verifyOptions;
 		const secret = this.getSecret('public');
 
-		return new Promise<IssuedJwtPayload>((resolve, reject) =>
+		return new Promise<IssuedJwtPayload>((resolve, reject) => {
 			verify(jwtAccessToken, secret, verifyOptions, (verifyError, decoded) => {
 				if (verifyError) {
 					return reject(verifyError);
@@ -156,8 +158,8 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 				} catch (e) {
 					return reject(e);
 				}
-			})
-		);
+			});
+		});
 	}
 
 	/**
@@ -289,11 +291,11 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 		this.invalidationStrategy.invalidateAccessTokensFromAllSessions(subject, accessTokenTtl);
 	}
 
-	public on(event: JwtUserSessionManagerEvent.SESSION_INVALIDATED, listener: (jwtAccessToken: IssuedJwtPayload) => void): this;
+	public override on(event: JwtUserSessionManagerEvent.SESSION_INVALIDATED, listener: (jwtAccessToken: IssuedJwtPayload) => void): this;
 
-	public on(event: JwtUserSessionManagerEvent.ALL_SESSIONS_INVALIDATED, listener: (subject: string, accessTokenTtl: Seconds) => void): this;
+	public override on(event: JwtUserSessionManagerEvent.ALL_SESSIONS_INVALIDATED, listener: (subject: string, accessTokenTtl: Seconds) => void): this;
 
-	public on(event: string, listener: (...args: any[]) => void): this {
+	public override on(event: string, listener: (...args: any[]) => void): this {
 		super.on(event, listener);
 		return this;
 	}
@@ -312,15 +314,15 @@ class JwtUserSessionManager<Device extends DeviceBase = DeviceBase, Location = s
 
 		const secret = this.getSecret('private');
 
-		return new Promise<string>((resolve, reject) =>
+		return new Promise<string>((resolve, reject) => {
 			sign(payload, secret, signOptions, (signErr, encoded) => {
 				if (signErr) {
 					return reject(signErr);
 				}
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 				return resolve(encoded!);
-			})
-		);
+			});
+		});
 	}
 
 	private static fillWithDefaults<D extends DeviceBase, L>(options: JwtUserSessionManagerOptions<D, L>): JwtUserSessionManagerOptions<D, L> {

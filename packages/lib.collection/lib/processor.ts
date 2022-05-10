@@ -2,7 +2,7 @@ import { ObjMap, Optional } from '@thermopylae/core.declarations';
 import { IndexedStore, IndexValue } from '@thermopylae/lib.indexed-store';
 import orderBy from 'lodash.orderby';
 import dotprop from 'dot-prop';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import { createUpdate } from 'common-query';
 import { createException, ErrorCodes } from './error';
 import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields, PK_INDEX_NAME } from './typings';

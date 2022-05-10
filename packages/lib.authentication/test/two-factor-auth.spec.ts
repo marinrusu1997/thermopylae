@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { assert, expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';

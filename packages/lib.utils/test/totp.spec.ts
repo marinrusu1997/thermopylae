@@ -1,8 +1,10 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Totp } from '../lib/totp';
 
-const { expect, assert } = chai;
+const { expect } = chai;
+const assert = chai.assert as (expr: boolean, msg?: string) => void;
 
 describe(`${Totp.name} spec`, () => {
 	describe(`${Totp.prototype.generate.name} spec`, () => {

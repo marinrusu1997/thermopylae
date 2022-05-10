@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'chai';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono, string } from '@thermopylae/lib.utils';

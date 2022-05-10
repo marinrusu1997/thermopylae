@@ -9,8 +9,7 @@
             "@thermopylae/core.user-session.commons/*": [
                 "./@thermopylae/core.user-session.commons/dist/*"
             ]
-        },
-        "module": "commonjs"
+        }
     },
     "include": [
         "lib/**/*.ts",

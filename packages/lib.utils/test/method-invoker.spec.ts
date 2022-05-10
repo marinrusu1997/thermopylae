@@ -1,4 +1,5 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { MethodInvoker } from '../lib/method';
 
@@ -7,7 +8,7 @@ const { expect } = chai;
 describe('method invoker spec', () => {
 	it('invokes function whith provided this argument', () => {
 		function func(): number {
-			// @ts-ignore
+			// @ts-ignore This is just a test
 			return this.a + this.b;
 		}
 		const thisObj = { a: 1, b: 1 };

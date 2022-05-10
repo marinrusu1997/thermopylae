@@ -1,6 +1,5 @@
 import * as TransportStream from 'winston-transport';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { AbstractTransportManager } from './typings';
+import type { AbstractTransportManager } from './typings';
 import { createException, ErrorCodes } from './error';
 
 /**
@@ -36,7 +35,9 @@ class TransportsManager {
 
 		let transport;
 		for (let i = 0; i < this.transports.length; i++) {
-			if ((transport = this.transports[i].get(module)) != null) {
+			transport = this.transports[i].get(module);
+
+			if (transport != null) {
 				transports.push(transport);
 			}
 		}

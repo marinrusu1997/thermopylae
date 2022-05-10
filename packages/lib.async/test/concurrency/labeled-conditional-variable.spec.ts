@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/dev.unit-test';
 import { array, chrono, number } from '@thermopylae/lib.utils';
@@ -36,7 +37,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 
 			expect(role).to.be.eq(AwaiterRole.PRODUCER);
 			await expect(promise).to.be.rejectedWith(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(Date.now() - acquireStart).to.be.in.range(timeout, timeout + 20);
 		});
 
@@ -380,7 +381,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(values).to.be.ofSize(3);
 			for (const value of values) {
 				expect(value.status).to.be.eq('rejected');
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				expect(value.reason).to.be.eq(err);
 			}
 
@@ -388,7 +389,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(values).to.be.ofSize(3);
 			for (const value of values) {
 				expect(value.status).to.be.eq('rejected');
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				expect(value.reason).to.be.eq(err);
 			}
 		});
@@ -409,7 +410,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 
 			expect(results[0].status).to.be.eq('fulfilled');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on WRITE operation, which is an exclusive one. Given: READ.");
 
 			await expect(cache.get('key')).to.eventually.be.eq('value');
@@ -423,7 +424,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 
 			expect(results[0].status).to.be.eq('fulfilled');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on WRITE operation, which is an exclusive one. Given: WRITE.");
 
 			await expect(cache.get('key')).to.eventually.be.eq('value');
@@ -436,10 +437,10 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(results).to.be.ofSize(2);
 
 			expect(results[0].status).to.be.eq('fulfilled');
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(results[0].value).to.be.eq('key');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on READ operation. Only READ operation can be requested. Given: WRITE.");
 
 			await expect(cache.get('key')).to.eventually.be.eq('key');

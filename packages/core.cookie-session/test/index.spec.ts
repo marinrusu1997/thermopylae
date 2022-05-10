@@ -1,7 +1,8 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import fetch from 'node-fetch';
-// @ts-ignore
+// @ts-ignore This module has no typings
 import timestamp from 'unix-timestamp';
 import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode } from '@thermopylae/core.declarations';
 import type { HTTPRequestLocation, MutableSome } from '@thermopylae/core.declarations';
@@ -10,7 +11,9 @@ import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
 import { setTimeout } from 'timers/promises';
 import { parse } from 'cookie';
 import capitalize from 'capitalize';
-import { CookieUserSessionMiddleware } from '../lib';
+// eslint-disable-next-line import/extensions
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro';
+import { CookieUserSessionMiddleware, CookieUserSessionMiddlewareOptions, UserSessionRedisStorage } from '../lib';
 import { routes } from './fixtures/routes';
 import { options } from './fixtures/middleware';
 import { PORT } from './bootstrap';
@@ -21,6 +24,79 @@ const { AUTHORIZATION, COOKIE, USER_AGENT } = HttpRequestHeaderEnum;
 const { CACHE_CONTROL, SET_COOKIE } = HttpResponseHeaderEnum;
 
 describe(`${CookieUserSessionMiddleware.name} spec`, () => {
+	describe('configuration spec', () => {
+		it('should not allow invalid config', () => {
+			const middlewareOpts: CookieUserSessionMiddlewareOptions = {
+				sessionManager: {
+					idLength: 18,
+					sessionTtl: 5,
+					timeouts: {
+						idle: 3,
+						renewal: 2,
+						oldSessionAvailabilityAfterRenewal: 1
+					},
+					renewSessionHooks: {
+						onRenewMadeAlreadyFromCurrentProcess() {
+							return undefined;
+						},
+						onRenewMadeAlreadyFromAnotherProcess() {
+							return undefined;
+						},
+						onOldSessionDeleteFailure() {
+							return undefined;
+						}
+					},
+					storage: new UserSessionRedisStorage({
+						keyPrefix: {
+							sessions: 'sids',
+							sessionId: 'sid'
+						},
+						concurrentSessions: 2,
+						serializer: AVRO_SERIALIZER
+					})
+				},
+				session: {
+					cookie: {
+						name: 'sid',
+						path: '/api',
+						sameSite: 'strict',
+						persistent: true
+					},
+					header: 'x-session-id',
+					csrf: {
+						name: 'x-requested-with',
+						value: 'XmlHttpRequest'
+					},
+					'cache-control': true
+				}
+			};
+
+			// 1
+			let old = middlewareOpts.session.cookie.name;
+			middlewareOpts.session.cookie.name = `__Host-${old}`;
+			expect(() => new CookieUserSessionMiddleware(middlewareOpts)).to.throw(
+				`Session cookie name is not allowed to start with '__Host-'. Given: ${middlewareOpts.session.cookie.name}.`
+			);
+			middlewareOpts.session.cookie.name = old;
+
+			// 2
+			old = middlewareOpts.session.cookie.name;
+			middlewareOpts.session.cookie.name = `__Secure-${old}`;
+			expect(() => new CookieUserSessionMiddleware(middlewareOpts)).to.throw(
+				`Session cookie name is not allowed to start with '__Secure-'. Given: ${middlewareOpts.session.cookie.name}.`
+			);
+			middlewareOpts.session.cookie.name = old;
+
+			// 3
+			old = middlewareOpts.session.cookie.name;
+			middlewareOpts.session.cookie.name = 'NAME';
+			expect(() => new CookieUserSessionMiddleware(middlewareOpts)).to.throw(
+				`Cookie name should be lowercase. Given: ${middlewareOpts.session.cookie.name}.`
+			);
+			middlewareOpts.session.cookie.name = old;
+		});
+	});
+
 	describe('session lifetime spec', () => {
 		it("authenticates, get's resource and logs out (mobile device)", async () => {
 			/* AUTHENTICATE */
@@ -42,7 +118,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(resourceResp.status).to.be.eq(HttpStatusCode.Ok);
 			const resource = (await resourceResp.json()) as UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>;
 
-			expect(resource.ip).to.be.eq('::ffff:127.0.0.1');
+			expect(resource.ip).to.be.oneOf(['::1', '::ffff:127.0.0.1']);
 			expect(resource.device).to.be.eq(null);
 			expect(resource.location).to.be.deep.eq({
 				countryCode: 'RO',
@@ -114,7 +190,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(resourceResp.status).to.be.eq(HttpStatusCode.Ok);
 			const resource = (await resourceResp.json()) as UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>;
 
-			expect(resource.ip).to.be.eq('::ffff:127.0.0.1');
+			expect(resource.ip).to.be.oneOf(['::1', '::ffff:127.0.0.1']);
 			expect(resource.device).to.be.deep.eq({
 				name: ' ',
 				type: 'desktop',
@@ -223,7 +299,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(authResp.headers.get(CACHE_CONTROL)).to.be.eq('no-cache="set-cookie, set-cookie2"'); // only set for browsers
 
 			/* GET RESOURCE and OBTAIN REFRESHED SESSION */
-			await setTimeout(options.sessionManager.timeouts!.renewal! * 1000 + 100);
+			await setTimeout(options.sessionManager.timeouts!.renewal! * 1000 + 100, { ref: true });
 
 			const cookie = authResp.headers.get(SET_COOKIE)!;
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
@@ -290,7 +366,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(resourceOne.accessedAt).to.be.closeTo(getFirstResourceTimestamp, 1);
 
 			/* GET RESOURCE (second time) */
-			await setTimeout(1100);
+			await setTimeout(1100, { ref: true });
 
 			const resourceSecondResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 				method: routes.get_resource.method,
@@ -317,9 +393,10 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(resourceResp.status).to.be.eq(HttpStatusCode.Forbidden);
 
 			const error = (await resourceResp.json()) as { message: string };
-			expect(error.message).to.be.eq(
+			expect(error.message).to.be.oneOf([
+				'Session \'tu5gkmwKQmrdy7fgh9QnRJjzWxw=\' doesn\'t exist. Context: {"ip":"::1","device":{"name":" ","type":"desktop","client":{"type":"browser","name":"Opera","version":"38.0","engine":"Blink","engineVersion":""},"os":{"name":"GNU/Linux","version":"","platform":"x64"}},"location":null}.',
 				'Session \'tu5gkmwKQmrdy7fgh9QnRJjzWxw=\' doesn\'t exist. Context: {"ip":"::ffff:127.0.0.1","device":{"name":" ","type":"desktop","client":{"type":"browser","name":"Opera","version":"38.0","engine":"Blink","engineVersion":""},"os":{"name":"GNU/Linux","version":"","platform":"x64"}},"location":null}.'
-			);
+			]);
 
 			expect(resourceResp.headers.get(SET_COOKIE)).to.be.eq(
 				`${options.session.cookie.name}=; Path=${
@@ -373,7 +450,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				expect(authResp.status).to.be.eq(HttpStatusCode.Created);
 
 				/* GET RESOURCE AFTER BEING IDLE */
-				await setTimeout(options.sessionManager.timeouts!.idle! * 1000 + 100);
+				await setTimeout(options.sessionManager.timeouts!.idle! * 1000 + 100, { ref: true });
 
 				const cookie = authResp.headers.get(SET_COOKIE)!;
 				const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {

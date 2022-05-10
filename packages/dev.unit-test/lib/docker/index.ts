@@ -1,6 +1,7 @@
 import { chrono } from '@thermopylae/lib.utils';
-import Dockerode, { Container, ContainerInfo, Image, Port } from 'dockerode';
-// @ts-ignore
+import Dockerode from 'dockerode';
+import type { Container, ContainerInfo, Image, Port } from 'dockerode';
+// @ts-ignore This package has no typings
 import { Host } from 'netmap';
 import { IncomingMessage } from 'http';
 import { logger } from '../logger';
@@ -60,7 +61,14 @@ async function retrievePreviouslyCreatedContainer(
 
 async function pullMissingImage(imageName: string): Promise<void> {
 	const images = await getDockerodeInstance().listImages();
-	if (images.findIndex((image) => image.RepoTags.includes(imageName)) === -1) {
+	const imageIndex = images.findIndex((image) => {
+		if (image.RepoTags != null) {
+			return image.RepoTags.includes(imageName);
+		}
+		return false;
+	});
+
+	if (imageIndex === -1) {
 		logger.debug(`Pulling image ${imageName}.`);
 		const image = (await getDockerodeInstance().pull(imageName, {})) as Image | IncomingMessage;
 

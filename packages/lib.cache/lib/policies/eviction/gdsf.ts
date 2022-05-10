@@ -41,7 +41,7 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	/**
 	 * @inheritDoc
 	 */
-	public onUpdate(entry: EvictableCacheEntry<Key, Value>): void {
+	public override onUpdate(entry: EvictableCacheEntry<Key, Value>): void {
 		this.onHit(entry); // onHit performs the required actions: recomputes frequency and moves to another bucket
 	}
 

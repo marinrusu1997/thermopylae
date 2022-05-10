@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect, logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
@@ -35,7 +36,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			for (let i = 0; i < CAPACITY; i++) {
 				totalEntriesNo = i;
 
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = { key: String(i), value: i };
 				policy.onSet(entry); // `i` reflects the actual total entries, e.g. when we add first time it is 0
 				initialEntries[i] = entry;
@@ -57,7 +58,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			const numberOfSetsThatWillCauseEviction = CAPACITY - retrievedEntriesIndexes.length; // evict entries that were never queried
 			totalEntriesNo = CAPACITY + 1; // simulate overflow
 			for (let i = 0; i < numberOfSetsThatWillCauseEviction; i++) {
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(CAPACITY + additionalEntriesIndex),
 					value: CAPACITY + additionalEntriesIndex
@@ -77,7 +78,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			keysEvictedByPolicy.length = 0;
 			totalEntriesNo = CAPACITY + 1; // simulate overflow
 			for (let i = 0; i < retrievedEntriesIndexes.length; i++) {
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(CAPACITY + additionalEntriesIndex),
 					value: CAPACITY + additionalEntriesIndex
@@ -125,7 +126,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 				totalEntriesNo = i;
 
 				const key = String(i);
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = { key, value: i };
 				policy.onSet(entry);
 				entries.set(key, entry);
@@ -143,7 +144,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			for (let i = 0; i <= CAPACITY * 2; i++) {
 				totalEntriesNo = i;
 
-				// @ts-ignore
+				// @ts-ignore This is for testing purposes
 				const entry: EvictableCacheEntry<string, number> = { key: String(i + CAPACITY), value: i + CAPACITY }; // differ from initial inserted keys
 				policy.onSet(entry);
 			}

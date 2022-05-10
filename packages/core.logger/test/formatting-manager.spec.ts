@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { format } from 'winston';
@@ -9,7 +10,7 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 	describe(`${FormattingManager.prototype.setDefaultFormattingOrder.name} spec`, () => {
 		it('throws when invalid output specified', () => {
 			const formattingManager = new FormattingManager();
-			// @ts-ignore
+			// @ts-ignore For testing purposes
 			expect(() => formattingManager.setDefaultFormattingOrder('INVALID FOR SURE')).to.throw('Unknown output format: INVALID FOR SURE.');
 		});
 
@@ -26,10 +27,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${level}: \t${message}`);
 		});
 
@@ -46,10 +47,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				`${loggedInfo['timestamp']} [${loggedInfo['label']}] \u001b[32m${level}\u001b[39m: \u001b[32m	${message}\u001b[39m`
 			);
@@ -67,10 +68,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
@@ -93,16 +94,16 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
@@ -129,10 +130,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
@@ -147,16 +148,16 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
 			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore
+			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
@@ -195,10 +196,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${message}`);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${message}`);
 
 		/* error formatting */
@@ -211,10 +212,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${err.message}`);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(
 			`${loggedInfo['timestamp']} (${process.pid}) [${loggedInfo['label']}] ${loggedInfo.level}:\t${err.message}\n${err.stack}`
 		);
@@ -248,10 +249,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`\t${logMessage}`);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for('message')]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}`);
 
 		/* add new formatter */
@@ -265,10 +266,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`${logMessage}`);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for('message')]).to.equal(
 			JSON.stringify(
 				{
@@ -298,10 +299,10 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(message);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore
+		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}: ${message}`);
 	});
 

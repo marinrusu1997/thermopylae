@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { before } from 'mocha';
 import { initLogger } from '@thermopylae/dev.unit-test';
 import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';

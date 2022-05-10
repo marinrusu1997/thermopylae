@@ -1,6 +1,6 @@
 import { Mapper, Nullable, ObjMap, Optional } from '@thermopylae/core.declarations';
 import { IndexedStore } from '@thermopylae/lib.indexed-store';
-import createSubject, { Subject, Subscribable } from 'rx-subject';
+import rxsubject, { Subject, Subscribable } from 'rx-subject';
 import { JSONSchema } from 'json-schema-typed';
 import Ajv from 'ajv';
 // eslint-disable-next-line import/extensions
@@ -9,6 +9,10 @@ import { createException, ErrorCodes } from './error';
 import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions, PK_INDEX_NAME } from './typings';
 import { Processor } from './processor';
 import { Retriever } from './retriever';
+
+// @ts-ignore There is a problem with ESM version of rx-subject,
+// as it actually exports an object with property `default` that contains createSubject function
+const createSubject = rxsubject.default;
 
 type Cursor<Document> = Iterator<Document>;
 
@@ -344,7 +348,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		this.storage.clear();
 		this.notifier.sink.next({
 			operation: DocumentOperation.CLEARED,
-			// @ts-ignore
+			// @ts-ignore They will be assigned later (maybe, I don't know for sure)
 			documents: null
 		});
 	}

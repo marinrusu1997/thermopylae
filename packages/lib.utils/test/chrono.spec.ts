@@ -1,8 +1,10 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { fromUnixTime, minutesToSeconds, unixTime, sleep, tomorrow, firstDayOfNextMonth, executionTime, executionTimeAsync } from '../lib/chrono';
 
-const { assert, expect } = chai;
+const { expect } = chai;
+const assert = chai.assert as (expr: boolean, msg?: string) => void;
 
 describe('chrono spec', () => {
 	describe('measured execution time spec', () => {
@@ -12,7 +14,7 @@ describe('chrono spec', () => {
 					// busy waiting
 				}
 
-				// @ts-ignore
+				// @ts-ignore This is just a test
 				return this.start + a + b;
 			}
 
@@ -24,7 +26,7 @@ describe('chrono spec', () => {
 		it('measures execution time of async function', async () => {
 			async function add(a: number, b: number): Promise<number> {
 				await sleep(1000);
-				// @ts-ignore
+				// @ts-ignore This is just a test
 				return this.start + a + b;
 			}
 

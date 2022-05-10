@@ -19,14 +19,11 @@ export type Values<T extends ObjMap> = T[keyof T];
 
 export type Tuplize<T extends ObjMap[]> = Pick<T, Exclude<keyof T, Extract<keyof ObjMap[], string> | number>>;
 
-export type Xor<T extends ObjMap> = Values<
-	{
-		[K in keyof T]: T[K] &
-			{
-				[M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
-			};
-	}
->;
+export type Xor<T extends ObjMap> = Values<{
+	[K in keyof T]: T[K] & {
+		[M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
+	};
+}>;
 
 export type OneOf<T extends ObjMap[]> = Xor<Tuplize<T>>;
 
@@ -34,10 +31,9 @@ export type Conditional<Dispatcher, Expectation, Truthy, Falsy> = Dispatcher ext
 
 export type PartialSome<T, K extends keyof T> = Omit<T, K> & Partial<T>;
 
-export type RequireSome<T, K extends keyof T> = Omit<T, K> &
-	{
-		[MK in K]-?: NonNullable<T[MK]>;
-	};
+export type RequireSome<T, K extends keyof T> = Omit<T, K> & {
+	[MK in K]-?: NonNullable<T[MK]>;
+};
 
 export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 

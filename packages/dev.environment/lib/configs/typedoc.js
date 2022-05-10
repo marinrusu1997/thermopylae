@@ -38,11 +38,5 @@ module.exports = {
 
     // General Options
     "listInvalidSymbolLinks": true,
-    "plugin": ["typedoc-neo-theme"],
-
-    // Neo-theme Options
-    "links": [{
-        "label": "Bitbucket",
-        "url": "https://bitbucket.org/marinrusu1997/framework/src/master/"
-    }]
+    "plugin": ["typedoc-neo-theme"]
 };

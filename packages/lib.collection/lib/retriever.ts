@@ -1,7 +1,7 @@
 import { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
 import { IndexedStore } from '@thermopylae/lib.indexed-store';
 import isObject from 'isobject';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import { createQuery } from 'common-query';
 import dotProp from 'dot-prop';
 import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators, PK_INDEX_NAME } from './typings';

@@ -14,7 +14,7 @@ async function doc() {
 
     await del(typedoc.out);
     await new Promise((resolve, reject) => {
-        npmRun.spawn("typedoc", [], constants.SPAWN_OPTIONS)
+        npmRun.spawn("typedoc", ["--options", "typedoc.cjs"], constants.SPAWN_OPTIONS)
             .on('exit', function (code) {
                 code === 0 ? resolve() : reject();
             });

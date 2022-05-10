@@ -57,7 +57,7 @@ class KafkaClient {
 			.run({
 				eachMessage: async (payload) => {
 					try {
-						const key = payload.message.key.toString();
+						const key = payload.message.key != null ? payload.message.key.toString() : null;
 						const value = payload.message.value!.toString();
 						kafkaLogger.debug(`Received message with key '${key}' and value '${value}'.`);
 

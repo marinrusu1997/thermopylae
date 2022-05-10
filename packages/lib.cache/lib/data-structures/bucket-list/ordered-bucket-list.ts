@@ -175,7 +175,7 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 
 			const newBucketHeader: BucketHeaderNode<BucketEntry> = {
 				id: bucketId,
-				// @ts-ignore
+				// @ts-ignore It actually satisfies the constraint
 				bucket: new DoublyLinkedList<BucketEntry>(),
 				[PREV_SYM]: null,
 				[NEXT_SYM]: null
@@ -195,7 +195,7 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 		// the buckets list is empty, code duplicated for performance, damn those 0.00000001 ms
 		const newBucketHeader: BucketHeaderNode<BucketEntry> = {
 			id: bucketId,
-			// @ts-ignore
+			// @ts-ignore It actually satisfies constraints
 			bucket: new DoublyLinkedList<BucketEntry>(),
 			[PREV_SYM]: null,
 			[NEXT_SYM]: null

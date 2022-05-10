@@ -35,7 +35,8 @@
   ],
   "dependencies": {
     "dependency-graph": "0",
-    "execa": "5"
+    "execa": "5",
+    "ts-node": "10"
   },
   "license": "MIT"
 }

@@ -1,4 +1,8 @@
-export { JsonWebTokenError, NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
+import jsonwebtoken from 'jsonwebtoken';
+
+const { JsonWebTokenError, NotBeforeError, TokenExpiredError } = jsonwebtoken;
+
+export { JsonWebTokenError, NotBeforeError, TokenExpiredError };
 export { JwtUserSessionManager, JwtUserSessionManagerEvent } from './manager';
 export { ErrorCodes } from './error';
 

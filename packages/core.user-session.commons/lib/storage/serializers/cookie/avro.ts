@@ -1,4 +1,4 @@
-import { Type } from 'avsc';
+import avsc from 'avsc';
 import cloneDeep from 'lodash.clonedeep';
 import type { Schema } from 'avsc';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
@@ -15,7 +15,7 @@ const SCHEMA: Schema = cloneDeep(AVRO_SCHEMA);
 /**
  * @private
  */
-const AVRO_TYPE = Type.forSchema(SCHEMA, { omitRecordMethods: true });
+const AVRO_TYPE = avsc.Type.forSchema(SCHEMA, { omitRecordMethods: true });
 
 /**
  * @private

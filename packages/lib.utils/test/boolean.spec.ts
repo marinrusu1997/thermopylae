@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'chai';
 
 import { Exception } from '@thermopylae/lib.exception';
@@ -53,7 +55,7 @@ describe('boolean spec', () => {
 
 			let err;
 			try {
-				// @ts-ignore
+				// @ts-ignore This is for testing
 				convertFrom(valueToConvert, true);
 			} catch (e) {
 				err = e;
@@ -65,7 +67,7 @@ describe('boolean spec', () => {
 			err = undefined;
 
 			try {
-				// @ts-ignore
+				// @ts-ignore This is for testing
 				convertFrom(valueToConvert, true);
 			} catch (e) {
 				err = e;
@@ -79,7 +81,7 @@ describe('boolean spec', () => {
 
 			let err;
 			try {
-				// @ts-ignore
+				// @ts-ignore This is for testing
 				convertFrom(valueToConvert);
 			} catch (e) {
 				err = e;
@@ -91,7 +93,7 @@ describe('boolean spec', () => {
 			err = undefined;
 
 			try {
-				// @ts-ignore
+				// @ts-ignore This is for testing
 				convertFrom(valueToConvert);
 			} catch (e) {
 				err = e;

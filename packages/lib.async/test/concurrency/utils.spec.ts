@@ -1,8 +1,9 @@
 import { Milliseconds } from '@thermopylae/core.declarations';
 import { chrono, array } from '@thermopylae/lib.utils';
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
-import { runInSeries, synchronize, toPromise } from '../../lib/concurrency';
+import { runInSeries, synchronize, toPromise } from '../../lib';
 
 const { expect } = chai;
 
@@ -82,7 +83,7 @@ describe('concurrency utils spec', () => {
 			const endTime = Date.now();
 
 			expect(longOpCalls).to.be.eq(1);
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			expect(endTime - startTime).to.be.in.range(longOpDuration - epsilon, longOpDuration + epsilon);
 			expect(results.length).to.be.eq(synchronizedCalls);
 			expect(results).to.be.equalTo(array.filledWith(synchronizedCalls, longOpResult));

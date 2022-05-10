@@ -17,20 +17,21 @@
     ],
     "scripts": {
         "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-        "build": "gulp build",
+        "build": "gulp --gulpfile gulpfile.cjs build",
         "doc": ":",
-        "test": "gulp test",
-        "coverage": "gulp coverage",
-        "coverage:show": "gulp coverageShow",
-        "debug": "gulp debug",
-        "clean": "gulp clean",
-        "purge": "gulp purge",
+        "test": "gulp --gulpfile gulpfile.cjs test",
+        "report": ":",
+        "coverage": ":",
+        "coverage:show": ":",
+        "debug": "gulp --gulpfile gulpfile.cjs debug",
+        "clean": "gulp --gulpfile gulpfile.cjs clean",
+        "purge": "gulp --gulpfile gulpfile.cjs purge",
         "prepublishOnly": "npm run lint && npm run clean && npm run build",
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/core.declarations": "0",
         "@rauschma/stringio": "1",
+        "@thermopylae/core.declarations": "0",
         "@thermopylae/core.logger": "0",
         "@thermopylae/lib.utils": "0",
         "@types/chai-arrays": "2",
@@ -42,6 +43,7 @@
         "deep-freeze": "0",
         "dockerode": "3",
         "json-schema-typed": "7",
+        "lookpath": "1",
         "mocker-data-generator": "2",
         "mysql": "2",
         "netmap": "1"
@@ -52,10 +54,6 @@
         "@types/dockerode": "3",
         "@types/mysql": "2"
     },
-    "peerDependencies": {
-        "chai": "4",
-        "mocha": "8"
-    },
     "lint-staged": {
         "*.ts": [
             "eslint"
@@ -65,5 +63,5 @@
         "node": ">= 16"
     },
     "license": "ISC",
-    "type": "commonjs"
+    "type": "module"
 }

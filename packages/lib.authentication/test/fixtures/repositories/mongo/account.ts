@@ -14,7 +14,7 @@ const AccountSchema = new mongoose.Schema({
 	totpSecret: String
 });
 AccountSchema.virtual('id').get(function getter() {
-	// @ts-ignore
+	// @ts-ignore This is for test purposes
 	return String(this._id);
 });
 

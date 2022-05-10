@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/dev.unit-test';
 import { number, string } from '@thermopylae/lib.utils';

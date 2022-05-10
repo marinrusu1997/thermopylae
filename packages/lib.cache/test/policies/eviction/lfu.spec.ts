@@ -1,10 +1,11 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect, logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
 import { Nullable } from '@thermopylae/core.declarations';
 import colors from 'colors';
 import range from 'lodash.range';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import gc from 'js-gc';
 import { LFUEvictionPolicy, GDSFEvictionPolicy, LFUDAEvictionPolicy } from '../../../lib';
 import { ReverseMap } from '../../utils';
@@ -19,7 +20,7 @@ function lfuFactory<Key, Value, ArgumentsBundle = any>(
 	constructor: typeof BaseLFUEvictionPolicy,
 	...constructorParams: ConstructorParameters<typeof LFUEvictionPolicy>
 ): BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
-	// @ts-ignore
+	// @ts-ignore This is for testing purposes
 	return new constructor(...constructorParams);
 }
 
@@ -43,7 +44,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						}
 
 						for (const [key, value] of candidates) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							totalEntriesNo += 1;
@@ -51,7 +52,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							expect(policy.size).to.be.eq(totalEntriesNo); // stacks up entries
 						}
 
-						// @ts-ignore
+						// @ts-ignore This is for testing purposes
 						const entry: EvictableCacheEntry<string, number> = { key: String(CAPACITY + 1), value: CAPACITY + 1 };
 						let deleted: Nullable<string> = null;
 						policy.setDeleter((evictedEntry) => {
@@ -112,7 +113,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						});
 
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 
@@ -142,7 +143,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						totalEntriesNo += 1; // simulate overflow
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry); // we don't increment totalEntriesNo, as we know entries are evicted and it's value remains the same
 
@@ -214,7 +215,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						});
 
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							totalEntriesNo += 1;
@@ -225,7 +226,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						totalEntriesNo += 1; // simulate overflow
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 						}
@@ -286,7 +287,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						// add entries
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore
+							// @ts-ignore This is for testing purposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							lfuEntries.set(key, entry);
@@ -354,7 +355,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					const memUsageBeforeInsert = { ...process.memoryUsage() };
 
 					for (let i = 0; i < CAPACITY; i++) {
-						// @ts-ignore
+						// @ts-ignore This is for testing purposes
 						const entry: EvictableCacheEntry<string, number> = { key: String(i), value: i };
 						lfu.onSet(entry);
 						lfuEntries.set(entry.key, entry);

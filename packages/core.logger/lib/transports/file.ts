@@ -1,8 +1,7 @@
-import { Nullable } from '@thermopylae/core.declarations';
 import * as TransportStream from 'winston-transport';
 import DailyRotateFile, { DailyRotateFileTransportOptions } from 'winston-daily-rotate-file';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { AbstractTransportManager } from '../typings';
+import type { Nullable } from '@thermopylae/core.declarations';
+import type { AbstractTransportManager } from '../typings';
 import { createException, ErrorCodes } from '../error';
 
 /**

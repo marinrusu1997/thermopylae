@@ -98,7 +98,7 @@ class SlidingReactiveExpirationPolicy<
 	/**
 	 * @inheritDoc
 	 */
-	public onDelete(entry: ExpirableSlidingCacheEntry<Key, Value>): void {
+	public override onDelete(entry: ExpirableSlidingCacheEntry<Key, Value>): void {
 		super.onDelete(entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
 	}

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { before, describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import type { ObjMap } from '@thermopylae/core.declarations';
@@ -54,7 +55,7 @@ describe('geoip spec', () => {
 				'8.8.8.8',
 				{
 					countryCode: ['US'],
-					regionCode: ['', 'CA', null],
+					regionCode: ['', 'CA', 'OH', null],
 					city: ['', 'Mountain View', null],
 					timezone: ['America/Chicago', null],
 					latitude: [37.751, 37.38801956176758],
@@ -77,7 +78,7 @@ describe('geoip spec', () => {
 				{
 					countryCode: ['US'],
 					regionCode: ['', 'CA', null],
-					city: ['', 'Mountain View', null],
+					city: ['', 'Mountain View', 'Glenmont', null],
 					timezone: ['America/Chicago', null],
 					latitude: [37.751, 37.419158935546875],
 					longitude: [-97.822, -122.07540893554688]
@@ -88,10 +89,11 @@ describe('geoip spec', () => {
 				{
 					countryCode: ['AU'],
 					regionCode: ['WA', 'VIC', null],
-					city: ['Broome', 'Melbourne', 'Balwyn North'],
-					timezone: ['Australia/Perth', 'Australia/Melbourne', null],
+					city: ['Broome', 'Melbourne', 'Balwyn North', 'Gold Coast'],
+					timezone: ['Australia/Perth', 'Australia/Melbourne', 'Australia/Brisbane', null],
 					latitude: [-17.9629, -37.81425094604492, -37.7907],
-					longitude: [122.2387, 144.96316528320312, 145.0839]
+					// eslint-disable-next-line @typescript-eslint/no-loss-of-precision
+					longitude: [122.2387, 144.96316528320312, 145.0839, 122.232]
 				}
 			]
 		]);

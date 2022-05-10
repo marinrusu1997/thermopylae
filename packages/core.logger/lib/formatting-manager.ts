@@ -1,7 +1,7 @@
+/* c8 ignore start */
 import { ClientModule, CoreModule, DevModule, Nullable } from '@thermopylae/core.declarations';
 import { Format } from 'logform';
 import { format } from 'winston';
-// eslint-disable-next-line import/extensions
 import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
 import chalk from 'chalk';
 import { createException, ErrorCodes } from './error';
@@ -369,3 +369,4 @@ class FormattingManager {
 }
 
 export { FormattingManager, OutputFormat, DefaultFormatters };
+/* c8 ignore stop */

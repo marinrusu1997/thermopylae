@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode } from '@thermopylae/core.declarations';
@@ -291,7 +292,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 
 			/* GET RESOURCE */
 			// w8 access token expiration
-			await setTimeout(Number(options.jwt.signOptions.expiresIn) * 1000 + 100);
+			await setTimeout(Number(options.jwt.signOptions.expiresIn) * 1000 + 100, { ref: true });
 
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}`, {
 				method: routes.get_resource.method,
@@ -587,10 +588,10 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			expect(Object.keys(activeSessionsBody)).to.be.ofSize(1);
 
 			const refreshToken = authResp.headers.get(options.session.headers.refresh)!;
-			expect(activeSessionsBody[refreshToken].ip).to.be.eq('127.0.0.1');
+			expect(activeSessionsBody[refreshToken].ip).to.be.oneOf(['::1', '127.0.0.1']);
 
 			/* W8 expiration */
-			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100);
+			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100, { ref: true });
 
 			/* READ ACTIVE SESSIONS AGAIN */
 			const activeSessionsAdminSecondResp = await fetch(`${serverAddress}${routes.get_active_sessions.path}?uid=uid1`, {
@@ -654,7 +655,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 					return name === options.session.cookies.name.refresh;
 				})!;
 
-			expect(activeSessions[secondRefreshToken].ip).to.be.eq('127.0.0.1');
+			expect(activeSessions[secondRefreshToken].ip).to.be.oneOf(['::1', '127.0.0.1']);
 			expect(activeSessions[secondRefreshToken].device.name).to.be.eq(' ');
 			expect(activeSessions[secondRefreshToken].device.type).to.be.eq('desktop');
 			expect(activeSessions[secondRefreshToken].device.client.type).to.be.eq('browser');
@@ -895,7 +896,7 @@ describe(`${JwtUserSessionMiddleware.name} spec`, () => {
 			const refreshToken = authResp.headers.get(options.session.headers.refresh) as string;
 
 			/* W8 for refresh token expiration */
-			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100);
+			await setTimeout(options.jwt.invalidationOptions.refreshTokenTtl * 1000 + 100, { ref: true });
 
 			/* RENEW SESSION */
 			const renewResp = await fetch(`${serverAddress}${routes.renew_session.path}?uid=uid1`, {

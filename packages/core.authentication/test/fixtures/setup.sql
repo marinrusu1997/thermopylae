@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS Account (
     passwordSalt VARCHAR(30),
     passwordAlg TINYINT(1) NOT NULL,
     email VARCHAR(256) NOT NULL UNIQUE,
-    telephone VARCHAR(16) UNIQUE,
+    telephone VARCHAR(50) UNIQUE,
     disabledUntil INT NOT NULL,
     mfa BOOLEAN NOT NULL,
     totpSecret VARCHAR(100),

@@ -29,11 +29,11 @@ const morganFormat: FormatFn = (tokens, req, res): string => {
 			? 32 // green
 			: 0; // no color
 
-	// @ts-ignore
+	// @ts-ignore Typings are not correct, we are hacking here
 	let fn = morganFormat[color];
 
 	if (!fn) {
-		// @ts-ignore
+		// @ts-ignore Typings are not correct, we are hacking here
 		// eslint-disable-next-line no-multi-assign
 		fn = morganFormat[color] = morgan.compile(`:id \x1b[0m:method :url \x1b[${color}m:status\x1b[0m :response-time ms - :res[content-length]\x1b[0m`);
 	}

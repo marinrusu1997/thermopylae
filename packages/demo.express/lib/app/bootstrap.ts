@@ -62,7 +62,7 @@ import {
 } from './singletons';
 import { serverError } from '../api/middleware/server-error';
 import { requiresAuthentication } from '../api/middleware/session';
-import { stringifyOperationContext } from '../utils';
+import { __dirname, stringifyOperationContext } from '../utils';
 import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema';
 import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema';
 import { userSessionRouter } from '../api/routes/session/router';
@@ -77,7 +77,7 @@ async function bootstrap() {
 
 	/* INIT API VALIDATOR */
 	initApiValidator(new ApiValidator());
-	await API_VALIDATOR.init(path.join(__dirname, '../validation/schemes'), ['core']);
+	await API_VALIDATOR.init(path.join(__dirname(import.meta.url), '../validation/schemes'), ['core']);
 
 	/* VALIDATE ENVIRONMENT */
 	await API_VALIDATOR.validate('CONFIG', 'ENV_VARS', process.env);

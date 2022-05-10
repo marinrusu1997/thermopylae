@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it, before } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import { config as dotEnvConfig } from 'dotenv';

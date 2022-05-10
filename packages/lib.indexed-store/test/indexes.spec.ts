@@ -1,6 +1,7 @@
 import { string } from '@thermopylae/lib.utils';
 import { Exception } from '@thermopylae/lib.exception';
 import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import dotprop from 'dot-prop';
 import { ErrorCodes, IndexedStore, IndexName, IndexValue, PK_INDEX_NAME } from '../lib';

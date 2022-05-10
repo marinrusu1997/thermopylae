@@ -10,7 +10,7 @@ class PasswordLengthValidator<Account extends AccountModel> implements PasswordS
 
 	private readonly maxLength: number;
 
-	public constructor(minLength = 12, maxLength = 4_096) {
+	public constructor(minLength = 12, maxLength = 4096) {
 		this.minLength = minLength;
 		this.maxLength = maxLength;
 	}

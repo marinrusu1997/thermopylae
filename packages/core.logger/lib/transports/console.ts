@@ -1,10 +1,12 @@
-import { Nullable } from '@thermopylae/core.declarations';
 // eslint-disable-next-line import/extensions
-import { Console, ConsoleTransportOptions } from 'winston/lib/winston/transports';
+import transports from 'winston/lib/winston/transports';
 import TransportStream from 'winston-transport';
-// eslint-disable-next-line import/extensions, import/no-unresolved
-import { AbstractTransportManager } from '../typings';
+import type { Nullable } from '@thermopylae/core.declarations';
+import type { ConsoleTransportOptions } from 'winston/lib/winston/transports';
+import type { AbstractTransportManager } from '../typings';
 import { createException, ErrorCodes } from '../error';
+
+const { Console } = transports;
 
 /**
  * Console transport is intended for development purposes, therefore no modules support is provided. <br/>

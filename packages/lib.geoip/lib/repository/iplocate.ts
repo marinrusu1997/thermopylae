@@ -47,6 +47,7 @@ class IpLocateRepository implements IpLocationsRepository {
 	private availableAt: number;
 
 	public constructor(options: IpLocateRepositoryOptions) {
+		/* c8 ignore next 3 */
 		if (options.weight <= 0) {
 			throw new Error(`Weight can't be lower or equal to 0. Given: ${options.weight}.`);
 		}
@@ -73,7 +74,7 @@ class IpLocateRepository implements IpLocationsRepository {
 	 * @inheritDoc
 	 */
 	public get available(): boolean {
-		return this.availableAt === AVAILABLE_NOW || this.availableAt < chrono.unixTime();
+		return this.availableAt === AVAILABLE_NOW || /* c8 ignore next */ this.availableAt < chrono.unixTime();
 	}
 
 	/**
@@ -85,6 +86,7 @@ class IpLocateRepository implements IpLocationsRepository {
 		if (this.availableAt === AVAILABLE_NOW) {
 			try {
 				location = await this.retrieve(ip);
+				/* c8 ignore start */
 			} catch (e) {
 				this.options.hooks.onIpRetrievalError(e);
 			}
@@ -96,6 +98,7 @@ class IpLocateRepository implements IpLocationsRepository {
 				this.options.hooks.onIpRetrievalError(e);
 			}
 		}
+		/* c8 ignore stop */
 
 		return location;
 	}
@@ -108,11 +111,13 @@ class IpLocateRepository implements IpLocationsRepository {
 			}
 		});
 
+		/* c8 ignore start */
 		if (response.headers.get('X-RateLimit-Remaining') === '0') {
 			const rateLimitReset = new Date(response.headers.get('X-RateLimit-Reset')!);
 			this.options.hooks.onRateLimitExceeded(rateLimitReset);
 			this.availableAt = chrono.unixTime(rateLimitReset);
 		}
+		/* c8 ignore stop */
 
 		const location = await response.json();
 

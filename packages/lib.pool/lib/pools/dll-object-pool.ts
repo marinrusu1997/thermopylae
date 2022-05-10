@@ -1,5 +1,6 @@
-import DLL, { create, Node as DLLObjectPoolHandle } from 'yallist';
-import { ObjMap, Undefinable } from '@thermopylae/core.declarations';
+import DLL from 'yallist';
+import type { Node as DLLObjectPoolHandle } from 'yallist';
+import type { ObjMap, Undefinable } from '@thermopylae/core.declarations';
 import { createException, ErrorCodes } from '../error';
 
 /**
@@ -75,8 +76,8 @@ class DLLObjectPool<Value = ObjMap> {
 
 	public constructor(config: DLLObjectPoolOptions<Value>) {
 		this.config = DLLObjectPool.assertConfig(config);
-		this.free = create(config.initialFreeShapes || []);
-		this.used = create();
+		this.free = DLL.create(config.initialFreeShapes || []);
+		this.used = DLL.create();
 
 		delete config.initialFreeShapes;
 	}

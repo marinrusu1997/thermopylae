@@ -1,7 +1,10 @@
 import { string, number } from '@thermopylae/lib.utils';
 import deepFreeze from 'deep-freeze';
-import mocker from 'mocker-data-generator';
+import { mocker } from 'mocker-data-generator';
 import { Person, Transaction } from './typings';
+
+const TRANSACTION_SCHEMA_NAME = 'transaction';
+const PERSON_SCHEMA_NAME = 'person';
 
 const TransactionGenerationSchema = {
 	transactionType: {
@@ -41,7 +44,7 @@ const PersonGenerationSchema = {
 		transactions: [
 			{
 				function(): Transaction {
-					// @ts-ignore
+					// @ts-ignore This is just fake data
 					return this.faker.random.arrayElement(this.db[TRANSACTION_SCHEMA_NAME]);
 				},
 				length: 10,
@@ -58,9 +61,6 @@ const PersonGenerationSchema = {
 	]
 };
 deepFreeze(PersonGenerationSchema);
-
-const TRANSACTION_SCHEMA_NAME = 'transaction';
-const PERSON_SCHEMA_NAME = 'person';
 
 function generateTestData(amount: number): Promise<Array<Person>> {
 	return mocker()

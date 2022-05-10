@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { number, object, string } from '@thermopylae/lib.utils';

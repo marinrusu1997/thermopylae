@@ -72,9 +72,9 @@ class Config {
 			[ConnectionType.SUBSCRIBER]: subscriberOptions
 		};
 
-		// @ts-ignore
+		// @ts-ignore The typings are not correct
 		config[ConnectionType.REGULAR].attachDebugListeners = new Set(config[ConnectionType.REGULAR].attachDebugListeners as unknown as DebuggableEventType[]);
-		// @ts-ignore
+		// @ts-ignore The typings are not correct
 		config[ConnectionType.SUBSCRIBER].attachDebugListeners = new Set(
 			config[ConnectionType.SUBSCRIBER].attachDebugListeners as unknown as DebuggableEventType[]
 		);

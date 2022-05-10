@@ -1,10 +1,11 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { assert, expect } from '@thermopylae/dev.unit-test';
 import { Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
 import arrayMove from 'array-move';
 import colors from 'colors';
-// @ts-ignore
+// @ts-ignore This package has no typings
 import gc from 'js-gc';
 import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked';
 

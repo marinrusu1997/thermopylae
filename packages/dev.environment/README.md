@@ -25,12 +25,12 @@ This package contains a collection of tools used in the development process of T
 # Usage
 Bellow are simple examples of how this module can be used:
 
-* **gulpfile.js**
+* **gulpfile.cjs**
 ```javascript
 "use strict";
 module.exports = require('@thermopylae/dev.environment').gulpfile;
 ```
-* **.eslintrc.js**
+* **.eslintrc.cjs**
 ```javascript
 module.exports = require('@thermopylae/dev.environment').configs.eslint;
 ```

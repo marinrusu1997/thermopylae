@@ -1,7 +1,8 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { chai } from '@thermopylae/dev.unit-test';
 import { chrono, array } from '@thermopylae/lib.utils';
-import { PromiseExecutor } from '../../lib/concurrency';
+import { PromiseExecutor } from '../../lib';
 
 const { expect } = chai;
 
@@ -20,7 +21,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		const end = Date.now();
 
 		const expectedDuration = items * duration;
-		// @ts-ignore
+		// @ts-ignore This is for test purposes
 		expect(end - start).to.be.in.range(expectedDuration - duration, expectedDuration + duration);
 	});
 
@@ -38,7 +39,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		const end = Date.now();
 
 		const expectedDuration = duration;
-		// @ts-ignore
+		// @ts-ignore This is for test purposes
 		expect(end - start).to.be.in.range(expectedDuration - epsilon, expectedDuration + epsilon);
 	});
 
@@ -57,7 +58,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		const end = Date.now();
 
 		const expectedDuration = (items * duration) / concurrency;
-		// @ts-ignore
+		// @ts-ignore This is for test purposes
 		expect(end - start).to.be.in.range(expectedDuration - epsilon, expectedDuration + epsilon);
 	});
 
@@ -76,7 +77,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		const end = Date.now();
 
 		const expectedDuration = items * duration;
-		// @ts-ignore
+		// @ts-ignore This is for test purposes
 		expect(end - start).to.be.in.range(expectedDuration - duration, expectedDuration + duration);
 	});
 

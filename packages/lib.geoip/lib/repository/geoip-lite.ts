@@ -84,7 +84,7 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 	private static async geoipLiteInstance(): Promise<GeoIPLite> {
 		// it needs to be lazily loaded, because on import it loads the whole maxmind database in RAM
 		if (!GeoIpLiteRepository.geoipLite) {
-			GeoIpLiteRepository.geoipLite = await import('geoip-lite');
+			GeoIpLiteRepository.geoipLite = (await import('geoip-lite')).default;
 		}
 		return GeoIpLiteRepository.geoipLite;
 	}

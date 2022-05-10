@@ -3,8 +3,7 @@
     "compilerOptions": {
         "rootDir": ".",
         "tsBuildInfoFile": "build/tsbuildinfo",
-        "outDir": "dist",
-        "module": "commonjs"
+        "outDir": "dist"
     },
     "include": [
         "lib/**/*.ts",

@@ -1,5 +1,6 @@
 import { ObjMap } from '@thermopylae/core.declarations';
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, before, after, it } from 'mocha';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { request, requestSecure, HTTPResponse, ErrorCodes } from '../lib/http';
@@ -15,7 +16,7 @@ describe('http spec', () => {
 	let statusCodeForPOSTRequest = 200;
 	let dataWhichWasSentInPOSTReq = '';
 
-	const port = 7000;
+	const port = 7481;
 	const baseURL = `http://127.0.0.1:${port}/`;
 	let server: http.Server;
 

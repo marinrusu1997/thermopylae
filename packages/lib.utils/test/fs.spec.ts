@@ -1,9 +1,11 @@
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it, afterEach } from 'mocha';
 import { unlinkSync } from 'fs';
 import { writeJsonToFile, readJsonFromFile } from '../lib/fs';
 
-const { expect, assert } = chai;
+const { expect } = chai;
+const assert = chai.assert as (expr: boolean, msg?: string) => void;
 
 describe('fs spec', () => {
 	const path = 'file.json';
@@ -12,7 +14,7 @@ describe('fs spec', () => {
 		try {
 			unlinkSync(path);
 			// eslint-disable-next-line no-empty
-		} catch (e) {}
+		} catch {}
 	});
 
 	it('writes json to file, then reads it back', async () => {
@@ -25,7 +27,7 @@ describe('fs spec', () => {
 	it('fails to read from invalid location', async () => {
 		try {
 			await readJsonFromFile('fake.json');
-		} catch (e) {
+		} catch {
 			return;
 		}
 		assert(false, 'File was read from invalid location');

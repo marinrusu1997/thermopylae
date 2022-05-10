@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
@@ -53,7 +54,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 		invalidPerson = {
 			id: string.random(),
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			birthYear: []
 		};
 
@@ -68,7 +69,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			id: string.random(),
 			birthYear: number.randomInt(1990, 2000),
 			address: {
-				// @ts-ignore
+				// @ts-ignore This is for test purposes
 				countryCode: {}
 			}
 		};
@@ -83,13 +84,13 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		invalidPerson = {
 			id: string.random(),
 			birthYear: number.randomInt(1990, 2000),
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			address: {
 				countryCode: string.random()
 			},
 			finance: {
 				bank: {
-					// @ts-ignore
+					// @ts-ignore This is for test purposes
 					name: true
 				}
 			}
@@ -218,7 +219,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		}
 		for (; i < toSave.length; i++) {
 			toSave[i] = { ...PersonsRepo[i] };
-			// @ts-ignore
+			// @ts-ignore This is for test purposes
 			delete toSave[i].id;
 		}
 

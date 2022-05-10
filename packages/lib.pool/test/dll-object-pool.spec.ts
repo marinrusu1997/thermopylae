@@ -1,5 +1,6 @@
 import { number, string, array } from '@thermopylae/lib.utils';
 import { chai } from '@thermopylae/dev.unit-test';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, it } from 'mocha';
 import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
@@ -36,7 +37,7 @@ function initialFreeShapes(quantity: number): Array<ObjectShape> {
 	return array.filledWith(quantity, filler);
 }
 
-function objectPoolFactory(capacity = Infinity, initial?: Array<ObjectShape>): DLLObjectPool<ObjectShape> {
+function objectPoolFactory(capacity: number, initial?: Array<ObjectShape>): DLLObjectPool<ObjectShape> {
 	return new DLLObjectPool<ObjectShape>({
 		initialFreeShapes: initial,
 		capacity,
@@ -116,7 +117,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('acquires object', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		const args = shapeArgs();
 
 		const actual = objectPool.acquire(...args);
@@ -162,7 +163,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('releases handle', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		const args = shapeArgs();
 
 		const acquired = objectPool.acquire(...args);
@@ -175,7 +176,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('releases object', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		const args = shapeArgs();
 
 		const acquired = objectPool.acquire(...args);
@@ -193,7 +194,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('fails to release object not managed by pool', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		const args = shapeArgs();
 
 		const acquiredFirst = objectPool.acquire(...args);
@@ -207,7 +208,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		const toRelease = {};
 		let err: Nullable<Exception> = null;
 		try {
-			// @ts-ignore
+			// @ts-ignore For testing purposes
 			objectPool.releaseObject(toRelease);
 		} catch (e) {
 			err = e;
@@ -226,14 +227,14 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('releases nothing if there are no objects', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
 		objectPool.releaseAll();
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
 	});
 
 	it('preempts object', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		const object = constructor(...shapeArgs());
 
 		const preempted = objectPool.preempt(object);
@@ -246,7 +247,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('reuses nodes', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 
 		const firstArgs = shapeArgs();
 		const secondArgs = shapeArgs();
@@ -304,7 +305,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('reuses objects from nodes', () => {
-		const objectPool = objectPoolFactory();
+		const objectPool = objectPoolFactory(Infinity);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 0));
 
 		const firstArgs = shapeArgs();
