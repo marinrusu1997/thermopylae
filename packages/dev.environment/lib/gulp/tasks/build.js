@@ -54,15 +54,15 @@ function tscVersion() {
 }
 
 function transpile() {
-  const tsc = spawn("tsc", [], SPAWN_OPTIONS);
-  tsc.on("close", code => {
+  const ttsc = spawn("ttsc", ['--pretty', 'true', '--project', 'tsconfig.json'], SPAWN_OPTIONS);
+  ttsc.on("close", code => {
     if (code !== 0) {
       unStageTsConfig(err => {
         throw err;
       });
     }
   });
-  return tsc;
+  return ttsc;
 }
 
 function unStageTsConfig(done) {

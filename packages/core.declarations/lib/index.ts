@@ -34,7 +34,7 @@ export type {
 	SyncFunction,
 	Runnable
 } from './functions';
-export * from './http';
+export * from './http/index';
 export type {
 	MutableSome,
 	RequireSome,

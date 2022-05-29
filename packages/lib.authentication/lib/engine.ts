@@ -23,8 +23,8 @@ import { GenerateTwoFactorAuthTokenStep } from './authentication/steps/generate-
 import { RecaptchaStep } from './authentication/steps/recaptcha-step';
 import { ErrorStep } from './authentication/steps/error-step';
 import { AuthenticatedStep } from './authentication/steps/authenticated-step';
-import { PasswordsManager } from './managers/password';
-import type { PasswordHashingOptions } from './managers/password';
+import { PasswordsManager } from './managers/password/index';
+import type { PasswordHashingOptions } from './managers/password/index';
 import type { EmailSender, SmsSender } from './types/side-channels';
 import type { AccountModel, FailedAuthenticationModel, SuccessfulAuthenticationModel } from './types/models';
 import { ChallengeResponseStep } from './authentication/steps/challenge-response-step';

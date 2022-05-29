@@ -1,5 +1,5 @@
 import { AuthenticationStepName } from '../../types/enums';
-import type { PasswordsManager } from '../../managers/password';
+import type { PasswordsManager } from '../../managers/password/index';
 import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
 import type { AccountModel } from '../../types/models';
 import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
