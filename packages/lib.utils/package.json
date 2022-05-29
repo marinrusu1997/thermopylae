@@ -6,7 +6,7 @@
         "library",
         "utils"
     ],
-    "version": "0.0.1",
+    "version": "1.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "./dist/index.js",
@@ -33,16 +33,16 @@
         "@otplib/core": "12",
         "@otplib/plugin-crypto": "12",
         "@otplib/plugin-thirty-two": "12",
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.exception": "0",
+        "@thermopylae/core.declarations": "1",
+        "@thermopylae/lib.exception": "1",
         "convert-hrtime": "3",
         "fast-copy": "2",
         "lodash.clone": "4",
         "uuid": "8"
     },
     "devDependencies": {
-        "@thermopylae/dev.environment": "0",
-        "@thermopylae/dev.unit-test": "0",
+        "@thermopylae/dev.environment": "1",
+        "@thermopylae/dev.unit-test": "1",
         "@types/lodash.clone": "4",
         "@types/uuid": "8"
     },

@@ -4,7 +4,19 @@ import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { chrono } from '@thermopylae/lib.utils';
 import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
-import { KeyRetriever, RenewableCache, EntryPoolCacheBackend, PolicyBasedCache, CacheEvent } from '../../lib';
+import { setTimeout as asyncSetTimeout } from 'timers/promises';
+import {
+	KeyRetriever,
+	RenewableCache,
+	EntryPoolCacheBackend,
+	PolicyBasedCache,
+	CacheEvent,
+	AbsoluteExpirationPolicyArgumentsBundle,
+	ProactiveExpirationPolicy,
+	HeapGarbageCollector,
+	KeyConfigProvider,
+	INFINITE_EXPIRATION
+} from '../../lib';
 
 describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
@@ -12,8 +24,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			let retrieverCalls = 0;
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
 				retrieverCalls += 1;
-				return new Promise<string>((resolve) => {
-					setTimeout(() => resolve(key), 20);
+				return new Promise((resolve) => {
+					setTimeout(() => resolve([key, undefined]), 20);
 				});
 			};
 
@@ -46,7 +58,7 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('notifies all callers that retriever threw an exception', async () => {
 			const errors = new Array<Error>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((_, reject) => {
+				return new Promise((_, reject) => {
 					setTimeout(() => {
 						const error = new Error(key);
 						errors.push(error);
@@ -93,10 +105,10 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('handles scenario when promise holder was removed from cache before retriever returned entry', async () => {
 			const requestedKeys = new Array<string>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((resolve) => {
+				return new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
-						resolve(key);
+						resolve([key, undefined]);
 					}, 100);
 				});
 			};
@@ -138,10 +150,10 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('removes promise holder from cache if retriever found nothing', async () => {
 			const requestedKeys = new Array<string>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string | undefined>((resolve) => {
+				return new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
-						resolve(undefined);
+						resolve([undefined, undefined]);
 					}, 20);
 				});
 			};
@@ -164,16 +176,88 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			expect(renewableCache.has('a')).to.be.eq(false);
 			expect(renewableCache.has('b')).to.be.eq(false);
 		});
+
+		it('inserts value returned by key retriever and applies arguments bundle returned by him', async () => {
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						resolve([key, { expiresAfter: 1 }]);
+					}, 20);
+				});
+			};
+
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
+			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever });
+
+			const result = (await renewableCache.get('key'))!;
+			expect(result).to.be.eq('key');
+			expect(await cache.get(result)!.promise).to.be.eq('key');
+
+			await asyncSetTimeout(1200);
+			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+		});
+
+		it('arguments bundle returned by keyRetriever have precedence over the one returned by keyConfigProvider', async () => {
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						resolve([key, { expiresAfter: 1 }]);
+					}, 20);
+				});
+			};
+			const keyConfigProvider: KeyConfigProvider<string, AbsoluteExpirationPolicyArgumentsBundle> = () => {
+				return { expiresAfter: 2 };
+			};
+
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
+			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever, keyConfigProvider });
+
+			const result = (await renewableCache.get('key'))!;
+			expect(result).to.be.eq('key');
+			expect(await cache.get(result)!.promise).to.be.eq('key');
+
+			await asyncSetTimeout(1200);
+			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+
+			await asyncSetTimeout(900);
+			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+		}).timeout(2500);
+
+		it('arguments bundle returned by keyRetriever have precedence over the one that were passed explicitly', async () => {
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						resolve([key, { expiresAfter: 1 }]);
+					}, 20);
+				});
+			};
+
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
+			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever });
+
+			const result = (await renewableCache.get('key', { expiresAfter: INFINITE_EXPIRATION }))!;
+			expect(result).to.be.eq('key');
+			expect(await cache.get(result)!.promise).to.be.eq('key');
+
+			await asyncSetTimeout(1200);
+			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+		});
 	});
 
 	describe(`${RenewableCache.prototype.set.name.magenta} spec`, () => {
 		it('inserts entries in the cache', async () => {
 			const requestedKeys = new Array<string>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((resolve) => {
+				return new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
-						resolve(key);
+						resolve([key, undefined]);
 					}, 20);
 				});
 			};
@@ -193,10 +277,10 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('updates entries in the cache and might discard value returned by retriever', async () => {
 			const requestedKeys = new Array<string>();
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((resolve) => {
+				return new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
-						resolve(key);
+						resolve([key, undefined]);
 					}, 100);
 				});
 			};
@@ -232,8 +316,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${'events'.magenta} spec`, () => {
 		it('should emit events', async () => {
 			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise<string>((resolve) => {
-					setTimeout(() => resolve(key), 20);
+				return new Promise((resolve) => {
+					setTimeout(() => resolve([key, undefined]), 20);
 				});
 			};
 

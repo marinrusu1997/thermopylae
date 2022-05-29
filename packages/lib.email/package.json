@@ -8,7 +8,7 @@
         "client",
         "nodemailer"
     ],
-    "version": "0.0.1",
+    "version": "1.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "./dist/index.js",
@@ -35,9 +35,9 @@
         "nodemailer": "6"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/dev.unit-test": "0",
-        "@thermopylae/dev.environment": "0",
+        "@thermopylae/core.declarations": "1",
+        "@thermopylae/dev.unit-test": "1",
+        "@thermopylae/dev.environment": "1",
         "@types/nodemailer": "6",
         "dotenv": "10"
     },

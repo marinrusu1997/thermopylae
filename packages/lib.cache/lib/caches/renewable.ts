@@ -6,10 +6,13 @@ import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
  *
  * @param key	Key, value of which needs to be retrieved.
  *
- * @returns		Value of the key. Notice that `null` is a valid value. <br/>
+ * @returns		A tuple containing value of the key and optional argument's bundle used for key insertion. <br/>
+ * 				Notice that `null` is a valid value.
  * 				If key doesn't have any value, `undefined` needs to be returned. <br/>
+ * 				If arguments bundle will be returned, it will override the one returned by {@link KeyConfigProvider}.
+ * 				If arguments bundle won't be returned, the one returned by {@link KeyConfigProvider} will be used.
  */
-type KeyRetriever<Key, Value> = (key: Key) => Promise<Value | undefined>;
+type KeyRetriever<Key, Value, ArgumentsBundle = unknown> = (key: Key) => Promise<[Value | undefined, ArgumentsBundle | undefined]>;
 
 /**
  * Function which provides arguments bundle used by different cache operations (for the moment only {@link Cache.set} operation)
@@ -29,7 +32,7 @@ interface RenewableCacheOptions<Key, Value, ArgumentsBundle> {
 	/**
 	 * Retriever function.
 	 */
-	keyRetriever: KeyRetriever<Key, Value>;
+	keyRetriever: KeyRetriever<Key, Value, ArgumentsBundle>;
 	/**
 	 * Optional key config provider which will be used when no explicit arguments bundle was provided to cache operation.
 	 */
@@ -82,14 +85,18 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 		this.options.cache.set(key, promiseHolder, argsBundle);
 
 		try {
-			const result = await this.options.keyRetriever(key);
-			promiseHolder.resolve(result);
+			let value: Undefinable<Value>;
+			[value, argsBundle] = await this.options.keyRetriever(key);
 
-			if (result === undefined) {
+			promiseHolder.resolve(value);
+
+			if (value === undefined) {
 				this.options.cache.del(key);
+			} else if (argsBundle != null) {
+				this.options.cache.set(key, promiseHolder, argsBundle);
 			}
 
-			return result;
+			return value;
 		} catch (e) {
 			this.options.cache.del(key); // revert cache insertion
 			promiseHolder.reject(e); // notify those who already w8 on promise

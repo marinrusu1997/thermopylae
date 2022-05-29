@@ -7,7 +7,7 @@
         "async",
         "utils"
     ],
-    "version": "0.0.1",
+    "version": "1.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "./dist/index.js",
@@ -31,14 +31,14 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/lib.exception": "0",
+        "@thermopylae/core.declarations": "1",
+        "@thermopylae/lib.exception": "1",
         "tiny-async-pool": "1"
     },
     "devDependencies": {
-        "@thermopylae/dev.unit-test": "0",
-        "@thermopylae/lib.utils": "0",
-        "@thermopylae/dev.environment": "0",
+        "@thermopylae/dev.unit-test": "1",
+        "@thermopylae/lib.utils": "1",
+        "@thermopylae/dev.environment": "1",
         "@types/tiny-async-pool": "1"
     },
     "lint-staged": {

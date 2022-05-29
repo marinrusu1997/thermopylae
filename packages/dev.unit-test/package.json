@@ -6,7 +6,7 @@
         "development",
         "unit-test"
     ],
-    "version": "0.0.1",
+    "version": "1.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
@@ -31,9 +31,9 @@
     },
     "dependencies": {
         "@rauschma/stringio": "1",
-        "@thermopylae/core.declarations": "0",
-        "@thermopylae/core.logger": "0",
-        "@thermopylae/lib.utils": "0",
+        "@thermopylae/core.declarations": "1",
+        "@thermopylae/core.logger": "1",
+        "@thermopylae/lib.utils": "1",
         "@types/chai-arrays": "2",
         "@types/chai-as-promised": "7",
         "chai-arrays": "2",
@@ -43,13 +43,13 @@
         "deep-freeze": "0",
         "dockerode": "3",
         "json-schema-typed": "7",
-        "lookpath": "1",
+        "lookpath": "^1.2.2",
         "mocker-data-generator": "2",
         "mysql": "2",
         "netmap": "1"
     },
     "devDependencies": {
-        "@thermopylae/dev.environment": "0",
+        "@thermopylae/dev.environment": "1",
         "@types/deep-freeze": "0",
         "@types/dockerode": "3",
         "@types/mysql": "2"

@@ -8,7 +8,7 @@ function test() {
 }
 
 function debug() {
-  return npmRun.spawn("mocha", ['--inspect-brk'], constants.SPAWN_OPTIONS);
+  return npmRun.spawn("mocha", ['-n', 'inspect-brk'], constants.SPAWN_OPTIONS);
 }
 
 function report() {

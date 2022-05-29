@@ -4,7 +4,7 @@
   "keywords": [
     "development"
   ],
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": "Rusu Marin <dimarusu2000@gmail.com>",
   "repository": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/dev.environment",
   "main": "lib/index.js",
