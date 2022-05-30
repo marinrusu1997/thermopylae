@@ -72,36 +72,61 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 	/**
 	 * @inheritDoc
 	 */
-	public async get(key: Key, argsBundle?: ArgumentsBundle): Promise<Value | undefined> {
-		let promiseHolder = this.options.cache.get(key);
-		if (promiseHolder) {
+	public get(key: Key, argsBundle?: ArgumentsBundle): Promise<Value | undefined> {
+		let promiseHolder: PromiseHolder<Undefinable<Value>> | undefined;
+
+		try {
+			promiseHolder = this.options.cache.get(key);
+			if (promiseHolder) {
+				return promiseHolder.promise;
+			}
+
+			if (argsBundle == null) {
+				argsBundle = this.options.keyConfigProvider(key);
+			}
+		} catch (e) {
+			return Promise.reject(e);
+		}
+
+		try {
+			promiseHolder = RenewableCache.buildPromiseHolder();
+		} catch (e) {
+			return Promise.reject(e);
+		}
+
+		try {
+			this.options.cache.set(key, promiseHolder, argsBundle);
+		} catch (e) {
+			promiseHolder.reject(e);
 			return promiseHolder.promise;
 		}
 
-		promiseHolder = RenewableCache.buildPromiseHolder();
-		if (argsBundle == null) {
-			argsBundle = this.options.keyConfigProvider(key);
-		}
-		this.options.cache.set(key, promiseHolder, argsBundle);
+		return this.options
+			.keyRetriever(key)
+			.then((result) => {
+				let value;
+				[value, argsBundle] = result;
 
-		try {
-			let value: Undefinable<Value>;
-			[value, argsBundle] = await this.options.keyRetriever(key);
+				if (value === undefined) {
+					this.options.cache.del(key);
+				} else if (argsBundle != null) {
+					this.options.cache.set(key, promiseHolder!, argsBundle);
+				}
 
-			promiseHolder.resolve(value);
+				promiseHolder!.resolve(value);
 
-			if (value === undefined) {
-				this.options.cache.del(key);
-			} else if (argsBundle != null) {
-				this.options.cache.set(key, promiseHolder, argsBundle);
-			}
+				return promiseHolder!.promise;
+			})
+			.catch((e) => {
+				try {
+					this.options.cache.del(key);
+				} catch {
+					// ignore this error
+				}
+				promiseHolder!.reject(e);
 
-			return value;
-		} catch (e) {
-			this.options.cache.del(key); // revert cache insertion
-			promiseHolder.reject(e); // notify those who already w8 on promise
-			throw e; // notify client that called retriever and obtained exception
-		}
+				return promiseHolder!.promise;
+			});
 	}
 
 	/**

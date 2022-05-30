@@ -3,7 +3,7 @@ import { describe, it } from 'mocha';
 import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
 import { chrono } from '@thermopylae/lib.utils';
-import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
+import { MaybePromise, PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
 import { setTimeout as asyncSetTimeout } from 'timers/promises';
 import {
 	KeyRetriever,
@@ -11,6 +11,7 @@ import {
 	EntryPoolCacheBackend,
 	PolicyBasedCache,
 	CacheEvent,
+	Cache,
 	AbsoluteExpirationPolicyArgumentsBundle,
 	ProactiveExpirationPolicy,
 	HeapGarbageCollector,
@@ -18,7 +19,7 @@ import {
 	INFINITE_EXPIRATION
 } from '../../lib';
 
-describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
+describe.only(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
 		it('prevents multiple calls of the retriever with the same key', async () => {
 			let retrieverCalls = 0;
@@ -100,6 +101,123 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 
 			expect(renewableCache.has('a')).to.be.eq(false);
 			expect(renewableCache.has('b')).to.be.eq(false);
+		});
+
+		it('handles exceptions thrown by key config provider', async () => {
+			const errors = new Array<Error>();
+
+			const keyRetriever: KeyRetriever<string, string> = (key) => {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						resolve([key, undefined]);
+					}, 100);
+				});
+			};
+			const keyConfigProvider: KeyConfigProvider<string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
+				const err = new Error(key);
+				errors.push(err);
+				throw err;
+			};
+
+			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
+			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
+			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever, keyConfigProvider });
+
+			const results = await Promise.allSettled([
+				renewableCache.get('a'),
+				renewableCache.get('a'),
+				renewableCache.get('a'),
+				renewableCache.get('b'),
+				renewableCache.get('b')
+			]);
+
+			expect(renewableCache.size).to.be.eq(0);
+			expect(errors).to.be.ofSize(5); // config provider called 5 times
+			expect(results).to.be.ofSize(5);
+			for (let i = 0; i < 5; i++) {
+				expect(results[i].status).to.be.eq('rejected');
+				// @ts-ignore For testing purposes
+				expect(results[i].reason).to.be.deep.eq(errors[i]);
+			}
+
+			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
+			expect(errors).to.be.ofSize(6);
+			expect(errors[5].message).to.be.eq('c');
+			expect(renewableCache.size).to.be.eq(0);
+
+			expect(renewableCache.has('a')).to.be.eq(false);
+			expect(renewableCache.has('b')).to.be.eq(false);
+			expect(renewableCache.has('c')).to.be.eq(false);
+		});
+
+		it('handles cases when Cache.set might throw an exception', async () => {
+			const keyRetriever: KeyRetriever<string, string> = (key) => {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						resolve([key, undefined]);
+					}, 100);
+				});
+			};
+
+			const errors = new Array<Error>();
+
+			const cache: Cache<string, PromiseHolder<Undefinable<string>>, any> = {
+				del(): boolean {
+					return false;
+				},
+				get(): MaybePromise<PromiseHolder<Undefinable<string>> | undefined, 'plain'> {
+					return undefined;
+				},
+				has(): boolean {
+					return false;
+				},
+				keys(): Array<string> {
+					return [];
+				},
+				off() {
+					return this;
+				},
+				on() {
+					return this;
+				},
+				set(key: string): void {
+					const err = new Error(key);
+					errors.push(err);
+					throw err;
+				},
+				size: 0,
+				clear(): void {
+					return undefined;
+				}
+			};
+
+			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
+
+			const results = await Promise.allSettled([
+				renewableCache.get('a'),
+				renewableCache.get('a'),
+				renewableCache.get('a'),
+				renewableCache.get('b'),
+				renewableCache.get('b')
+			]);
+
+			expect(renewableCache.size).to.be.eq(0);
+			expect(errors).to.be.ofSize(5); // Cache.set called 5 times
+			expect(results).to.be.ofSize(5);
+			for (let i = 0; i < 5; i++) {
+				expect(results[i].status).to.be.eq('rejected');
+				// @ts-ignore For testing purposes
+				expect(results[i].reason).to.be.deep.eq(errors[i]);
+			}
+
+			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
+			expect(errors).to.be.ofSize(6);
+			expect(errors[5].message).to.be.eq('c');
+			expect(renewableCache.size).to.be.eq(0);
+
+			expect(renewableCache.has('a')).to.be.eq(false);
+			expect(renewableCache.has('b')).to.be.eq(false);
+			expect(renewableCache.has('c')).to.be.eq(false);
 		});
 
 		it('handles scenario when promise holder was removed from cache before retriever returned entry', async () => {
