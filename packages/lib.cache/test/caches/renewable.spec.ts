@@ -19,7 +19,7 @@ import {
 	INFINITE_EXPIRATION
 } from '../../lib';
 
-describe.only(`${colors.magenta(RenewableCache.name)} spec`, () => {
+describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
 		it('prevents multiple calls of the retriever with the same key', async () => {
 			let retrieverCalls = 0;
