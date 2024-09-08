@@ -34,7 +34,19 @@ export type {
 	SyncFunction,
 	Runnable
 } from './functions';
-export * from './http/index';
+
+export type { ClientType, HttpDeviceClient, HttpDeviceOs, HttpDevice, DeviceType, HttpDeviceDetector } from './http/device';
+export type { HTTPRequestLocation } from './http/location';
+export { MimeType, MimeExt } from './http/mime';
+export type { HttpResponse } from './http/response';
+export type { HttpRequestHeader, NonStandardHttpRequestHeaders, StandardHttpRequestHeaders } from './http/request-headers';
+export { HttpRequestHeaderEnum } from './http/request-headers';
+export type { HttpRequest, HttpHeaderValue } from './http/request';
+export type { HttpResponseHeader, NonStandardHttpResponseHeaders, StandardHttpResponseHeaders } from './http/response-headers';
+export { HttpResponseHeaderEnum } from './http/response-headers';
+export { HttpStatusCode } from './http/status-codes';
+export { HttpVerb, HttpVerbEnum } from './http/verb';
+
 export type {
 	MutableSome,
 	RequireSome,
