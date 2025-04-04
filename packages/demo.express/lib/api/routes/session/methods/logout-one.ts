@@ -1,12 +1,13 @@
-import handler from 'express-async-handler';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
+import { HttpStatusCode, type ObjMap } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_USER_SESSION_SYM, ApplicationServices, ServiceMethod } from '../../../../constants';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons.js';
+import { ApplicationServices, REQUEST_USER_SESSION_SYM, ServiceMethod } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -26,23 +27,29 @@ const validateRequestBody: RequestHandler = handler(
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.LOGOUT_ONE, req.body);
 			next();
-		} catch (e) {
-			if (e instanceof ValidationError) {
+		} catch (error) {
+			// @ts-expect-error-error
+			if (error instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_INPUT,
-						message: API_VALIDATOR.joinErrors(e.errors, 'text')
+						message: API_VALIDATOR.joinErrors(error.errors, 'text')
 					}
 				});
 				return;
 			}
-			throw e;
+			throw error;
 		}
 	}
 );
 
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>) => {
-	await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteOne(req[REQUEST_USER_SESSION_SYM]!.sub, req.body['refresh-token']);
+	const userSession = req[REQUEST_USER_SESSION_SYM];
+	if (!userSession) {
+		throw createException(AppErrorCodes.MISCONFIGURATION, 'Request is missing user session');
+	}
+
+	await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteOne(userSession.sub, req.body['refresh-token']);
 	res.status(HttpStatusCode.NoContent).send();
 });
 

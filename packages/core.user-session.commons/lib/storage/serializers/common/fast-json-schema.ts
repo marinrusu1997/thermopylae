@@ -1,8 +1,6 @@
-import { ObjectSchema } from 'fast-json-stringify';
+import type { ObjectSchema } from 'fast-json-stringify';
 
-/**
- * @private
- */
+/** @private */
 const FAST_JSON_SCHEMA: ObjectSchema = {
 	title: 'User Session Meta Data Schema',
 	type: 'object',

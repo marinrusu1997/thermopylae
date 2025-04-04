@@ -1,13 +1,12 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/dev.unit-test';
-import { Nullable } from '@thermopylae/core.declarations';
-import { array } from '@thermopylae/lib.utils';
-import arrayMove from 'array-move';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { array, types } from '@thermopylae/lib.utils';
+import { arrayMoveMutable } from 'array-move';
 import colors from 'colors';
-// @ts-ignore This package has no typings
+// @ts-expect-error This package has no typingsypings
 import gc from 'js-gc';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked';
+import randomItem from 'random-item';
+import { describe, expect, it } from 'vitest';
+import { DoublyLinkedList, type DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked.js';
 
 class Node<T = number> implements DoublyLinkedListNode<Node<T>> {
 	public [NEXT_SYM]: Nullable<Node<T>>;
@@ -23,7 +22,7 @@ class Node<T = number> implements DoublyLinkedListNode<Node<T>> {
 	}
 }
 
-function assertListContainsAllNodes<T extends DoublyLinkedListNode<T>>(dll: DoublyLinkedList<T>, nodes: Array<T>): void | never {
+function assertListContainsAllNodes<T extends DoublyLinkedListNode<T>>(dll: DoublyLinkedList<T>, nodes: T[]): void | never {
 	let iter = 0;
 	for (const listNode of dll) {
 		expect(listNode).to.be.eq(nodes[iter++]);
@@ -34,12 +33,12 @@ function assertListContainsAllNodes<T extends DoublyLinkedListNode<T>>(dll: Doub
 describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	it('should create an empty list and iterate over it', () => {
 		const dll = new DoublyLinkedList();
-		for (const _ of dll) {
-			assert(false, 'List should be empty');
-		}
+		expect(dll[Symbol.iterator]().next()).toStrictEqual({ value: types.SOFT_DELETE, done: true });
 	});
 
 	it('should add nodes to front', () => {
+		expect.hasAssertions();
+
 		const dll = new DoublyLinkedList<Node>();
 		const nodes = new Array<Node>();
 
@@ -54,6 +53,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	});
 
 	it('should add nodes to back', () => {
+		expect.hasAssertions();
+
 		const dll = new DoublyLinkedList<Node>();
 		const nodes = new Array<Node>();
 
@@ -68,8 +69,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		}
 
 		// remove to ensure it works ok
-		while (!dll.empty() && nodes.length) {
-			const removed = array.randomElement(nodes);
+		while (!dll.empty() && nodes.length > 0) {
+			const removed = randomItem(nodes);
 			dll.remove(removed);
 			array.remove(nodes, (node) => node === removed);
 
@@ -88,12 +89,15 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	});
 
 	it('should append after specified node', () => {
-		const dll = new DoublyLinkedList<Node>(new Node(0));
+		expect.hasAssertions();
 
-		const nodes = new Array<Node>(dll.head!);
+		const initialHeadNode = new Node(1);
+		const dll = new DoublyLinkedList<Node>(initialHeadNode);
 
-		for (let i = 1; i < 20; i++) {
-			const appendNode = array.randomElement(nodes);
+		const nodes = [initialHeadNode];
+
+		for (let i = 2; i <= 20; i++) {
+			const appendNode = randomItem(nodes);
 			const newNode = new Node(i);
 
 			dll.insertAfter(appendNode, newNode);
@@ -105,6 +109,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	});
 
 	it('should remove nodes', () => {
+		expect.hasAssertions();
+
 		const dll = new DoublyLinkedList<Node>();
 		const nodes = new Array<Node>(10);
 
@@ -114,8 +120,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			nodes[9 - i] = node;
 		}
 
-		while (!dll.empty() && nodes.length) {
-			const removed = array.randomElement(nodes);
+		while (!dll.empty() && nodes.length > 0) {
+			const removed = randomItem(nodes);
 			dll.remove(removed);
 			array.remove(nodes, (node) => node === removed);
 
@@ -124,6 +130,8 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 	});
 
 	it('should move nodes to front', () => {
+		expect.hasAssertions();
+
 		const dll = new DoublyLinkedList<Node>();
 		const nodes = new Array<Node>(10);
 
@@ -134,16 +142,18 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		}
 
 		for (let i = 0; i < 20; i++) {
-			const node = array.randomElement(nodes);
+			const node = randomItem(nodes);
 			dll.toFront(node);
-			arrayMove.mutate(nodes, nodes.indexOf(node), 0);
+			arrayMoveMutable(nodes, nodes.indexOf(node), 0);
 
 			assertListContainsAllNodes(dll, nodes);
 		}
 	});
 
-	// eslint-disable-next-line mocha/no-skipped-tests
+	// oxlint-disable-next-line no-disabled-tests
 	it.skip('should clear all nodes from list', () => {
+		expect.hasAssertions();
+
 		const dll = new DoublyLinkedList<Node>();
 		const DELTA = 250_000;
 
@@ -182,7 +192,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			dll.push(new Node(3));
 			expect(dll.size).to.be.eq(3);
 
-			dll.insertAfter(dll.head!, new Node(4));
+			dll.insertAfter(dll.head ?? new Node(0), new Node(4));
 			expect(dll.size).to.be.eq(4);
 		});
 
@@ -190,7 +200,7 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			const dll = new DoublyLinkedList<Node>(new Node(1));
 			expect(dll.size).to.be.eq(1);
 
-			dll.remove(dll.head!);
+			dll.remove(dll.head ?? new Node(0));
 			expect(dll.size).to.be.eq(0);
 		});
 
@@ -198,13 +208,13 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 			const dll = new DoublyLinkedList<Node>(new Node(1));
 			expect(dll.size).to.be.eq(1);
 
-			dll.toFront(dll.head!);
+			dll.toFront(dll.head ?? new Node(0));
 			expect(dll.size).to.be.eq(1);
 
 			dll.unshift(new Node(2));
 			expect(dll.size).to.be.eq(2);
 
-			dll.toFront(dll.tail!);
+			dll.toFront(dll.tail ?? new Node(0));
 			expect(dll.size).to.be.eq(2);
 		});
 

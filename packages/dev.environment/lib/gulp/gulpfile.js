@@ -1,22 +1,22 @@
-"use strict";
+'use strict';
 
 const tasks = require('./tasks');
 const gulp = require('gulp');
 
 module.exports = {
-    build: tasks.build.buildWithDeclarationsFileFactory('TS', gulp),
-    doc: tasks.doc,
-    readme: tasks.readme,
+	build: tasks.build.buildWithDeclarationsFileFactory('TS', gulp),
+	doc: tasks.doc,
+	readme: tasks.readme,
 
-    test: tasks.test.test,
-    debug: tasks.test.debug,
-    report: tasks.test.report,
+	test: tasks.test.test,
+	debug: tasks.test.debug,
+	report: tasks.test.report,
 
-    clean: tasks.clean.clean,
-    purge: tasks.clean.purge,
+	clean: tasks.clean.clean,
+	purge: tasks.clean.purge,
 
-    coverage: tasks.coverage.coverageFactory('TS', gulp),
-    coverageShow: tasks.coverage.coverageShow,
+	coverage: tasks.coverage.coverageFactory('TS', gulp),
+	coverageShow: tasks.coverage.coverageShow,
 
-    stickToMajorSemver: tasks.stickToMajorSemver
+	stickToMajorSemver: tasks.stickToMajorSemver
 };

@@ -1,15 +1,13 @@
-import type { UnixTimestamp } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../error';
-import { getCurrentTimestamp } from '../utils';
-import { AccountStatus } from '../types/enums';
-import type { AccountModel } from '../types/models';
-import type { EmailSender } from '../types/side-channels';
-import type { AccountRepository } from '../types/repositories';
-import type { OnAccountDisabledHook } from '../types/hooks';
+import { type UnixTimestamp, UnixTimestampC } from '@thermopylae/core.declarations';
+import { chrono } from '@thermopylae/lib.utils';
+import { ErrorCodes, createException } from '../error.js';
+import { AccountStatus } from '../types/enums.js';
+import type { OnAccountDisabledHook } from '../types/hooks.js';
+import type { AccountModel } from '../types/models.js';
+import type { AccountRepository } from '../types/repositories.js';
+import type { EmailSender } from '../types/side-channels.js';
 
-/**
- * @private
- */
+/** @private */
 class AccountManager<Account extends AccountModel> {
 	private readonly adminEmail: string;
 
@@ -72,7 +70,7 @@ class AccountManager<Account extends AccountModel> {
 	}
 
 	public async enable(accountId: string): Promise<void> {
-		await this.accountRepository.setDisabledUntil(accountId, AccountStatus.ENABLED);
+		await this.accountRepository.setDisabledUntil(accountId, UnixTimestampC(AccountStatus.ENABLED));
 	}
 
 	public async disable(account: Account, until: UnixTimestamp | AccountStatus.DISABLED_UNTIL_ACTIVATION, cause: string): Promise<void> {
@@ -81,7 +79,7 @@ class AccountManager<Account extends AccountModel> {
 		// best effort, we must take at least one of these actions, because it's clearly
 		// that something bad happened in the system, if account needs to be disabled
 		await Promise.all([
-			this.accountRepository.setDisabledUntil(account.id, until),
+			this.accountRepository.setDisabledUntil(account.id, UnixTimestampC(until)),
 			this.onAccountDisabledHook(account),
 			this.emailSender.notifyAdminAboutAccountDisabling(this.adminEmail, account, cause),
 			this.emailSender.notifyAccountDisabled(account, cause)
@@ -97,13 +95,12 @@ class AccountManager<Account extends AccountModel> {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled until it won't be activated.`);
 		}
 
-		const currentTimestamp = getCurrentTimestamp();
-		if (account.disabledUntil > currentTimestamp) {
+		if (account.disabledUntil > chrono.unix()) {
 			throw createException(ErrorCodes.ACCOUNT_DISABLED, `Account with id ${account.id} is disabled until ${account.disabledUntil}.`);
 		}
 
 		account.disabledUntil = AccountStatus.ENABLED;
-		await this.accountRepository.setDisabledUntil(account.id, AccountStatus.ENABLED);
+		await this.accountRepository.setDisabledUntil(account.id, UnixTimestampC(AccountStatus.ENABLED));
 	}
 }
 

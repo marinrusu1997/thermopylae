@@ -1,8 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-import { IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo, randomPerson } from './utils';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { describe, expect, it } from 'vitest';
+import { IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo, type ReadonlyPerson, randomPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 	it('clears no entries when storage is empty', () => {
@@ -15,7 +14,7 @@ describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 
 	it('clears all entries from storage', () => {
 		const indexes = Object.values(PersonIndexes);
-		const store = new IndexedStore<Person>({ indexes });
+		const store = new IndexedStore<ReadonlyPerson>({ indexes });
 		store.insert(PersonsRepo);
 		expect(store.size).to.be.eq(PersonsRepo.length);
 
@@ -23,14 +22,14 @@ describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 		expect(store.size).to.be.eq(0);
 
 		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
+		const predicate = (person: ReadonlyPerson) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
-		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])!.find(predicate)).to.be.eq(undefined);
+		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME]).find(predicate)).toBeUndefined();
 	});
 
 	it('clears all entries but preserves indexes', () => {
 		const indexes = Object.values(PersonIndexes);
-		const store = new IndexedStore<Person>({ indexes });
+		const store = new IndexedStore<ReadonlyPerson>({ indexes });
 		store.insert(PersonsRepo);
 		expect(store.size).to.be.eq(PersonsRepo.length);
 
@@ -38,7 +37,7 @@ describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 		expect(store.size).to.be.eq(0);
 
 		for (const indexName of indexes) {
-			expect(store.readIndex(indexName)!.size).to.be.eq(0);
+			expect(store.readIndex(indexName).size).to.be.eq(0);
 		}
 	});
 });

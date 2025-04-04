@@ -13,16 +13,16 @@ interface Finance {
 	bank: {
 		name: string;
 	};
-	transactions: Array<Transaction>;
+	transactions: Transaction[];
 }
 
 interface Person {
-	id: string | number;
+	id: string;
 	firstName: string;
 	birthYear: number;
 	address: Address;
 	finance: Finance;
-	visitedCountries: Array<string>;
+	visitedCountries: string[];
 }
 
-export { Transaction, Address, Finance, Person };
+export type { Transaction, Address, Finance, Person };

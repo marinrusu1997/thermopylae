@@ -1,13 +1,11 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { afterEach, describe, it } from 'mocha';
-import fs from 'fs';
-import process from 'process';
-import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
-import { FileLogsManager } from '../lib/transports/file';
-import { expectToLogIntoFile, formatCurrentDate, log, unlinkAsync } from './utils';
-
-const { expect } = chai;
+import fs from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import process from 'node:process';
+import { afterEach, describe, expect, it } from 'vitest';
+import type TransportStream from 'winston-transport';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
+import { FileLogsManager } from '../lib/transports/file.js';
+import { expectToLogIntoFile, formatCurrentDate, log } from './utils.js';
 
 describe(`${FileLogsManager.name} spec`, () => {
 	const config = {
@@ -25,34 +23,34 @@ describe(`${FileLogsManager.name} spec`, () => {
 
 	afterEach(async () => {
 		const promises = [];
-		for (let i = 0; i < createdFiles.length; i += 1) {
-			if (fs.existsSync(createdFiles[i])) {
-				promises.push(unlinkAsync(createdFiles[i]));
+		for (const createdFile of createdFiles) {
+			if (fs.existsSync(createdFile)) {
+				promises.push(unlink(createdFile));
 			}
 		}
 		await Promise.all(promises);
 	});
 
 	it('modules can log to same file with same minimum level', async () => {
-		const filelogs = new FileLogsManager();
+		const fileLogs = new FileLogsManager();
 		const formatter = new FormattingManager();
 
 		formatter.setDefaultFormattingOrder(OutputFormat.PRINTF);
-		filelogs.createTransport(config);
+		fileLogs.createTransport(config);
 
-		await log(formatter.formatterFor('module1'), filelogs.get()!, {
+		await log(formatter.formatterFor('module1'), fileLogs.get() as TransportStream, {
 			level: 'info',
 			message: 'info1'
 		});
-		await log(formatter.formatterFor('module2'), filelogs.get()!, {
+		await log(formatter.formatterFor('module2'), fileLogs.get() as TransportStream, {
 			level: 'warn',
 			message: 'warn2'
 		});
-		await log(formatter.formatterFor('module1'), filelogs.get()!, {
+		await log(formatter.formatterFor('module1'), fileLogs.get() as TransportStream, {
 			level: 'silly',
 			message: 'silly1'
 		});
-		await log(formatter.formatterFor('module2'), filelogs.get()!, {
+		await log(formatter.formatterFor('module2'), fileLogs.get() as TransportStream, {
 			level: 'debug',
 			message: 'debug2'
 		});

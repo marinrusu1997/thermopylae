@@ -1,319 +1,258 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CONFIG-AUTHENTICATION_ENGINE",
-  "type": "object",
-  "title": "The authentication engine config validation schema.",
-  "properties": {
-    "thresholds": {
-      "type": "object",
-      "properties": {
-        "maxFailedAuthAttempts": {
-          "type": "integer",
-          "minimum": 3,
-          "maximum": 15
-        },
-        "failedAuthAttemptsRecaptcha": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 10
-        }
-      },
-      "required": [
-        "maxFailedAuthAttempts",
-        "failedAuthAttemptsRecaptcha"
-      ],
-      "additionalProperties": false
-    },
-    "ttl": {
-      "type": "object",
-      "properties": {
-        "authenticationSession": {
-          "type": "integer",
-          "minimum": 30,
-          "maximum": 300
-        },
-        "failedAuthAttemptsSession": {
-          "type": "integer",
-          "minimum": 60,
-          "maximum": 900
-        },
-        "activateAccountSession": {
-          "type": "integer",
-          "minimum": 300,
-          "maximum": 1200
-        },
-        "forgotPasswordSession": {
-          "type": "integer",
-          "minimum": 300,
-          "maximum": 900
-        },
-        "accountDisableTimeout": {
-          "type": "integer",
-          "minimum": 3600,
-          "maximum": 86400
-        }
-      },
-      "required": [
-        "authenticationSession",
-        "failedAuthAttemptsSession",
-        "activateAccountSession",
-        "forgotPasswordSession",
-        "accountDisableTimeout"
-      ],
-      "additionalProperties": false
-    },
-    "repositories": {
-      "type": "object",
-      "properties": {
-        "activateAccountSessionKeyPrefix": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 10
-        },
-        "authenticationSessionKeyPrefix": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 10
-        },
-        "failedAuthAttemptsSessionKeyPrefix": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 10
-        },
-        "forgotPasswordSessionKeyPrefix": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 10
-        }
-      },
-      "required": [
-        "activateAccountSessionKeyPrefix",
-        "authenticationSessionKeyPrefix",
-        "failedAuthAttemptsSessionKeyPrefix",
-        "forgotPasswordSessionKeyPrefix"
-      ],
-      "additionalProperties": false
-    },
-    "recaptcha": {
-      "type": "object",
-      "properties": {
-        "secretKey": {
-          "type": "string"
-        },
-        "score": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "action": {
-          "type": "string",
-          "minLength": 1
-        },
-        "hostname": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "secretKey",
-        "score",
-        "action",
-        "hostname"
-      ],
-      "additionalProperties": false
-    },
-    "password": {
-      "type": "object",
-      "properties": {
-        "encryption": {
-          "const": false
-        },
-        "minLength": {
-          "type": "integer",
-          "minimum": 12,
-          "maximum": 4096
-        },
-        "maxLength": {
-          "type": "integer",
-          "minimum": 12,
-          "maximum": 4096
-        },
-        "breachThreshold": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "similarity": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "hashing": {
-          "type": "object",
-          "properties": {
-            "hashLength": {
-              "type": "integer",
-              "minimum": 32
-            },
-            "timeCost": {
-              "type": "integer",
-              "minimum": 3
-            },
-            "memoryCost": {
-              "type": "integer",
-              "minimum": 4096
-            },
-            "parallelism": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "type": {
-              "enum": [0, 1, 2]
-            },
-            "secret": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "hashLength",
-            "memoryCost",
-            "parallelism",
-            "type"
-          ],
-          "additionalProperties": false
-        }
-      },
-      "required": [
-        "encryption",
-        "minLength",
-        "maxLength",
-        "breachThreshold",
-        "similarity",
-        "hashing"
-      ],
-      "additionalProperties": false
-    },
-    "adminEmail": {
-      "$ref": "../core/core.json#/definitions/email"
-    },
-    "2faStrategy": {
-      "type": "object",
-      "properties": {
-        "totp": {
-          "type": "object",
-          "properties": {
-            "secretLength": {
-              "type": "integer",
-              "minimum": 15,
-              "maximum": 100
-            },
-            "encryption": {
-              "type": "object",
-              "properties": {
-                "algorithm": {
-                  "type": "string"
-                },
-                "secret": {
-                  "type": "string",
-                  "minLength": 10
-                },
-                "iv": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "const": null
-                    }
-                  ]
-                },
-                "options": {
-                  "type": "object"
-                }
-              },
-              "required": [
-                "algorithm",
-                "secret",
-                "iv"
-              ],
-              "additionalProperties": false
-            },
-            "authenticator": {
-              "type": "object",
-              "properties": {
-                "step": {
-                  "type": "integer",
-                  "minimum": 20,
-                  "maximum": 40
-                },
-                "window": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 3
-                },
-                "algorithm": {
-                  "enum": [
-                    "sha1",
-                    "sha256",
-                    "sha512"
-                  ]
-                },
-                "digits": {
-                  "type": "integer",
-                  "minimum": 6,
-                  "maximum": 8
-                },
-                "encoding": {
-                  "enum": [
-                    "ascii",
-                    "base64",
-                    "hex",
-                    "latin1",
-                    "utf8"
-                  ]
-                }
-              },
-              "required": [
-                "step",
-                "window",
-                "algorithm",
-                "digits",
-                "encoding"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": [
-            "secretLength",
-            "encryption",
-            "authenticator"
-          ],
-          "additionalProperties": false
-        },
-        "serviceName": {
-          "type": "string",
-          "minLength": 2
-        }
-      },
-      "required": [
-        "totp",
-        "serviceName"
-      ],
-      "additionalProperties": false
-    },
-    "tokensLength": {
-      "type": "integer",
-      "minimum": 15,
-      "maximum": 100
-    }
-  },
-  "required": [
-    "thresholds",
-    "ttl",
-    "repositories",
-    "recaptcha",
-    "adminEmail",
-    "2faStrategy",
-    "tokensLength"
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CONFIG-AUTHENTICATION_ENGINE",
+	"type": "object",
+	"title": "The authentication engine config validation schema.",
+	"properties": {
+		"thresholds": {
+			"type": "object",
+			"properties": {
+				"maxFailedAuthAttempts": {
+					"type": "integer",
+					"minimum": 3,
+					"maximum": 15
+				},
+				"failedAuthAttemptsRecaptcha": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 10
+				}
+			},
+			"required": ["maxFailedAuthAttempts", "failedAuthAttemptsRecaptcha"],
+			"additionalProperties": false
+		},
+		"ttl": {
+			"type": "object",
+			"properties": {
+				"authenticationSession": {
+					"type": "integer",
+					"minimum": 30,
+					"maximum": 300
+				},
+				"failedAuthAttemptsSession": {
+					"type": "integer",
+					"minimum": 60,
+					"maximum": 900
+				},
+				"activateAccountSession": {
+					"type": "integer",
+					"minimum": 300,
+					"maximum": 1200
+				},
+				"forgotPasswordSession": {
+					"type": "integer",
+					"minimum": 300,
+					"maximum": 900
+				},
+				"accountDisableTimeout": {
+					"type": "integer",
+					"minimum": 3600,
+					"maximum": 86400
+				}
+			},
+			"required": ["authenticationSession", "failedAuthAttemptsSession", "activateAccountSession", "forgotPasswordSession", "accountDisableTimeout"],
+			"additionalProperties": false
+		},
+		"repositories": {
+			"type": "object",
+			"properties": {
+				"activateAccountSessionKeyPrefix": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 10
+				},
+				"authenticationSessionKeyPrefix": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 10
+				},
+				"failedAuthAttemptsSessionKeyPrefix": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 10
+				},
+				"forgotPasswordSessionKeyPrefix": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 10
+				}
+			},
+			"required": [
+				"activateAccountSessionKeyPrefix",
+				"authenticationSessionKeyPrefix",
+				"failedAuthAttemptsSessionKeyPrefix",
+				"forgotPasswordSessionKeyPrefix"
+			],
+			"additionalProperties": false
+		},
+		"recaptcha": {
+			"type": "object",
+			"properties": {
+				"secretKey": {
+					"type": "string"
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"action": {
+					"type": "string",
+					"minLength": 1
+				},
+				"hostname": {
+					"type": "string",
+					"minLength": 1
+				}
+			},
+			"required": ["secretKey", "score", "action", "hostname"],
+			"additionalProperties": false
+		},
+		"password": {
+			"type": "object",
+			"properties": {
+				"encryption": {
+					"const": false
+				},
+				"minLength": {
+					"type": "integer",
+					"minimum": 12,
+					"maximum": 4096
+				},
+				"maxLength": {
+					"type": "integer",
+					"minimum": 12,
+					"maximum": 4096
+				},
+				"breachThreshold": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"similarity": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"hashing": {
+					"type": "object",
+					"properties": {
+						"hashLength": {
+							"type": "integer",
+							"minimum": 32
+						},
+						"timeCost": {
+							"type": "integer",
+							"minimum": 3
+						},
+						"memoryCost": {
+							"type": "integer",
+							"minimum": 4096
+						},
+						"parallelism": {
+							"type": "integer",
+							"minimum": 1
+						},
+						"type": {
+							"enum": [0, 1, 2]
+						},
+						"secret": {
+							"type": "string"
+						}
+					},
+					"required": ["hashLength", "memoryCost", "parallelism", "type"],
+					"additionalProperties": false
+				}
+			},
+			"required": ["encryption", "minLength", "maxLength", "breachThreshold", "similarity", "hashing"],
+			"additionalProperties": false
+		},
+		"adminEmail": {
+			"$ref": "../core/core.json#/definitions/email"
+		},
+		"2faStrategy": {
+			"type": "object",
+			"properties": {
+				"totp": {
+					"type": "object",
+					"properties": {
+						"secretLength": {
+							"type": "integer",
+							"minimum": 15,
+							"maximum": 100
+						},
+						"encryption": {
+							"type": "object",
+							"properties": {
+								"algorithm": {
+									"type": "string"
+								},
+								"secret": {
+									"type": "string",
+									"minLength": 10
+								},
+								"iv": {
+									"oneOf": [
+										{
+											"type": "string"
+										},
+										{
+											"const": null
+										}
+									]
+								},
+								"options": {
+									"type": "object"
+								}
+							},
+							"required": ["algorithm", "secret", "iv"],
+							"additionalProperties": false
+						},
+						"authenticator": {
+							"type": "object",
+							"properties": {
+								"step": {
+									"type": "integer",
+									"minimum": 20,
+									"maximum": 40
+								},
+								"window": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 3
+								},
+								"algorithm": {
+									"enum": ["sha1", "sha256", "sha512"]
+								},
+								"digits": {
+									"type": "integer",
+									"minimum": 6,
+									"maximum": 8
+								},
+								"encoding": {
+									"enum": ["ascii", "base64", "hex", "latin1", "utf8"]
+								}
+							},
+							"required": ["step", "window", "algorithm", "digits", "encoding"],
+							"additionalProperties": false
+						}
+					},
+					"required": ["secretLength", "encryption", "authenticator"],
+					"additionalProperties": false
+				},
+				"serviceName": {
+					"type": "string",
+					"minLength": 2
+				}
+			},
+			"required": ["totp", "serviceName"],
+			"additionalProperties": false
+		},
+		"tokensLength": {
+			"type": "integer",
+			"minimum": 15,
+			"maximum": 100
+		}
+	},
+	"required": ["thresholds", "ttl", "repositories", "recaptcha", "adminEmail", "2faStrategy", "tokensLength"],
+	"additionalProperties": false
 }

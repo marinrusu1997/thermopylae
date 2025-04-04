@@ -1,18 +1,22 @@
-import { HttpStatusCode, Library, Mutable, ObjMap } from '@thermopylae/core.declarations';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ExpressRequestAdapter } from '@thermopylae/core.adapter.express';
-import { SetTwoFactorAuthenticationContext, ErrorCodes as AuthenticationErrorCodes, OnTwoFactorEnabledHookResult } from '@thermopylae/lib.authentication';
+import { HttpStatusCode, Library, type Mutable, type ObjMap } from '@thermopylae/core.declarations';
+import { ValidationError } from '@thermopylae/lib.api-validator';
+import {
+	ErrorCodes as AuthenticationErrorCodes,
+	type OnTwoFactorEnabledHookResult,
+	type SetTwoFactorAuthenticationContext
+} from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { logger } from '../../../../logger';
-import { REQUEST_USER_SESSION_SYM, ApplicationServices, ServiceMethod } from '../../../../constants';
-import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
-import { RequestWithUserSession } from '../../../../typings';
-import { stringifyOperationContext } from '../../../../utils';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { ApplicationServices, REQUEST_USER_SESSION_SYM, ServiceMethod } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import { logger } from '../../../../logger.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
+import { stringifyOperationContext } from '../../../../utils.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -33,17 +37,18 @@ const validateRequestBody: RequestHandler = handler(
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.SET_TWO_FACTOR_AUTH_ENABLED, req.body);
 			next();
-		} catch (e) {
-			if (e instanceof ValidationError) {
+		} catch (error) {
+			// @ts-expect-error error
+			if (error instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_INPUT,
-						message: API_VALIDATOR.joinErrors(e.errors, 'text')
+						message: API_VALIDATOR.joinErrors(error.errors, 'text')
 					}
 				});
 				return;
 			}
-			throw e;
+			throw error;
 		}
 	}
 );
@@ -56,23 +61,28 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 	context.location = request.location;
 	context.device = request.device;
 
+	const userSession = req[REQUEST_USER_SESSION_SYM];
+	if (!userSession) {
+		throw createException(AppErrorCodes.MISCONFIGURATION, 'Request is missing user session');
+	}
+
 	try {
-		const result = (await AUTHENTICATION_ENGINE.setTwoFactorAuthEnabled(req[REQUEST_USER_SESSION_SYM]!.sub, req.body.enabled, context)) as
+		const result = (await AUTHENTICATION_ENGINE.setTwoFactorAuthEnabled(userSession.sub, req.body.enabled, context)) as
 			| OnTwoFactorEnabledHookResult
 			| null
 			| undefined;
 
-		if (result != null) {
-			res.status(HttpStatusCode.Ok).send(result);
-		} else {
+		if (result == null) {
 			res.status(HttpStatusCode.NoContent).send();
+		} else {
+			res.status(HttpStatusCode.Ok).send(result);
 		}
-	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Set two factor authentication enabled failed. ${stringifyOperationContext(context)}.`, e);
+	} catch (error) {
+		if (error instanceof Exception && error.emitter === Library.AUTHENTICATION) {
+			logger.error(`Set two factor authentication enabled failed. ${stringifyOperationContext(context)}.`, error);
 
-			let httpResponseStatus: number;
-			switch (e.code) {
+			let httpResponseStatus = -1;
+			switch (error.code) {
 				case AuthenticationErrorCodes.ACCOUNT_NOT_FOUND:
 					httpResponseStatus = HttpStatusCode.NotFound;
 					break;
@@ -85,20 +95,20 @@ const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, R
 				default:
 					throw createException(
 						AppErrorCodes.MISCONFIGURATION,
-						`Could not determine http response code from Exception thrown by AuthenticationEngine.changePassword method. Error code: ${e.code}.`
+						`Could not determine http response code from Exception thrown by AuthenticationEngine.changePassword method. Error code: ${error.code}.`
 					);
 			}
 
 			res.status(httpResponseStatus).send({
 				error: {
-					code: e.code,
+					code: error.code,
 					message: 'Set two factor authentication enabled failed.'
 				}
 			});
 			return;
 		}
 
-		throw e;
+		throw error;
 	}
 });
 

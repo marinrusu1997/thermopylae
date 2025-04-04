@@ -1,23 +1,21 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import colors from 'colors';
+import type { MaybePromise, PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { MaybePromise, PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
-import { setTimeout as asyncSetTimeout } from 'timers/promises';
+import colors from 'colors';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
 import {
-	KeyRetriever,
-	RenewableCache,
-	EntryPoolCacheBackend,
-	PolicyBasedCache,
+	type AbsoluteExpirationPolicyArgumentsBundle,
+	type Cache,
 	CacheEvent,
-	Cache,
-	AbsoluteExpirationPolicyArgumentsBundle,
-	ProactiveExpirationPolicy,
+	EntryPoolCacheBackend,
 	HeapGarbageCollector,
-	KeyConfigProvider,
-	INFINITE_EXPIRATION
-} from '../../lib';
+	INFINITE_EXPIRATION,
+	type KeyConfigProvider,
+	type KeyRetriever,
+	PolicyBasedCache,
+	ProactiveExpirationPolicy,
+	RenewableCache
+} from '../../lib/index.js';
 
 describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
@@ -44,13 +42,13 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				renewableCache.get('b'),
 				renewableCache.get('b')
 			]);
-			expect(results).to.be.equalTo(['a', 'a', 'a', 'b', 'b']);
+			expect(results).toStrictEqual(['a', 'a', 'a', 'b', 'b']);
 
 			expect(retrieverCalls).to.be.eq(2);
 			expect(renewableCache.size).to.be.eq(2);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			await expect(renewableCache.get('b')).to.eventually.be.eq('b');
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			await expect(renewableCache.get('b')).resolves.to.be.eq('b');
 			expect(retrieverCalls).to.be.eq(2); // retriever not called cuz we have it in cache
 
 			expect(renewableCache.has('a')).to.be.eq(true);
@@ -58,15 +56,14 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 
 		it('notifies all callers that retriever threw an exception', async () => {
 			const errors = new Array<Error>();
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((_, reject) => {
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((_resolve, reject) => {
 					setTimeout(() => {
 						const error = new Error(key);
 						errors.push(error);
 						reject(error);
 					}, 20);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
@@ -81,21 +78,21 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(2); // retriever called 2 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(2); // retriever called 2 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 3; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore For testing purposes
+				// @ts-expect-error For testing purposesrposes
 				expect(results[i].reason).to.be.deep.eq(errors[0]);
 			}
 			for (let i = 3; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore For testing purposes
+				// @ts-expect-error For testing purposesrposes
 				expect(results[i].reason).to.be.deep.eq(errors[1]);
 			}
 
-			await expect(renewableCache.get('a')).to.eventually.be.rejectedWith('a');
-			expect(errors).to.be.ofSize(3);
+			await expect(renewableCache.get('a')).rejects.toThrow('a');
+			expect(errors).to.have.length(3);
 			expect(errors[2].message).to.be.eq('a');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -106,13 +103,13 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		it('handles exceptions thrown by key config provider', async () => {
 			const errors = new Array<Error>();
 
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const undef = undefined;
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
-						resolve([key, undefined]);
+						resolve([key, undef]);
 					}, 100);
 				});
-			};
 			const keyConfigProvider: KeyConfigProvider<string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
 				const err = new Error(key);
 				errors.push(err);
@@ -132,16 +129,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(5); // config provider called 5 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(5); // config provider called 5 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore For testing purposes
+				// @ts-expect-error For testing purposesrposes
 				expect(results[i].reason).to.be.deep.eq(errors[i]);
 			}
 
-			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
-			expect(errors).to.be.ofSize(6);
+			await expect(renewableCache.get('c')).rejects.toThrow('c');
+			expect(errors).to.have.length(6);
 			expect(errors[5].message).to.be.eq('c');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -151,17 +148,17 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		});
 
 		it('handles cases when Cache.set might throw an exception', async () => {
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const undef = undefined;
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
-						resolve([key, undefined]);
+						resolve([key, undef]);
 					}, 100);
 				});
-			};
 
 			const errors = new Array<Error>();
 
-			const cache: Cache<string, PromiseHolder<Undefinable<string>>, any> = {
+			const cache: Cache<string, PromiseHolder<Undefinable<string>>, unknown> = {
 				del(): boolean {
 					return false;
 				},
@@ -171,7 +168,7 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				has(): boolean {
 					return false;
 				},
-				keys(): Array<string> {
+				keys(): string[] {
 					return [];
 				},
 				off() {
@@ -202,16 +199,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(5); // Cache.set called 5 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(5); // Cache.set called 5 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
-				// @ts-ignore For testing purposes
+				// @ts-expect-error For testing purposesrposes
 				expect(results[i].reason).to.be.deep.eq(errors[i]);
 			}
 
-			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
-			expect(errors).to.be.ofSize(6);
+			await expect(renewableCache.get('c')).rejects.toThrow('c');
+			expect(errors).to.have.length(6);
 			expect(errors[5].message).to.be.eq('c');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -222,14 +219,13 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 
 		it('handles scenario when promise holder was removed from cache before retriever returned entry', async () => {
 			const requestedKeys = new Array<string>();
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
 						resolve([key, undefined]);
 					}, 100);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
@@ -248,8 +244,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			expect(renewableCache.size).to.be.eq(0);
 
 			const results = await requests;
-			expect(results).to.be.equalTo(['a', 'a', 'a', 'b', 'b']);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(results).toStrictEqual(['a', 'a', 'a', 'b', 'b']);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 			expect(renewableCache.size).to.be.eq(0);
 
 			expect(renewableCache.has('a')).to.be.eq(false);
@@ -257,24 +253,23 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			const firstReq = await chrono.executionTimeAsync(renewableCache.get, renewableCache, 'a');
 			expect(firstReq.result).to.be.eq('a');
 			expect(firstReq.time.milliseconds).to.be.gte(100); // retriever run
-			expect(requestedKeys).to.be.equalTo(['a', 'b', 'a']);
+			expect(requestedKeys).toStrictEqual(['a', 'b', 'a']);
 
 			const secondReq = await chrono.executionTimeAsync(renewableCache.get, renewableCache, 'a');
 			expect(secondReq.result).to.be.eq('a');
 			expect(secondReq.time.milliseconds).to.be.lessThan(50); // no retriever run
-			expect(requestedKeys).to.be.equalTo(['a', 'b', 'a']);
+			expect(requestedKeys).toStrictEqual(['a', 'b', 'a']);
 		});
 
 		it('removes promise holder from cache if retriever found nothing', async () => {
 			const requestedKeys = new Array<string>();
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
 						resolve([undefined, undefined]);
 					}, 20);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
@@ -287,8 +282,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				renewableCache.get('b'),
 				renewableCache.get('b')
 			]);
-			expect(results).to.be.equalTo([undefined, undefined, undefined, undefined, undefined]);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(results).toStrictEqual([undefined, undefined, undefined, undefined, undefined]);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 			expect(renewableCache.size).to.be.eq(0);
 
 			expect(renewableCache.has('a')).to.be.eq(false);
@@ -296,124 +291,121 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 		});
 
 		it('inserts value returned by key retriever and applies arguments bundle returned by him', async () => {
-			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
-				return new Promise((resolve) => {
+			const DELAY = 20;
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						resolve([key, { expiresAfter: 1 }]);
-					}, 20);
+					}, DELAY);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
 			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever });
 
-			const result = (await renewableCache.get('key'))!;
+			const result = (await renewableCache.get('key')) ?? '';
 			expect(result).to.be.eq('key');
-			expect(await cache.get(result)!.promise).to.be.eq('key');
+			await expect(cache.get(result)?.promise).resolves.to.be.eq('key');
 
-			await asyncSetTimeout(1200);
-			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+			await sleep(1200);
+			expect(cache.get(result)).toBeUndefined(); // it applied `expiresAfter` from arguments bundle
 		});
 
-		it('arguments bundle returned by keyRetriever have precedence over the one returned by keyConfigProvider', async () => {
-			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
-				return new Promise((resolve) => {
+		it('arguments bundle returned by keyRetriever have precedence over the one returned by keyConfigProvider', { timeout: 2500 }, async () => {
+			const DELAY = 20;
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						resolve([key, { expiresAfter: 1 }]);
-					}, 20);
+					}, DELAY);
 				});
-			};
-			const keyConfigProvider: KeyConfigProvider<string, AbsoluteExpirationPolicyArgumentsBundle> = () => {
-				return { expiresAfter: 2 };
-			};
+			const EXPIRES_AFTER = 2;
+			const keyConfigProvider: KeyConfigProvider<string, AbsoluteExpirationPolicyArgumentsBundle> = () => ({ expiresAfter: EXPIRES_AFTER });
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
 			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever, keyConfigProvider });
 
-			const result = (await renewableCache.get('key'))!;
+			const result = (await renewableCache.get('key')) ?? '';
 			expect(result).to.be.eq('key');
-			expect(await cache.get(result)!.promise).to.be.eq('key');
+			await expect(cache.get(result)?.promise).resolves.to.be.eq('key');
 
-			await asyncSetTimeout(1200);
-			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+			await sleep(1200);
+			expect(cache.get(result)).toBeUndefined(); // it applied `expiresAfter` from arguments bundle
 
-			await asyncSetTimeout(900);
-			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
-		}).timeout(2500);
+			await sleep(900);
+			expect(cache.get(result)).toBeUndefined(); // it applied `expiresAfter` from arguments bundle
+		});
 
 		it('arguments bundle returned by keyRetriever have precedence over the one that were passed explicitly', async () => {
-			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
-				return new Promise((resolve) => {
+			const DELAY = 20;
+			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						resolve([key, { expiresAfter: 1 }]);
-					}, 20);
+					}, DELAY);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const policy = new ProactiveExpirationPolicy<string, PromiseHolder<Undefinable<string>>>(new HeapGarbageCollector());
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend, [policy]);
 			const renewableCache = new RenewableCache<string, string, AbsoluteExpirationPolicyArgumentsBundle>({ cache, keyRetriever });
 
-			const result = (await renewableCache.get('key', { expiresAfter: INFINITE_EXPIRATION }))!;
+			const result = (await renewableCache.get('key', { expiresAfter: INFINITE_EXPIRATION })) ?? '';
 			expect(result).to.be.eq('key');
-			expect(await cache.get(result)!.promise).to.be.eq('key');
+			await expect(cache.get(result)?.promise).resolves.to.be.eq('key');
 
-			await asyncSetTimeout(1200);
-			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
+			await sleep(1200);
+			expect(cache.get(result)).toBeUndefined(); // it applied `expiresAfter` from arguments bundle
 		});
 	});
 
 	describe(`${RenewableCache.prototype.set.name.magenta} spec`, () => {
 		it('inserts entries in the cache', async () => {
 			const requestedKeys = new Array<string>();
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
 						resolve([key, undefined]);
 					}, 20);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
-			expect(Array.from(renewableCache.keys())).to.be.equalTo(['a']);
+			expect([...renewableCache.keys()]).toStrictEqual(['a']);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			expect(requestedKeys).to.have.length(0);
 			expect(renewableCache.size).to.be.eq(1);
 		});
 
 		it('updates entries in the cache and might discard value returned by retriever', async () => {
 			const requestedKeys = new Array<string>();
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
 					setTimeout(() => {
 						requestedKeys.push(key);
 						resolve([key, undefined]);
 					}, 100);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			expect(requestedKeys).to.have.length(0);
 
 			renewableCache.set('a', 'a1');
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a1');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a1');
+			expect(requestedKeys).to.have.length(0);
 
 			renewableCache.clear();
 			expect(renewableCache.size).to.be.eq(0);
@@ -423,21 +415,21 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			renewableCache.set('b', 'b1');
 
 			const responses = await requests;
-			expect(responses).to.be.equalTo(['a', 'a', 'b', 'b']);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(responses).toStrictEqual(['a', 'a', 'b', 'b']);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a1');
-			await expect(renewableCache.get('b')).to.eventually.be.eq('b1');
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a1');
+			await expect(renewableCache.get('b')).resolves.to.be.eq('b1');
 		});
 	});
 
 	describe(`${'events'.magenta} spec`, () => {
 		it('should emit events', async () => {
-			const keyRetriever: KeyRetriever<string, string> = (key) => {
-				return new Promise((resolve) => {
-					setTimeout(() => resolve([key, undefined]), 20);
+			const DELAY = 20;
+			const keyRetriever: KeyRetriever<string, string> = (key) =>
+				new Promise((resolve) => {
+					setTimeout(() => resolve([key, undefined]), DELAY);
 				});
-			};
 
 			const backend = new EntryPoolCacheBackend<string, PromiseHolder<Undefinable<string>>>(10);
 			const cache = new PolicyBasedCache<string, PromiseHolder<Undefinable<string>>>(backend);
@@ -459,16 +451,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			});
 
 			await renewableCache.get('a');
-			expect(events.get(CacheEvent.INSERT)).to.be.equalTo(['a', 'a']);
+			expect(events.get(CacheEvent.INSERT)).toStrictEqual(['a', 'a']);
 
 			renewableCache.set('a', 'a1');
-			expect(events.get(CacheEvent.UPDATE)).to.be.equalTo(['a']);
+			expect(events.get(CacheEvent.UPDATE)).toStrictEqual(['a']);
 
 			renewableCache.del('a');
-			expect(events.get(CacheEvent.DELETE)).to.be.equalTo(['a']);
+			expect(events.get(CacheEvent.DELETE)).toStrictEqual(['a']);
 
 			renewableCache.clear();
-			expect(events.get(CacheEvent.FLUSH)).to.be.ofSize(0);
+			expect(events.get(CacheEvent.FLUSH)).to.have.length(0);
 		});
 	});
 });

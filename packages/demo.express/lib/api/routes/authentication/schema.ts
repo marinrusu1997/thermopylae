@@ -1,5 +1,5 @@
 import deepFreeze from 'deep-freeze';
-import { ApiSchema } from '../../../typings';
+import type { ApiSchema } from '../../../typings.js';
 
 type ApiMethod =
 	| 'authenticate'

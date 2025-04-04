@@ -1,12 +1,13 @@
-import * as TransportStream from 'winston-transport';
-import DailyRotateFile, { DailyRotateFileTransportOptions } from 'winston-daily-rotate-file';
 import type { Nullable } from '@thermopylae/core.declarations';
-import type { AbstractTransportManager } from '../typings';
-import { createException, ErrorCodes } from '../error';
+import DailyRotateFile, { type DailyRotateFileTransportOptions } from 'winston-daily-rotate-file';
+import type TransportStream from 'winston-transport';
+import { ErrorCodes, createException } from '../error.js';
+import type { AbstractTransportManager } from '../typings.js';
 
 /**
- * Class responsible for holding file transport object. <br/>
- * Uses [winston-daily-rotate-file](https://www.npmjs.com/package/winston-daily-rotate-file) npm package.
+ * Class responsible for holding file transport object. <br/> Uses
+ * [winston-daily-rotate-file](https://www.npmjs.com/package/winston-daily-rotate-file) npm
+ * package.
  */
 class FileLogsManager implements AbstractTransportManager {
 	private transport: Nullable<TransportStream>;
@@ -18,7 +19,7 @@ class FileLogsManager implements AbstractTransportManager {
 	/**
 	 * Create file transport instance.
 	 *
-	 * @param   options   File transport options.
+	 * @param options File transport options.
 	 */
 	public createTransport(options: DailyRotateFileTransportOptions): void {
 		if (this.transport != null) {
@@ -31,8 +32,8 @@ class FileLogsManager implements AbstractTransportManager {
 	}
 
 	/**
-	 * Module name is silently discarded. All modules will log to same file
-	 * with the level specified in file transport config. <br>
+	 * Module name is silently discarded. All modules will log to same file with the level specified
+	 * in file transport config. <br>
 	 *
 	 * @private
 	 */
@@ -41,4 +42,5 @@ class FileLogsManager implements AbstractTransportManager {
 	}
 }
 
-export { FileLogsManager, DailyRotateFileTransportOptions };
+export { FileLogsManager };
+export type { DailyRotateFileTransportOptions };

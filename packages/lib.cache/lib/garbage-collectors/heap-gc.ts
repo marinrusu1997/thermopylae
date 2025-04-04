@@ -1,30 +1,26 @@
-import { Nullable, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { type Nullable, type UnixTimestamp, UnixTimestampC } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { Heap, HeapNode } from '../data-structures/heap';
-import { EXPIRES_AT_SYM } from '../constants';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import { Heap, type HeapNode } from '../data-structures/heap.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
 }
 
-/**
- * @private
- */
+/** @private */
 interface HeapExpirableEntry extends ExpirableEntry, HeapNode {}
 
 /**
- * {@link GarbageCollector} which uses a binary min heap to keep entries that needs to be evicted. <br/>
- * Each heap node is represent by cache entry which contains expiration time. <br/>
- * Eviction timer is always synchronized with heap root and fires at expiration time of root entry.
- * When it fires, will evict root and other nodes that have expiration time equal to root.
- * After that, timer will fire again at the expiration time of the newest root.
+ * {@link GarbageCollector} which uses a binary min heap to keep entries that needs to be evicted.
+ * <br/> Each heap node is represent by cache entry which contains expiration time. <br/> Eviction
+ * timer is always synchronized with heap root and fires at expiration time of root entry. When it
+ * fires, will evict root and other nodes that have expiration time equal to root. After that, timer
+ * will fire again at the expiration time of the newest root.
  *
- * @template T	Type of the cache entry.
+ * @template T Type of the cache entry.
  */
 class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageCollector<T> {
 	private readonly entries: Heap<T>;
@@ -34,9 +30,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	private entryExpiredCb: EntryExpiredCallback<T>;
 
 	public constructor(entryExpiredCb?: EntryExpiredCallback<T>) {
-		this.entries = new Heap<T>((first, second) => {
-			return first[EXPIRES_AT_SYM]! - second[EXPIRES_AT_SYM]!;
-		});
+		this.entries = new Heap<T>((first, second) => (first[EXPIRES_AT_SYM] ?? 0) - (second[EXPIRES_AT_SYM] ?? 0));
 		this.cleanUpInterval = null;
 		this.entryExpiredCb = entryExpiredCb || HeapGarbageCollector.defaultEntryExpiredCallback;
 	}
@@ -80,13 +74,13 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 		this.synchronizeEvictionTimer();
 	}
 
-	public setEntryExpiredCallback(cb: EntryExpiredCallback<T>): void {
-		this.entryExpiredCb = cb;
+	public setEntryExpiredCallback(handler: EntryExpiredCallback<T>): void {
+		this.entryExpiredCb = handler;
 	}
 
 	/**
-	 * This method synchronizes garbage collection. <br/>
-	 * It needs to be called every time expirable keys heap is altered.
+	 * This method synchronizes garbage collection. <br/> It needs to be called every time expirable
+	 * keys heap is altered.
 	 */
 	private synchronizeEvictionTimer(): void {
 		const rootEntry = this.entries.peek();
@@ -102,7 +96,7 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 
 		if (this.cleanUpInterval == null) {
 			this.cleanUpInterval = {
-				willCleanUpOn: 0,
+				willCleanUpOn: UnixTimestampC(0),
 				timeoutId: null as unknown as NodeJS.Timeout
 			};
 			this.scheduleNextGc(rootEntry);
@@ -117,35 +111,35 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	}
 
 	private scheduleNextGc(rootEntry: T): void {
-		// in case runDelay <= 0, it's safe, as we will remove item immediately
-		// (this might be caused because unixTime is actually a rounded value, so it can be rounded to current, or next second)
-		const runDelay = rootEntry[EXPIRES_AT_SYM]! - chrono.unixTime(); // we track only items that have expires at
-		this.cleanUpInterval!.willCleanUpOn = rootEntry[EXPIRES_AT_SYM]!;
-		this.cleanUpInterval!.timeoutId = setTimeout(this.evictExpiredEntries, runDelay * 1000);
+		if (this.cleanUpInterval && rootEntry[EXPIRES_AT_SYM] != null) {
+			// in case runDelay <= 0, it's safe, as we will remove item immediately
+			// (this might be caused because unixTime is actually a rounded value, so it can be rounded to current, or next second)
+			const runDelay = rootEntry[EXPIRES_AT_SYM] - chrono.unix(); // we track only items that have expires at
+			this.cleanUpInterval.willCleanUpOn = rootEntry[EXPIRES_AT_SYM];
+			this.cleanUpInterval.timeoutId = setTimeout(this.evictExpiredEntries, runDelay * 1000);
+		}
 	}
 
 	private evictExpiredEntries = (): void => {
-		let rootEntry: Undefinable<T>;
-
 		do {
-			// remove from internal structure (we do this here, so that in case entryExpiredCb tries to `leave` entry,
-			// we won't try to delete it again and restart a parallel timer)
-			rootEntry = this.entries.pop();
-			this.entryExpiredCb(rootEntry!);
-
-			rootEntry = this.entries.peek();
+			const rootEntry = this.entries.peek();
 
 			if (rootEntry === undefined) {
 				this.cleanUpInterval = null;
-				return; // done
+				break; // done
 			}
 
-			if (rootEntry[EXPIRES_AT_SYM] !== this.cleanUpInterval!.willCleanUpOn) {
+			if (this.cleanUpInterval && rootEntry[EXPIRES_AT_SYM] != null && rootEntry[EXPIRES_AT_SYM] > this.cleanUpInterval.willCleanUpOn) {
 				this.scheduleNextGc(rootEntry);
-				return;
+				break;
 			}
 
-			// eslint-disable-next-line no-constant-condition
+			// remove from internal structure (we do this here, so that in case entryExpiredCb tries to `leave` entry,
+			// we won't try to delete it again and restart a parallel timer)
+			this.entries.pop();
+			this.entryExpiredCb(rootEntry);
+
+			// oxlint-disable-next-line no-constant-condition
 		} while (true);
 	};
 
@@ -154,4 +148,4 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	}
 }
 
-export { HeapGarbageCollector, HeapExpirableEntry };
+export { HeapGarbageCollector, type HeapExpirableEntry };

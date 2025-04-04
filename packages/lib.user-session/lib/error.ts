@@ -1,7 +1,7 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	USER_SESSION_NOT_FOUND = 'USER_SESSION_NOT_FOUND',
 	USER_SESSION_EXPIRED = 'USER_SESSION_EXPIRED',
 	FORBIDDEN_ACCESS_TO_USER_SESSION_FROM_DIFFERENT_DEVICE = 'FORBIDDEN_ACCESS_TO_USER_SESSION_FROM_DIFFERENT_DEVICE',
@@ -12,9 +12,7 @@ const enum ErrorCodes {
 	OLD_SESSION_AVAILABILITY_TIMEOUT_AFTER_RENEWAL_REQUIRED = 'OLD_SESSION_AVAILABILITY_TIMEOUT_AFTER_RENEWAL_REQUIRED'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: string, message: string): Exception {
 	return new Exception(Library.USER_SESSION, code, message);
 }

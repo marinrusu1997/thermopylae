@@ -1,137 +1,62 @@
-import { AsyncFunction, Hours, Milliseconds, Minutes, ObjMap, Seconds, SyncFunction } from '@thermopylae/core.declarations';
-import convertHrTime, { HRTime } from 'convert-hrtime';
-import process from 'process';
+// @ts-expect-error-error - No typings
+import unixTimestamp from '@darkwolf/unix-timestamp';
+import type { AsyncFunction, ObjMap, SyncFunction, UnixTimestamp } from '@thermopylae/core.declarations';
+import convertHrTime, { type HighResolutionTime } from 'convert-hrtime';
+import process from 'node:process';
 
 /**
  * Represent the result of the function which execution time was measured.
  *
- * @template R	Function return type.
+ * @template R Function return type.
  */
 interface TimedExecutionResult<R> {
-	/**
-	 * Function result.
-	 */
+	/** Function result. */
 	result: R;
-	/**
-	 * Function execution high resolution time.
-	 */
-	time: HRTime;
-}
-
-/**
- * Sleeps for specified amount of milliseconds
- *
- * @param {number} ms	Number of milliseconds to sleep.
- *
- * @returns {Promise<void>}
- */
-function sleep(ms: Milliseconds): Promise<void> {
-	return new Promise<void>((resolve) => {
-		setTimeout(resolve, ms);
-	});
+	/** Function execution high resolution time. */
+	time: HighResolutionTime;
 }
 
 /**
  * Measure execution time of the given function.
  *
- * @template I	Function arguments type.
- * @template O	Function output type.
+ * @template I Function arguments type.
+ * @template O Function output type.
  *
- * @param fn		Function instance.
- * @param context	Function calling context (i.e. `this`).
- * @param args		Function arguments.
+ * @param   fn      Function instance.
+ * @param   context Function calling context (i.e. `this`).
+ * @param   args    Function arguments.
  *
- * @returns		Function result and it's execution time.
+ * @returns         Function result and it's execution time.
  */
-function executionTime<I, O>(fn: SyncFunction<I, O>, context?: ObjMap, ...args: I[]): TimedExecutionResult<O> {
-	const start = process.hrtime();
+function executionTime<I, O>(fn: SyncFunction<I, O>, context?: ObjMap | null, ...args: I[]): TimedExecutionResult<O> {
+	const start = process.hrtime.bigint();
 	const result = fn.apply(context, args);
-	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
+	const time = convertHrTime(process.hrtime.bigint() - start); // do not count object construction time from bellow statement
 	return { result, time };
 }
 
 /**
  * Measure execution time of the given async function.
  *
- * @template I	Function arguments type.
- * @template O	Function output type.
+ * @template I Function arguments type.
+ * @template O Function output type.
  *
- * @param fn		Async function instance.
- * @param context	Function calling context (i.e. `this`).
- * @param args		Function arguments.
+ * @param   fn      Async function instance.
+ * @param   context Function calling context (i.e. `this`).
+ * @param   args    Function arguments.
  *
- * @returns		Function result and it's execution time.
+ * @returns         Function result and it's execution time.
  */
 async function executionTimeAsync<I, O>(fn: AsyncFunction<I, O>, context?: ObjMap, ...args: I[]): Promise<TimedExecutionResult<O>> {
-	const start = process.hrtime();
+	const start = process.hrtime.bigint();
 	const result = await fn.apply(context, args);
-	const time = convertHrTime(process.hrtime(start)); // do not count object construction time from bellow statement
+	const time = convertHrTime(process.hrtime.bigint() - start); // do not count object construction time from bellow statement
 	return { result, time };
 }
 
-/**
- * Converts minutes to seconds.
- *
- * @param minutes
- */
-function minutesToSeconds(minutes: Minutes): Seconds {
-	return minutes * 60;
-}
-
-/**
- * Converts milliseconds to seconds.
- *
- * @param ms
- */
-function millisecondsToSeconds(ms: Milliseconds): Seconds {
-	return Math.floor(ms / 1000);
-}
-
-/**
- * Converts seconds to milliseconds.
- *
- * @param seconds
- */
-function secondsToMilliseconds(seconds: Seconds): Milliseconds {
-	return seconds * 1000;
-}
-
-/**
- * Convert hours, minutes and seconds to milliseconds.
- *
- * @param hours		Number of hours. <br/>
- * 					Defaults to **0**.
- * @param minutes	Number of minutes. <br/>
- * 					Defaults to **0**.
- * @param seconds	Number of seconds. <br/>
- * 					Defaults to **0**.
- *
- * 	@returns 		Number of milliseconds.
- */
-function milliseconds(hours: Hours = 0, minutes: Minutes = 0, seconds: Seconds = 0): Milliseconds {
-	return (hours * 3600 + minutes * 60 + seconds) * 1000;
-}
-
-/**
- * Convert given `date` to UNIX time.
- *
- * @param date	Date to be converted.
- *
- * @returns 	UNIX time equivalent of the `date`.
- */
-function unixTime(date = new Date()): Seconds {
-	return millisecondsToSeconds(date.getTime());
-}
-
-/**
- * Converts given UNIX time to Date equivalent.
- *
- * @param elapsed	UNIX time.
- *
- * @returns	Date equivalent.
- */
-function fromUnixTime(elapsed: Seconds): Date {
-	return new Date(secondsToMilliseconds(elapsed));
+/** @param options */
+function unix(options?: { millis: boolean }): UnixTimestamp {
+	return unixTimestamp(options);
 }
 
 /**
@@ -151,8 +76,7 @@ function firstDayOfNextMonth(): Date {
 }
 
 /**
- * Computes the date of tomorrow.
- * Tomorrow computation will have current time.
+ * Computes the date of tomorrow. Tomorrow computation will have current time.
  *
  * @returns Date of tomorrow.
  */
@@ -163,17 +87,5 @@ function tomorrow(): Date {
 	return tomorrowDate;
 }
 
-export {
-	TimedExecutionResult,
-	sleep,
-	executionTime,
-	executionTimeAsync,
-	milliseconds,
-	unixTime,
-	fromUnixTime,
-	minutesToSeconds,
-	millisecondsToSeconds,
-	secondsToMilliseconds,
-	firstDayOfNextMonth,
-	tomorrow
-};
+export { executionTime, executionTimeAsync, firstDayOfNextMonth, tomorrow, unix };
+export type { TimedExecutionResult };

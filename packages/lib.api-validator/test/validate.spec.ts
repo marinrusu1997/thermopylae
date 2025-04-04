@@ -1,28 +1,23 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-// eslint-disable-next-line import/extensions
-import ValidationError from 'ajv/dist/runtime/validation_error';
-import { ApiValidator } from '../lib';
-import { apiValidator } from './bootstrap';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { describe, expect, it } from 'vitest';
+import { ApiValidator } from '../lib/index.js';
+import { apiValidator } from './bootstrap.js';
 
 describe(`${ApiValidator.prototype.validate.name} spec`, () => {
 	it('validates schemas', async () => {
 		const car = { model: 'BMW', engine: 8 };
-		expect(await apiValidator.validate('CAR_SERVICE', 'car', car)).to.be.deep.eq(car);
+		await expect(apiValidator.validate('CAR_SERVICE', 'car', car)).resolves.to.be.deep.eq(car);
 	});
 
 	it('fails to validate schemas', async () => {
 		const car = { model: 'DACIA', engine: 8 };
 
-		let err: ValidationError | null = null;
+		let err: (Error & ObjMap) | null = null;
 		try {
 			await apiValidator.validate('CAR_SERVICE', 'car', car);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
-
-		expect(apiValidator.joinErrors(err!.errors, 'text')).to.be.eq('data/model must be equal to one of the allowed values');
+		expect(apiValidator.joinErrors(err?.errors ?? [], 'text')).to.be.eq('data/model must be equal to one of the allowed values');
 	});
 });

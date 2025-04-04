@@ -1,7 +1,7 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_REFRESH_TOKEN_LENGTH = 'INVALID_REFRESH_TOKEN_LENGTH',
 	USER_SESSION_NOT_FOUND = 'USER_SESSION_NOT_FOUND',
 	REFRESHING_ACCESS_TOKEN_FROM_DIFFERENT_CONTEXT_NOT_ALLOWED = 'REFRESHING_ACCESS_TOKEN_FROM_DIFFERENT_CONTEXT_NOT_ALLOWED',
@@ -9,9 +9,7 @@ const enum ErrorCodes {
 	EXPIRES_IN_INVALID_TYPE = 'EXPIRES_IN_INVALID_TYPE'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: ErrorCodes, message: string): Exception {
 	return new Exception(Library.JWT_USER_SESSION, code, message);
 }

@@ -1,8 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { ArrayObjectPool, ObjectResource } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { ArrayObjectPool, type ObjectResource } from '../lib/index.js';
 
 describe(`${ArrayObjectPool.name} spec`, () => {
 	it('acquires & releases objects from pool with capacity 1', () => {
@@ -28,7 +26,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 		pool.release(resource);
 		expect(pool.free).to.be.eq(1);
 		expect(pool.used).to.be.eq(0);
-		expect(resource.value['key']).to.be.eq(undefined);
+		expect(resource.value['key']).toBeUndefined();
 
 		const secondAcquire = pool.acquire('second-value');
 		expect(secondAcquire).to.be.eq(resource); // reused object
@@ -39,7 +37,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 		pool.releaseAll();
 		expect(pool.free).to.be.eq(1);
 		expect(pool.used).to.be.eq(0);
-		expect(resource.value['key']).to.be.eq(undefined);
+		expect(resource.value['key']).toBeUndefined();
 	});
 
 	it('acquires & releases objects from pool', () => {
@@ -73,24 +71,24 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 
 		// do not reorder them
 		pool.release(firstRes);
-		expect(firstRes.value['key']).to.be.eq(undefined);
+		expect(firstRes.value['key']).toBeUndefined();
 
 		pool.release(fourthRes);
-		expect(fourthRes.value['key']).to.be.eq(undefined);
+		expect(fourthRes.value['key']).toBeUndefined();
 
 		pool.release(secondRes);
-		expect(secondRes.value['key']).to.be.eq(undefined);
+		expect(secondRes.value['key']).toBeUndefined();
 
 		pool.release(fifthRes);
-		expect(fifthRes.value['key']).to.be.eq(undefined);
+		expect(fifthRes.value['key']).toBeUndefined();
 
 		pool.release(thirdRes);
-		expect(thirdRes.value['key']).to.be.eq(undefined);
+		expect(thirdRes.value['key']).toBeUndefined();
 
 		expect(pool.free).to.be.eq(10);
 		expect(pool.used).to.be.eq(0);
 
-		const resources = new Array<ObjectResource<Record<string, any>>>(10);
+		const resources = new Array<ObjectResource<Record<string, unknown>>>(10);
 		for (let i = 0; i < 10; i++) {
 			resources[i] = pool.acquire(i);
 			expect(resources[i].value['key']).to.be.eq(i);
@@ -99,7 +97,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 
 		for (let i = 9; i >= 0; i--) {
 			pool.release(resources[i]);
-			expect(resources[i].value['key']).to.be.eq(undefined);
+			expect(resources[i].value['key']).toBeUndefined();
 			expect(pool.used).to.be.eq(i);
 		}
 		expect(pool.free).to.be.eq(10);
@@ -112,7 +110,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 
 		for (let i = 0; i < 10; i++) {
 			pool.release(resources[i]);
-			expect(resources[i].value['key']).to.be.eq(undefined);
+			expect(resources[i].value['key']).toBeUndefined();
 			expect(pool.free).to.be.eq(i + 1);
 		}
 
@@ -124,7 +122,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 
 		for (let i = 5; i < 10; i++) {
 			pool.release(resources[i]);
-			expect(resources[i].value['key']).to.be.eq(undefined);
+			expect(resources[i].value['key']).toBeUndefined();
 		}
 		expect(pool.used).to.be.eq(5);
 		expect(pool.free).to.be.eq(5);
@@ -133,7 +131,7 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 		expect(pool.used).to.be.eq(0);
 		expect(pool.free).to.be.eq(10);
 		for (let i = 0; i < 10; i++) {
-			expect(resources[i].value['key']).to.be.eq(undefined);
+			expect(resources[i].value['key']).toBeUndefined();
 		}
 
 		pool.clear();
@@ -166,23 +164,23 @@ describe(`${ArrayObjectPool.name} spec`, () => {
 		expect(pool.free).to.be.eq(0);
 
 		pool.release(first);
-		expect(first.value['key']).to.be.eq(undefined);
+		expect(first.value['key']).toBeUndefined();
 		expect(second.value['key']).to.be.eq('2');
 		expect(third.value['key']).to.be.eq('3');
 		expect(pool.free).to.be.eq(1);
 		expect(pool.used).to.be.eq(2);
 
 		pool.release(second);
-		expect(first.value['key']).to.be.eq(undefined);
-		expect(second.value['key']).to.be.eq(undefined);
+		expect(first.value['key']).toBeUndefined();
+		expect(second.value['key']).toBeUndefined();
 		expect(third.value['key']).to.be.eq('3');
 		expect(pool.free).to.be.eq(2);
 		expect(pool.used).to.be.eq(1);
 
 		pool.release(third);
-		expect(first.value['key']).to.be.eq(undefined);
-		expect(second.value['key']).to.be.eq(undefined);
-		expect(third.value['key']).to.be.eq(undefined);
+		expect(first.value['key']).toBeUndefined();
+		expect(second.value['key']).toBeUndefined();
+		expect(third.value['key']).toBeUndefined();
 		expect(pool.free).to.be.eq(3);
 		expect(pool.used).to.be.eq(0);
 	});

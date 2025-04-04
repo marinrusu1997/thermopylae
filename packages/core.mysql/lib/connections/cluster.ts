@@ -1,48 +1,29 @@
-import { createPoolCluster } from 'mysql2';
-import {
-	PoolCluster,
-	PoolClusterOptions,
-	PoolConnection,
-	PoolOptions,
-	// @ts-ignore Poor typings for this package
-	PromisePoolConnection
-	// eslint-disable-next-line import/extensions
-} from 'mysql2/promise';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../error';
-import { logger } from '../logger';
-import { ConnectionsManager, PoolConfigurator, QueryType } from './interface';
-import { mysqlErrorHandler } from '../utils';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import type { Pool } from 'mysql2/promise';
+import { type PoolCluster, type PoolClusterOptions, type PoolConnection, type PoolNamespace, type PoolOptions, createPoolCluster } from 'mysql2/promise.js';
+import { ErrorCodes, createException } from '../error.js';
+import { logger } from '../logger.js';
+import { mysqlErrorHandler } from '../utils.js';
+import { type ConnectionsManager, type PoolConfigurator, QueryType } from './interface.js';
 
-interface PoolClusterNodes {
-	/**
-	 * Configuration for each of the cluster nodes.
-	 */
-	[NodeName: string]: PoolOptions;
-}
+type PoolClusterNodes = Record<string, PoolOptions>;
 
 interface PoolClusterConfig {
-	/**
-	 * Configuration for the whole cluster.
-	 */
+	/** Configuration for the whole cluster. */
 	cluster?: PoolClusterOptions;
-	/**
-	 * Configuration for cluster nodes.
-	 */
+	/** Configuration for cluster nodes. */
 	nodes: PoolClusterNodes;
 }
 
-/**
- * @private
- */
+/** @private */
 class PoolClusterConnectionsManager implements ConnectionsManager {
 	private static readonly CLUSTER_NODE_NAME_REGEX = /^(?:MASTER|SLAVE)/;
 
 	private readonly poolCluster: PoolCluster;
 
-	private readonly writePool: PoolCluster;
+	private readonly writePool: PoolNamespace;
 
-	private readonly readPool: PoolCluster;
+	private readonly readPool: PoolNamespace;
 
 	public constructor(options: PoolClusterConfig) {
 		const clusterNodeNames = Object.getOwnPropertyNames(options.nodes);
@@ -55,7 +36,7 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 		this.poolCluster = createPoolCluster(options.cluster);
 
 		for (let i = clusterNodeNames.length - 1; i >= 0; i--) {
-			this.poolCluster.add(clusterNodeNames[i], options.nodes[clusterNodeNames[i]] as any);
+			this.poolCluster.add(clusterNodeNames[i], options.nodes[clusterNodeNames[i]]);
 		}
 
 		this.poolCluster.on('online', (nodeId: number) => logger.notice(`Pool Cluster Node with id ${nodeId} is online.`));
@@ -70,38 +51,32 @@ class PoolClusterConnectionsManager implements ConnectionsManager {
 	public getConnection(type: QueryType): Promise<PoolConnection> {
 		switch (type) {
 			case QueryType.READ:
-				return new Promise<PoolConnection>((resolve, reject) => {
-					this.readPool.getConnection((err, connection) => {
-						return err ? reject(err) : resolve(new PromisePoolConnection(connection));
-					});
-				});
+				return this.readPool.getConnection();
 			case QueryType.WRITE:
-				return new Promise<PoolConnection>((resolve, reject) => {
-					this.writePool.getConnection((err, connection) => {
-						return err ? reject(err) : resolve(new PromisePoolConnection(connection));
-					});
-				});
+				return this.writePool.getConnection();
 			default:
 				return Promise.reject(createException(ErrorCodes.UNKNOWN_CONNECTION_TYPE, `Unknown connection type: ${type}.`));
 		}
 	}
 
 	public init(configurator: PoolConfigurator, configOptions: ObjMap): void {
-		// @ts-ignore Poor typings for this package
-		// eslint-disable-next-line no-restricted-syntax, guard-for-in, no-underscore-dangle
-		for (const nodeName in this.poolCluster._nodes) {
-			// @ts-ignore Poor typings for this package
-			// eslint-disable-next-line no-underscore-dangle
-			configurator(this.poolCluster._nodes[nodeName].pool, configOptions);
+		// @ts-expect-error Poor typings for this packageackage
+		const nodes: Record<string, { pool: Pool }> = this.poolCluster._nodes;
+
+		for (const nodeName in nodes) {
+			if (Object.hasOwn(nodes, nodeName)) {
+				configurator(nodes[nodeName].pool, configOptions);
+			}
 		}
 	}
 
 	public shutdown(): Promise<void> {
 		return new Promise((resolve, reject) => {
-			// @ts-ignore Poor typings for this package
-			this.poolCluster.end((err) => (err ? reject(err) : resolve()));
+			// @ts-expect-error-error Poor typings
+			// oxlint-disable-next-line prefer-await-to-callbacks
+			this.poolCluster.end((err: Error | null) => (err ? reject(err) : resolve()));
 		});
 	}
 }
 
-export { PoolClusterConnectionsManager, PoolClusterNodes, PoolClusterConfig };
+export { PoolClusterConnectionsManager, type PoolClusterNodes, type PoolClusterConfig };

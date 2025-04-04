@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
-import type { AccountRepository, AccountWithTotpSecret } from '../../../../lib';
-import { getMongoModel } from '../../mongodb';
+import type { AccountRepository, AccountWithTotpSecret } from '../../../../lib/index.js';
+import { getMongoModel } from '../../mongodb.js';
+import { fromDocument } from './utils.js';
 
 const AccountSchema = new mongoose.Schema({
 	username: { type: String, required: true, unique: true },
@@ -14,11 +15,10 @@ const AccountSchema = new mongoose.Schema({
 	totpSecret: String
 });
 AccountSchema.virtual('id').get(function getter() {
-	// @ts-ignore This is for test purposes
 	return String(this._id);
 });
 
-function model(): mongoose.Model<mongoose.Document> {
+function model() {
 	return getMongoModel('account', AccountSchema);
 }
 
@@ -38,82 +38,74 @@ const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 	isDuplicate: async (account) => {
 		const duplicatedFields: (keyof AccountWithTotpSecret)[] = [];
 		const uniqueFields: (keyof AccountWithTotpSecret)[] = ['username', 'email', 'telephone'];
-		for (const field of uniqueFields) {
-			if (
-				(
-					await model()
-						.find({ [field]: account[field] })
-						.exec()
-				).length > 0
-			) {
-				duplicatedFields.push(field);
-			}
-		}
 
-		return duplicatedFields.length !== 0 ? duplicatedFields : null;
+		await Promise.all(
+			uniqueFields.map(async (field) => {
+				const accounts = await model()
+					.find({ [field]: account[field] })
+					.exec();
+				if (accounts.length > 0) {
+					duplicatedFields.push(field);
+				}
+			})
+		);
+
+		return duplicatedFields.length > 0 ? duplicatedFields : null;
 	},
 
 	readById: async (id) => {
-		const document = (await model().findById(id).exec()) as any;
+		const document = await model().findById(id).exec();
 		if (!document) {
 			return null;
 		}
 
-		const accountModel = document.toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = fromDocument<AccountWithTotpSecret>(document);
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
-		delete (accountModel as any)._id;
-		delete (accountModel as any).__v;
 
 		return accountModel;
 	},
 
 	readByUsername: async (username) => {
 		const documents = await model().find({ username }).exec();
-		if (!documents.length) {
+		if (documents.length === 0) {
 			return null;
 		}
 		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for username ${username}`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = fromDocument<AccountWithTotpSecret>(documents[0]);
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
-		delete (accountModel as any)._id;
-		delete (accountModel as any).__v;
 
 		return accountModel;
 	},
 
 	readByEmail: async (email) => {
 		const documents = await model().find({ email }).exec();
-		if (!documents.length) {
+		if (documents.length === 0) {
 			return null;
 		}
 		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for email ${email}.`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = fromDocument<AccountWithTotpSecret>(documents[0]);
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
-		delete (accountModel as any)._id;
-		delete (accountModel as any).__v;
 
 		return accountModel;
 	},
 
 	readByTelephone: async (telephone) => {
 		const documents = await model().find({ telephone }).exec();
-		if (!documents.length) {
+		if (documents.length === 0) {
 			return null;
 		}
 		if (documents.length > 1) {
 			throw new Error(`Expected 1 account to be found for telephone ${telephone}.`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = fromDocument<AccountWithTotpSecret>(documents[0]);
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
-		delete (accountModel as any)._id;
-		delete (accountModel as any).__v;
 
 		return accountModel;
 	},

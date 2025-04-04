@@ -1,63 +1,42 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
-import { chrono } from '@thermopylae/lib.utils';
-import { CacheEntry } from '../../contracts/commons';
-import { EXPIRES_AT_SYM } from '../../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { createException, ErrorCodes } from '../../error';
+import { type Seconds, type UnixTimestamp, UnixTimestampC } from '@thermopylae/core.declarations';
+import { chrono, types } from '@thermopylae/lib.utils';
+import { EXPIRES_AT_SYM } from '../../constants.js';
+import { ErrorCodes, createException } from '../../error.js';
+import type { ExpirableEntry } from '../../garbage-collectors/interface.js';
+import type { CacheReplacementPolicy, Deleter, EntryValidity } from '../../typings/cache-replacement-policy.js';
+import type { CacheEntry } from '../../typings/commons.js';
 
-/**
- * @private
- */
-interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
-	[EXPIRES_AT_SYM]?: UnixTimestamp;
-}
+/** @private */
+interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, ExpirableEntry {}
 
-/**
- * @private
- */
+/** @private */
 abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
-	/**
-	 * Cache entry deleter.
-	 */
+	/** Cache entry deleter. */
 	protected deleteFromCache!: Deleter<Key, Value>;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	abstract onHit(entry: CacheEntry<Key, Value>): EntryValidity;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onMiss(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	abstract onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	abstract onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
-		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
+		entry[EXPIRES_AT_SYM] = types.SOFT_DELETE; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	abstract onClear(): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
@@ -69,17 +48,17 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 			throw createException(ErrorCodes.INVALID_EXPIRES_AFTER, `'expiresAfter' needs to be an integer. Given: ${expiresAfter}.`);
 		}
 
-		const now = chrono.unixTime();
-		let expiresAt: UnixTimestamp;
+		const now = chrono.unix();
+		let expiresAt: UnixTimestamp | null = null;
 
-		if (expiresFrom != null) {
+		if (expiresFrom == null) {
+			expiresAt = UnixTimestampC(now + expiresAfter);
+		} else {
 			if (!Number.isInteger(expiresFrom)) {
 				throw createException(ErrorCodes.INVALID_EXPIRES_FROM, `'expiresFrom' needs to be an integer. Given: ${expiresFrom}.`);
 			}
 
-			expiresAt = expiresFrom + expiresAfter;
-		} else {
-			expiresAt = now + expiresAfter;
+			expiresAt = UnixTimestampC(expiresFrom + expiresAfter);
 		}
 
 		// in case they are equal, item should be immediately evicted
@@ -92,4 +71,4 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 	}
 }
 
-export { AbstractExpirationPolicy, ExpirableCacheEntry };
+export { AbstractExpirationPolicy, type ExpirableCacheEntry };

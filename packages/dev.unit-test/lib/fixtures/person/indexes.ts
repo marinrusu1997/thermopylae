@@ -1,5 +1,4 @@
-import { number, string } from '@thermopylae/lib.utils';
-import deepFreeze from 'deep-freeze';
+import { faker } from '@faker-js/faker';
 
 enum PersonIndexes {
 	I_BIRTH_YEAR = 'birthYear',
@@ -7,13 +6,10 @@ enum PersonIndexes {
 	III_BANK_NAME = 'finance.bank.name'
 }
 
-type IndexValueGenerator = () => string | number;
+const IndexValueGenerators = Object.freeze({
+	[PersonIndexes.I_BIRTH_YEAR]: () => faker.date.birthdate({ mode: 'year', min: 1990, max: 2025 }).getUTCFullYear(),
+	[PersonIndexes.II_COUNTRY_CODE]: () => faker.location.countryCode(),
+	[PersonIndexes.III_BANK_NAME]: () => faker.finance.accountName()
+});
 
-const IndexValueGenerators = new Map<PersonIndexes, IndexValueGenerator>([
-	[PersonIndexes.I_BIRTH_YEAR, () => number.randomInt(2000, 2020)],
-	[PersonIndexes.II_COUNTRY_CODE, () => string.random({ length: 5 })],
-	[PersonIndexes.III_BANK_NAME, () => string.random({ length: 5 })]
-]);
-deepFreeze(IndexValueGenerators);
-
-export { PersonIndexes, IndexValueGenerator, IndexValueGenerators };
+export { PersonIndexes, IndexValueGenerators };

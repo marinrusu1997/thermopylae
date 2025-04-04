@@ -1,13 +1,25 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/dev.unit-test';
-import { array, chrono, number } from '@thermopylae/lib.utils';
-import { AsyncFunction, Optional } from '@thermopylae/core.declarations';
-import { AwaiterRole, LabeledConditionalVariableManager, LockedOperationType, ErrorCodes } from '../../lib';
+import type { AsyncFunction, Optional } from '@thermopylae/core.declarations';
+import { randomInt } from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { AwaiterRole, ErrorCodes, LabeledConditionalVariableManager, LockedOperationType } from '../../lib/index.js';
 
-const { expect } = chai;
+function getReader(throwable: Error | null = null) {
+	return function reader(key: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => (throwable === null ? resolve(key) : reject(throwable)), 30);
+		});
+	};
+}
 
-// eslint-disable-next-line mocha/no-setup-in-describe
+function getWriter(throwable: Error | null = null) {
+	return function writer(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => (throwable === null ? resolve() : reject(throwable)), 30);
+		});
+	};
+}
+
 describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 	describe('wait spec', () => {
 		it('acquires mutex for a given label', () => {
@@ -36,9 +48,11 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const { role, promise } = mutex.wait(label, LockedOperationType.READ, timeout);
 
 			expect(role).to.be.eq(AwaiterRole.PRODUCER);
-			await expect(promise).to.be.rejectedWith(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
-			// @ts-ignore This is for test purposes
-			expect(Date.now() - acquireStart).to.be.in.range(timeout, timeout + 20);
+			await expect(promise).rejects.toThrow(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
+
+			const duration = Date.now() - acquireStart;
+			expect(duration).toBeGreaterThanOrEqual(timeout);
+			expect(duration).toBeLessThanOrEqual(timeout + 20);
 		});
 
 		it("won't timeout the lock if it's value is 0", async () => {
@@ -49,10 +63,10 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const { role, promise } = mutex.wait(label, LockedOperationType.READ, timeout);
 			expect(role).to.be.eq(AwaiterRole.PRODUCER);
 
-			await chrono.sleep(20);
+			await sleep(20);
 
 			mutex.notifyAll(label, '');
-			expect(await promise).to.be.eq('');
+			await expect(promise).resolves.to.be.eq('');
 		});
 
 		it('acquires lock again if it was timeout-ed', async () => {
@@ -63,12 +77,12 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const { promise, role } = mutex.wait(label, LockedOperationType.READ, timeout);
 			expect(role).to.be.eq(AwaiterRole.PRODUCER);
 			expect(mutex.wait(label, LockedOperationType.READ, timeout).role).to.be.eq(AwaiterRole.CONSUMER);
-			await expect(promise).to.be.rejectedWith(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
+			await expect(promise).rejects.toThrow(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
 
 			timeout = 20;
 			const waitStatus = mutex.wait(label, LockedOperationType.READ, timeout);
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
-			await expect(waitStatus.promise).to.be.rejectedWith(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
+			await expect(waitStatus.promise).rejects.toThrow(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
 		});
 
 		it("multiple consumers can wait same mutex and won't deadlock", async () => {
@@ -87,12 +101,13 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 
 			mutex.forcedNotify('@all');
 
-			await expect(Promise.all(promises)).to.be.rejectedWith(`Label '${label}' has been released forcibly.`);
+			await expect(Promise.all(promises)).rejects.toThrow(`Label '${label}' has been released forcibly.`);
 		});
 
 		it('fails to lock on unknown operation', () => {
 			const mutex = new LabeledConditionalVariableManager();
 			const label = 'key';
+			// @ts-expect-error -- it should fail
 			expect(() => mutex.wait(label, -1)).to.throw(`Requested an unknown operation '${-1}'.`);
 		});
 
@@ -117,7 +132,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 				);
 
 				condVar.notifyAll(label, null);
-				expect(await waitStatusProd.promise).to.be.eq(null);
+				await expect(waitStatusProd.promise).resolves.to.be.eq(null);
 			});
 
 			it('read -> write (failure)', async () => {
@@ -134,7 +149,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 				);
 
 				condVar.notifyAll(label, null);
-				expect(await waitStatusProd.promise).to.be.eq(null);
+				await expect(waitStatusProd.promise).resolves.to.be.eq(null);
 			});
 
 			it('read -> read (success)', async () => {
@@ -148,7 +163,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 				expect(waitStatusCons.role).to.be.eq(AwaiterRole.CONSUMER);
 
 				condVar.notifyAll(label, null);
-				expect(await waitStatusProd.promise).to.be.eq(null);
+				await expect(waitStatusProd.promise).resolves.to.be.eq(null);
 			});
 		});
 	});
@@ -163,7 +178,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 			mutex.notifyAll(label, result);
 
-			expect(await waitStatus.promise).to.be.eq(result);
+			await expect(waitStatus.promise).resolves.to.be.eq(result);
 		});
 
 		it('releases acquired lock with error', async () => {
@@ -175,24 +190,23 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 			mutex.notifyAll(label, error);
 
-			await expect(waitStatus.promise).to.be.rejectedWith(error);
+			await expect(waitStatus.promise).rejects.toThrow(error);
 		});
 
 		it('releases acquired lock to multiple consumers', async () => {
-			const mutex = new LabeledConditionalVariableManager();
+			const mutex = new LabeledConditionalVariableManager<string, number>();
 
 			const label = 'key';
 			const result = 0;
 			const consumersNo = 10;
 
-			const promises: Array<Promise<number>> = new Array<Promise<number>>(consumersNo);
+			const promises: Promise<number | undefined>[] = new Array<Promise<number>>(consumersNo);
 			for (let i = 0; i < consumersNo; i++) {
 				promises[i] = mutex.wait(label, LockedOperationType.READ).promise;
 			}
-
 			mutex.notifyAll(label, result);
 
-			expect(await Promise.all(promises)).to.be.equalTo(array.filledWith(consumersNo, result));
+			await expect(Promise.all(promises)).resolves.toStrictEqual(Array.from({ length: consumersNo }).fill(result));
 		});
 
 		it('clears timeout on explicit notifyAll', async () => {
@@ -206,10 +220,10 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 
 			mutex.notifyAll(label, result);
-			expect(await waitStatus.promise).to.be.eq(result);
+			await expect(waitStatus.promise).resolves.to.be.eq(result);
 
-			await chrono.sleep(10);
-			expect(await waitStatus.promise).to.be.eq(result);
+			await sleep(10);
+			await expect(waitStatus.promise).resolves.to.be.eq(result);
 		});
 
 		it("fails to notifyAll lock which wasn't acquired", () => {
@@ -225,7 +239,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 
 			mutex.notifyAll(label);
-			expect(await waitStatus.promise).to.be.eq(undefined);
+			await expect(waitStatus.promise).resolves.toBeUndefined();
 
 			expect(() => mutex.notifyAll(label)).to.throw(`No lock found for label '${label}'.`);
 		});
@@ -238,7 +252,7 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const waitStatus = mutex.wait(label, LockedOperationType.READ, timeout);
 			expect(waitStatus.role).to.be.eq(AwaiterRole.PRODUCER);
 
-			await expect(waitStatus.promise).to.be.rejectedWith(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
+			await expect(waitStatus.promise).rejects.toThrow(`Timeout of ${timeout} ms for label '${label}' has been exceeded.`);
 			expect(() => mutex.notifyAll(label)).to.throw(`No lock found for label '${label}'.`);
 		});
 	});
@@ -248,31 +262,33 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const mutex = new LabeledConditionalVariableManager();
 			const labels = [1, 2, 3, 4, 5, 6].map((n) => n.toString());
 
-			const promises: Array<Promise<any>> = new Array(labels.length);
+			const promises: Promise<unknown>[] = new Array(labels.length);
 			for (let i = 0; i < labels.length; i++) {
 				promises[i] = mutex.wait(labels[i], LockedOperationType.READ).promise;
 			}
 
 			const toForceRelease = new Set();
 			for (let i = 0; i < labels.length / 2; i++) {
-				toForceRelease.add(labels[number.randomInt(0, labels.length - 1)]);
+				toForceRelease.add(labels[randomInt(0, labels.length - 1)]);
 			}
 
 			mutex.forcedNotify((label: string) => toForceRelease.has(label));
 
-			let err;
+			let err: Error | null = null;
 			try {
 				await Promise.all(promises);
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
-			expect(err.code).to.be.eq(ErrorCodes.FORCED_RELEASE);
-			expect(err.message).to.be.oneOf(Array.from(toForceRelease).map((label) => `Label '${label}' has been released forcibly.`));
+			expect(err).to.have.property('code', ErrorCodes.FORCED_RELEASE);
+			expect(err)
+				.to.have.property('message')
+				.and.to.be.oneOf([...toForceRelease].map((label) => `Label '${label}' has been released forcibly.`));
 
 			for (let i = 0; i < labels.length; i++) {
 				if (!toForceRelease.has(labels[i])) {
 					mutex.notifyAll(labels[i], Infinity);
-					expect(await promises[i]).to.be.eq(Infinity);
+					await expect(promises[i]).resolves.to.be.eq(Infinity);
 				}
 			}
 
@@ -314,8 +330,8 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 					try {
 						valueOrError = await this.storageReader(key);
 						this.entries.set(key, valueOrError);
-					} catch (e) {
-						valueOrError = e;
+					} catch (error) {
+						valueOrError = error;
 					}
 				}
 
@@ -343,34 +359,14 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			}
 		}
 
-		function getReader(throwable: Error | null = null) {
-			return function reader(key: string): Promise<string> {
-				return new Promise((resolve, reject) => {
-					setTimeout(() => {
-						return throwable === null ? resolve(key) : reject(throwable);
-					}, 30);
-				});
-			};
-		}
-
-		function getWriter(throwable: Error | null = null) {
-			return function writer(): Promise<void> {
-				return new Promise((resolve, reject) => {
-					setTimeout(() => {
-						return throwable === null ? resolve() : reject(throwable);
-					}, 30);
-				});
-			};
-		}
-
 		it('allows multiple simultaneous reads', async () => {
 			const cache = new Cache(getReader(), getWriter());
 
 			let values = await Promise.all([cache.get('key'), cache.get('key'), cache.get('key')]);
-			expect(values).to.be.equalTo(['key', 'key', 'key']);
+			expect(values).toStrictEqual(['key', 'key', 'key']);
 
 			values = await Promise.all([cache.get('key'), cache.get('key'), cache.get('key')]);
-			expect(values).to.be.equalTo(['key', 'key', 'key']);
+			expect(values).toStrictEqual(['key', 'key', 'key']);
 		});
 
 		it('allows multiple simultaneous reads and notifies about failure', async () => {
@@ -378,18 +374,18 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const cache = new Cache(getReader(err), getWriter());
 
 			let values = await Promise.allSettled([cache.get('key'), cache.get('key'), cache.get('key')]);
-			expect(values).to.be.ofSize(3);
+			expect(values).to.have.length(3);
 			for (const value of values) {
 				expect(value.status).to.be.eq('rejected');
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				expect(value.reason).to.be.eq(err);
 			}
 
 			values = await Promise.allSettled([cache.get('key'), cache.get('key'), cache.get('key')]);
-			expect(values).to.be.ofSize(3);
+			expect(values).to.have.length(3);
 			for (const value of values) {
 				expect(value.status).to.be.eq('rejected');
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				expect(value.reason).to.be.eq(err);
 			}
 		});
@@ -398,52 +394,52 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 			const err = new Error('demo');
 			const cache = new Cache(getReader(), getWriter(err));
 
-			await expect(cache.set('key', 'value')).to.eventually.be.rejectedWith(err);
-			await expect(cache.get('key')).to.eventually.be.eq('key');
+			await expect(cache.set('key', 'value')).rejects.toThrow(err);
+			await expect(cache.get('key')).resolves.to.be.eq('key');
 		});
 
 		it("doesn't allow read while write is performing", async () => {
 			const cache = new Cache(getReader(), getWriter());
 
 			const results = await Promise.allSettled([cache.set('key', 'value'), cache.get('key')]);
-			expect(results).to.be.ofSize(2);
+			expect(results).to.have.length(2);
 
 			expect(results[0].status).to.be.eq('fulfilled');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore This is for test purposes
+			// @ts-expect-error This is for test purposesrposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on WRITE operation, which is an exclusive one. Given: READ.");
 
-			await expect(cache.get('key')).to.eventually.be.eq('value');
+			await expect(cache.get('key')).resolves.to.be.eq('value');
 		});
 
 		it("doesn't allow write while write is performing", async () => {
 			const cache = new Cache(getReader(), getWriter());
 
 			const results = await Promise.allSettled([cache.set('key', 'value'), cache.set('key', 'value2')]);
-			expect(results).to.be.ofSize(2);
+			expect(results).to.have.length(2);
 
 			expect(results[0].status).to.be.eq('fulfilled');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore This is for test purposes
+			// @ts-expect-error This is for test purposesrposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on WRITE operation, which is an exclusive one. Given: WRITE.");
 
-			await expect(cache.get('key')).to.eventually.be.eq('value');
+			await expect(cache.get('key')).resolves.to.be.eq('value');
 		});
 
 		it("doesn't allow write while read is performing", async () => {
 			const cache = new Cache(getReader(), getWriter());
 
 			const results = await Promise.allSettled([cache.get('key'), cache.set('key', 'value')]);
-			expect(results).to.be.ofSize(2);
+			expect(results).to.have.length(2);
 
 			expect(results[0].status).to.be.eq('fulfilled');
-			// @ts-ignore This is for test purposes
+			// @ts-expect-error This is for test purposesrposes
 			expect(results[0].value).to.be.eq('key');
 			expect(results[1].status).to.be.eq('rejected');
-			// @ts-ignore This is for test purposes
+			// @ts-expect-error This is for test purposesrposes
 			expect(results[1].reason.message).to.be.eq("Lock acquired for label 'key' on READ operation. Only READ operation can be requested. Given: WRITE.");
 
-			await expect(cache.get('key')).to.eventually.be.eq('key');
+			await expect(cache.get('key')).resolves.to.be.eq('key');
 		});
 	});
 
@@ -451,12 +447,14 @@ describe(`${LabeledConditionalVariableManager.name} spec`, () => {
 		it('formats awaiter', () => {
 			expect(LabeledConditionalVariableManager.formatAwaiterRole(AwaiterRole.PRODUCER)).to.be.eq('PRODUCER');
 			expect(LabeledConditionalVariableManager.formatAwaiterRole(AwaiterRole.CONSUMER)).to.be.eq('CONSUMER');
+			// @ts-expect-error -- it should fail
 			expect(() => LabeledConditionalVariableManager.formatAwaiterRole(-1)).to.throw(`Awaiter role is not valid. Given: ${-1}.`);
 		});
 
 		it('formats locked operation', () => {
 			expect(LabeledConditionalVariableManager.formatLockedOperation(LockedOperationType.READ)).to.be.eq('READ');
 			expect(LabeledConditionalVariableManager.formatLockedOperation(LockedOperationType.WRITE)).to.be.eq('WRITE');
+			// @ts-expect-error -- it should fail
 			expect(() => LabeledConditionalVariableManager.formatLockedOperation(-1)).to.throw(`Requested an unknown operation '${-1}'.`);
 		});
 	});

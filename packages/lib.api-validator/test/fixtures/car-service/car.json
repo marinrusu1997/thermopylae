@@ -1,18 +1,15 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CAR_SERVICE-car",
-  "type": "object",
-  "properties": {
-    "model": {
-      "type": "string",
-      "enum": ["BMW", "MERCEDES"]
-    },
-    "engine": {
-      "$ref": "../core/engine.json#/properties/engine"
-    }
-  },
-  "required": [
-    "model",
-    "engine"
-  ]
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CAR_SERVICE-car",
+	"type": "object",
+	"properties": {
+		"model": {
+			"type": "string",
+			"enum": ["BMW", "MERCEDES"]
+		},
+		"engine": {
+			"$ref": "../core/engine.json#/properties/engine"
+		}
+	},
+	"required": ["model", "engine"]
 }

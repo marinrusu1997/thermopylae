@@ -1,11 +1,11 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CAR_SERVICE-engine",
-  "type": "object",
-  "properties": {
-    "engine": {
-      "type": "number",
-      "enum": [6, 8, 12]
-    }
-  }
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CAR_SERVICE-engine",
+	"type": "object",
+	"properties": {
+		"engine": {
+			"type": "number",
+			"enum": [6, 8, 12]
+		}
+	}
 }

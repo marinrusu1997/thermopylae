@@ -1,36 +1,27 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-import { object, string } from '@thermopylae/lib.utils';
-import dotprop from 'dot-prop';
-// @ts-ignore This package has no typings
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import cryptoRandomString from 'crypto-random-string';
+import { getProperty, setProperty } from 'dot-prop';
+// @ts-expect-error This package has no typingsypings
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo, randomPerson } from './utils';
+import { describe, expect, it } from 'vitest';
+import { type IndexValue, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo, type ReadonlyPerson, randomPerson } from './utils.js';
 
 describe('stream operations spec', () => {
 	describe(`${IndexedStore.prototype.map.name} spec`, () => {
 		it('should return empty array when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 
-			function mapper(person: Person): IndexValue {
-				return person[PK_INDEX_NAME];
-			}
-
-			const mappings = storage.map(mapper);
+			const mappings = storage.map((person) => person[PK_INDEX_NAME]);
 			expect(mappings.length).to.be.eq(0);
 		});
 
 		it('should map values from primary index', () => {
-			const storage = new IndexedStore<Person>();
+			const storage = new IndexedStore<ReadonlyPerson>();
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function mapper(person: Person): IndexValue {
-				return person[PK_INDEX_NAME];
-			}
-
-			const mappings = storage.map(mapper);
+			const mappings = storage.map((person) => person[PK_INDEX_NAME]);
 			expect(mappings.length).to.be.eq(storage.size);
 
 			expect(new Set(mappings).size).to.be.eq(mappings.length);
@@ -38,16 +29,13 @@ describe('stream operations spec', () => {
 
 		it('should map values from secondary index', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function mapper(person: Person): IndexValue {
-				return person[PK_INDEX_NAME];
-			}
-
 			for (const indexName of indexes) {
-				const mappings = storage.map(mapper, indexName);
+				// oxlint-disable-next-line no-array-method-this-argument
+				const mappings = storage.map((person) => person[PK_INDEX_NAME], indexName);
 				expect(mappings.length).to.be.eq(storage.getIndexRecordsCount(indexName));
 				expect(new Set(mappings).size).to.be.eq(mappings.length);
 			}
@@ -55,16 +43,12 @@ describe('stream operations spec', () => {
 
 		it('should map values from index value', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function mapper(person: Person): IndexValue {
-				return person[PK_INDEX_NAME];
-			}
-
 			const candidate = randomPerson();
-			const mappings = storage.map(mapper, PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
+			const mappings = storage.map((person) => person[PK_INDEX_NAME], PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
 
 			expect(mappings.length).to.be.eq(1);
 			expect(mappings[0]).to.be.deep.eq(candidate[PK_INDEX_NAME]);
@@ -75,51 +59,40 @@ describe('stream operations spec', () => {
 		it('should filter nothing when storage is empty', () => {
 			const storage = new IndexedStore<Person>();
 
-			function predicate(): boolean {
-				return true;
-			}
-
-			const filtered = storage.filter(predicate);
+			const filtered = storage.filter(() => true);
 			expect(filtered.length).to.be.eq(0);
 		});
 
 		it('should filter storage records', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function predicate(person: Person): boolean {
-				return person.birthYear === 2000;
-			}
-
-			const filtered = storage.filter(predicate);
-			const crossCheckFiltered = PersonsRepo.filter(predicate);
+			const filtered = storage.filter((person) => person.birthYear === 2000);
+			const crossCheckFiltered = PersonsRepo.filter((person) => person.birthYear === 2000);
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
 		});
 
 		it('should filter secondary index records', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const nonIndexed = object.cloneDeep(randomPerson());
-			dotprop.set(nonIndexed, PK_INDEX_NAME, string.random());
+			const nonIndexed = structuredClone(randomPerson());
+			setProperty(nonIndexed, PK_INDEX_NAME, cryptoRandomString({ length: 10 }));
 			for (const indexName of indexes) {
-				dotprop.set(nonIndexed, indexName, null);
+				setProperty(nonIndexed, indexName, null);
 			}
 			storage.insert([nonIndexed]);
 			expect(storage.size).to.be.eq(PersonsRepo.length + 1);
 
-			function predicate(person: Person): boolean {
-				return person.birthYear === 2000;
-			}
-
 			for (const indexName of indexes) {
-				const filtered = storage.filter(predicate, indexName);
-				const crossCheckFiltered = PersonsRepo.filter(predicate);
+				// oxlint-disable-next-line no-array-method-this-argument
+				const filtered = storage.filter((person) => person.birthYear === 2000, indexName);
+				const crossCheckFiltered = PersonsRepo.filter((person) => person.birthYear === 2000);
 
 				expect(filtered.length).to.be.eq(crossCheckFiltered.length);
 			}
@@ -127,99 +100,82 @@ describe('stream operations spec', () => {
 
 		it('should filter records from index value', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const desiredBirthYearRange = Array.from(range(1990, 1995));
-			function predicate(person: Person): boolean {
-				return desiredBirthYearRange.includes(person.birthYear);
+			const desiredBirthYearRange = new Set(range(1990, 1995));
+			function predicate(person: ReadonlyPerson): boolean {
+				return desiredBirthYearRange.has(person.birthYear);
 			}
 
-			const indexVal = dotprop.get(randomPerson(), PersonIndexes.II_COUNTRY_CODE) as IndexValue;
+			const indexVal = getProperty(randomPerson(), PersonIndexes.II_COUNTRY_CODE) as IndexValue;
 			const filtered = storage.filter(predicate, PersonIndexes.II_COUNTRY_CODE, indexVal);
-			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, PersonIndexes.II_COUNTRY_CODE) === indexVal && predicate(person));
+			const crossCheckFiltered = PersonsRepo.filter((person) => getProperty(person, PersonIndexes.II_COUNTRY_CODE) === indexVal && predicate(person));
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
-			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
+			expect(filtered).to.containSubset(crossCheckFiltered);
 		});
 	});
 
 	describe(`${IndexedStore.prototype.find.name} spec`, () => {
 		it('should find nothing on empty storage', () => {
 			const storage = new IndexedStore<Person>();
-			function predicate(person: Person): boolean {
-				return person.birthYear === 2000;
-			}
-			const match = storage.find(predicate);
-			expect(match).to.be.eq(undefined);
+
+			const match = storage.find((person) => person.birthYear === 2000);
+			expect(match).toBeUndefined();
 		});
 
 		it('should find record from storage', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function predicate(person: Person): boolean {
-				return person.birthYear === 2000;
-			}
-
-			const match = storage.filter(predicate);
-			expect(match).to.not.be.eq(undefined);
+			const match = storage.filter((person) => person.birthYear === 2000);
+			expect(match).toBeDefined();
 		});
 
 		it('should not find non existing record in the storage', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const desiredId = string.random({ length: 15 });
-			function predicate(person: Person): boolean {
-				return person[PK_INDEX_NAME] === desiredId;
-			}
-
-			const match = storage.find(predicate);
-			expect(match).to.be.eq(undefined);
+			const desiredId = cryptoRandomString({ length: 15 });
+			const match = storage.find((person) => person[PK_INDEX_NAME] === desiredId);
+			expect(match).toBeUndefined();
 		});
 
 		it('should find record in the secondary indexes', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			function predicate(person: Person): boolean {
-				return person.birthYear === 2000;
-			}
-
 			for (const indexName of indexes) {
-				const match = storage.find(predicate, indexName);
-				expect(match).to.not.be.eq(undefined);
+				// oxlint-disable-next-line no-array-method-this-argument
+				const match = storage.find((person) => person.birthYear === 2000, indexName);
+				expect(match).toBeDefined();
 			}
 		});
 
 		it('should find records from index value', () => {
 			const indexes = Object.values(PersonIndexes);
-			const storage = new IndexedStore<Person>({ indexes });
+			const storage = new IndexedStore<ReadonlyPerson>({ indexes });
 			storage.insert(PersonsRepo);
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
-			const record = object.cloneDeep(randomPerson());
-			dotprop.set(record, PK_INDEX_NAME, string.random());
+			const record = structuredClone(randomPerson());
+			setProperty(record, PK_INDEX_NAME, cryptoRandomString({ length: 5 }));
 
-			const countryCode = string.random({ length: 6 });
-			dotprop.set(record, PersonIndexes.I_BIRTH_YEAR, 1990);
-			dotprop.set(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
+			const countryCode = cryptoRandomString({ length: 6 });
+			setProperty(record, PersonIndexes.I_BIRTH_YEAR, 1990);
+			setProperty(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
 			storage.insert([record]);
 
-			const desiredBirthYearRange = Array.from(range(1990, 1995));
-			function predicate(person: Person): boolean {
-				return desiredBirthYearRange.includes(person.birthYear);
-			}
-
-			const match = storage.find(predicate, PersonIndexes.II_COUNTRY_CODE, countryCode);
+			const desiredBirthYearRange = new Set(range(1990, 1995));
+			const match = storage.find((person) => desiredBirthYearRange.has(person.birthYear), PersonIndexes.II_COUNTRY_CODE, countryCode);
 			expect(match).to.be.deep.eq(record);
 		});
 	});

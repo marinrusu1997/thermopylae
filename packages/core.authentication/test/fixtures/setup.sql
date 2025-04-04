@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS SuccessfulAuthentication (
     accountId INT UNSIGNED NOT NULL,
     ip VARCHAR(45) NOT NULL,
     deviceId VARCHAR(50),
-    location VARCHAR(250),
+    location VARCHAR(500),
     authenticatedAt INT NOT NULL,
 
     PRIMARY KEY (id)
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS FailedAuthentication (
     accountId INT UNSIGNED NOT NULL,
     ip VARCHAR(45) NOT NULL,
     deviceId VARCHAR(50),
-    location VARCHAR(250),
+    location VARCHAR(500),
     detectedAt INT NOT NULL,
 
     PRIMARY KEY (id)
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS FailedAuthentication (
 
 CREATE TABLE IF NOT EXISTS AuthenticationDevice (
     id VARCHAR(50),
-    json VARCHAR(250) NOT NULL,
+    json VARCHAR(1000) NOT NULL,
 
     PRIMARY KEY (id)
 );

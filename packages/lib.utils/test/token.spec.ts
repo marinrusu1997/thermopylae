@@ -1,48 +1,51 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { token as tokenModule } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { token as tokenModule } from '../lib/index.js';
 
-const { expect } = chai;
 const { ErrorCodes, fastUnSecureHash, generate } = tokenModule;
 
 describe('token spec', () => {
 	describe('generate spec', () => {
-		function generateTokenSpec(tokenGenerationType: tokenModule.TokenGenerationType): void {
+		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHIC} generation type`, () => {
 			it('generates token of default length', () => {
-				const token = generate(tokenGenerationType);
+				const token = generate(tokenModule.TokenGenerationType.CRYPTOGRAPHIC);
 				expect(token.length).to.be.equal(32);
 			});
 
 			it('generates tokens with variable length', () => {
+				expect.hasAssertions();
+
 				for (let i = 1; i < 100; i++) {
-					const token = generate(tokenGenerationType, i);
+					const token = generate(tokenModule.TokenGenerationType.CRYPTOGRAPHIC, i);
 					expect(token.length).to.be.equal(i);
 				}
 			});
-		}
-
-		// eslint-disable-next-line mocha/no-setup-in-describe
-		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHIC} generation type`, () => {
-			// eslint-disable-next-line mocha/no-setup-in-describe
-			generateTokenSpec(tokenModule.TokenGenerationType.CRYPTOGRAPHIC);
 		});
 
-		// eslint-disable-next-line mocha/no-setup-in-describe
 		describe(`${tokenModule.TokenGenerationType.NORMAL} generation type`, () => {
-			// eslint-disable-next-line mocha/no-setup-in-describe
-			generateTokenSpec(tokenModule.TokenGenerationType.NORMAL);
+			it('generates token of default length', () => {
+				const token = generate(tokenModule.TokenGenerationType.NORMAL);
+				expect(token.length).to.be.equal(32);
+			});
+
+			it('generates tokens with variable length', () => {
+				expect.hasAssertions();
+
+				for (let i = 1; i < 100; i++) {
+					const token = generate(tokenModule.TokenGenerationType.NORMAL, i);
+					expect(token.length).to.be.equal(i);
+				}
+			});
 		});
 
 		it('throws when unknown token generation mechanism is specified', () => {
-			let err;
+			let err: Error | null = null;
 			try {
-				// @ts-ignore This is just a test
+				// @ts-expect-error This is just a testa test
 				generate('invalid');
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 			expect(err).to.be.instanceOf(Exception);
 			expect(err).to.haveOwnProperty('code', ErrorCodes.UNKNOWN_TOKEN_GENERATION_TYPE);
@@ -55,11 +58,11 @@ describe('token spec', () => {
 
 	describe('fastUnSecureHash spec', () => {
 		it('hashes objects', () => {
-			expect(fastUnSecureHash({ a: 1 })).to.be.eq(1442153986);
+			expect(fastUnSecureHash({ a: 1 })).to.be.eq(1_442_153_986);
 		});
 
 		it('hashes strings', () => {
-			expect(fastUnSecureHash('adaj')).to.be.eq(2988940);
+			expect(fastUnSecureHash('adaj')).to.be.eq(2_988_940);
 		});
 
 		it('hashes empty strings', () => {
@@ -71,11 +74,11 @@ describe('token spec', () => {
 		});
 
 		it('hashes null', () => {
-			expect(fastUnSecureHash(null as unknown as ObjMap)).to.be.eq(3392903);
+			expect(fastUnSecureHash(null as unknown as ObjMap)).to.be.eq(3_392_903);
 		});
 
 		it('hashes boolean', () => {
-			expect(fastUnSecureHash(true as unknown as ObjMap)).to.be.eq(3569038);
+			expect(fastUnSecureHash(true as unknown as ObjMap)).to.be.eq(3_569_038);
 		});
 	});
 });

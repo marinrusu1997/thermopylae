@@ -1,27 +1,25 @@
-import type { AccountRepository } from '../../types/repositories';
-import type { PasswordStrengthPolicyValidator } from './strength/policy';
-import type { AccountModel } from '../../types/models';
-import type { SecretEncryptor } from '../../helpers/secret-encryptor';
-import type { PasswordHashingAlgorithm } from './hash';
+import { ErrorCodes, createException } from '../../error.js';
+import type { SecretEncryptor } from '../../helpers/secret-encryptor.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AccountRepository } from '../../types/repositories.js';
+import type { PasswordHashingAlgorithm } from './hash/types.js';
+import type { PasswordStrengthPolicyValidator } from './strength/policy.js';
 
 interface PasswordHashingOptions {
-	/**
-	 * Mapping between password hashing algorithms and their id's.
-	 */
+	/** Mapping between password hashing algorithms and their id's. */
 	algorithms: ReadonlyMap<number, PasswordHashingAlgorithm>;
-	/**
-	 * Id the current password hashing algorithm.
-	 */
+	/** Id the current password hashing algorithm. */
 	currentAlgorithmId: number;
 	/**
-	 * Current hashing algorithm. This algorithm will be used to hash passwords of the newly registered accounts.
+	 * Current hashing algorithm. This algorithm will be used to hash passwords of the newly
+	 * registered accounts.
 	 */
 	currentAlgorithm: PasswordHashingAlgorithm;
 }
 
 /**
- * Manages user passwords. <br/>
- * Implementation ideas were taken from [here](https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2).
+ * Manages user passwords. <br/> Implementation ideas were taken from
+ * [here](https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#title.2).
  *
  * @private
  */
@@ -52,9 +50,7 @@ class PasswordsManager<Account extends AccountModel> {
 	}
 
 	public async hashAndStoreOnAccount(password: string, account: Account): Promise<void> {
-		for (const validator of this.strength) {
-			await validator.validate(password, account);
-		}
+		await Promise.all(this.strength.map((validator) => validator.validate(password, account)));
 
 		const hash = await this.hashing.currentAlgorithm.hash(password);
 
@@ -64,9 +60,15 @@ class PasswordsManager<Account extends AccountModel> {
 	}
 
 	public async isSame(plain: string, hash: string, salt: string | undefined | null, algorithmId: number): Promise<boolean> {
+		const algorithm = this.hashing.algorithms.get(algorithmId);
+		if (!algorithm) {
+			throw createException(ErrorCodes.NOT_FOUND, `No algorithm with id '${algorithmId}' found`);
+		}
+
 		hash = this.encryptor.decrypt(hash);
-		return this.hashing.algorithms.get(algorithmId)!.verify(plain, hash, salt);
+		return await algorithm.verify(plain, hash, salt);
 	}
 }
 
-export { PasswordsManager, PasswordHashingOptions };
+export { PasswordsManager };
+export type { PasswordHashingOptions };

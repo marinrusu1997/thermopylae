@@ -1,78 +1,87 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, before, describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap, HTTPRequestLocation } from '@thermopylae/core.declarations';
-import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
-import fetch from 'node-fetch';
+import cookie from '@fastify/cookie';
+import {
+	type HTTPRequestLocation,
+	type HttpDevice,
+	type HttpHeaderValue,
+	type HttpRequestHeader,
+	HttpStatusCode,
+	MimeExt,
+	MimeType,
+	type ObjMap
+} from '@thermopylae/core.declarations';
 import { serialize } from 'cookie';
-import cookie from 'fastify-cookie';
-import fastify from 'fastify';
-import { FastifyResponseAdapter, LOCATION_SYM, FastifyRequestAdapter } from '../lib';
-
-const PORT = 3572;
-
-const app = fastify({
-	logger: false,
-	trustProxy: true
-});
-app.register(cookie);
-
-let request: {
-	ip: string;
-	body: ObjMap;
-	device: HttpDevice | undefined | null;
-	location: HTTPRequestLocation | undefined | null;
-	headers: Partial<Record<HttpRequestHeader, HttpHeaderValue | undefined>>;
-	cookies: ObjMap;
-	params: ObjMap;
-	query: ObjMap;
-};
-
-app.post('/:pp1/:pp2', (req, res) => {
-	const requestAdapter = new FastifyRequestAdapter(req);
-	requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
-
-	request = {
-		ip: requestAdapter.ip,
-		body: requestAdapter.body,
-		device: requestAdapter.device && requestAdapter.device, // force to get in from cached property
-		location: requestAdapter.location,
-		headers: {
-			referer: requestAdapter.header('referer')
-		},
-		cookies: {
-			sid: requestAdapter.cookie('sid'),
-			pref: requestAdapter.cookie('pref'),
-			'not-existing': requestAdapter.cookie('not-existing')
-		},
-		params: {
-			pp1: requestAdapter.param('pp1'),
-			pp2: requestAdapter.param('pp2')
-		},
-		query: {
-			q1: requestAdapter.query('q1'),
-			q2: requestAdapter.query('q2')
-		}
-	};
-
-	const responseAdapter = new FastifyResponseAdapter(res);
-	responseAdapter
-		.status(HttpStatusCode.Ok)
-		.header('Set-Cookie', 'pref=programming,workout')
-		.header('Set-Cookie', 'sid=456')
-		.type(MimeExt.JSON)
-		.send({ wave: 'to-you' });
-
-	expect(responseAdapter.sent).to.be.eq(true);
-});
+import fastify, { type FastifyInstance } from 'fastify';
+import fetch from 'node-fetch';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '../lib/index.js';
 
 describe(`Fastify adapter spec`, () => {
-	before((done) => {
-		app.listen(PORT, done);
+	const PORT = 3572;
+	let app: FastifyInstance | null = null;
+	let request: {
+		ip: string;
+		body: ObjMap;
+		device: HttpDevice | undefined | null;
+		location: HTTPRequestLocation | undefined | null;
+		headers: Partial<Record<HttpRequestHeader, HttpHeaderValue | undefined>>;
+		cookies: ObjMap;
+		params: ObjMap;
+		query: ObjMap;
+	} | null = null;
+
+	beforeAll(async () => {
+		app = fastify({
+			logger: false,
+			trustProxy: true
+		});
+		app.register(cookie);
+
+		app.post('/:pp1/:pp2', (req, res) => {
+			const requestAdapter = new FastifyRequestAdapter(req);
+			requestAdapter.raw[LOCATION_SYM] = requestAdapter.body as HTTPRequestLocation;
+
+			request = {
+				ip: requestAdapter.ip,
+				body: requestAdapter.body,
+				device: requestAdapter.device,
+				location: requestAdapter.location,
+				headers: {
+					referer: requestAdapter.header('referer')
+				},
+				cookies: {
+					sid: requestAdapter.cookie('sid'),
+					pref: requestAdapter.cookie('pref'),
+					'not-existing': requestAdapter.cookie('not-existing')
+				},
+				params: {
+					pp1: requestAdapter.param('pp1'),
+					pp2: requestAdapter.param('pp2')
+				},
+				query: {
+					q1: requestAdapter.query('q1'),
+					q2: requestAdapter.query('q2')
+				}
+			};
+
+			const responseAdapter = new FastifyResponseAdapter(res);
+			responseAdapter
+				.status(HttpStatusCode.Ok)
+				.header('Set-Cookie', 'pref=programming,workout')
+				.header('Set-Cookie', 'sid=456')
+				.type(MimeExt.JSON)
+				.send({ wave: 'to-you' });
+
+			expect(responseAdapter.sent).to.be.eq(true);
+		});
+
+		await app.listen({ port: PORT });
 	});
-	after((done) => {
-		app.close(done);
+
+	beforeEach(() => {
+		request = null;
 	});
+
+	afterAll(() => app?.close());
 
 	it('should send a request and receive a response', async () => {
 		const location: HTTPRequestLocation = {
@@ -96,7 +105,7 @@ describe(`Fastify adapter spec`, () => {
 						secure: true,
 						path: '/',
 						sameSite: 'strict',
-						domain: `localhost:${PORT}`
+						domain: 'localhost'
 					}),
 					serialize('pref', 'bike,car', {
 						expires: new Date('01 Aug 2021 00:00:00 GMT'),
@@ -110,9 +119,9 @@ describe(`Fastify adapter spec`, () => {
 			} as Record<HttpRequestHeader, string>
 		});
 
-		expect(request.ip).to.be.eq('192.168.5.5');
-		expect(request.body).to.be.deep.eq(location);
-		expect(request.device).to.be.deep.eq({
+		expect(request?.ip).to.be.eq('192.168.5.5');
+		expect(request?.body).to.be.deep.eq(location);
+		expect(request?.device).to.be.deep.eq({
 			bot: null,
 			client: {
 				engine: 'Blink',
@@ -132,24 +141,24 @@ describe(`Fastify adapter spec`, () => {
 				version: ''
 			}
 		});
-		expect(request.location).to.be.deep.eq(location);
-		expect(request.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
-		expect(request.cookies).to.be.deep.eq({
+		expect(request?.location).to.be.deep.eq(location);
+		expect(request?.headers).to.be.deep.eq({ referer: 'https://example.com/page?q=123' });
+		expect(request?.cookies).to.be.deep.eq({
 			sid: '123',
 			pref: 'bike,car',
 			'not-existing': undefined
 		});
-		expect(request.params).to.be.deep.eq({
+		expect(request?.params).to.be.deep.eq({
 			pp1: 'par1',
 			pp2: 'par2'
 		});
-		expect(request.query).to.be.deep.eq({
+		expect(request?.query).to.be.deep.eq({
 			q1: '1',
 			q2: 'q'
 		});
 
 		expect(response.status).to.be.eq(HttpStatusCode.Ok);
-		expect(response.headers.raw()['set-cookie']).to.be.equalTo(['pref=programming,workout', 'sid=456']);
-		await expect(response.json()).to.eventually.be.deep.eq({ wave: 'to-you' });
+		expect(response.headers.raw()['set-cookie']).toStrictEqual(['pref=programming,workout', 'sid=456']);
+		await expect(response.json()).resolves.to.be.deep.eq({ wave: 'to-you' });
 	});
 });

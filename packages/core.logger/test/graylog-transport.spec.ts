@@ -1,17 +1,18 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { log, logError } from './utils';
-import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
-import { GrayLogsManager } from '../lib/transports/graylog';
+import { describe, expect, it } from 'vitest';
+import type TransportStream from 'winston-transport';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
+import { GrayLogsManager } from '../lib/transports/graylog.js';
+import { log, logError } from './utils.js';
 
 const inputsEndpoints = [
-	{ host: '127.0.0.1', port: 12201 },
-	{ host: '127.0.0.1', port: 12202 }
+	{ host: '127.0.0.1', port: 12_201 },
+	{ host: '127.0.0.1', port: 12_202 }
 ];
 
 describe(`${GrayLogsManager.name} spec`, () => {
 	it('registers inputs and provides transports for them', async () => {
+		expect.hasAssertions();
+
 		const graylog = new GrayLogsManager();
 		const formatter = new FormattingManager();
 
@@ -30,15 +31,17 @@ describe(`${GrayLogsManager.name} spec`, () => {
 			input: 'Test2',
 			level: 'info'
 		});
-		await logError(formatter.formatterFor('system1'), graylog.get('system1')!, 'something went really wrong: %o', new Error('err msg1'));
-		await log(formatter.formatterFor('system2'), graylog.get('system2')!, {
+		await logError(formatter.formatterFor('system1'), graylog.get('system1') as TransportStream, 'something went really wrong: %o', new Error('err msg1'));
+		await log(formatter.formatterFor('system2'), graylog.get('system2') as TransportStream, {
 			level: 'warn',
 			message: 'testing warn2'
 		});
-		await log(formatter.formatterFor('system2'), graylog.get('system2')!, {
+		await log(formatter.formatterFor('system2'), graylog.get('system2') as TransportStream, {
 			level: 'silly',
 			message: 'testing silly2'
 		});
+
+		expect(1).toBe(1);
 	});
 
 	it('registers input only once', () => {

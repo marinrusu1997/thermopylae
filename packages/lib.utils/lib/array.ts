@@ -1,8 +1,8 @@
-import { UnaryPredicate, SyncFunction, ConcurrencyType, UnaryPredicateAsync } from '@thermopylae/core.declarations';
-import { randomInt } from './number';
-import { createException } from './exception';
+import { ConcurrencyType, type UnaryPredicate, type UnaryPredicateAsync } from '@thermopylae/core.declarations';
+import shuffle from 'knuth-shuffle-seeded';
+import { createException } from './exception.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	NOT_SUPPORTED = 'NOT_SUPPORTED',
 	NOT_FOUND = 'NOT_FOUND',
 	UNKNOWN = 'UNKNOWN'
@@ -11,21 +11,22 @@ const enum ErrorCodes {
 /**
  * Removes element from `array`.
  *
- * @template T	Elements type.
+ * @template T Elements type.
  *
- * @param array				Initial array.
- * @param predicate			Predicate function to mach needed element.
- * @param inPlace			Whether to remove elements from the original array.
- * 							When `false` will create a clone and removal will be made from that clone.
- * @param firstOccurrence	Whether to remove the first, or all of the occurrences of the found element.
+ * @param   array           Initial array.
+ * @param   predicate       Predicate function to mach needed element.
+ * @param   inPlace         Whether to remove elements from the original array. When `false` will
+ *   create a clone and removal will be made from that clone.
+ * @param   firstOccurrence Whether to remove the first, or all of the occurrences of the found
+ *   element.
  *
- * @returns	Array with removed elements.
+ * @returns                 Array with removed elements.
  */
-function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true, firstOccurrence = true): Array<T> {
+function remove<T>(array: T[], predicate: UnaryPredicate<T>, inPlace = true, firstOccurrence = true): T[] {
 	// inspired from https://stackoverflow.com/a/15996017
 
 	if (!inPlace) {
-		array = array.slice();
+		array = [...array];
 	}
 
 	for (let i = 0; i < array.length; i++) {
@@ -42,16 +43,16 @@ function remove<T>(array: Array<T>, predicate: UnaryPredicate<T>, inPlace = true
 }
 
 /**
- * Removes an *item* in place from *array*
+ * Removes an _item_ in place from _array_.
  *
- * @param array		Array from where to remove.
- * @param item		Item to remove.
+ * @param   array Array from where to remove.
+ * @param   item  Item to remove.
  *
- * @returns		Boolean which indicates whether *item* was removed.
+ * @returns       Boolean which indicates whether _item_ was removed.
  */
-function removeInPlace<T>(array: Array<T>, item: T): boolean {
+function removeInPlace<T>(array: T[], item: T): boolean {
 	const index = array.indexOf(item);
-	if (index > -1) {
+	if (index !== -1) {
 		array.splice(index, 1);
 		return true;
 	}
@@ -61,99 +62,36 @@ function removeInPlace<T>(array: Array<T>, item: T): boolean {
 /**
  * Creates a new array which contains unique items.
  *
- * @template T		Elements type.
+ * @template T Elements type.
  *
- * @param array		Input array.
+ * @param   array Input array.
  *
- * @returns			Array with unique items.
+ * @returns       Array with unique items.
  */
-function unique<T>(array: Array<T>): Array<T> {
-	return Array.from(new Set(array));
+function unique<T>(array: readonly T[]): T[] {
+	return [...new Set(array)];
 }
 
-/**
- * Shuffle the given array in-place.
- *
- * @template T	Elements type.
- *
- * @param arr	Initial array.
- *
- * @returns 	Same array, but shuffled.
- */
-function shuffle<T>(arr: T[]): T[] {
-	arr.sort(() => Math.random() - 0.5);
-	return arr;
-}
-
-interface FilledWithOptions {
-	/**
-	 * Prevent filling with duplicates when values are generated dynamically.
-	 */
-	noDuplicates: boolean;
-}
-
-/**
- * Creates a new array which contains the given `value`.
- *
- * @template T	Elements type.
- *
- * @param length	Number of elements.
- * @param value		Value to fill with. For dynamical filling, provide a function.
- * @param opts		Fill options.
- *
- * @returns		Filled array.
- */
-function filledWith<T>(length: number, value: T | SyncFunction<void, T>, opts?: FilledWithOptions): Array<T> {
-	const array = new Array<T>(length);
-
-	if (length !== 0) {
-		if (typeof value === 'function') {
-			if (opts && opts.noDuplicates) {
-				const generatedValues = new Set<T>();
-				for (let i = 0; i < length; i++) {
-					while (generatedValues.has((array[i] = (value as SyncFunction<void, T>)())));
-					generatedValues.add(array[i]);
-				}
-			} else {
-				// duplicated for performance
-				for (let i = 0; i < length; i++) {
-					array[i] = (value as SyncFunction<void, T>)();
-				}
-			}
-		} else {
-			array.fill(value);
-		}
-	}
-
-	return array;
-}
-
-/**
- * Position in the array from where to peek element.
- */
-const enum PeekPosition {
-	/**
-	 * Beginning of the array.
-	 */
-	BEGIN,
-	/**
-	 * End of the array.
-	 */
-	END
+/** Position in the array from where to peek element. */
+enum PeekPosition {
+	/** Beginning of the array. */
+	BEGIN = 0,
+	/** End of the array. */
+	END = 1
 }
 
 /**
  * Peek last item from array.
  *
- * @param array		Array with elements.
- * @param position	Peek position.
+ * @param   array    Array with elements.
+ * @param   position Peek position.
  *
- * @throws When array is empty.
+ * @returns          Array element.
  *
- * @returns Array element.
+ * @throws           When array is empty.
  */
-function peek<T>(array: Array<T>, position = PeekPosition.END): T {
-	if (!array.length) {
+function peek<T>(array: readonly T[], position = PeekPosition.END): T {
+	if (array.length === 0) {
 		throw createException(ErrorCodes.NOT_FOUND, 'Array is empty.');
 	}
 
@@ -168,30 +106,17 @@ function peek<T>(array: Array<T>, position = PeekPosition.END): T {
 }
 
 /**
- * Extract a random element from the given `array`.
- *
- * @template T	Elements type.
- *
- * @param array	Source data array.
- *
- * @returns Random element.
- */
-function randomElement<T>(array: Array<T>): T {
-	return array[randomInt(0, array.length - 1)];
-}
-
-/**
  * Filter array asynchronously.
  *
- * @template T	Elements type.
+ * @template T Elements type.
  *
- * @param array			Initial array.
- * @param predicate		Async predicate.
- * @param concurrency	Filtering concurrency.
+ * @param   array       Initial array.
+ * @param   predicate   Async predicate.
+ * @param   concurrency Filtering concurrency.
  *
- * @returns Filtered elements.
+ * @returns             Filtered elements.
  */
-async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>, concurrency = ConcurrencyType.PARALLEL): Promise<Array<T>> {
+async function filterAsync<T>(array: T[], predicate: UnaryPredicateAsync<T>, concurrency = ConcurrencyType.PARALLEL): Promise<T[]> {
 	switch (concurrency) {
 		case ConcurrencyType.PARALLEL:
 			return Promise.all(array.map(predicate)).then((results) => array.filter((_, index) => results[index]));
@@ -199,6 +124,7 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 		case ConcurrencyType.SEQUENTIAL: {
 			const results = new Array<T>();
 			for (const item of array) {
+				// oxlint-disable-next-line no-await-in-loop
 				if (await predicate(item)) {
 					results.push(item);
 				}
@@ -211,4 +137,34 @@ async function filterAsync<T>(array: Array<T>, predicate: UnaryPredicateAsync<T>
 	}
 }
 
-export { remove, removeInPlace, unique, shuffle, filledWith, peek, PeekPosition, randomElement, filterAsync, FilledWithOptions };
+function mapArrayIndex<T>(_: T, index: number): number {
+	return index;
+}
+
+/**
+ * Creates a function which returns a random item from an array without repetition on each of its
+ * calls.
+ *
+ * @param   array Array from where to get items.
+ *
+ * @returns       Function.
+ */
+function randomUniqueItem<T>(array: readonly T[]): () => T {
+	if (!Array.isArray(array) || array.length === 0) {
+		throw new Error(`'array' must be a non-empty array`);
+	}
+
+	let indexes = shuffle(array.map(mapArrayIndex));
+	let iterator = 0;
+
+	return (): T => {
+		if (iterator === indexes.length) {
+			indexes = shuffle(array.map(mapArrayIndex));
+			iterator = 0;
+		}
+
+		return array[indexes[iterator++]];
+	};
+}
+
+export { remove, removeInPlace, unique, peek, PeekPosition, filterAsync, randomUniqueItem };

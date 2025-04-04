@@ -1,0 +1,65 @@
+{
+	"compilerOptions": {
+		"allowJs": false,
+		"checkJs": false,
+
+		"incremental": true,
+		"composite": true,
+
+		"declaration": true,
+		"declarationMap": false,
+
+		"resolveJsonModule": true,
+		"allowUmdGlobalAccess": false,
+
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"types": ["node", "@total-typescript/ts-reset"],
+
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": false,
+
+		"removeComments": false,
+		"sourceMap": false,
+
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"alwaysStrict": true,
+		"exactOptionalPropertyTypes": false,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"noUncheckedIndexedAccess": false,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+
+		"strict": true,
+		"strictBindCallApply": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
+		"useUnknownInCatchVariables": false,
+
+		"disableSizeLimit": true,
+
+		"esModuleInterop": true,
+
+		"forceConsistentCasingInFileNames": true,
+
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+
+		"verbatimModuleSyntax": true,
+
+		"isolatedModules": true,
+		"skipDefaultLibCheck": true,
+		"noEmitOnError": true,
+		"noEmitHelpers": true,
+		"importHelpers": true
+	}
+}

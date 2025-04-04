@@ -1,23 +1,30 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
-import { array, number, string } from '@thermopylae/lib.utils';
+import { logger } from '@thermopylae/dev.unit-test';
+import { buildPromiseHolder } from '@thermopylae/lib.async';
+import { number } from '@thermopylae/lib.utils';
 import colors from 'colors';
+import cryptoRandomString from 'crypto-random-string';
 import range from 'lodash.range';
-import { SegmentedLRUEvictionPolicy, EvictableCacheEntry, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
-import { MapUtils } from '../../utils';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
+import { randomInt } from 'node:crypto';
+import randomItem from 'random-item';
+import { describe, expect, it } from 'vitest';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked.js';
+import { type EvictableCacheEntry, SEGMENT_SYM, SegmentedLRUEvictionPolicy } from '../../../lib/policies/eviction/segmented-lru.js';
+import { MapUtils } from '../../utils.js';
 
 describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
-	it('should work under minimal cache capacity', (done) => {
+	it('should work under minimal cache capacity', async () => {
+		expect.hasAssertions();
+
 		const CAPACITY = 2;
 		const PROTECTED_SEGMENT_RATIO = 0.5;
 
 		const ENTRIES_IN_CACHE = new Map<string, EvictableCacheEntry<string, number>>();
 		let HOPS = 50;
 
+		const deferred = buildPromiseHolder<void>();
+
 		try {
-			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, unknown>(CAPACITY, PROTECTED_SEGMENT_RATIO);
 			policy.setDeleter((evictedEntry) => {
 				ENTRIES_IN_CACHE.delete(evictedEntry.key);
 
@@ -25,14 +32,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+				expect(evictableKeyNode[SEGMENT_SYM]).toBeUndefined();
 			});
 
 			const onSetInterval = setInterval(() => {
 				if (isDone()) {
 					return;
 				}
-				const key = string.random({ length: 2, allowedCharRegex: /[0-9]/ });
+				const key = cryptoRandomString({ length: 2, type: 'numeric' });
 				const entry: EvictableCacheEntry<string, number> = {
 					key,
 					value: Number(key),
@@ -45,10 +52,10 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			}, 5);
 
 			const onHitInterval = setInterval(() => {
-				if (isDone() || !ENTRIES_IN_CACHE.size) {
+				if (isDone() || ENTRIES_IN_CACHE.size === 0) {
 					return;
 				}
-				const entry = array.randomElement(Array.from(ENTRIES_IN_CACHE.values()));
+				const entry = randomItem([...ENTRIES_IN_CACHE.values()]);
 				policy.onHit(entry);
 			}, 2);
 
@@ -62,17 +69,17 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 						// this might happen when onHit has been called, it evicted entry, but next onSet hadn't chance to be called to insert a new one
 						expect(ENTRIES_IN_CACHE.size).to.be.within(CAPACITY - 1, CAPACITY);
 
-						done();
-					} catch (e) {
-						done(e);
-					} finally {
-						// eslint-disable-next-line no-unsafe-finally
-						return true;
+						deferred.resolve();
+					} catch (error) {
+						deferred.reject(error);
 					}
+					return true;
 				}
 				return false;
 			};
-		} catch (e) {
+
+			await deferred.promise;
+		} catch (error) {
 			const message = [
 				'Test Context:',
 				`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -82,12 +89,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				`${'HOPS'.magenta}\t\t: ${HOPS}`
 			];
 			logger.info(message.join('\n'));
-			throw e;
+			throw error;
 		}
 	});
 
 	it('should work as a simple LRU when no hits are performed', () => {
-		const CAPACITY = number.randomInt(3, 10);
+		expect.hasAssertions();
+
+		const CAPACITY = randomInt(3, 10);
 		const PROTECTED_OVER_PROBATION_RATIO = 0.5;
 
 		const PROTECTED_SIZE = Math.round(number.percentage(CAPACITY, PROTECTED_OVER_PROBATION_RATIO));
@@ -105,7 +114,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			})
 		);
 		const ADDITIONAL_ENTRIES = new Map<string, EvictableCacheEntry<string, number>>(
-			range(PROBATION_SIZE, number.randomInt(1, PROBATION_SIZE)).map((value) => {
+			range(PROBATION_SIZE, randomInt(1, PROBATION_SIZE + 1)).map((value) => {
 				const entry: EvictableCacheEntry<string, number> = {
 					key: String(value),
 					value,
@@ -119,7 +128,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, unknown>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
 			policy.setDeleter((evictedEntry) => {
 				EVICTED_KEYS.push(evictedEntry.key);
 
@@ -127,7 +136,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+				expect(evictableKeyNode[SEGMENT_SYM]).toBeUndefined();
 			});
 
 			for (const entry of ENTRIES.values()) {
@@ -138,13 +147,13 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onSet(entry);
 			}
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
 
 			const ENTRIES_AS_ARRAY = [...ENTRIES];
 			for (let i = 0; i < ADDITIONAL_ENTRIES.size; i++) {
 				expect(EVICTED_KEYS[i]).to.be.eq(ENTRIES_AS_ARRAY[i][0]);
 			}
-		} catch (e) {
+		} catch (error) {
 			const message = [
 				'Test Context:',
 				`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -158,12 +167,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
 			logger.info(message.join('\n'));
-			throw e;
+			throw error;
 		}
 	});
 
 	it('should evict entries in the right order', () => {
-		const CAPACITY = number.randomInt(3, 20);
+		expect.hasAssertions();
+
+		const CAPACITY = randomInt(3, 20);
 		const PROTECTED_OVER_PROBATION_RATIO = 0.5;
 
 		const PROTECTED_SIZE = Math.round(number.percentage(CAPACITY, PROTECTED_OVER_PROBATION_RATIO));
@@ -197,7 +208,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 		const EVICTED_KEYS = new Array<string>();
 
 		try {
-			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
+			const policy = new SegmentedLRUEvictionPolicy<string, number, unknown>(CAPACITY, PROTECTED_OVER_PROBATION_RATIO);
 			policy.setDeleter((evictedEntry) => {
 				EVICTED_KEYS.push(evictedEntry.key);
 
@@ -205,7 +216,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onDelete(evictableKeyNode);
 				expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 				expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-				expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+				expect(evictableKeyNode[SEGMENT_SYM]).toBeUndefined();
 			});
 
 			// 1. Insert protected items
@@ -213,8 +224,8 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onSet(entry);
 				policy.onHit(entry);
 			}
-			const mostRecentEntry = MapUtils.lastEntry(PROTECTED_ENTRIES)![1];
-			const leastRecentEntry = MapUtils.firstEntry(PROTECTED_ENTRIES)![1];
+			const mostRecentEntry = (MapUtils.lastEntry(PROTECTED_ENTRIES) ?? [])[1];
+			const leastRecentEntry = (MapUtils.firstEntry(PROTECTED_ENTRIES) ?? [])[1];
 			expect(policy.mostRecent).to.be.eq(mostRecentEntry);
 			expect(policy.leastRecent).to.be.eq(leastRecentEntry);
 
@@ -225,54 +236,63 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			expect(policy.size).to.be.eq(CAPACITY); // full
 
 			// 3. onHit for probation tail
-			const probationTail = MapUtils.firstEntry(PROBATION_ENTRIES)![1];
+			const probationTail = (MapUtils.firstEntry(PROBATION_ENTRIES) ?? [])[1];
+			if (!probationTail) {
+				throw new Error('no probation tail');
+			}
 			policy.onHit(probationTail);
 			expect(policy.mostRecent).to.be.eq(probationTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 4. onHit for probation head
 			const probationHead = leastRecentEntry;
+			if (!probationHead) {
+				throw new Error('no probation head');
+			}
 			policy.onHit(probationHead);
 			expect(policy.mostRecent).to.be.eq(probationHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 5. onHit for protected head
 			const protectedHead = leastRecentEntry;
 			policy.onHit(protectedHead);
 			expect(policy.mostRecent).to.be.eq(protectedHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 6. onHit for protected tail
-			const protectedTail = policy.leastRecent!;
+			const protectedTail = policy.leastRecent;
+			if (!protectedTail) {
+				throw new Error('no protected tail');
+			}
 			policy.onHit(protectedTail);
 			expect(policy.mostRecent).to.be.eq(protectedTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 7. onSet
 			const protectedTailBeforeSet = policy.leastRecent;
 
 			const entry: EvictableCacheEntry<string, number> = {
-				key: string.random(),
+				key: cryptoRandomString({ length: 10 }),
 				value: number.random(CAPACITY, CAPACITY + 10),
-				// @ts-ignore This is for testing purposes
+				// @ts-expect-error This is for testing purposesrposes
 				[SEGMENT_SYM]: null
 			};
 			policy.onSet(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(1);
+			expect(EVICTED_KEYS).to.have.length(1);
 			expect(policy.mostRecent).to.be.eq(protectedTail); // protected remained untouched
 			expect(policy.leastRecent).to.be.eq(protectedTailBeforeSet); // protected remained untouched
 
 			// 8. onHit for last inserted entry
 			policy.onHit(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(1);
+			expect(EVICTED_KEYS).to.have.length(1);
 			expect(policy.mostRecent).to.be.eq(entry);
-		} catch (e) {
+		} catch (error) {
 			const message = [
 				'Test Context:',
 				`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -286,14 +306,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				`${'EVICTED_KEYS'.magenta}\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
 			logger.info(message.join('\n'));
-			throw e;
+			throw error;
 		}
 	});
 
 	it('should delete entries', () => {
 		const CAPACITY = 2;
 		const EVICTED_KEYS = new Array<string>();
-		const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, 0.5);
+		const policy = new SegmentedLRUEvictionPolicy<string, number, unknown>(CAPACITY, 0.5);
 		policy.setDeleter((evictedEntry) => {
 			EVICTED_KEYS.push(evictedEntry.key);
 
@@ -301,19 +321,19 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			policy.onDelete(evictableKeyNode);
 			expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 			expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-			expect(evictableKeyNode[SEGMENT_SYM]).to.be.eq(undefined);
+			expect(evictableKeyNode[SEGMENT_SYM]).toBeUndefined();
 		});
 
 		const firstEntry: EvictableCacheEntry<string, number> = {
 			key: 'a',
 			value: 1,
-			// @ts-ignore This is for testing purposes
+			// @ts-expect-error This is for testing purposesrposes
 			[SEGMENT_SYM]: null
 		};
 		const secondEntry: EvictableCacheEntry<string, number> = {
 			key: 'b',
 			value: 2,
-			// @ts-ignore This is for testing purposes
+			// @ts-expect-error This is for testing purposesrposes
 			[SEGMENT_SYM]: null
 		};
 

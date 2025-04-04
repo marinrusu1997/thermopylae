@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
-import { EntryPoolCacheBackend } from '../../lib';
-import { CacheEntry } from '../../lib/contracts/commons';
+import { describe, expect, it } from 'vitest';
+import { EntryPoolCacheBackend } from '../../lib/index.js';
+import type { CacheEntry } from '../../lib/typings/commons.js';
 
 describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 	it('should manage cache entries', () => {
@@ -22,13 +20,13 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		/* GET */
 		expect(backend.get('a')).to.be.eq(firstEntry);
 		expect(backend.get('b')).to.be.eq(secondEntry);
-		expect(backend.get('c')).to.be.eq(undefined);
+		expect(backend.get('c')).toBeUndefined();
 
 		/* UPDATE */
 		firstEntry.value = '1';
 		secondEntry.value = '2';
-		expect(backend.get('a')!.value).to.be.eq('1');
-		expect(backend.get('b')!.value).to.be.eq('2');
+		expect(backend.get('a')?.value).to.be.eq('1');
+		expect(backend.get('b')?.value).to.be.eq('2');
 
 		/* ITERATION */
 		const keys = new Set<string>(['a', 'b']);
@@ -62,12 +60,12 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		expect(keys.size).to.be.eq(0);
 
 		/* DELETE */
-		backend.del(backend.get('a')!); // deleted entry
+		backend.del(backend.get('a') as CacheEntry<string, string>); // deleted entry
 		expect(backend.size).to.be.eq(1); // size decreased
-		expect(Array.from(backend)).to.be.ofSize(1); // iterates correctly
-		expect(Array.from(backend.values())).to.be.ofSize(1); // iterates correctly
-		expect(firstEntry.value).to.be.eq(undefined); // detaches metadata
-		expect(firstEntry.key).to.be.eq(undefined); // detaches metadata
+		expect([...backend]).to.have.length(1); // iterates correctly
+		expect([...backend.values()]).to.have.length(1); // iterates correctly
+		expect(firstEntry.value).toBeUndefined(); // detaches metadata
+		expect(firstEntry.key).toBeUndefined(); // detaches metadata
 
 		const thirdEntry = backend.set('c', 'c');
 		expect(thirdEntry).to.be.eq(firstEntry); // it reused entry from pool
@@ -78,9 +76,9 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		/* CLEAR */
 		backend.clear();
 		expect(backend.size).to.be.eq(0);
-		expect(Array.from(backend)).to.be.ofSize(0); // iterates correctly
-		expect(Array.from(backend.keys())).to.be.ofSize(0); // iterates correctly
-		expect(Array.from(backend.values())).to.be.ofSize(0); // iterates correctly
+		expect([...backend]).to.have.length(0); // iterates correctly
+		expect([...backend.keys()]).to.have.length(0); // iterates correctly
+		expect([...backend.values()]).to.have.length(0); // iterates correctly
 		expect(backend.has('c')).to.be.eq(false);
 		expect(backend.has('b')).to.be.eq(false);
 

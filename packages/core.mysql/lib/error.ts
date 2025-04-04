@@ -1,15 +1,13 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { ClientModule } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	MISCONFIGURATION = 'MISCONFIGURATION',
 	UNKNOWN_CONNECTION_TYPE = 'UNKNOWN_CONNECTION_TYPE'
 }
 
-/**
- * @private
- */
-function createException(code: ErrorCodes, message: string, data?: any): Exception {
+/** @private */
+function createException(code: ErrorCodes, message: string, data?: unknown): Exception {
 	return new Exception(ClientModule.MYSQL, code, message, data);
 }
 

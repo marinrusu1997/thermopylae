@@ -1,5 +1,5 @@
-import { AccountWithTotpSecret, SmsSender } from '../../../lib';
-import { SmsClientMock } from '../mocks/sms';
+import type { AccountWithTotpSecret, SmsSender } from '../../../lib/index.js';
+import { SmsClientMock } from '../mocks/sms.js';
 
 class SmsSenderMock implements SmsSender<AccountWithTotpSecret> {
 	public readonly client: SmsClientMock;
@@ -8,8 +8,9 @@ class SmsSenderMock implements SmsSender<AccountWithTotpSecret> {
 		this.client = new SmsClientMock();
 	}
 
+	// oxlint-disable-next-line require-await
 	public async sendForgotPasswordToken(account: AccountWithTotpSecret, token: string): Promise<void> {
-		this.client.send(account.telephone!, 'sendForgotPasswordToken', token);
+		this.client.send(account.telephone ?? '', 'sendForgotPasswordToken', token);
 	}
 }
 

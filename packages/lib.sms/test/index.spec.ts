@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import { describe, expect, it } from 'vitest';
 
 describe('SMS spec', () => {
-	it('has no tests', async () => {
+	it('has no tests', () => {
 		expect(true).to.be.eq(true);
 	});
 });

@@ -4,4 +4,28 @@
 
 # Dependencies
 node_modules/
-yarn.lock
+package-lock.json
+
+# Test
+test/**/*.log
+test/**/log.*
+**/coverage
+
+# Compiled Output
+**/build
+**/dist
+
+# environment
+**/.env
+
+# System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+Thumbs.db
+*~
+._*
+*.swp
+.Spotlight*
+.Trashes

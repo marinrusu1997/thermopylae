@@ -1,11 +1,9 @@
 import type { Seconds } from '@thermopylae/core.declarations';
-import type { AuthenticationSessionRepository } from '../types/repositories';
-import type { AuthenticationSession } from '../types/sessions';
-import type { AuthenticationContext } from '../types/contexts';
+import type { AuthenticationContext } from '../types/contexts.js';
+import type { AuthenticationSessionRepository } from '../types/repositories.js';
+import type { AuthenticationSession } from '../types/sessions.js';
 
-/**
- * @private
- */
+/** @private */
 class AuthenticationSessionRepositoryHolder {
 	private readonly repository: AuthenticationSessionRepository;
 

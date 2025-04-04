@@ -1,9 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { before } from 'mocha';
-import { ApiValidator } from '../lib';
+import path from 'node:path';
+import { beforeAll } from 'vitest';
+import { ApiValidator } from '../lib/index.js';
 
 const apiValidator = new ApiValidator();
 
-before(() => apiValidator.init('test/fixtures', ['core']));
+// oxlint-disable-next-line require-top-level-describe
+beforeAll(() => apiValidator.init(path.join(import.meta.dirname, 'fixtures'), ['core']));
 
 export { apiValidator };

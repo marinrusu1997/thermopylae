@@ -1,13 +1,17 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/dev.unit-test';
-import { number, string } from '@thermopylae/lib.utils';
-import { Comparator, Undefinable } from '@thermopylae/core.declarations';
-import { Heap } from '../lib';
-
-const { expect } = chai;
+import type { Comparator, Undefinable } from '@thermopylae/core.declarations';
+import cryptoRandomString from 'crypto-random-string';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { Heap } from '../lib/index.js';
 
 type ArrayComparator<T> = (a: Undefinable<T>, b: Undefinable<T>) => number;
+
+interface TestHeapItemObject {
+	x: number;
+}
+const ascendantNumberComparator = (a: number, b: number): number => a - b;
+const ascendantStringComparator = (a: string, b: string): number => a.localeCompare(b);
+const ascendantObjectComparator = (a: TestHeapItemObject, b: TestHeapItemObject): number => a.x - b.x;
 
 describe(`${Heap.name} spec`, () => {
 	function assertHeapSortedOrder<T>(heap: Heap<T>, comparator?: Comparator<T>): void {
@@ -16,7 +20,7 @@ describe(`${Heap.name} spec`, () => {
 			sorted.push(heap.pop());
 		}
 
-		expect(sorted.slice().sort(comparator as ArrayComparator<T>)).to.be.equalTo(sorted);
+		expect([...sorted].sort(comparator as ArrayComparator<T>)).toStrictEqual(sorted);
 	}
 
 	describe(`${Heap.prototype.push.name} & ${Heap.prototype.pop.name} spec`, () => {
@@ -35,45 +39,39 @@ describe(`${Heap.name} spec`, () => {
 
 		it('should sort an array of numbers using push and pop (random order)', () => {
 			const MAX_ITEMS = 100;
-
-			const comparator = (a: number, b: number): number => a - b;
-			const heap = new Heap<number>(comparator);
+			const heap = new Heap<number>(ascendantNumberComparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push(number.randomInt(i, MAX_ITEMS));
+				heap.push(randomInt(i, MAX_ITEMS));
 			}
 
-			assertHeapSortedOrder(heap.clone(), comparator);
+			assertHeapSortedOrder(heap.clone(), ascendantNumberComparator);
 		});
 
 		it('should sort an array of strings using push and pop (random order)', () => {
 			const MAX_ITEMS = 500;
-
-			const comparator = (a: string, b: string): number => a.localeCompare(b);
-			const heap = new Heap<string>(comparator);
+			const heap = new Heap<string>(ascendantStringComparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push(string.random({ length: i }));
+				heap.push(cryptoRandomString({ length: i }));
 			}
 
-			assertHeapSortedOrder(heap.clone(), comparator);
+			assertHeapSortedOrder(heap.clone(), ascendantStringComparator);
 		});
 
 		it('should sort an array of objects using push and pop (random order)', () => {
 			const MAX_ITEMS = 500;
-
-			const comparator = (a: any, b: any): number => a.x - b.x;
-			const heap = new Heap<{ x: number }>(comparator);
+			const heap = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 
 			for (let i = 0; i < MAX_ITEMS; i++) {
-				heap.push({ x: number.randomInt(i, MAX_ITEMS) });
+				heap.push({ x: randomInt(i, MAX_ITEMS) });
 			}
 
-			assertHeapSortedOrder(heap, comparator);
+			assertHeapSortedOrder(heap, ascendantObjectComparator);
 		});
 
 		it('should work with custom comparison function', () => {
-			const comparator = (a: number, b: number) => {
+			const heap = new Heap<number>((a: number, b: number) => {
 				if (a > b) {
 					return -1;
 				}
@@ -83,9 +81,7 @@ describe(`${Heap.name} spec`, () => {
 				}
 
 				return 0;
-			};
-
-			const heap = new Heap<number>(comparator);
+			});
 
 			for (let i = 0; i < 10; i++) {
 				heap.push(Math.random());
@@ -96,7 +92,7 @@ describe(`${Heap.name} spec`, () => {
 				sorted.push(heap.pop());
 			}
 
-			expect(sorted.slice().sort().reverse()).to.be.equalTo(sorted);
+			expect([...sorted].sort().reverse()).toStrictEqual(sorted);
 		});
 	});
 
@@ -110,7 +106,7 @@ describe(`${Heap.name} spec`, () => {
 
 			expect(heap.replaceRootWith(3)).to.be.eq(1);
 
-			expect(heap.toArray().sort()).to.be.equalTo([2, 3, 3, 4, 5]);
+			expect(heap.toArray().sort()).toStrictEqual([2, 3, 3, 4, 5]);
 		});
 	});
 
@@ -152,28 +148,27 @@ describe(`${Heap.name} spec`, () => {
 			const b = { x: 2 };
 			const c = { x: 3 };
 
-			const comparator = (x: any, y: any): number => x.x - y.x;
-			const original = new Heap<{ x: number }>(comparator);
+			const original = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 
 			original.push(a);
 			original.push(b);
 			original.push(c);
 
 			const clone = original.clone();
-			expect(original.toArray()).to.be.equalTo(clone.toArray());
+			expect(original.toArray()).toStrictEqual(clone.toArray());
 
-			assertHeapSortedOrder(original, comparator);
-			assertHeapSortedOrder(clone, comparator);
+			assertHeapSortedOrder(original, ascendantObjectComparator);
+			assertHeapSortedOrder(clone, ascendantObjectComparator);
 		});
 	});
 
 	describe(`${Heap.prototype.update.name} spec`, () => {
 		it('should update item and preserve order', () => {
-			const a = { x: 1 };
-			const b = { x: 2 };
-			const c = { x: 3 };
+			const a: TestHeapItemObject = { x: 1 };
+			const b: TestHeapItemObject = { x: 2 };
+			const c: TestHeapItemObject = { x: 3 };
 
-			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			const heap = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 			heap.push(a);
 			heap.push(b);
 			heap.push(c);
@@ -181,7 +176,7 @@ describe(`${Heap.name} spec`, () => {
 			const index = heap.findIndex((val) => val.x === 3);
 			heap.update(index, { x: 0 });
 
-			expect(heap.pop()!.x).to.be.eq(0);
+			expect(heap.pop()?.x).to.be.eq(0);
 		});
 
 		it('should not update item if it was not found', () => {
@@ -191,13 +186,14 @@ describe(`${Heap.name} spec`, () => {
 				heap.push(i);
 			}
 
+			// oxlint-disable-next-line prefer-array-index-of
 			const index = heap.findIndex((val) => val === 0);
 
 			let err: Error | null = null;
 			try {
 				heap.update(index, 0);
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 			expect(err)
 				.to.be.instanceOf(Error)
@@ -209,11 +205,11 @@ describe(`${Heap.name} spec`, () => {
 
 	describe(`${Heap.prototype.remove.name} spec`, () => {
 		it('should remove top of the heap', () => {
-			const a = { x: 1 };
-			const b = { x: 2 };
-			const c = { x: 3 };
+			const a: TestHeapItemObject = { x: 1 };
+			const b: TestHeapItemObject = { x: 2 };
+			const c: TestHeapItemObject = { x: 3 };
 
-			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			const heap = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 			heap.push(a);
 			heap.push(b);
 			heap.push(c);
@@ -221,16 +217,16 @@ describe(`${Heap.name} spec`, () => {
 			const index = heap.findIndex((val) => val.x === 1);
 			heap.remove(index);
 
-			expect(heap.peek()!.x).to.be.eq(2);
+			expect(heap.peek()?.x).to.be.eq(2);
 			assertHeapSortedOrder(heap);
 		});
 
 		it('should remove bottom of the heap', () => {
-			const a = { x: 1 };
-			const b = { x: 2 };
-			const c = { x: 3 };
+			const a: TestHeapItemObject = { x: 1 };
+			const b: TestHeapItemObject = { x: 2 };
+			const c: TestHeapItemObject = { x: 3 };
 
-			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			const heap = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 			heap.push(a);
 			heap.push(b);
 			heap.push(c);
@@ -238,16 +234,16 @@ describe(`${Heap.name} spec`, () => {
 			const index = heap.findIndex((val) => val.x === 3);
 			heap.remove(index);
 
-			expect(heap.peek()!.x).to.be.eq(1);
+			expect(heap.peek()?.x).to.be.eq(1);
 			assertHeapSortedOrder(heap);
 		});
 
 		it('should remove middle of the heap', () => {
-			const a = { x: 1 };
-			const b = { x: 2 };
-			const c = { x: 3 };
+			const a: TestHeapItemObject = { x: 1 };
+			const b: TestHeapItemObject = { x: 2 };
+			const c: TestHeapItemObject = { x: 3 };
 
-			const heap = new Heap<{ x: number }>((m, n) => m.x - n.x);
+			const heap = new Heap<TestHeapItemObject>(ascendantObjectComparator);
 			heap.push(a);
 			heap.push(b);
 			heap.push(c);
@@ -255,47 +251,43 @@ describe(`${Heap.name} spec`, () => {
 			const index = heap.findIndex((val) => val.x === 2);
 			heap.remove(index);
 
-			expect(heap.peek()!.x).to.be.eq(1);
+			expect(heap.peek()?.x).to.be.eq(1);
 			assertHeapSortedOrder(heap);
 		});
 
 		it('should remove item and preserve order', () => {
+			expect.hasAssertions();
+
 			const MAX_ITEMS = 100;
+			const items = Array.from({ length: MAX_ITEMS }, (_, i) => randomInt(i, MAX_ITEMS));
 
-			const items: Array<number> = new Array<number>(MAX_ITEMS);
-
-			const comparator = (m: number, n: number): number => m - n;
-			const heap = new Heap<number>(comparator);
-
-			let generated;
-			for (let i = 0; i < MAX_ITEMS; i++) {
-				generated = number.randomInt(i, MAX_ITEMS);
-				items[i] = generated;
-				heap.push(generated);
+			const heap = new Heap<number>(ascendantNumberComparator);
+			for (const item of items) {
+				heap.push(item);
 			}
 
-			while (items.length) {
-				const itemsIndex = number.randomInt(0, items.length - 1);
+			while (items.length > 0) {
+				const itemsIndex = randomInt(0, items.length);
+				// oxlint-disable-next-line prefer-array-index-of
 				const heapIndex = heap.findIndex((n) => n === items[itemsIndex]);
 
 				heap.remove(heapIndex);
 				items.splice(itemsIndex, 1);
 
-				assertHeapSortedOrder(heap.clone(), comparator);
+				assertHeapSortedOrder(heap.clone(), ascendantNumberComparator);
 			}
 		});
 
 		it('fails to remove unknown index', () => {
-			const comparator = (m: number, n: number): number => m - n;
-			const heap = new Heap<number>(comparator);
+			const heap = new Heap<number>(ascendantNumberComparator);
 
 			const index = -1;
 
-			let err;
+			let err: Error | null = null;
 			try {
 				heap.remove(index);
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 
 			expect(err)
@@ -325,7 +317,7 @@ describe(`${Heap.name} spec`, () => {
 				expectedSorted.push(heap.pop());
 			}
 
-			expect(expectedSorted).to.be.equalTo([1, 2, 3, 4, 5]);
+			expect(expectedSorted).toStrictEqual([1, 2, 3, 4, 5]);
 			expect(heap.size).to.be.eq(0);
 		});
 	});

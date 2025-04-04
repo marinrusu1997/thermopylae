@@ -1,15 +1,9 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-
-import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes, convertFrom } from '../lib/boolean';
+import { describe, expect, it } from 'vitest';
+import { convertFrom } from '../lib/boolean.js';
 
 describe('boolean spec', () => {
 	describe(`${convertFrom.name} spec`, () => {
 		it('returns false for null or undefined', () => {
-			expect(convertFrom(undefined)).to.be.eq(false);
 			expect(convertFrom(null)).to.be.eq(false);
 		});
 
@@ -39,67 +33,15 @@ describe('boolean spec', () => {
 
 		it('converts numbers to boolean', () => {
 			expect(convertFrom(1)).to.be.eq(true);
-			expect(convertFrom(Infinity)).to.be.eq(true);
+			expect(() => convertFrom(Infinity)).to.throw("Value `Infinity` can't be converted to a boolean value.");
 
 			expect(convertFrom(0)).to.be.eq(false);
-			expect(convertFrom(NaN)).to.be.eq(false);
+			expect(() => convertFrom(Number.NaN)).to.throw("Value `NaN` can't be converted to a boolean value.");
 		});
 
 		it('returns back the same value if it was a boolean', () => {
 			expect(convertFrom(true)).to.be.eq(true);
 			expect(convertFrom(false)).to.be.eq(false);
-		});
-
-		it('throws when value is null or undefined and strict mode is turned on', () => {
-			let valueToConvert: null | undefined;
-
-			let err;
-			try {
-				// @ts-ignore This is for testing
-				convertFrom(valueToConvert, true);
-			} catch (e) {
-				err = e;
-			}
-			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
-
-			valueToConvert = null;
-			err = undefined;
-
-			try {
-				// @ts-ignore This is for testing
-				convertFrom(valueToConvert, true);
-			} catch (e) {
-				err = e;
-			}
-			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
-		});
-
-		it("throws when can't convert to boolean (receiving value of type different than string or number)", () => {
-			let valueToConvert = {};
-
-			let err;
-			try {
-				// @ts-ignore This is for testing
-				convertFrom(valueToConvert);
-			} catch (e) {
-				err = e;
-			}
-			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
-
-			valueToConvert = [];
-			err = undefined;
-
-			try {
-				// @ts-ignore This is for testing
-				convertFrom(valueToConvert);
-			} catch (e) {
-				err = e;
-			}
-			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED);
-			expect(err).to.haveOwnProperty('message', `Can't cast ${valueToConvert} of type ${typeof valueToConvert} to boolean.`);
 		});
 	});
 });

@@ -1,35 +1,37 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
-import { array, number } from '@thermopylae/lib.utils';
-import { Nullable } from '@thermopylae/core.declarations';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
-import range from 'lodash.range';
-// @ts-ignore This package has no typings
+// @ts-expect-error This package has no typingsypings
 import gc from 'js-gc';
-import { LFUEvictionPolicy, GDSFEvictionPolicy, LFUDAEvictionPolicy } from '../../../lib';
-import { ReverseMap } from '../../utils';
-import { BaseLFUEvictionPolicy, EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import shuffle from 'knuth-shuffle-seeded';
+import range from 'lodash.range';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked.js';
+import { GDSFEvictionPolicy, LFUDAEvictionPolicy, LFUEvictionPolicy } from '../../../lib/index.js';
+import { BaseLFUEvictionPolicy, type EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
+import { ReverseMap } from '../../utils.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 const LFU_IMPLS = [LFUEvictionPolicy, LFUDAEvictionPolicy, GDSFEvictionPolicy];
 
-function lfuFactory<Key, Value, ArgumentsBundle = any>(
+function lfuFactory<Key, Value, ArgumentsBundle = unknown>(
 	constructor: typeof BaseLFUEvictionPolicy,
 	...constructorParams: ConstructorParameters<typeof LFUEvictionPolicy>
 ): BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
-	// @ts-ignore This is for testing purposes
+	// @ts-expect-error This is for testing purposesrposes
 	return new constructor(...constructorParams);
 }
 
 describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
-	for (const LFU_IMPL of LFU_IMPLS) {
+	describe.each(LFU_IMPLS)('LFU Implementations spec', (LFU_IMPL) => {
 		describe(`${LFU_IMPL.name.magenta} spec`, () => {
 			describe(`${LFU_IMPL.prototype.onHit.name.magenta} & ${LFU_IMPL.prototype.onSet.name.magenta} spec`, () => {
 				it('should not evict entries until capacity cap is met', () => {
-					const CAPACITY = number.randomInt(1, 11);
+					expect.hasAssertions();
+
+					const CAPACITY = randomInt(1, 11);
 					try {
 						let totalEntriesNo = 0;
 
@@ -44,7 +46,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						}
 
 						for (const [key, value] of candidates) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							totalEntriesNo += 1;
@@ -52,7 +54,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							expect(policy.size).to.be.eq(totalEntriesNo); // stacks up entries
 						}
 
-						// @ts-ignore This is for testing purposes
+						// @ts-expect-error This is for testing purposesrposes
 						const entry: EvictableCacheEntry<string, number> = { key: String(CAPACITY + 1), value: CAPACITY + 1 };
 						let deleted: Nullable<string> = null;
 						policy.setDeleter((evictedEntry) => {
@@ -62,7 +64,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).toBeUndefined();
 						});
 
 						totalEntriesNo += 1; // simulate overflow
@@ -71,24 +73,30 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						expect(deleted).to.not.be.eq(null); // our deleter has been called...
 						expect(deleted).to.not.be.eq(entry.key); // ...on some random entry (all of them have 0 frequency)...
 						expect(policy.size).to.be.eq(CAPACITY); // ...and number of req nodes remained the same
-					} catch (e) {
+					} catch (error) {
 						const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
 						logger.info(message.join('\n'));
-						throw e;
+						throw error;
 					}
 				});
 
 				it('should evict least frequently used item', () => {
-					const CAPACITY = number.randomInt(1, 21);
-					const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
+					expect.hasAssertions();
+
+					const CAPACITY = randomInt(1, 21);
+					const ADDITIONAL_ENTRIES_NO = randomInt(1, CAPACITY + 1);
 
 					const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
 					const ADDITIONAL_ENTRIES = new Map<string, number>(range(CAPACITY, CAPACITY + ADDITIONAL_ENTRIES_NO).map((n) => [String(n), n]));
 
-					const ENTRY_FREQUENCIES = new Map<string, number>(Array.from(ENTRIES.keys()).map((key) => [key, number.randomInt(0, CAPACITY)]));
-					const ADDITIONAL_ENTRIES_FREQUENCIES = new Map<string, number>(Array.from(ADDITIONAL_ENTRIES.keys()).map((key) => [key, CAPACITY + 1]));
+					const ENTRY_FREQUENCIES = new Map<string, number>([...ENTRIES.keys()].map((key) => [key, randomInt(0, CAPACITY)]));
+					const ADDITIONAL_ENTRIES_FREQUENCIES = new Map<string, number>([...ADDITIONAL_ENTRIES.keys()].map((key) => [key, CAPACITY + 1]));
 
-					const GET_ORDER = array.shuffle([...ENTRY_FREQUENCIES.keys()].map((k) => array.filledWith(ENTRY_FREQUENCIES.get(k)!, k)).flat());
+					const GET_ORDER = shuffle(
+						ENTRY_FREQUENCIES.keys()
+							.flatMap((k) => new Array(ENTRY_FREQUENCIES.get(k)).fill(k))
+							.toArray()
+					);
 					const ENTRIES_SORTED_BY_FREQ = new ReverseMap(ENTRY_FREQUENCIES);
 
 					const EVICTED_KEYS = new Array<string>();
@@ -109,11 +117,11 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).toBeUndefined();
 						});
 
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 
@@ -143,14 +151,14 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						totalEntriesNo += 1; // simulate overflow
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry); // we don't increment totalEntriesNo, as we know entries are evicted and it's value remains the same
 
 							// console.log(policy.toFormattedString(BUCKET_FORMATTERS));
 							// console.log(policy.size);
 
-							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key)!;
+							const spinUpFrequency = ADDITIONAL_ENTRIES_FREQUENCIES.get(key) ?? 0;
 							for (let i = 0; i < spinUpFrequency; i++) {
 								policy.onHit(entry); // we need to bump up, otherwise further newly added items will be evicted, as they start with low counter
 							}
@@ -162,12 +170,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								expect(ENTRIES.has(evictedKey)).to.be.eq(true);
 							}
 						} else {
-							expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-							for (let i = 0; i < EVICTED_KEYS.length; i++) {
-								expect(ENTRIES_SORTED_BY_FREQ.bucket).to.be.containing(EVICTED_KEYS[i]);
+							expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+							for (const evictedKey of EVICTED_KEYS) {
+								expect(ENTRIES_SORTED_BY_FREQ.bucket).to.contain(evictedKey);
 							}
 						}
-					} catch (e) {
+					} catch (error) {
 						const message = [
 							'Test Context:',
 							`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -184,13 +192,15 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
 						logger.info(message.join('\n'));
-						throw e;
+						throw error;
 					}
 				});
 
 				it('should evict least recently used item when all items have same frequency', () => {
-					const CAPACITY = number.randomInt(1, 17);
-					const ADDITIONAL_ENTRIES_NO = number.randomInt(1, CAPACITY);
+					expect.hasAssertions();
+
+					const CAPACITY = randomInt(1, 17);
+					const ADDITIONAL_ENTRIES_NO = randomInt(1, CAPACITY + 1);
 
 					const ENTRIES = new Map(range(0, CAPACITY).map((num) => [String(num), num]));
 					const ADDITIONAL_ENTRIES = new Map(range(CAPACITY, CAPACITY + ADDITIONAL_ENTRIES_NO).map((num) => [String(num), num]));
@@ -211,11 +221,11 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).toBeUndefined();
 						});
 
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							totalEntriesNo += 1;
@@ -226,18 +236,18 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 						totalEntriesNo += 1; // simulate overflow
 
 						for (const [key, value] of ADDITIONAL_ENTRIES) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 						}
 
 						const entriesIter = ENTRIES.keys();
 
-						expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES_NO);
+						expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES_NO);
 						for (const key of EVICTED_KEYS) {
 							expect(key).to.be.eq(entriesIter.next().value);
 						}
-					} catch (e) {
+					} catch (error) {
 						const message = [
 							'Test Context:',
 							`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -247,21 +257,27 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
 						logger.info(message.join('\n'));
-						throw e;
+						throw error;
 					}
 				});
 			});
 
 			describe(`${LFU_IMPL.prototype.onDelete.name.magenta} & ${LFU_IMPL.prototype.onClear.name.magenta} spec`, () => {
 				it('removes entry from internal frequency list when it gets deleted from cache', () => {
-					const CAPACITY = number.randomInt(1, 15);
-					const KEYS_TO_DELETE_NO = number.randomInt(1, CAPACITY);
+					expect.hasAssertions();
+
+					const CAPACITY = randomInt(1, 15);
+					const KEYS_TO_DELETE_NO = randomInt(1, CAPACITY + 1);
 
 					const ENTRIES = new Map<string, number>(range(0, CAPACITY).map((n) => [String(n), n]));
-					const ENTRY_FREQUENCIES = new Map<string, number>(Array.from(ENTRIES.keys()).map((key) => [key, number.randomInt(0, CAPACITY)]));
+					const ENTRY_FREQUENCIES = new Map<string, number>([...ENTRIES.keys()].map((key) => [key, randomInt(0, CAPACITY)]));
 
-					const GET_ORDER = array.shuffle([...ENTRY_FREQUENCIES.keys()].map((k) => array.filledWith(ENTRY_FREQUENCIES.get(k)!, k)).flat());
-					const KEYS_TO_DELETE = array.filledWith(KEYS_TO_DELETE_NO, () => String(number.randomInt(0, CAPACITY - 1)), { noDuplicates: true });
+					const GET_ORDER = shuffle(
+						ENTRY_FREQUENCIES.keys()
+							.flatMap((k) => new Array(ENTRY_FREQUENCIES.get(k)).fill(k))
+							.toArray()
+					);
+					const KEYS_TO_DELETE = shuffle(Array.from({ length: KEYS_TO_DELETE_NO }, (_, i) => String(i)));
 
 					const EVICTED_KEYS = new Array<string>();
 
@@ -282,12 +298,12 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							policy.onDelete(evictableKeyNode);
 							expect(evictableKeyNode[NEXT_SYM]).to.be.eq(null);
 							expect(evictableKeyNode[PREV_SYM]).to.be.eq(null);
-							expect(evictableKeyNode[BUCKET_HEADER_SYM]).to.be.eq(undefined);
+							expect(evictableKeyNode[BUCKET_HEADER_SYM]).toBeUndefined();
 						});
 
 						// add entries
 						for (const [key, value] of ENTRIES) {
-							// @ts-ignore This is for testing purposes
+							// @ts-expect-error This is for testing purposesrposes
 							const entry: EvictableCacheEntry<string, number> = { key, value };
 							policy.onSet(entry);
 							lfuEntries.set(key, entry);
@@ -318,8 +334,8 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						// assertions
 						expect(policy.size).to.be.eq(CAPACITY - KEYS_TO_DELETE_NO);
-						expect(EVICTED_KEYS).to.be.ofSize(0);
-					} catch (e) {
+						expect(EVICTED_KEYS).to.have.length(0);
+					} catch (error) {
 						const message = [
 							'Test Context:',
 							`${'CAPACITY'.magenta}\t\t: ${CAPACITY}`,
@@ -333,13 +349,13 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 							`${'EVICTED_KEYS'.magenta}\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 						];
 						logger.info(message.join('\n'));
-						throw e;
+						throw error;
 					}
 				});
 
-				// eslint-disable-next-line mocha/no-skipped-tests
+				// oxlint-disable-next-line no-disabled-tests
 				it.skip('clears the freq list', () => {
-					const CAPACITY = 1_00_000;
+					const CAPACITY = 100_000;
 					const HEAP_USED_DELTA = 150_000;
 
 					let totalEntriesNo = 0;
@@ -355,7 +371,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					const memUsageBeforeInsert = { ...process.memoryUsage() };
 
 					for (let i = 0; i < CAPACITY; i++) {
-						// @ts-ignore This is for testing purposes
+						// @ts-expect-error This is for testing purposesrposes
 						const entry: EvictableCacheEntry<string, number> = { key: String(i), value: i };
 						lfu.onSet(entry);
 						lfuEntries.set(entry.key, entry);
@@ -378,5 +394,5 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 				});
 			});
 		});
-	}
+	});
 });

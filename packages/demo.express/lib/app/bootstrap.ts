@@ -1,52 +1,65 @@
-import { ApiValidator } from '@thermopylae/lib.api-validator';
-import { GeoIpLocator, GeoIpLiteRepository, IpLocateRepository, IpstackRepository } from '@thermopylae/lib.geoip';
-import {
-	AccountWithTotpSecret,
-	AuthenticationEngine,
-	TotpTwoFactorAuthStrategy,
-	Argon2PasswordHashingAlgorithm,
-	PasswordLengthValidator,
-	PasswordStrengthValidator,
-	PwnedPasswordValidator
-} from '@thermopylae/lib.authentication';
-import { SmsClient } from '@thermopylae/lib.sms';
-import { EmailClient } from '@thermopylae/lib.email';
-import { JwtUserSessionMiddleware, InvalidAccessTokensMemCache, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
-import { UserSessionRedisStorage, initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
+// oxlint-disable require-hook
 import {
 	AccountMySqlRepository,
-	FailedAuthenticationsMysqlRepository,
-	SuccessfulAuthenticationsMysqlRepository,
 	ActivateAccountSessionRedisRepository,
 	AuthenticationSessionRedisRepository,
 	FailedAuthenticationAttemptsSessionRedisRepository,
-	ForgotPasswordSessionRedisRepository
+	FailedAuthenticationsMysqlRepository,
+	ForgotPasswordSessionRedisRepository,
+	SuccessfulAuthenticationsMysqlRepository
 } from '@thermopylae/core.authentication';
-import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
+import { type ObjMap, ThresholdC } from '@thermopylae/core.declarations';
+import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
+import { type GraylogEndpoint, type GraylogLoggingChannel, LoggerManagerInstance } from '@thermopylae/core.logger';
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
-import { LoggerManagerInstance } from '@thermopylae/core.logger';
-import { publicEncrypt, constants } from 'crypto';
-import express, { Router } from 'express';
+import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
+import { UserSessionRedisStorage, initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro.js';
+import { ApiValidator } from '@thermopylae/lib.api-validator';
+import {
+	type AccountWithTotpSecret,
+	Argon2PasswordHashingAlgorithm,
+	AuthenticationEngine,
+	PasswordLengthValidator,
+	PasswordStrengthValidator,
+	PwnedPasswordValidator,
+	TotpTwoFactorAuthStrategy
+} from '@thermopylae/lib.authentication';
+import { EmailClient } from '@thermopylae/lib.email';
+import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpstackRepository } from '@thermopylae/lib.geoip';
+import { type IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
+import { SmsClient } from '@thermopylae/lib.sms';
+import { encryption } from '@thermopylae/lib.utils';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
+import express, { Router } from 'express';
+// @ts-expect-error-error
 import addRequestId from 'express-request-id';
-import helmet from 'helmet';
+import { hidePoweredBy } from 'helmet';
 import fetch from 'node-fetch';
-import process from 'process';
-import path from 'path';
-import { IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { Config } from '../config';
-import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from '../constants';
-import { createException, ErrorCodes } from '../error';
-import { initLoggers, logger } from '../logger';
-import { authenticationRouter } from '../api/routes/authentication/router';
-import { morganMiddleware } from '../api/middleware/morgan';
+import { constants, publicEncrypt } from 'node:crypto';
+import path from 'node:path';
+import process from 'node:process';
+import { morganMiddleware } from '../api/middleware/morgan.js';
+import { serverError } from '../api/middleware/server-error.js';
+import { requiresAuthentication } from '../api/middleware/session.js';
+import { authenticationRouter } from '../api/routes/authentication/router.js';
+import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema.js';
+import { userSessionRouter } from '../api/routes/session/router.js';
+import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema.js';
+import { KafkaClient, type KafkaMessage } from '../clients/kafka.js';
+import { Config } from '../config/index.js';
+import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from '../constants.js';
+import { ErrorCodes, createException } from '../error.js';
+import { initLoggers, logger } from '../logger.js';
+import { __dirname, stringifyOperationContext } from '../utils.js';
 import {
 	API_VALIDATOR,
 	EMAIL_CLIENT,
+	JWT_USER_SESSION_MIDDLEWARE,
+	KAFKA_CLIENT,
+	SERVER,
+	SMS_CLIENT,
 	initApiServer,
 	initApiValidator,
 	initAuthenticationEngine,
@@ -54,19 +67,8 @@ import {
 	initGeoipLocator,
 	initJwtUserSessionMiddleware,
 	initKafkaClient,
-	initSmsClient,
-	JWT_USER_SESSION_MIDDLEWARE,
-	KAFKA_CLIENT,
-	SERVER,
-	SMS_CLIENT
-} from './singletons';
-import { serverError } from '../api/middleware/server-error';
-import { requiresAuthentication } from '../api/middleware/session';
-import { __dirname, stringifyOperationContext } from '../utils';
-import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema';
-import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema';
-import { userSessionRouter } from '../api/routes/session/router';
-import { KafkaClient, KafkaMessage } from '../clients/kafka';
+	initSmsClient
+} from './singletons.js';
 
 let bootstrapPerformed = false;
 
@@ -93,9 +95,9 @@ async function bootstrap() {
 
 	LoggerManagerInstance.formatting.setDefaultFormattingOrder(loggingConfig.formatting.format, {
 		colorize: loggingConfig.formatting.colorize,
-		ignoredLabels: loggingConfig.formatting.ignoredLabels != null ? new Set(loggingConfig.formatting.ignoredLabels) : undefined,
+		ignoredLabels: loggingConfig.formatting.ignoredLabels == null ? undefined : new Set(loggingConfig.formatting.ignoredLabels),
 		levelForLabel: loggingConfig.formatting.levelForLabel,
-		skippedFormatters: loggingConfig.formatting.skippedFormatters != null ? new Set(loggingConfig.formatting.skippedFormatters) : undefined
+		skippedFormatters: loggingConfig.formatting.skippedFormatters == null ? undefined : new Set(loggingConfig.formatting.skippedFormatters)
 	});
 	LoggerManagerInstance.formatting.setClusterNodeId(APP_NODE_ID);
 
@@ -107,10 +109,10 @@ async function bootstrap() {
 	}
 	if (loggingConfig.transports.GRAYLOG2 != null) {
 		for (const [input, endpoint] of Object.entries(loggingConfig.transports.GRAYLOG2.endpoints)) {
-			LoggerManagerInstance.graylog2.register(input, endpoint);
+			LoggerManagerInstance.graylog2.register(input, endpoint as GraylogEndpoint);
 		}
 		for (const [module, channel] of Object.entries(loggingConfig.transports.GRAYLOG2.channels)) {
-			LoggerManagerInstance.graylog2.setChannel(module, channel);
+			LoggerManagerInstance.graylog2.setChannel(module, channel as GraylogLoggingChannel);
 		}
 	}
 
@@ -189,7 +191,13 @@ async function bootstrap() {
 					authEngineConfig.repositories.failedAuthAttemptsSessionKeyPrefix
 				),
 				forgotPasswordSession: new ForgotPasswordSessionRedisRepository(authEngineConfig.repositories.forgotPasswordSessionKeyPrefix),
-				activateAccountSession: new ActivateAccountSessionRedisRepository(authEngineConfig.repositories.activateAccountSessionKeyPrefix)
+				activateAccountSession: new ActivateAccountSessionRedisRepository(
+					authEngineConfig.repositories.activateAccountSessionKeyPrefix,
+					new encryption.FastSymmetricEncryption({
+						activeKeyId: <encryption.FastSymmetricEncryptedPayload['keyId']>'',
+						keyStore: new Map<encryption.FastSymmetricEncryptedPayload['keyId'], string>()
+					})
+				)
 			},
 			password: {
 				hashing: {
@@ -207,18 +215,24 @@ async function bootstrap() {
 						}
 						return userInputs;
 					}),
-					new PwnedPasswordValidator(authEngineConfig.password.breachThreshold)
+					new PwnedPasswordValidator(ThresholdC(authEngineConfig.password.breachThreshold))
 				],
-				similarity: authEngineConfig.password.similarity,
-				forgotPasswordTokenEncrypt: async (pubKey, token) => {
-					return publicEncrypt(
-						{
-							key: pubKey,
-							oaepHash: 'sha256',
-							padding: constants.RSA_PKCS1_OAEP_PADDING
-						},
-						Buffer.from(token)
-					).toString('base64');
+				similarity: ThresholdC(authEngineConfig.password.similarity),
+				forgotPasswordTokenEncrypt: (pubKey, token) => {
+					try {
+						return Promise.resolve(
+							publicEncrypt(
+								{
+									key: pubKey,
+									oaepHash: 'sha256',
+									padding: constants.RSA_PKCS1_OAEP_PADDING
+								},
+								Buffer.from(token)
+							).toString('base64')
+						);
+					} catch (error) {
+						return Promise.reject(error);
+					}
 				}
 			},
 			hooks: {
@@ -229,10 +243,10 @@ async function bootstrap() {
 							subject: 'Authentication from different context',
 							text: `Authentication was performed from different context. ${stringifyOperationContext(authenticationContext)}`
 						});
-					} catch (e) {
+					} catch (error) {
 						logger.error(
 							`Failed to send notification about authentication from different context via email for account with id '${account.id}'.`,
-							e
+							error
 						);
 					}
 				},
@@ -240,18 +254,18 @@ async function bootstrap() {
 					try {
 						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
 						logger.info(`Deleted ${deletedSessions} user sessions after account with id '${account.id}' was disabled.`);
-					} catch (e) {
-						logger.error(`Failed to invalidate all of the user sessions for account with id '${account.id}' after it was disabled.`, e);
+					} catch (error) {
+						logger.error(`Failed to invalidate all of the user sessions for account with id '${account.id}' after it was disabled.`, error);
 					}
 				},
 				onPasswordChanged: async (account) => {
 					try {
 						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
 						logger.info(`Deleted ${deletedSessions} user sessions after password has been changed for account with id '${account.id}'.`);
-					} catch (e) {
+					} catch (error) {
 						logger.error(
 							`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's password has been changed.`,
-							e
+							error
 						);
 					}
 				},
@@ -259,10 +273,10 @@ async function bootstrap() {
 					try {
 						const deletedSessions = await JWT_USER_SESSION_MIDDLEWARE.sessionManager.deleteAll(account.id);
 						logger.info(`Deleted ${deletedSessions} user sessions after forgotten password has been changed for account with id '${account.id}'.`);
-					} catch (e) {
+					} catch (error) {
 						logger.error(
 							`Failed to invalidate all of the user sessions for account with id '${account.id}' after it's forgotten password has been changed.`,
-							e
+							error
 						);
 					}
 				}
@@ -270,14 +284,14 @@ async function bootstrap() {
 			validators: {
 				recaptcha: async (authenticationContext) => {
 					try {
-						const googleResponse = await (
+						const googleResponse = (await (
 							await fetch(
 								`https://www.google.com/recaptcha/api/siteverify?secret=${authEngineConfig.recaptcha.secretKey}&response=${authenticationContext.recaptcha}`,
 								{
 									method: 'POST'
 								}
 							)
-						).json();
+						).json()) as ObjMap;
 
 						if (googleResponse.success !== true) {
 							logger.warning("Google recaptcha wasn't solved.");
@@ -304,8 +318,8 @@ async function bootstrap() {
 						}
 
 						return true;
-					} catch (e) {
-						logger.error('Failed to validate recaptcha token.', e);
+					} catch (error) {
+						logger.error('Failed to validate recaptcha token.', error);
 						return false;
 					}
 				}
@@ -320,8 +334,8 @@ async function bootstrap() {
 								subject: 'Password changed',
 								text: `Password has been changed. ${stringifyOperationContext(changePasswordContext)}`
 							});
-						} catch (e) {
-							logger.error(`Failed to send notification about password change via email for account with id '${account.id}'.`, e);
+						} catch (error) {
+							logger.error(`Failed to send notification about password change via email for account with id '${account.id}'.`, error);
 						}
 					},
 					notifyAdminAboutAccountDisabling: async (adminEmail, account, cause) => {
@@ -331,8 +345,8 @@ async function bootstrap() {
 								subject: 'Account disabled',
 								text: `Account with id '${account.id}' has been disabled, because ${cause}`
 							});
-						} catch (e) {
-							logger.error(`Failed to notify admin about account disabling via email for account with id '${account.id}'.`, e);
+						} catch (error) {
+							logger.error(`Failed to notify admin about account disabling via email for account with id '${account.id}'.`, error);
 						}
 					},
 					notifyAccountDisabled: async (account, cause) => {
@@ -342,8 +356,8 @@ async function bootstrap() {
 								subject: 'Account disabled',
 								text: `Your account has been disabled, because ${cause}`
 							});
-						} catch (e) {
-							logger.error(`Failed to notify about account disabling via email for account with id '${account.id}'.`, e);
+						} catch (error) {
+							logger.error(`Failed to notify about account disabling via email for account with id '${account.id}'.`, error);
 						}
 					},
 					notifyMultiFactorAuthenticationFailed: async (account, authenticationContext) => {
@@ -353,8 +367,8 @@ async function bootstrap() {
 								subject: 'Multi factor authentication failed',
 								text: stringifyOperationContext(authenticationContext)
 							});
-						} catch (e) {
-							logger.error(`Failed to notify about multi factor authentication failure via email for account with id '${account.id}'.`, e);
+						} catch (error) {
+							logger.error(`Failed to notify about multi factor authentication failure via email for account with id '${account.id}'.`, error);
 						}
 					},
 					sendForgotPasswordToken: async (account, token) => {
@@ -364,9 +378,9 @@ async function bootstrap() {
 								subject: 'Forgot password token',
 								text: token
 							});
-						} catch (e) {
-							e.message = `Failed to send forgot password token via email for account with id '${account.id}'.'. ${e.message}`;
-							throw e;
+						} catch (error) {
+							error.message = `Failed to send forgot password token via email for account with id '${account.id}'.'. ${error.message}`;
+							throw error;
 						}
 					},
 					sendActivateAccountToken: async (account, token) => {
@@ -376,9 +390,9 @@ async function bootstrap() {
 								subject: 'Activate account token',
 								text: token
 							});
-						} catch (e) {
-							e.message = `Failed to send activate account token via email. ${e.message}`;
-							throw e;
+						} catch (error) {
+							error.message = `Failed to send activate account token via email. ${error.message}`;
+							throw error;
 						}
 					}
 				}
@@ -386,10 +400,10 @@ async function bootstrap() {
 			smsSender: {
 				sendForgotPasswordToken: async (account, token) => {
 					try {
-						await SMS_CLIENT.send(account.telephone!, `Forgot password token: ${token}`);
-					} catch (e) {
-						e.message = `Failed to send forgot password token via sms for account with id '${account.id}'. ${e.message}`;
-						throw e;
+						await SMS_CLIENT.send(account.telephone ?? '', `Forgot password token: ${token}`);
+					} catch (error) {
+						error.message = `Failed to send forgot password token via sms for account with id '${account.id}'. ${error.message}`;
+						throw error;
 					}
 				}
 			},
@@ -455,18 +469,18 @@ async function bootstrap() {
 	/* CONNECT TO DATABASES */
 	try {
 		await RedisClientInstance.connect(await config.getRedisConfig());
-	} catch (e) {
+	} catch (error) {
 		await KAFKA_CLIENT.disconnect();
-		throw e;
+		throw error;
 	}
 
 	try {
 		await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
 		MySqlClientInstance.init(await config.getMysqlConfig());
-	} catch (e) {
+	} catch (error) {
 		await KAFKA_CLIENT.disconnect();
 		await RedisClientInstance.disconnect();
-		throw e;
+		throw error;
 	}
 
 	/* INIT APP */
@@ -481,7 +495,7 @@ async function bootstrap() {
 			setHeader: false
 		})
 	);
-	app.use(helmet.hidePoweredBy());
+	app.use(hidePoweredBy());
 	app.use(morganMiddleware);
 
 	// setup routes
@@ -529,7 +543,6 @@ async function bootstrap() {
 	process.on('unhandledRejection', async (reason) => {
 		logger.crit(`Caught unhandled rejection. Shutting down.`, reason);
 		await shutdown();
-		// eslint-disable-next-line no-process-exit
 		process.exit(1);
 	});
 	process.on('warning', (warning) => {
@@ -552,40 +565,40 @@ async function shutdown(): Promise<void> {
 		});
 
 		logger.info('Express server closed');
-	} catch (e) {
-		logger.error('Failed to close api server.', e);
+	} catch (error) {
+		logger.error('Failed to close api server.', error);
 	}
 
 	/* CLOSE MYSQL CONNECTION */
 	try {
 		await MySqlClientInstance.shutdown();
 		logger.info('Mysql client successful shutdown.');
-	} catch (e) {
-		logger.error('Failed to shutdown mysql client.', e);
+	} catch (error) {
+		logger.error('Failed to shutdown mysql client.', error);
 	}
 
 	/* CLOSE REDIS CONNECTION */
 	try {
 		await RedisClientInstance.disconnect(true);
 		logger.info('Redis client successful disconnect.');
-	} catch (e) {
-		logger.error('Failed to disconnect redis client.', e);
+	} catch (error) {
+		logger.error('Failed to disconnect redis client.', error);
 	}
 
 	/* CLOSE KAFKA CONNECTION */
 	try {
 		await KAFKA_CLIENT.disconnect();
 		logger.info('Kafka client successful disconnect.');
-	} catch (e) {
-		logger.error('Failed to disconnect kafka client.', e);
+	} catch (error) {
+		logger.error('Failed to disconnect kafka client.', error);
 	}
 
 	/* CLOSE EMAIL CLIENT */
 	try {
 		EMAIL_CLIENT.close();
 		logger.info('Email client closed successfully.');
-	} catch (e) {
-		logger.error('Failed to close email client.', e);
+	} catch (error) {
+		logger.error('Failed to close email client.', error);
 	}
 }
 

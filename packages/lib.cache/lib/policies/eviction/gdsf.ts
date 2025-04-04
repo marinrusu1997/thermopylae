@@ -1,26 +1,26 @@
+import type { Threshold } from '@thermopylae/core.declarations';
 import sizeof from 'object-sizeof';
-import { Threshold } from '@thermopylae/core.declarations';
-import { BaseLFUEvictionPolicy, EvictableCacheEntry } from './lfu-base';
-import { CacheBackendElementsCount } from '../../contracts/cache-backend';
+import type { CacheBackendElementsCount } from '../../typings/cache-backend.js';
+import { BaseLFUEvictionPolicy, type EvictableCacheEntry } from './lfu-base.js';
 
 // see https://medium.com/@bparli/enhancing-least-frequently-used-caches-with-dynamic-aging-64dc973d5857
 
 /**
  * Determine size of an object in Bytes. This object is the actual entry stored in the cache. <br/>
- * That entry contains key, value and other metadata. <br/>
- * While computing it's size, you are not allowed to alter it's values/structure.
+ * That entry contains key, value and other metadata. <br/> While computing it's size, you are not
+ * allowed to alter it's values/structure.
  */
-interface SizeOf<T> {
-	(object: Readonly<T>): number;
-}
+type SizeOf<T> = (object: Readonly<T>) => number;
 
 /**
- * [Greedy Dual-Size with Frequency](https://www.hpl.hp.com/personal/Lucy_Cherkasova/projects/gdfs.html "Improving Web Servers and Proxies Performance with GDSF Caching Policies") eviction policy.
- * **To be used carefully, as in practice, if no items are evicted, items frequency will increase with a very low rate.**
+ * [Greedy Dual-Size with
+ * Frequency](https://www.hpl.hp.com/personal/Lucy_Cherkasova/projects/gdfs.html) eviction policy.
+ * **To be used carefully, as in practice, if no items are evicted, items frequency will increase
+ * with a very low rate.**
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPolicy<Key, Value, ArgumentsBundle> {
 	private readonly sizeOf: SizeOf<Value>;
@@ -28,9 +28,9 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 	private cacheAge: number;
 
 	/**
-	 * @param cacheMaxCapacity				{@link Cache} maximum capacity.
-	 * @param cacheBackendElementsCount		Cache backend elements count.
-	 * @param sizeOfInBytes					Function which computes sizeof cache entry in bytes.
+	 * @param cacheMaxCapacity          {@link Cache} maximum capacity.
+	 * @param cacheBackendElementsCount Cache backend elements count.
+	 * @param sizeOfInBytes             Function which computes sizeof cache entry in bytes.
 	 */
 	public constructor(cacheMaxCapacity: Threshold, cacheBackendElementsCount: CacheBackendElementsCount, sizeOfInBytes?: SizeOf<Value>) {
 		super(cacheMaxCapacity, cacheBackendElementsCount);
@@ -38,16 +38,12 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 		this.cacheAge = 0;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public override onUpdate(entry: EvictableCacheEntry<Key, Value>): void {
 		this.onHit(entry); // onHit performs the required actions: recomputes frequency and moves to another bucket
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	protected get initialFrequency(): number {
 		// this is to preserve assumption that cacheAge is always less that or equal to lowest list frequency,
 		// as if we take into account item size, then it's initial freq might go bellow cacheAge,
@@ -55,17 +51,13 @@ class GDSFEvictionPolicy<Key, Value, ArgumentsBundle> extends BaseLFUEvictionPol
 		return this.cacheAge;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	protected computeEntryFrequency(entry: EvictableCacheEntry<Key, Value>, entryScore: number): number {
 		return Math.round((entryScore / this.sizeOf(entry.value)) * 10) / 10 + this.cacheAge + 1;
 		// return Math.round(entryScore / this.sizeOf(entry.value)) + this.cacheAge + 1;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	protected onEvict(frequencyOfTheEvictedEntry: number): void {
 		this.cacheAge = frequencyOfTheEvictedEntry;
 	}

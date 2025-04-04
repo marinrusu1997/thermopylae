@@ -1,60 +1,65 @@
 {
-  "compilerOptions": {
-    "allowJs": false,
-    "checkJs": false,
+	"compilerOptions": {
+		"allowJs": false,
+		"checkJs": false,
 
-    "incremental": true,
-    "composite": true,
+		"incremental": true,
+		"composite": false,
 
-    "declaration": true,
-    "declarationMap": false,
+		"declaration": true,
+		"declarationMap": false,
 
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
-    "plugins": [
-      {
-        "transform": "@zoltu/typescript-transformer-append-js-extension/output/index.js",
-        "after": true
-      }
-    ],
+		"resolveJsonModule": true,
+		"allowUmdGlobalAccess": false,
 
-    "removeComments": false,
-    "sourceMap": false,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"types": ["node", "@total-typescript/ts-reset"],
 
-    "strict": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "alwaysStrict": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true,
 
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "noImplicitReturns": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+		"removeComments": false,
+		"sourceMap": false,
 
-    "useUnknownInCatchVariables": false,
-    "exactOptionalPropertyTypes": false,
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"alwaysStrict": true,
+		"exactOptionalPropertyTypes": false,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
+		"strict": true,
+		"strictBindCallApply": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
+		"useUnknownInCatchVariables": true,
 
-    "esModuleInterop": true,
+		"disableSizeLimit": true,
 
-    "disableSizeLimit": true,
+		"esModuleInterop": true,
 
-    "forceConsistentCasingInFileNames": true,
+		"forceConsistentCasingInFileNames": true,
 
-    "experimentalDecorators": false,
-    "emitDecoratorMetadata": false
-  }
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+
+		"verbatimModuleSyntax": true,
+
+		"isolatedModules": true,
+		"skipDefaultLibCheck": true,
+		"noEmitOnError": true,
+		"noEmitHelpers": true,
+		"importHelpers": true
+	}
 }

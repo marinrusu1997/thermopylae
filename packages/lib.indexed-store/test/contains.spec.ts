@@ -1,14 +1,13 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person } from '@thermopylae/dev.unit-test';
-import { string } from '@thermopylae/lib.utils';
-import { IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, randomPerson } from './utils';
+import type { Person } from '@thermopylae/dev.unit-test';
+import cryptoRandomString from 'crypto-random-string';
+import { describe, expect, it } from 'vitest';
+import { IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { randomPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.contains.name} spec`, () => {
 	it('should return false when storage is empty', () => {
 		const storage = new IndexedStore<Person>();
-		expect(storage.contains(PK_INDEX_NAME, string.random())).to.be.eq(false);
+		expect(storage.contains(PK_INDEX_NAME, cryptoRandomString({ length: 5 }))).to.be.eq(false);
 	});
 
 	it('should return false when record is in the index', () => {

@@ -1,5 +1,5 @@
-import { JSONSchema } from 'json-schema-typed';
 import deepFreeze from 'deep-freeze';
+import type { JSONSchema } from 'json-schema-typed';
 
 const PersonJsonSchema: JSONSchema = {
 	$schema: 'http://json-schema.org/draft-07/schema',
@@ -17,7 +17,7 @@ const PersonJsonSchema: JSONSchema = {
 		birthYear: {
 			type: 'integer',
 			minimum: 1990,
-			maximum: 2020
+			maximum: 2025
 		},
 		address: {
 			type: 'object',

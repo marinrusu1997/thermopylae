@@ -1,13 +1,10 @@
-import { number, string, array } from '@thermopylae/lib.utils';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
-import { Exception } from '@thermopylae/lib.exception';
-import { DLLObjectPool, ObjectConstructor, ObjectDestructor, ObjectInitializer, DLLObjectPoolStats, DLLObjectPoolHandle } from '../lib/pools/dll-object-pool';
-import { ErrorCodes } from '../lib';
-
-const { expect } = chai;
+import { Library, type Nullable, type Undefinable } from '@thermopylae/core.declarations';
+import type { Exception } from '@thermopylae/lib.exception';
+import { number, types } from '@thermopylae/lib.utils';
+import cryptoRandomString from 'crypto-random-string';
+import { describe, expect, it } from 'vitest';
+import { DLLObjectPool, ErrorCodes } from '../lib/index.js';
+import type { DLLObjectPoolHandle, DLLObjectPoolStats, ObjectConstructor, ObjectDestructor, ObjectInitializer } from '../lib/pools/dll-object-pool.js';
 
 interface ObjectShape {
 	a: number;
@@ -17,27 +14,24 @@ interface ObjectShape {
 const constructor: ObjectConstructor<ObjectShape> = (a: number, b: string): ObjectShape => ({ a, b });
 const destructor: ObjectDestructor<ObjectShape> = () => clearedShape();
 const initializer: ObjectInitializer<ObjectShape> = (shape, a: number, b: string) => {
-	if (shape !== undefined) {
+	if (shape == null) {
+		shape = constructor(a, b);
+	} else {
 		shape.a = a;
 		shape.b = b;
-	} else {
-		shape = constructor(a, b);
 	}
 	return shape;
 };
 
 function shapeArgs(): [number, string] {
-	return [number.random(0, 100), string.random()];
+	return [number.random(0, 100), cryptoRandomString({ length: 20 })];
 }
 
-function initialFreeShapes(quantity: number): Array<ObjectShape> {
-	function filler(): ObjectShape {
-		return constructor(...shapeArgs());
-	}
-	return array.filledWith(quantity, filler);
+function initialFreeShapes(quantity: number): ObjectShape[] {
+	return Array.from({ length: quantity }, () => constructor(...shapeArgs()));
 }
 
-function objectPoolFactory(capacity: number, initial?: Array<ObjectShape>): DLLObjectPool<ObjectShape> {
+function objectPoolFactory(capacity: number, initial?: ObjectShape[]): DLLObjectPool<ObjectShape> {
 	return new DLLObjectPool<ObjectShape>({
 		initialFreeShapes: initial,
 		capacity,
@@ -47,23 +41,26 @@ function objectPoolFactory(capacity: number, initial?: Array<ObjectShape>): DLLO
 	});
 }
 
-const enum Comparison {
-	VALUE = 1 << 0,
-	REFERENCE = 1 << 1
+enum Comparison {
+	VALUE = 0,
+	REFERENCE = 1
 }
-function equals(first: any, second: any, comparison: Comparison): boolean {
+function equals(first: unknown, second: unknown, comparisons?: Comparison[]): boolean {
 	let equal = true;
 
-	function append(truthiness: boolean): void {
-		equal = equal && truthiness;
-	}
-
-	if (comparison & Comparison.REFERENCE) {
-		append(first === second);
-	}
-
-	if (comparison & Comparison.VALUE) {
-		expect(first).to.be.deep.eq(second);
+	if (comparisons) {
+		for (const comparison of comparisons) {
+			switch (comparison) {
+				case Comparison.REFERENCE:
+					equal &&= first === second;
+					break;
+				case Comparison.VALUE:
+					expect(first).to.be.deep.eq(second);
+					break;
+				default:
+					continue;
+			}
+		}
 	}
 
 	return equal;
@@ -77,7 +74,6 @@ function clearedShape(): Undefinable<ObjectShape> {
 	return undefined;
 }
 
-// eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${DLLObjectPool.name} spec`, () => {
 	it('constructs pool with initial values, acquires, then releases them all', () => {
 		const shapesNo = 10;
@@ -100,16 +96,20 @@ describe(`${DLLObjectPool.name} spec`, () => {
 
 	it('fails to construct poll when capacity is lower or equal to 0', () => {
 		expect(() => objectPoolFactory(0)).to.throw(`Capacity needs to be greater than ${0}. Given: ${0}.`);
-		let err;
+		let err: Exception | null = null;
 		try {
 			objectPoolFactory(-1);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
+		if (!err) {
+			throw new Error('Expected exception to be thrown');
+		}
+
 		expect(err.emitter).to.be.eq(Library.POOL);
 		expect(err.code).to.be.eq(ErrorCodes.INVALID_PARAM);
 		expect(err.message).to.be.eq(`Capacity needs to be greater than ${0}. Given: ${-1}.`);
-		expect(err.cause).to.be.eq(undefined);
+		expect(err.cause).toBeUndefined();
 	});
 
 	it('fails to construct poll when initial free shapes are empty', () => {
@@ -124,7 +124,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 
 		const expected = constructor(...args);
-		expect(equals(DLLObjectPool.value(actual), expected, Comparison.VALUE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(actual), expected, [Comparison.VALUE])).to.be.eq(true);
 	});
 
 	it('acquires from free list', () => {
@@ -137,8 +137,8 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 
 		const expected = constructor(...args);
-		expect(equals(DLLObjectPool.value(actual), expected, Comparison.VALUE)).to.be.eq(true);
-		expect(equals(DLLObjectPool.value(actual), initial[0], Comparison.VALUE | Comparison.REFERENCE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(actual), expected, [Comparison.VALUE])).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(actual), initial[0], [Comparison.VALUE, Comparison.REFERENCE])).to.be.eq(true);
 	});
 
 	it('acquires by creating new object', () => {
@@ -151,15 +151,15 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 
 		const expected = constructor(...args);
-		expect(equals(DLLObjectPool.value(recycled), expected, Comparison.VALUE)).to.be.eq(true);
-		expect(equals(DLLObjectPool.value(recycled), initial[0], Comparison.VALUE | Comparison.REFERENCE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(recycled), expected, [Comparison.VALUE])).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(recycled), initial[0], [Comparison.VALUE, Comparison.REFERENCE])).to.be.eq(true);
 
 		const created = objectPool.acquire(...args);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 2));
-		expect(equals(DLLObjectPool.value(created), expected, Comparison.VALUE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(created), expected, [Comparison.VALUE])).to.be.eq(true);
 
-		expect(equals(recycled, created, Comparison.REFERENCE)).to.be.eq(false);
-		expect(equals(DLLObjectPool.value(created), DLLObjectPool.value(recycled), Comparison.REFERENCE)).to.be.eq(false);
+		expect(equals(recycled, created, [Comparison.REFERENCE])).to.be.eq(false);
+		expect(equals(DLLObjectPool.value(created), DLLObjectPool.value(recycled), [Comparison.REFERENCE])).to.be.eq(false);
 	});
 
 	it('releases handle', () => {
@@ -208,10 +208,10 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		const toRelease = {};
 		let err: Nullable<Exception> = null;
 		try {
-			// @ts-ignore For testing purposes
+			// @ts-expect-error For testing purposesrposes
 			objectPool.releaseObject(toRelease);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		if (err == null) {
@@ -223,7 +223,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		expect(err.emitter).to.be.eq(Library.POOL);
 		expect(err.code).to.be.eq(ErrorCodes.INVALID_PARAM);
 		expect(err.message).to.be.eq('Provided object is not managed by pool.');
-		expect(equals(err.origin, toRelease, Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true);
+		expect(equals(err.origin, toRelease, [Comparison.REFERENCE, Comparison.VALUE])).to.be.eq(true);
 	});
 
 	it('releases nothing if there are no objects', () => {
@@ -239,11 +239,11 @@ describe(`${DLLObjectPool.name} spec`, () => {
 
 		const preempted = objectPool.preempt(object);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
-		expect(equals(DLLObjectPool.value(preempted), object, Comparison.VALUE | Comparison.REFERENCE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(preempted), object, [Comparison.VALUE, Comparison.REFERENCE])).to.be.eq(true);
 
 		objectPool.releaseHandle(preempted);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
-		expect(equals(DLLObjectPool.value(preempted), clearedShape(), Comparison.VALUE)).to.be.eq(true);
+		expect(equals(DLLObjectPool.value(preempted), clearedShape(), [Comparison.VALUE])).to.be.eq(true);
 	});
 
 	it('reuses nodes', () => {
@@ -261,7 +261,7 @@ describe(`${DLLObjectPool.name} spec`, () => {
 
 		const acquiredSecond = objectPool.acquire(...secondArgs);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
-		expect(equals(acquiredFirst, acquiredSecond, Comparison.REFERENCE)).to.be.eq(true); // reused
+		expect(equals(acquiredFirst, acquiredSecond, [Comparison.REFERENCE])).to.be.eq(true); // reused
 		expect(DLLObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...secondArgs));
 
 		objectPool.releaseHandle(acquiredSecond);
@@ -321,14 +321,16 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		const acquiredSecond = objectPool.acquire(...secondArgs);
 		expect(objectPool.stats).to.be.deep.eq(stats(0, 1));
 		expect(DLLObjectPool.value(acquiredSecond)).to.be.deep.eq(constructor(...secondArgs)); // reinitialized
-		expect(equals(acquiredFirst, acquiredSecond, Comparison.REFERENCE)).to.be.eq(true); // reused node
-		expect(equals(DLLObjectPool.value(acquiredFirst), DLLObjectPool.value(acquiredSecond), Comparison.REFERENCE | Comparison.VALUE)).to.be.eq(true); // reused object
+		expect(equals(acquiredFirst, acquiredSecond, [Comparison.REFERENCE])).to.be.eq(true); // reused node
+		expect(equals(DLLObjectPool.value(acquiredFirst), DLLObjectPool.value(acquiredSecond), [Comparison.REFERENCE, Comparison.VALUE])).to.be.eq(true); // reused object
 
 		objectPool.releaseHandle(acquiredSecond);
 		expect(objectPool.stats).to.be.deep.eq(stats(1, 0));
 	});
 
 	it('reuses memory', () => {
+		expect.hasAssertions();
+
 		const MAX_ITER = 1000;
 
 		const objectPool = objectPoolFactory(MAX_ITER);
@@ -351,11 +353,11 @@ describe(`${DLLObjectPool.name} spec`, () => {
 		let reused = false;
 		for (let i = 0; i < MAX_ITER; i++) {
 			for (let j = 0; j < MAX_ITER; j++) {
-				if ((reused = equals(acquired[i], reacquired[j], Comparison.REFERENCE))) {
-					// ...and same objects
-					if ((reused = equals(DLLObjectPool.value(acquired[i]), DLLObjectPool.value(reacquired[j]), Comparison.REFERENCE | Comparison.VALUE))) {
-						break;
-					}
+				if (
+					(reused = equals(acquired[i], reacquired[j], [Comparison.REFERENCE])) &&
+					(reused = equals(DLLObjectPool.value(acquired[i]), DLLObjectPool.value(reacquired[j]), [Comparison.REFERENCE, Comparison.VALUE]))
+				) {
+					break;
 				}
 			}
 
@@ -376,21 +378,23 @@ describe(`${DLLObjectPool.name} spec`, () => {
 	});
 
 	it('acquires and releases primitives', () => {
+		expect.hasAssertions();
+
 		const ITERATIONS = 2;
 		const capacity = 10;
 
 		const objectPool = new DLLObjectPool<string>({
 			capacity,
-			initialFreeShapes: array.filledWith(capacity, ''),
+			initialFreeShapes: Array.from({ length: capacity }, () => ''),
 			constructor: (value: string) => value,
-			destructor: () => undefined,
+			destructor: () => types.SOFT_DELETE,
 			initializer: (_previous, value: string) => value
 		});
 
 		for (let k = 0; k < ITERATIONS; k++) {
 			const acquired = new Array<DLLObjectPoolHandle<string>>(capacity);
 			for (let i = 0; i < capacity; i++) {
-				const value = string.random();
+				const value = cryptoRandomString({ length: 10 });
 				acquired[i] = objectPool.acquire(value);
 
 				expect(objectPool.stats).to.be.deep.eq(stats(capacity - i - 1, i + 1));

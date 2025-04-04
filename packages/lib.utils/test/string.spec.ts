@@ -1,9 +1,5 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { random, replaceAt, trimChar } from '../lib/string';
-
-const { expect } = chai;
+import { describe, expect, it } from 'vitest';
+import { replaceAt, trimChar } from '../lib/string/index.js';
 
 describe('string spec', () => {
 	describe(`${replaceAt.name} spec`, () => {
@@ -29,46 +25,6 @@ describe('string spec', () => {
 			let str = 'garbage';
 			str = replaceAt('bad ', str.length, str);
 			expect(str).to.be.eq('garbagebad ');
-		});
-	});
-
-	describe(`${random.name} spec`, () => {
-		it('generates random string of specified length', () => {
-			const length = 5;
-			const generatedString = random({ length });
-			expect(generatedString.length).to.be.eq(length);
-		});
-
-		it('generates random string with digits', () => {
-			const generatedString = random({ length: 5, allowedCharRegex: /^[0-9]$/ });
-			for (let i = 0; i < generatedString.length; i++) {
-				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(false);
-			}
-		});
-
-		it('generates random string with capitalized alpha and some special characters', () => {
-			const allowedCharRegex = /^[A-Z$()]$/;
-			const generatedString = random({ length: 20, allowedCharRegex });
-
-			for (let i = 0; i < generatedString.length; i++) {
-				expect(generatedString[i]).to.match(allowedCharRegex);
-			}
-		});
-
-		it('can generate custom random string using invocations with different regexes', () => {
-			// eslint-disable-next-line prettier/prettier
-			const generatedString = [
-				random({ length: 1, allowedCharRegex: /^[0-9]$/ }),
-				random({ length: 3, allowedCharRegex: /^[a-zA-Z]$/ }),
-				random({ length: 1, allowedCharRegex: /^[0-9]$/ })
-			].join('');
-			expect(Number.isNaN(Number(generatedString[0]))).to.be.eq(false);
-
-			for (let i = 1; i < generatedString.length - 1; i++) {
-				expect(Number.isNaN(Number(generatedString[i]))).to.be.eq(true);
-			}
-
-			expect(Number.isNaN(Number(generatedString[generatedString.length - 1]))).to.be.eq(false);
 		});
 	});
 

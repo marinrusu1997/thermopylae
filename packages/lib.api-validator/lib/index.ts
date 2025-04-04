@@ -1,5 +1,4 @@
-// eslint-disable-next-line import/extensions
-import ValidationError from 'ajv/dist/runtime/validation_error';
+import ValidationError from 'ajv/dist/runtime/validation_error.js';
 
 export { ValidationError };
-export { ApiValidator } from './validator';
+export { ApiValidator } from './validator.js';

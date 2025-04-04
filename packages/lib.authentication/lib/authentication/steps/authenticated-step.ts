@@ -1,14 +1,12 @@
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
-import type { AuthenticationContext } from '../../types/contexts';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks';
-import { getCurrentTimestamp } from '../../utils';
+import { chrono } from '@thermopylae/lib.utils';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks.js';
+import type { AccountModel } from '../../types/models.js';
+import type { FailedAuthAttemptSessionRepository, SuccessfulAuthenticationsRepository } from '../../types/repositories.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly onAuthFromDifferentContextHook: OnAuthenticationFromDifferentContextHook<Account>;
 
@@ -31,30 +29,27 @@ class AuthenticatedStep<Account extends AccountModel> implements AuthenticationS
 		authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<AuthenticationStepOutput<Account>> {
-		let index = 0;
-		let promises: Array<Promise<unknown>>;
+		const promises: Promise<unknown>[] = [];
 
 		if (
 			authenticationContext.device &&
 			!(await this.successfulAuthenticationsRepository.authBeforeFromThisDevice(account.id, authenticationContext.device))
 		) {
-			promises = new Array<Promise<unknown>>(4);
-			promises[index++] = this.onAuthFromDifferentContextHook(account, authenticationContext);
-		} else {
-			promises = new Array<Promise<unknown>>(3);
+			promises.push(this.onAuthFromDifferentContextHook(account, authenticationContext));
 		}
 
-		promises[index++] = this.failedAuthAttemptSessionRepository.delete(account.username);
-		promises[index++] = authenticationSessionRepositoryHolder.delete();
-		promises[index++] = this.successfulAuthenticationsRepository.insert({
-			id: undefined!,
-			accountId: account.id,
-			ip: authenticationContext.ip,
-			device: authenticationContext.device,
-			location: authenticationContext.location,
-			authenticatedAt: getCurrentTimestamp()
-		});
-
+		promises.push(
+			this.failedAuthAttemptSessionRepository.delete(account.username),
+			authenticationSessionRepositoryHolder.delete(),
+			this.successfulAuthenticationsRepository.insert({
+				id: '',
+				accountId: account.id,
+				ip: authenticationContext.ip,
+				device: authenticationContext.device,
+				location: authenticationContext.location,
+				authenticatedAt: chrono.unix()
+			})
+		);
 		await Promise.all(promises);
 
 		return {

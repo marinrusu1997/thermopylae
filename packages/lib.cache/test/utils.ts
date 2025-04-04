@@ -1,6 +1,5 @@
-// eslint-disable-next-line max-classes-per-file
-import { Undefinable } from '@thermopylae/core.declarations';
-import { string } from '@thermopylae/lib.utils';
+import type { Undefinable } from '@thermopylae/core.declarations';
+import cryptoRandomString from 'crypto-random-string';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	private readonly map: Map<V, K[]>;
@@ -22,7 +21,7 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 			arr.push(key);
 		}
 
-		this.map = new Map<V, K[]>([...tempMap].sort((a, b) => (a[0] as unknown as number) - (b[0] as unknown as number)));
+		this.map = new Map<V, K[]>([...tempMap].sort((first, second) => (first[0] as unknown as number) - (second[0] as unknown as number)));
 
 		const keys = this.map.keys();
 		this.iter = { bucketsIter: keys, bucket: keys.next(), bucketElementsCount: 0 };
@@ -37,7 +36,11 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 			throw new Error(`All buckets have been iterated.`);
 		}
 
-		let bucket = this.map.get(this.iter.bucket.value)!;
+		let bucket = this.map.get(this.iter.bucket.value);
+		if (!bucket) {
+			throw new Error(`No bucket for '${this.iter.bucket.value}'`);
+		}
+
 		if (this.iter.bucketElementsCount < bucket.length) {
 			this.iter.bucketElementsCount += 1;
 			return bucket;
@@ -48,7 +51,11 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 			throw new Error(`All buckets have been iterated.`);
 		}
 
-		bucket = this.map.get(this.iter.bucket.value)!;
+		bucket = this.map.get(this.iter.bucket.value);
+		if (!bucket) {
+			throw new Error(`No bucket for '${this.iter.bucket.value}'`);
+		}
+
 		this.iter.bucketElementsCount = 1;
 		return bucket;
 	}
@@ -58,6 +65,7 @@ class ReverseMap<V, K> implements Iterable<[V, K[]]> {
 	}
 }
 
+// oxlint-disable-next-line max-classes-per-file
 class MapUtils {
 	public static firstEntry<K, V>(map: Map<K, V>): Undefinable<[K, V]> {
 		return map.entries().next().value;
@@ -68,31 +76,30 @@ class MapUtils {
 	}
 
 	public static lastEntry<K, V>(map: Map<K, V>): Undefinable<[K, V]> {
-		return Array.from(map.entries()).pop();
+		return [...map.entries()].pop();
 	}
 
 	public static lastKey<K, V>(map: Map<K, V>): Undefinable<K> {
-		return Array.from(map.keys()).pop();
+		return [...map.keys()].pop();
 	}
 
 	public static lastValue<K, V>(map: Map<K, V>): Undefinable<V> {
-		return Array.from(map.values()).pop();
+		return [...map.values()].pop();
 	}
 }
 
 class UniqueKeysGenerator {
 	private readonly generatedKeys: Set<string>;
 
-	private readonly generationOptions: Partial<string.RandomStringOptions>;
-
-	public constructor(keyLength: number, keyRegex?: RegExp) {
-		this.generationOptions = { length: keyLength, allowedCharRegex: keyRegex };
+	public constructor() {
 		this.generatedKeys = new Set<string>();
 	}
 
 	public generate(): string {
-		let key;
-		while (this.generatedKeys.has((key = string.random(this.generationOptions))));
+		let key: string | null = null;
+		while (this.generatedKeys.has((key = cryptoRandomString({ length: 10, type: 'alphanumeric' })))) {
+			continue;
+		}
 		return key;
 	}
 }

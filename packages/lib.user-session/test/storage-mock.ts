@@ -1,14 +1,15 @@
+// oxlint-disable require-await
 import type { Seconds } from '@thermopylae/core.declarations';
 import {
-	PolicyBasedCache,
-	AbsoluteExpirationPolicyArgumentsBundle,
+	type AbsoluteExpirationPolicyArgumentsBundle,
 	BucketGarbageCollector,
+	CacheEvent,
 	EsMapCacheBackend,
-	ProactiveExpirationPolicy,
-	CacheEvent
+	PolicyBasedCache,
+	ProactiveExpirationPolicy
 } from '@thermopylae/lib.cache';
-import type { SessionId, DeviceBase } from '@thermopylae/lib.user-session.commons';
-import type { UserSessionMetaData, UserSessionsStorage } from '../lib';
+import type { DeviceBase, SessionId } from '@thermopylae/lib.user-session.commons';
+import type { UserSessionMetaData, UserSessionsStorage } from '../lib/index.js';
 
 class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;
@@ -27,11 +28,12 @@ class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 		this.cache.on(CacheEvent.DELETE, (sessionIdKey) => {
 			const [subject, sessionId] = StorageMock.decodeSessionIdKey(sessionIdKey);
 
-			const sessions = this.userSessions.get(subject)!;
-
-			sessions.delete(sessionId);
-			if (sessions.size === 0) {
-				this.userSessions.delete(subject);
+			const sessions = this.userSessions.get(subject);
+			if (sessions) {
+				sessions.delete(sessionId);
+				if (sessions.size === 0) {
+					this.userSessions.delete(subject);
+				}
 			}
 		});
 
@@ -68,23 +70,26 @@ class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 
 		const sessionsMetaData = new Map<SessionId, UserSessionMetaData<DeviceBase, string>>();
 		for (const sessionId of sessions) {
-			sessionsMetaData.set(sessionId, this.cache.get(StorageMock.sessionIdKey(subject, sessionId))!);
+			const metadata = this.cache.get(StorageMock.sessionIdKey(subject, sessionId));
+			if (metadata) {
+				sessionsMetaData.set(sessionId, metadata);
+			}
 		}
 		return sessionsMetaData;
 	}
 
 	public async updateAccessedAt(subject: string, sessionId: SessionId, metaData: UserSessionMetaData<DeviceBase, string>): Promise<void> {
-		this.invocations.set('updateAccessedAt', this.invocations.get('updateAccessedAt')! + 1);
+		this.invocations.set('updateAccessedAt', (this.invocations.get('updateAccessedAt') ?? 0) + 1);
 		this.cache.set(StorageMock.sessionIdKey(subject, sessionId), metaData);
 	}
 
 	public async delete(subject: string, sessionId: SessionId): Promise<void> {
-		this.invocations.set('delete', this.invocations.get('delete')! + 1);
+		this.invocations.set('delete', (this.invocations.get('delete') ?? 0) + 1);
 		this.cache.del(StorageMock.sessionIdKey(subject, sessionId));
 	}
 
 	public async deleteAll(subject: string): Promise<number> {
-		const sessions = Array.from(this.userSessions.get(subject) || new Set<string>());
+		const sessions = [...(this.userSessions.get(subject) || new Set())];
 
 		for (const sessionId of sessions) {
 			this.cache.del(StorageMock.sessionIdKey(subject, sessionId));

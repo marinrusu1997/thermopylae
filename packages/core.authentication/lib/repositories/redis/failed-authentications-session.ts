@@ -1,7 +1,7 @@
-import { Seconds } from '@thermopylae/core.declarations';
+import type { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
 import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptSession } from '@thermopylae/lib.authentication';
-import { createException, ErrorCodes } from '../../error';
+import { ErrorCodes, createException } from '../../error.js';
 
 class FailedAuthenticationAttemptsSessionRedisRepository implements FailedAuthAttemptSessionRepository {
 	private readonly prefix: string;

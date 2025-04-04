@@ -1,15 +1,13 @@
 import type { Threshold } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../../error';
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../../types/contexts';
-import type { FailedAuthenticationsManager } from '../../managers/failed-authentications';
+import { ErrorCodes, createException } from '../../error.js';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { FailedAuthenticationsManager } from '../../managers/failed-authentications.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly failedAuthAttemptsThreshold: Threshold;
 
@@ -70,14 +68,14 @@ class ErrorStep<Account extends AccountModel> implements AuthenticationStep<Acco
 			};
 		}
 
-		let nextStep: AuthenticationStepName;
+		let nextStep: AuthenticationStepName | null = null;
 		if (previousAuthenticationStepName === AuthenticationStepName.TWO_FACTOR_AUTH_CHECK) {
 			const authenticationSession = await authenticationSessionRepositoryHolder.get();
 
-			if (authenticationSession.twoFactorAuthenticationToken != null) {
-				nextStep = AuthenticationStepName.TWO_FACTOR_AUTH_CHECK;
-			} else {
+			if (authenticationSession.twoFactorAuthenticationToken == null) {
 				nextStep = AuthenticationStepName.PASSWORD;
+			} else {
+				nextStep = AuthenticationStepName.TWO_FACTOR_AUTH_CHECK;
 			}
 		} else {
 			nextStep = previousAuthenticationStepName;

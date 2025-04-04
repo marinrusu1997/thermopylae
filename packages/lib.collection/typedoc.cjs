@@ -1,25 +1,26 @@
+// oxlint-disable no-require-imports, no-commonjs, extensions
 const typedoc = require('@thermopylae/dev.environment').configs.typedoc;
 
 typedoc.exclude.push('lib/processor.ts');
 typedoc.exclude.push('lib/retriever.ts');
 
 typedoc.outline = [
-    {
-        "Collection": "collection",
-        "Typings": "typings",
-        "Error": "error"
-    }
+	{
+		Collection: 'collection',
+		Typings: 'typings',
+		Error: 'error'
+	}
 ];
 
 typedoc.links = [
-    {
-        "label": "Thermopylae",
-        "url": "https://marinrusu1997.github.io/thermopylae"
-    },
-    {
-        "label": "Github",
-        "url": "https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.collection"
-    }
+	{
+		label: 'Thermopylae',
+		url: 'https://marinrusu1997.github.io/thermopylae'
+	},
+	{
+		label: 'Github',
+		url: 'https://github.com/marinrusu1997/thermopylae/tree/master/packages/lib.collection'
+	}
 ];
 
 module.exports = typedoc;

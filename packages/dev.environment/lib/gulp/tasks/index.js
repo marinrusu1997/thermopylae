@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 const build = require('./build');
 const doc = require('./doc');
@@ -9,11 +9,11 @@ const coverage = require('./coverage');
 const stickToMajorSemver = require('./stickToMajorSemver');
 
 module.exports = {
-    build,
-    doc,
-    readme,
-    clean,
-    test,
-    coverage,
-    stickToMajorSemver
+	build,
+	doc,
+	readme,
+	clean,
+	test,
+	coverage,
+	stickToMajorSemver
 };

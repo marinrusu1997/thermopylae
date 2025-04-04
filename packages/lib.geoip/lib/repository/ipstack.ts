@@ -1,69 +1,47 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
+import { convert } from 'convert';
 import fetch from 'node-fetch';
-import type { IpLocation, IpLocationsRepository } from './index';
+import type { IpLocation, IpLocationsRepository } from './index.js';
 
-/**
- * @private
- */
+/** @private */
 const AVAILABLE_NOW = -1;
 
-/**
- * Ipstack [subscription plan](https://ipstack.com/plan).
- */
-const enum IpstackSubscriptionPlan {
+/** Ipstack [subscription plan](https://ipstack.com/plan). */
+enum IpstackSubscriptionPlan {
 	FREE = 'FREE',
 	BASIC = 'BASIC',
 	PROFESSIONAL = 'PROFESSIONAL',
 	PROFESSIONAL_PLUS = 'PROFESSIONAL_PLUS'
 }
 
-/**
- * [API Guide](https://ipstack.com/documentation)
- */
+/** [API Guide](https://ipstack.com/documentation) */
 interface IpstackRepositoryOptions {
-	/**
-	 * Service api key.
-	 */
+	/** Service api key. */
 	readonly apiKey: string;
-	/**
-	 * Subscription plan.
-	 */
+	/** Subscription plan. */
 	readonly plan: IpstackSubscriptionPlan;
 	/**
 	 * Language of the location details.
 	 *
-	 * Code     | Language
-	 * -------- | -------------
-	 * en       | English/US
-	 * de       | German
-	 * es       | Spanish
-	 * fr       | French
-	 * ja       | Japanese
-	 * pt-br    | Portuguese (Brazil)
-	 * ru       | Russian
-	 * zh       | Chinese
+	 * Code | Language -------- | ------------- en | English/US de | German es | Spanish fr | French
+	 * ja | Japanese pt-br | Portuguese (Brazil) ru | Russian zh | Chinese.
 	 */
 	readonly lang: 'en' | 'de' | 'es' | 'fr' | 'ja' | 'pt-br' | 'ru' | 'zh';
-	/**
-	 * Weight of the repo.
-	 */
+	/** Weight of the repo. */
 	readonly weight: number;
-	/**
-	 * Hooks.
-	 */
+	/** Hooks. */
 	readonly hooks: {
 		/**
 		 * Hook called when ip retrieval fails with an error.
 		 *
-		 * @param err	Error that was thrown.
+		 * @param err Error that was thrown.
 		 */
 		onIpRetrievalError: (err: Error) => void;
 	};
 }
 
-/**
- * Repository which fetches ip locations from [ipstack](https://ipstack.com/documentation).
- */
+/** Repository which fetches ip locations from [ipstack](https://ipstack.com/documentation). */
 class IpstackRepository implements IpLocationsRepository {
 	private readonly options: IpstackRepositoryOptions;
 
@@ -79,30 +57,22 @@ class IpstackRepository implements IpLocationsRepository {
 		this.availableAt = AVAILABLE_NOW;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get id(): string {
 		return 'ipstack';
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get weight(): number {
 		return this.options.weight;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get available(): boolean {
-		return this.availableAt === AVAILABLE_NOW || this.availableAt < chrono.unixTime();
+		return this.availableAt === AVAILABLE_NOW || this.availableAt < chrono.unix();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public async lookup(ip: string): Promise<IpLocation | null> {
 		let location = null;
 
@@ -113,12 +83,12 @@ class IpstackRepository implements IpLocationsRepository {
 			} catch (error) {
 				// error thrown after successful request has been made, check if limit reached, see https://ipstack.com/documentation
 				if (!(error instanceof Error) && error.code === 104 && (error.type === 'usage_limit_reached' || error.type === 'monthly_limit_reached')) {
-					this.availableAt = chrono.unixTime(chrono.firstDayOfNextMonth());
+					this.availableAt = Math.round(convert(chrono.firstDayOfNextMonth().getTime(), 'ms').to('s'));
 				}
 
 				this.options.hooks.onIpRetrievalError(error);
 			}
-		} else if (this.availableAt < chrono.unixTime()) {
+		} else if (this.availableAt < chrono.unix()) {
 			try {
 				location = await this.retrieve(ip);
 				// api call succeeded, this means that our guess that limit expired was correct
@@ -137,7 +107,7 @@ class IpstackRepository implements IpLocationsRepository {
 
 	private async retrieve(ip: string): Promise<IpLocation> {
 		const response = await fetch(this.buildUrl(ip), { method: 'get' });
-		const location = await response.json();
+		const location = (await response.json()) as ObjMap;
 
 		/* c8 ignore next 3 */
 		if (location.success === false) {
@@ -164,4 +134,4 @@ class IpstackRepository implements IpLocationsRepository {
 	}
 }
 
-export { IpstackRepository, IpstackRepositoryOptions, IpstackSubscriptionPlan };
+export { IpstackRepository, type IpstackRepositoryOptions, IpstackSubscriptionPlan };

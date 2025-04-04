@@ -1,46 +1,39 @@
-import { Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
+import { type Milliseconds, MillisecondsC, type Nullable, type Threshold, ThresholdC } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { EXPIRES_AT_SYM } from '../constants';
-import { IterableCacheBackend } from '../contracts/cache-backend';
-import { CacheEntry } from '../contracts/commons';
+import { convert } from 'convert';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import type { IterableCacheBackend } from '../typings/cache-backend.js';
+import type { CacheEntry } from '../typings/commons.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
 /**
- * Circular iterator over {@link CacheBackend} entries. <br/>
- * It should always return an entry by cycling over cache entries,
- * unless there are no more, in which case it should return `null`.
+ * Circular iterator over {@link CacheBackend} entries. <br/> It should always return an entry by
+ * cycling over cache entries, unless there are no more, in which case it should return `null`.
  */
 type CacheEntriesCircularIterator<T> = () => T | null;
 
 interface IntervalGarbageCollectorOptions<Key, Value> {
-	/**
-	 * Cache backend instance.
-	 */
+	/** Cache backend instance. */
 	iterableBackend: IterableCacheBackend<Key, Value>;
 
-	/**
-	 * Interval for running GC that checks for expired entries. <br/>
-	 * Defaults to 15 seconds.
-	 */
-	checkInterval?: Seconds;
+	/** Interval for running GC that checks for expired entries. <br/> Defaults to 15 seconds. */
+	checkInterval?: Milliseconds;
 
-	/**
-	 * How many entries GC needs to check for expiration. <br/>
-	 * Defaults to 100.
-	 */
+	/** How many entries GC needs to check for expiration. <br/> Defaults to 100. */
 	iterateCount?: Threshold;
 }
 
 /**
- * {@link GarbageCollector} implementation which evicts expired entries at regular interval (has no internal data structures). <br/>
- * Eviction timer will fire periodically at the interval specified by {@link IntervalGarbageCollectorOptions.checkInterval}.
- * When it fires, it will iterate over {@link IntervalGarbageCollectorOptions.iterateCount} backend entries, check
- * if any of them is expired and evict if so. After that, it will schedule running for next interval.
- * On next run, it will continue iteration from the entry it will stopped on previous run.
+ * {@link GarbageCollector} implementation which evicts expired entries at regular interval (has no
+ * internal data structures). <br/> Eviction timer will fire periodically at the interval specified
+ * by {@link IntervalGarbageCollectorOptions.checkInterval}. When it fires, it will iterate over
+ * {@link IntervalGarbageCollectorOptions.iterateCount} backend entries, check if any of them is
+ * expired and evict if so. After that, it will schedule running for next interval. On next run, it
+ * will continue iteration from the entry it will stopped on previous run.
  *
- * @template Key	Key type.
- * @template Value	Value type.
- * @template Entry	Cache entry type.
+ * @template Key Key type.
+ * @template Value Value type.
+ * @template Entry Cache entry type.
  */
 class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> implements GarbageCollector<Entry> {
 	private readonly options: Required<IntervalGarbageCollectorOptions<Key, Value>>;
@@ -82,12 +75,14 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 	}
 
 	public clear(): void {
-		clearTimeout(this.iterateTimeoutId!);
-		this.iterateTimeoutId = null;
+		if (this.iterateTimeoutId) {
+			clearTimeout(this.iterateTimeoutId);
+			this.iterateTimeoutId = null;
+		}
 	}
 
-	public setEntryExpiredCallback(cb: EntryExpiredCallback<Entry>): void {
-		this.entryExpiredCb = cb;
+	public setEntryExpiredCallback(handler: EntryExpiredCallback<Entry>): void {
+		this.entryExpiredCb = handler;
 	}
 
 	private evictExpiredEntries = (): void => {
@@ -103,22 +98,20 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 		let iteratedEntries = 0;
 
 		do {
-			if (currentEntry![EXPIRES_AT_SYM] <= chrono.unixTime()) {
-				this.entryExpiredCb(currentEntry!);
+			if (currentEntry[EXPIRES_AT_SYM] != null && currentEntry[EXPIRES_AT_SYM] <= chrono.unix()) {
+				this.entryExpiredCb(currentEntry);
 			}
 
 			// prefix incr to count entry processed above
 			if (++iteratedEntries < this.options.iterateCount) {
-				currentEntry = this.getNextCacheEntry()!;
+				currentEntry = this.getNextCacheEntry();
 				continue; // go for evaluation of next entry, but only if it differs from the starting one
 			}
 
 			break; // early exit from loop, because iterate threshold has been met
+		} while (currentEntry && currentEntry !== startingEntry && this.options.iterableBackend.size > 0); // while we iterate we might evict all entries, so check for cache emptiness
 
-			// eslint-disable-next-line eqeqeq
-		} while (currentEntry != startingEntry && this.options.iterableBackend.size); // while we iterate we might evict all entries, so check for cache emptiness
-
-		if (this.options.iterableBackend.size) {
+		if (this.options.iterableBackend.size > 0) {
 			// if we are there it means we have some unprocessed entries, so schedule next cleanup
 			this.iterateTimeoutId = setTimeout(this.evictExpiredEntries, this.options.checkInterval);
 			return;
@@ -129,8 +122,8 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 
 	private static fillWithDefaults<K, V>(options: IntervalGarbageCollectorOptions<K, V>): Required<IntervalGarbageCollectorOptions<K, V>> {
 		options = { ...options };
-		options.checkInterval = chrono.secondsToMilliseconds(options.checkInterval || 15);
-		options.iterateCount = options.iterateCount || 100;
+		options.checkInterval = MillisecondsC(convert(options.checkInterval || 15, 'seconds').to('milliseconds'));
+		options.iterateCount = ThresholdC(options.iterateCount || 100);
 		return options as Required<IntervalGarbageCollectorOptions<K, V>>;
 	}
 
@@ -154,4 +147,4 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 	}
 }
 
-export { IntervalGarbageCollector, IntervalGarbageCollectorOptions };
+export { IntervalGarbageCollector, type IntervalGarbageCollectorOptions };

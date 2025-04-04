@@ -1,27 +1,19 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-import { Nullable } from '@thermopylae/core.declarations';
-import { LinkedList } from './interface';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { types } from '@thermopylae/lib.utils';
+import type { LinkedList } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 const PREV_SYM = Symbol.for('PREV_SYM_DLL');
-/**
- * @private
- */
+/** @private */
 const NEXT_SYM = Symbol.for('NEXT_SYM_DLL');
 
-/**
- * @private
- */
+/** @private */
 interface DoublyLinkedListNode<Node> {
 	[PREV_SYM]: Nullable<Node>;
 	[NEXT_SYM]: Nullable<Node>;
 }
 
-/**
- * @private
- */
+/** @private */
 class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
 
@@ -31,7 +23,7 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 
 	public next(): IteratorResult<Node, Node> {
 		if (this.node == null) {
-			return { value: null!, done: true };
+			return { value: types.SOFT_DELETE, done: true };
 		}
 
 		const result: IteratorResult<Node, Node> = { value: this.node, done: false };
@@ -41,9 +33,8 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 	}
 }
 
-/**
- * @private
- */
+/** @private */
+// oxlint-disable-next-line max-classes-per-file
 class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements LinkedList<DoublyLinkedListNode<Node>> {
 	public head: Nullable<Node>;
 
@@ -52,12 +43,12 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 	public size: number;
 
 	public constructor(startNode: Nullable<Node> = null) {
-		if (startNode != null) {
+		if (startNode == null) {
+			this.size = 0;
+		} else {
 			startNode[NEXT_SYM] = null;
 			startNode[PREV_SYM] = null;
 			this.size = 1;
-		} else {
-			this.size = 0;
 		}
 
 		this.head = startNode;
@@ -68,10 +59,10 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 		node[NEXT_SYM] = this.head;
 		node[PREV_SYM] = null;
 
-		if (this.head !== null) {
-			this.head[PREV_SYM] = node;
-		} else {
+		if (this.head === null) {
 			this.tail = node;
+		} else {
+			this.head[PREV_SYM] = node;
 		}
 
 		this.head = node;
@@ -82,10 +73,10 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 		node[NEXT_SYM] = null;
 		node[PREV_SYM] = this.tail;
 
-		if (this.tail !== null) {
-			this.tail[NEXT_SYM] = node;
-		} else {
+		if (this.tail === null) {
 			this.head = node;
+		} else {
+			this.tail[NEXT_SYM] = node;
 		}
 
 		this.tail = node;
@@ -97,26 +88,26 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 		prevNode[NEXT_SYM] = newNode;
 
 		newNode[PREV_SYM] = prevNode;
-		if (newNode[NEXT_SYM] !== null) {
-			newNode[NEXT_SYM]![PREV_SYM] = newNode;
-		} else {
+		if (newNode[NEXT_SYM] === null) {
 			this.tail = newNode;
+		} else {
+			newNode[NEXT_SYM][PREV_SYM] = newNode;
 		}
 
 		this.size += 1;
 	}
 
 	public remove(node: Node): void {
-		if (node[PREV_SYM] !== null) {
-			node[PREV_SYM]![NEXT_SYM] = node[NEXT_SYM];
-		} else {
+		if (node[PREV_SYM] === null) {
 			this.head = node[NEXT_SYM];
+		} else {
+			node[PREV_SYM][NEXT_SYM] = node[NEXT_SYM];
 		}
 
-		if (node[NEXT_SYM] !== null) {
-			node[NEXT_SYM]![PREV_SYM] = node[PREV_SYM];
-		} else {
+		if (node[NEXT_SYM] === null) {
 			this.tail = node[PREV_SYM];
+		} else {
+			node[NEXT_SYM][PREV_SYM] = node[PREV_SYM];
 		}
 
 		node[PREV_SYM] = null;
@@ -149,4 +140,4 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 	}
 }
 
-export { DoublyLinkedList, DoublyLinkedListNode, DoublyLinkedListIterator, NEXT_SYM, PREV_SYM };
+export { DoublyLinkedList, type DoublyLinkedListNode, DoublyLinkedListIterator, NEXT_SYM, PREV_SYM };

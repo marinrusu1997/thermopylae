@@ -1,46 +1,32 @@
-import { createException } from './exception';
-
-const enum ErrorCodes {
-	BOOLEAN_TYPE_CASTING_FAILED = 'BOOLEAN_TYPE_CASTING_FAILED'
-}
+const TRUTHY_VALUES_REGEX = /^(?:1|on|true|y|yes)$/i;
+const FALSY_VALUES_REGEX = /^(?:0|false|n|no|off)$/i;
 
 /**
  * Convert given `value` to boolean equivalent.
  *
- * @param value				Boolean like value.
- * @param strictNullables	Whether to throw when given value is `null`.
+ * @param   value        Boolean like value.
+ * @param   defaultValue Whether to throw when given value is `null`.
  *
- * @returns		Boolean equivalent.
+ * @returns              Boolean equivalent.
  */
-function convertFrom(value: null | undefined | string | number | boolean, strictNullables?: boolean): boolean {
-	const valueType = typeof value;
+function convertFrom<T>(value: T, defaultValue = false): boolean {
+	if (typeof value === 'boolean') {
+		return value;
+	}
 
-	if (valueType === 'undefined' || value === null) {
-		if (strictNullables) {
-			throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);
-		}
+	if (value == null) {
+		return defaultValue;
+	}
+
+	if (TRUTHY_VALUES_REGEX.test(String(value).trim())) {
+		return true;
+	}
+
+	if (FALSY_VALUES_REGEX.test(String(value).trim())) {
 		return false;
 	}
 
-	if (valueType === 'string') {
-		value = (value as string).toLowerCase();
-		if (value === 'true' || value === '1' || value === 'yes') {
-			return true;
-		}
-		if (value === 'false' || value === '0' || value === 'no') {
-			return false;
-		}
-	}
-
-	if (valueType === 'number') {
-		return Boolean(value);
-	}
-
-	if (valueType === 'boolean') {
-		return value as boolean;
-	}
-
-	throw createException(ErrorCodes.BOOLEAN_TYPE_CASTING_FAILED, `Can't cast ${value} of type ${valueType} to boolean.`);
+	throw new Error(`Value \`${value}\` can't be converted to a boolean value.`);
 }
 
-export { ErrorCodes, convertFrom };
+export { convertFrom };

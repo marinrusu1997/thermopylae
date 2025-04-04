@@ -1,17 +1,16 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import type { types } from '@thermopylae/lib.utils';
+import type { TransformableInfo } from 'logform';
+import { describe, expect, it } from 'vitest';
 import { format } from 'winston';
-import { TransformableInfo } from 'logform';
-import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager';
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config/index.js';
+import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
 
-// eslint-disable-next-line mocha/no-skipped-tests
+// oxlint-disable-next-line no-disabled-tests
 describe.skip(`${FormattingManager.name} spec`, () => {
 	describe(`${FormattingManager.prototype.setDefaultFormattingOrder.name} spec`, () => {
 		it('throws when invalid output specified', () => {
 			const formattingManager = new FormattingManager();
-			// @ts-ignore For testing purposes
-			expect(() => formattingManager.setDefaultFormattingOrder('INVALID FOR SURE')).to.throw('Unknown output format: INVALID FOR SURE.');
+			expect(() => formattingManager.setDefaultFormattingOrder('INVALID FOR SURE' as OutputFormat)).to.throw('Unknown output format: INVALID FOR SURE.');
 		});
 
 		it('applies order for uncolored printf', () => {
@@ -21,16 +20,15 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
-			const info: any = { level, message };
+			const info = { level, message } as types.Any;
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore  For testing purposes
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${level}: \t${message}`);
 		});
 
@@ -41,18 +39,17 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const SUBSYSTEM = 'SUBSYSTEM';
 			const level = 'info';
 			const message = 'message';
-			const info: any = { level, message };
+			const info = { level, message } as types.Any;
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
-			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
-			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore  For testing purposes
+			expect(loggedInfo.level).to.equal(`\u001B[32m${level}\u001B[39m`);
+			expect(loggedInfo.message).to.equal(`\u001B[32m\t${message}\u001B[39m`);
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				`${loggedInfo['timestamp']} [${loggedInfo['label']}] \u001b[32m${level}\u001b[39m: \u001b[32m	${message}\u001b[39m`
+				`${loggedInfo['timestamp']} [${loggedInfo['label']}] \u001B[32m${level}\u001B[39m: \u001B[32m	${message}\u001B[39m`
 			);
 		});
 
@@ -68,10 +65,9 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore  For testing purposes
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
@@ -94,21 +90,20 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			// @ts-ignore  For testing purposes
+			// @ts-expect-error  For testing purposesrposes
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
-			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
-			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore  For testing purposes
+			expect(loggedInfo.level).to.equal(`\u001B[32m${level}\u001B[39m`);
+			expect(loggedInfo.message).to.equal(`\u001B[32m\t${message}\u001B[39m`);
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
 				JSON.stringify(
 					{
-						level: `\u001b[32m${level}\u001b[39m`,
-						message: `\u001b[32m\t${message}\u001b[39m`,
+						level: `\u001B[32m${level}\u001B[39m`,
+						message: `\u001B[32m\t${message}\u001B[39m`,
 						label: SUBSYSTEM,
 						timestamp: loggedInfo['timestamp']
 					},
@@ -130,13 +125,11 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
 			expect(loggedInfo.level).to.equal(level);
 			expect(loggedInfo.message).to.equal(`\t${message}`);
-			// @ts-ignore  For testing purposes
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				// eslint-disable-next-line no-useless-escape
-				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
+				`{\n  level: '${level}',\n  message: '\\t${message}',\n  label: '${SUBSYSTEM}',\n  timestamp: '${loggedInfo['timestamp']}'\n}`
 			);
 		});
 
@@ -148,19 +141,17 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			const level = 'info';
 			const message = 'message';
 			const info = { level, message };
-			// @ts-ignore  For testing purposes
+			// @ts-expect-error  For testing purposesrposes
 			info[Symbol.for('level')] = level;
 
 			const loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform(info) as TransformableInfo;
-			expect(loggedInfo.level).to.equal(`\u001b[32m${level}\u001b[39m`);
-			expect(loggedInfo.message).to.equal(`\u001b[32m\t${message}\u001b[39m`);
-			// @ts-ignore  For testing purposes
+			expect(loggedInfo.level).to.equal(`\u001B[32m${level}\u001B[39m`);
+			expect(loggedInfo.message).to.equal(`\u001B[32m\t${message}\u001B[39m`);
+			// @ts-expect-error  For testing purposesrposes
 			expect(loggedInfo.timestamp).to.be.a.dateString();
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				// eslint-disable-next-line no-useless-escape
-				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
+				`{\n  level: '\\u001b[32m${level}\\u001b[39m',\n  message: '\\u001b[32m\\t${message}\\u001b[39m',\n  label: 'SUBSYSTEM',\n  timestamp: '${loggedInfo['timestamp']}'\n}`
 			);
 		});
 	});
@@ -183,12 +174,11 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 	it('creates an instance with predefined formatters and recipe', () => {
 		const formattingManager = new FormattingManager();
 		const SUBSYSTEM = 'SUBSYSTEM';
-		let level;
-		let loggedInfo;
+		let level: keyof SyslogConfigSetLevels = 'info';
+		let loggedInfo: TransformableInfo | null = null;
 
 		/* message formatting */
 		const message = 'message';
-		level = 'info';
 		loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
 			message
@@ -196,10 +186,9 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${message}`);
-		// @ts-ignore  For testing purposes
+		// @ts-expect-error  For testing purposesrposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}:\t${message}`);
 
 		/* error formatting */
@@ -207,15 +196,14 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		const err = new Error(message);
 		loggedInfo = formattingManager.formatterFor(SUBSYSTEM).transform({
 			level,
-			message: err as any
+			message: err as types.Any
 		}) as TransformableInfo;
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(`\t${err.message}`);
-		// @ts-ignore  For testing purposes
+		// @ts-expect-error  For testing purposesrposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(
 			`${loggedInfo['timestamp']} (${process.pid}) [${loggedInfo['label']}] ${loggedInfo.level}:\t${err.message}\n${err.stack}`
 		);
@@ -226,15 +214,12 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		const SUBSYSTEM = 'SUBSYSTEM';
 		const logLevel = 'info';
 		const logMessage = 'message';
-		let loggedInfo;
+		let loggedInfo: TransformableInfo | null = null;
 
 		/* overwrite existing one */
 		formattingManager1.setFormatter(
 			DefaultFormatters.PRINTF,
-			// eslint-disable-next-line no-unused-vars
-			format.printf(({ level, label, timestamp }) => {
-				return `${timestamp} [${label}] ${level}`;
-			})
+			format.printf(({ level, label, timestamp }) => `${timestamp} [${label}] ${level}`)
 		);
 
 		/* recipe must be invalidated */
@@ -249,10 +234,9 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`\t${logMessage}`);
-		// @ts-ignore  For testing purposes
+		// @ts-expect-error  For testing purposesrposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for('message')]).to.equal(`${loggedInfo.timestamp} [${loggedInfo.label}] ${loggedInfo.level}`);
 
 		/* add new formatter */
@@ -266,10 +250,9 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(logLevel);
 		expect(loggedInfo.message).to.equal(`${logMessage}`);
-		// @ts-ignore  For testing purposes
+		// @ts-expect-error  For testing purposesrposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for('message')]).to.equal(
 			JSON.stringify(
 				{
@@ -299,10 +282,9 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 
 		expect(loggedInfo.level).to.equal(level);
 		expect(loggedInfo.message).to.equal(message);
-		// @ts-ignore  For testing purposes
+		// @ts-expect-error  For testing purposesrposes
 		expect(loggedInfo.timestamp).to.be.a.dateString();
 		expect(loggedInfo['label']).to.equal(SUBSYSTEM);
-		// @ts-ignore  For testing purposes
 		expect(loggedInfo[Symbol.for(message)]).to.equal(`${loggedInfo.timestamp} (${process.pid}) [${loggedInfo.label}] ${loggedInfo.level}: ${message}`);
 	});
 

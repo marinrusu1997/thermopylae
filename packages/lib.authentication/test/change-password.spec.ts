@@ -1,18 +1,17 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono, string } from '@thermopylae/lib.utils';
-import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
-import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { OnAccountDisabledHookMock, OnPasswordChangedHookMock } from './fixtures/hooks';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
+import { convert } from 'convert';
+import cryptoRandomString from 'crypto-random-string';
+import crypto from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { OnAccountDisabledHookMock, OnPasswordChangedHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures/index.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, validateSuccessfulLogin } from './utils.js';
 
 describe('Change password spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('changes password and then logs in with updated one', async () => {
@@ -30,12 +29,12 @@ describe('Change password spec', function suite() {
 			ip: '127.0.0.1'
 		});
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyPasswordChanged')).to.be.ofSize(1);
-		expect(OnPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyPasswordChanged')).to.have.length(1);
+		expect(OnPasswordChangedHookMock.calls).toStrictEqual([account.id]);
 
 		/* AUTHENTICATE WITH OLD PASSWORD (FAILURE) */
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		expect(authStatus!.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus?.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
 		/* AUTHENTICATE WITH NEW PASSWORD */
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: newPassword });
@@ -43,7 +42,7 @@ describe('Change password spec', function suite() {
 	});
 
 	it('changes password that was hashed with an algorithm that differs from the current one', async () => {
-		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).to.be.equalTo([0, 1]);
+		expect([...AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys()]).toStrictEqual([0, 1]);
 		expect(AuthenticationEngineDefaultOptions.password.hashing.currentAlgorithmId).to.be.eq(0);
 
 		/* REGISTER */
@@ -52,8 +51,8 @@ describe('Change password spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* HASH WITH ANOTHER ALGORITHM */
-		const hash = await AuthenticationEngineDefaultOptions.password.hashing.algorithms.get(1)!.hash(oldPassword);
-		await AccountRepositoryMongo.changePassword(account.id, hash.passwordHash, hash.passwordSalt, 1);
+		const hash = await AuthenticationEngineDefaultOptions.password.hashing.algorithms.get(1)?.hash(oldPassword);
+		await AccountRepositoryMongo.changePassword(account.id, hash?.passwordHash ?? '', hash?.passwordSalt, 1);
 
 		/* CHANGE PASSWORD */
 		const newPassword = '8ujig05nf!/th89u|}//76ujhtg';
@@ -70,8 +69,8 @@ describe('Change password spec', function suite() {
 	});
 
 	it('fails to change password if provided account id is not valid', async () => {
-		let err;
-		const accountId = string.random({ length: 12 });
+		let err: Error | null = null;
+		const accountId = crypto.randomBytes(12).toString('hex');
 		try {
 			await AuthEngineInstance.changePassword({
 				accountId,
@@ -79,8 +78,8 @@ describe('Change password spec', function suite() {
 				newPassword: 'does not matter',
 				ip: '127.0.0.1'
 			});
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Account with id ${accountId} doesn't exist.`);
@@ -93,7 +92,7 @@ describe('Change password spec', function suite() {
 		await AuthEngineInstance.disableAccount(account.id, AccountStatus.DISABLED_UNTIL_ACTIVATION, 'test purposes');
 
 		/* CHANGE PASSWORD */
-		let err;
+		let err: Error | null = null;
 		try {
 			await AuthEngineInstance.changePassword({
 				accountId: account.id,
@@ -101,8 +100,8 @@ describe('Change password spec', function suite() {
 				newPassword: 'does not matter',
 				ip: '127.0.0.1'
 			});
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 		expect(err).to.haveOwnProperty('message', `Account with id ${account.id} is disabled until it won't be activated.`);
@@ -126,8 +125,8 @@ describe('Change password spec', function suite() {
 					newPassword: 'does not matter',
 					ip: '127.0.0.1'
 				});
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_PASSWORD);
 			expect(err).to.haveOwnProperty('message', `Can't change password for account with id ${account.id}, because old passwords doesn't match.`);
@@ -154,8 +153,8 @@ describe('Change password spec', function suite() {
 					newPassword: 'does not matter',
 					ip: '127.0.0.1'
 				});
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
@@ -163,10 +162,10 @@ describe('Change password spec', function suite() {
 			'message',
 			`Password verification for account with id ${account.id} failed too many times, therefore account was disabled.`
 		);
-		expect(OnAccountDisabledHookMock.calls).to.be.ofSize(1); // sessions were invalidated
+		expect(OnAccountDisabledHookMock.calls).to.have.length(1); // sessions were invalidated
 
 		/* WAIT ACCOUNT ENABLE */
-		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);
+		await sleep(convert(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout, 's').to('ms') + 50);
 
 		/* CHANGE PASSWORD */
 		newPassword = '8ujig05nf!/th89u|}//76ujhtg';
@@ -197,8 +196,8 @@ describe('Change password spec', function suite() {
 				newPassword: oldPassword,
 				ip: '127.0.0.1'
 			});
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SIMILAR_PASSWORDS);
 		expect(err).to.haveOwnProperty(
@@ -215,8 +214,8 @@ describe('Change password spec', function suite() {
 				newPassword: `${oldPassword}.`,
 				ip: '127.0.0.1'
 			});
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SIMILAR_PASSWORDS);
 		expect(err).to.haveOwnProperty(
@@ -250,11 +249,11 @@ describe('Change password spec', function suite() {
 			await AuthEngineInstance.changePassword({
 				accountId: account.id,
 				oldPassword,
-				newPassword: string.random({ length: PasswordLengthValidatorOptions.minLength - 1 }),
+				newPassword: cryptoRandomString({ length: PasswordLengthValidatorOptions.minLength - 1 }),
 				ip: '127.0.0.1'
 			});
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.WEAK_PASSWORD);
 		expect(err).to.haveOwnProperty(

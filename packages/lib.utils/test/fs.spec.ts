@@ -1,20 +1,14 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it, afterEach } from 'mocha';
-import { unlinkSync } from 'fs';
-import { writeJsonToFile, readJsonFromFile } from '../lib/fs';
-
-const { expect } = chai;
-const assert = chai.assert as (expr: boolean, msg?: string) => void;
+import fs from 'node:fs';
+import { afterEach, assert, describe, expect, it } from 'vitest';
+import { readJsonFromFile, writeJsonToFile } from '../lib/fs.js';
 
 describe('fs spec', () => {
 	const path = 'file.json';
 
-	afterEach(() => {
-		try {
-			unlinkSync(path);
-			// eslint-disable-next-line no-empty
-		} catch {}
+	afterEach(async () => {
+		if (fs.existsSync(path)) {
+			await fs.promises.unlink(path);
+		}
 	});
 
 	it('writes json to file, then reads it back', async () => {

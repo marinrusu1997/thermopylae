@@ -37,6 +37,7 @@
 </details>
 
 <!-- ABOUT THE PROJECT -->
+
 ## About The Project
 
 ### Description
@@ -46,8 +47,8 @@ It provides a collection of reusable components needed for implementation of aut
 
 ### Prerequisites
 
-* UNIX OS
-* NodeJS >= v16
+- UNIX OS
+- NodeJS >= v16
 
 ### Packages
 
@@ -55,9 +56,9 @@ Thermopylae contains a set of packages which can be used standalone and independ
 specific features. Nevertheless, most often you will use a combination of them in order to achieve your goal.
 
 Packages are grouped in 2 categories:
-* **Library** packages (*lib.* prefix) encapsulate the low level core logic for specific features (e.g. authentication, session, cache), are highly configurable and use abstractions for data storages, algorithms etc.
-* **Core** packages (*core.* prefix) are using libraries in order to implement higher level features, usually they are http bound, and also provides default implementations for abstractions required by libraries.
 
+- **Library** packages (_lib._ prefix) encapsulate the low level core logic for specific features (e.g. authentication, session, cache), are highly configurable and use abstractions for data storages, algorithms etc.
+- **Core** packages (_core._ prefix) are using libraries in order to implement higher level features, usually they are http bound, and also provides default implementations for abstractions required by libraries.
 
 ### Installation
 
@@ -69,16 +70,18 @@ npm i @thermopylae/lib.authentication
 ```
 
 <!-- CONTACT -->
+
 ## Contact
 
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
+- GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+- Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+- LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
 [license-url]: https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555

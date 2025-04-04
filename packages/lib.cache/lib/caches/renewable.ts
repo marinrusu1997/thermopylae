@@ -1,56 +1,55 @@
-import { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
-import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
+import type { PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
+import type { Cache, CacheEvent, CacheEventListener } from '../typings/cache.js';
 
 /**
- * Asynchronous function which retrieves *value* of the `key`.
+ * Asynchronous function which retrieves _value_ of the `key`.
  *
- * @param key	Key, value of which needs to be retrieved.
+ * @param   key Key, value of which needs to be retrieved.
  *
- * @returns		A tuple containing value of the key and optional argument's bundle used for key insertion. <br/>
- * 				Notice that `null` is a valid value.
- * 				If key doesn't have any value, `undefined` needs to be returned. <br/>
- * 				If arguments bundle will be returned, it will override the one returned by {@link KeyConfigProvider}.
- * 				If arguments bundle won't be returned, the one returned by {@link KeyConfigProvider} will be used.
+ * @returns     A tuple containing value of the key and optional argument's bundle used for key
+ *   insertion. <br/> Notice that `null` is a valid value. If key doesn't have any value,
+ *   `undefined` needs to be returned. <br/> If arguments bundle will be returned, it will override
+ *   the one returned by {@link KeyConfigProvider}. If arguments bundle won't be returned, the one
+ *   returned by {@link KeyConfigProvider} will be used.
  */
 type KeyRetriever<Key, Value, ArgumentsBundle = unknown> = (key: Key) => Promise<[Value | undefined, ArgumentsBundle | undefined]>;
 
 /**
- * Function which provides arguments bundle used by different cache operations (for the moment only {@link Cache.set} operation)
- * for the specified `key`.
+ * Function which provides arguments bundle used by different cache operations (for the moment only
+ * {@link Cache.set} operation) for the specified `key`.
  *
- * @param key	Key, args bundle of which is needed.
+ * @param   key Key, args bundle of which is needed.
  *
- * @returns		Arguments bundle. If `key` doesn't require any arguments, `undefined` needs to be returned.
+ * @returns     Arguments bundle. If `key` doesn't require any arguments, `undefined` needs to be
+ *   returned.
  */
 type KeyConfigProvider<Key, ArgumentsBundle> = (key: Key) => ArgumentsBundle | undefined;
 
 interface RenewableCacheOptions<Key, Value, ArgumentsBundle> {
-	/**
-	 * Synchronous implementation of the {@link Cache}.
-	 */
+	/** Synchronous implementation of the {@link Cache}. */
 	cache: Cache<Key, PromiseHolder<Undefinable<Value>>, ArgumentsBundle>;
-	/**
-	 * Retriever function.
-	 */
+	/** Retriever function. */
 	keyRetriever: KeyRetriever<Key, Value, ArgumentsBundle>;
 	/**
-	 * Optional key config provider which will be used when no explicit arguments bundle was provided to cache operation.
+	 * Optional key config provider which will be used when no explicit arguments bundle was
+	 * provided to cache operation.
 	 */
 	keyConfigProvider?: KeyConfigProvider<Key, ArgumentsBundle>;
 }
 
 /**
- * Asynchronous implementation of the {@link Cache}, which auto fills itself by using {@link KeyRetriever}. <br/>
- * In case key was requested and it's missing, retriever will be called to obtain it's value
- * which will be saved in the cache and then returned to client. <br/>
- * If you don't want to pass each time same arguments bundle for cache operations, you can provide a {@link KeyConfigProvider}.
- * This function will be called each time an operation is performed on `key`. Returned arguments bundle will be forwarded
- * to the underlying {@link Cache} implementation. This is especially useful for {@link Cache.get} operation which
- * needs to automatically insert missing keys and use an arguments bundle for them.
+ * Asynchronous implementation of the {@link Cache}, which auto fills itself by using
+ * {@link KeyRetriever}. <br/> In case key was requested and it's missing, retriever will be called
+ * to obtain it's value which will be saved in the cache and then returned to client. <br/> If you
+ * don't want to pass each time same arguments bundle for cache operations, you can provide a
+ * {@link KeyConfigProvider}. This function will be called each time an operation is performed on
+ * `key`. Returned arguments bundle will be forwarded to the underlying {@link Cache} implementation.
+ * This is especially useful for {@link Cache.get} operation which needs to automatically insert
+ * missing keys and use an arguments bundle for them.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key, Value, ArgumentsBundle, 'promise', PromiseHolder<Undefinable<Value>>> {
 	private readonly options: Readonly<Required<RenewableCacheOptions<Key, Value, ArgumentsBundle>>>;
@@ -62,88 +61,70 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 		this.options = options as Readonly<Required<RenewableCacheOptions<Key, Value, ArgumentsBundle>>>;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get size(): number {
 		return this.options.cache.size;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
-	public get(key: Key, argsBundle?: ArgumentsBundle): Promise<Value | undefined> {
-		let promiseHolder: PromiseHolder<Undefinable<Value>> | undefined;
+	/** @inheritdoc */
+	public async get(key: Key, argsBundle?: ArgumentsBundle): Promise<Value | undefined> {
+		let promiseHolder: PromiseHolder<Undefinable<Value>> | null | undefined = null;
 
-		try {
-			promiseHolder = this.options.cache.get(key);
-			if (promiseHolder) {
-				return promiseHolder.promise;
-			}
-
-			if (argsBundle == null) {
-				argsBundle = this.options.keyConfigProvider(key);
-			}
-		} catch (e) {
-			return Promise.reject(e);
-		}
-
-		try {
-			promiseHolder = RenewableCache.buildPromiseHolder();
-		} catch (e) {
-			return Promise.reject(e);
-		}
-
-		try {
-			this.options.cache.set(key, promiseHolder, argsBundle);
-		} catch (e) {
-			promiseHolder.reject(e);
+		promiseHolder = this.options.cache.get(key);
+		if (promiseHolder) {
 			return promiseHolder.promise;
 		}
 
-		return this.options
-			.keyRetriever(key)
-			.then((result) => {
-				let value;
-				[value, argsBundle] = result;
+		if (argsBundle == null) {
+			argsBundle = this.options.keyConfigProvider(key);
+		}
 
-				if (value === undefined) {
-					this.options.cache.del(key);
-				} else if (argsBundle != null) {
-					this.options.cache.set(key, promiseHolder!, argsBundle);
-				}
+		promiseHolder = RenewableCache.buildPromiseHolder();
 
-				promiseHolder!.resolve(value);
+		try {
+			this.options.cache.set(key, promiseHolder, argsBundle);
+		} catch (error) {
+			promiseHolder.reject(error);
+			return promiseHolder.promise;
+		}
 
-				return promiseHolder!.promise;
-			})
-			.catch((e) => {
-				try {
-					this.options.cache.del(key);
-				} catch {
-					// ignore this error
-				}
-				promiseHolder!.reject(e);
+		try {
+			const result = await this.options.keyRetriever(key);
 
-				return promiseHolder!.promise;
-			});
+			let value: Value | undefined = undefined;
+			[value, argsBundle] = result;
+
+			if (value === undefined) {
+				this.options.cache.del(key);
+			} else if (argsBundle != null) {
+				this.options.cache.set(key, promiseHolder, argsBundle);
+			}
+
+			promiseHolder.resolve(value);
+		} catch (error) {
+			try {
+				this.options.cache.del(key);
+			} catch {
+				// ignore this error
+			}
+			promiseHolder.reject(error);
+		}
+		return promiseHolder.promise;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public has(key: Key): boolean {
 		return this.options.cache.has(key);
 	}
 
 	/**
-	 * Insert/update *key*-*value* pair. <br/>
-	 * Due to auto fill nature of the cache, you can use this method explicitly set a value for the key and (maybe)
-	 * overwrite the value provided by retriever.
+	 * Insert/update _key_-_value_ pair. <br/> Due to auto fill nature of the cache, you can use
+	 * this method explicitly set a value for the key and (maybe) overwrite the value provided by
+	 * retriever.
 	 *
-	 * @param key			Key.
-	 * @param value			Value.
-	 * @param argsBundle	Arguments bundle.
+	 * @param key        Key.
+	 * @param value      Value.
+	 * @param argsBundle Arguments bundle.
 	 */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
 		const promiseHolder = RenewableCache.buildPromiseHolder<Undefinable<Value>>();
@@ -155,38 +136,28 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 		this.options.cache.set(key, promiseHolder, argsBundle);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public del(key: Key): boolean {
 		return this.options.cache.del(key);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public clear(): void {
 		this.options.cache.clear();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
-	public keys(): Array<Key> {
+	/** @inheritdoc */
+	public keys(): Key[] {
 		return this.options.cache.keys();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public on(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value | undefined>>): this {
 		this.options.cache.on(event, listener);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public off(event: CacheEvent, listener: CacheEventListener<Key, PromiseHolder<Value | undefined>>): this {
 		this.options.cache.off(event, listener);
 		return this;
@@ -194,11 +165,11 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 
 	private static buildPromiseHolder<T>(): PromiseHolder<T> {
 		const promiseHolder: PromiseHolder<T> = {
-			// @ts-ignore They will be assigned bellow by Promise executor
+			// @ts-expect-error They will be assigned bellow by Promise executorecutor
 			promise: null,
-			// @ts-ignore They will be assigned bellow by Promise executor
+			// @ts-expect-error They will be assigned bellow by Promise executorecutor
 			reject: null,
-			// @ts-ignore They will be assigned bellow by Promise executor
+			// @ts-expect-error They will be assigned bellow by Promise executorecutor
 			resolve: null
 		};
 		promiseHolder.promise = new Promise<T>((resolve, reject) => {
@@ -213,4 +184,4 @@ class RenewableCache<Key, Value, ArgumentsBundle = unknown> implements Cache<Key
 	}
 }
 
-export { RenewableCache, KeyRetriever, KeyConfigProvider };
+export { RenewableCache, type KeyRetriever, type KeyConfigProvider };

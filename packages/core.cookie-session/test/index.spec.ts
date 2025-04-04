@@ -1,22 +1,18 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import fetch from 'node-fetch';
-// @ts-ignore This module has no typings
-import timestamp from 'unix-timestamp';
-import { HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode } from '@thermopylae/core.declarations';
-import type { HTTPRequestLocation, MutableSome } from '@thermopylae/core.declarations';
-import type { UserSessionMetaData, UserSessionTimeouts } from '@thermopylae/lib.user-session';
+import { type HTTPRequestLocation, HttpRequestHeaderEnum, HttpResponseHeaderEnum, HttpStatusCode, type MutableSome } from '@thermopylae/core.declarations';
 import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
-import { setTimeout } from 'timers/promises';
-import { parse } from 'cookie';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro.js';
+import type { UserSessionMetaData, UserSessionTimeouts } from '@thermopylae/lib.user-session';
+import { chrono } from '@thermopylae/lib.utils';
 import capitalize from 'capitalize';
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro';
-import { CookieUserSessionMiddleware, CookieUserSessionMiddlewareOptions, UserSessionRedisStorage } from '../lib';
-import { routes } from './fixtures/routes';
-import { options } from './fixtures/middleware';
-import { PORT } from './bootstrap';
+import { parse } from 'cookie';
+import fetch from 'node-fetch';
+import { setTimeout } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { CookieUserSessionMiddleware, type CookieUserSessionMiddlewareOptions, UserSessionRedisStorage } from '../lib/index.js';
+import { PORT } from './bootstrap.js';
+import { options } from './fixtures/middleware.js';
+import { routes } from './fixtures/routes.js';
+import type { GetActiveSessionsBody } from './fixtures/server.js';
 
 const serverAddress = `http://localhost:${PORT}`;
 
@@ -37,13 +33,13 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 					},
 					renewSessionHooks: {
 						onRenewMadeAlreadyFromCurrentProcess() {
-							return undefined;
+							return;
 						},
 						onRenewMadeAlreadyFromAnotherProcess() {
-							return undefined;
+							return;
 						},
 						onOldSessionDeleteFailure() {
-							return undefined;
+							return;
 						}
 					},
 					storage: new UserSessionRedisStorage({
@@ -107,8 +103,8 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(authResp.headers.has(CACHE_CONTROL)).to.be.eq(false); // only set for browsers
 
 			/* GET RESOURCE */
-			const getResourceTimestamp = timestamp.now();
-			const sessionId = authResp.headers.get(options.session.header)!;
+			const getResourceTimestamp = chrono.unix();
+			const sessionId = authResp.headers.get(options.session.header);
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 				method: routes.get_resource.method,
 				headers: {
@@ -124,7 +120,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				countryCode: 'RO',
 				regionCode: null,
 				city: 'Bucharest',
-				latitude: 15.600000381469727,
+				latitude: 15.600_000_381_469_727,
 				longitude: null,
 				timezone: null
 			});
@@ -140,8 +136,8 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsBeforeLogoutResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessionsBeforeLogout = await getActiveSessionsBeforeLogoutResp.json();
-			expect(Object.keys(activeSessionsBeforeLogout)).to.be.equalTo([sessionId]);
+			const activeSessionsBeforeLogout = (await getActiveSessionsBeforeLogoutResp.json()) as GetActiveSessionsBody;
+			expect(Object.keys(activeSessionsBeforeLogout)).toStrictEqual([sessionId]);
 
 			/* LOGOUT */
 			const logoutResp = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
@@ -161,8 +157,8 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessions = await getActiveSessionsResp.json();
-			expect(Object.keys(activeSessions)).to.be.ofSize(0);
+			const activeSessions = (await getActiveSessionsResp.json()) as GetActiveSessionsBody;
+			expect(Object.keys(activeSessions)).to.have.length(0);
 		});
 
 		it("authenticates, get's resource and logs out (browser device)", async () => {
@@ -177,8 +173,8 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(authResp.headers.get(CACHE_CONTROL)).to.be.eq('no-cache="set-cookie, set-cookie2"'); // only set for browsers
 
 			/* GET RESOURCE */
-			const cookie = authResp.headers.get(SET_COOKIE)!;
-			const getResourceTimestamp = timestamp.now();
+			const cookie = authResp.headers.get(SET_COOKIE) ?? '';
+			const getResourceTimestamp = chrono.unix();
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 				method: routes.get_resource.method,
 				headers: {
@@ -201,7 +197,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				countryCode: 'RO',
 				regionCode: null,
 				city: 'Bucharest',
-				latitude: 15.600000381469727,
+				latitude: 15.600_000_381_469_727,
 				longitude: null,
 				timezone: null
 			});
@@ -229,8 +225,8 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessions = await getActiveSessionsResp.json();
-			expect(Object.keys(activeSessions)).to.be.ofSize(0);
+			const activeSessions = (await getActiveSessionsResp.json()) as GetActiveSessionsBody;
+			expect(Object.keys(activeSessions)).to.have.length(0);
 		});
 
 		it('creates multiple simultaneous sessions', async () => {
@@ -256,13 +252,13 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
-				const firstSessionId = Object.entries(parse(firstAuthResp.headers.get(SET_COOKIE)!))[0][1];
-				const secondSessionId = secondAuthResp.headers.get(options.session.header)!;
-				expect(Object.keys(activeSessions)).to.be.equalTo([secondSessionId, firstSessionId]);
+			const activeSessions = (await getActiveSessionsResp.json()) as GetActiveSessionsBody;
+			if (options.sessionManager.timeouts?.oldSessionAvailabilityAfterRenewal) {
+				const firstSessionId = Object.entries(parse(firstAuthResp.headers.get(SET_COOKIE) ?? ''))[0][1];
+				const secondSessionId = secondAuthResp.headers.get(options.session.header);
+				expect(Object.keys(activeSessions)).toStrictEqual([secondSessionId, firstSessionId]);
 			} else {
-				expect(Object.keys(activeSessions)).to.be.ofSize(0);
+				expect(Object.keys(activeSessions)).to.have.length(0);
 			}
 
 			/* LOGOUT */
@@ -270,7 +266,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
 					method: routes.logout.method,
 					headers: {
-						[COOKIE]: firstAuthResp.headers.get(SET_COOKIE)!,
+						[COOKIE]: firstAuthResp.headers.get(SET_COOKIE) ?? '',
 						[options.session.csrf.name]: options.session.csrf.value as string
 					}
 				}),
@@ -287,7 +283,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 	});
 
 	describe('verify session spec', () => {
-		it('sends back renewed session id after getting resource', async () => {
+		it('sends back renewed session id after getting resource', { timeout: (options.sessionManager.timeouts?.renewal ?? 0) * 1000 + 4000 }, async () => {
 			/* AUTHENTICATE */
 			const authResp = await fetch(`${serverAddress}${routes.login.path}?location=1`, {
 				method: routes.login.method,
@@ -299,9 +295,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(authResp.headers.get(CACHE_CONTROL)).to.be.eq('no-cache="set-cookie, set-cookie2"'); // only set for browsers
 
 			/* GET RESOURCE and OBTAIN REFRESHED SESSION */
-			await setTimeout(options.sessionManager.timeouts!.renewal! * 1000 + 100, { ref: true });
+			await setTimeout((options.sessionManager.timeouts?.renewal ?? 0) * 1000 + 100, { ref: true });
 
-			const cookie = authResp.headers.get(SET_COOKIE)!;
+			const cookie = authResp.headers.get(SET_COOKIE) ?? '';
 			const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 				method: routes.get_resource.method,
 				headers: {
@@ -318,7 +314,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			const logoutResp = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
 				method: routes.logout.method,
 				headers: {
-					[COOKIE]: resourceResp.headers.get(SET_COOKIE)!,
+					[COOKIE]: resourceResp.headers.get(SET_COOKIE) ?? '',
 					[options.session.csrf.name]: options.session.csrf.value as string
 				}
 			});
@@ -330,14 +326,14 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
+			const activeSessions = (await getActiveSessionsResp.json()) as GetActiveSessionsBody;
+			if (options.sessionManager.timeouts?.oldSessionAvailabilityAfterRenewal) {
 				const oldSessionId = Object.entries(parse(cookie))[0][1];
-				expect(Object.keys(activeSessions)).to.be.equalTo([oldSessionId]);
+				expect(Object.keys(activeSessions)).toStrictEqual([oldSessionId]);
 			} else {
-				expect(Object.keys(activeSessions)).to.be.ofSize(0);
+				expect(Object.keys(activeSessions)).to.have.length(0);
 			}
-		}).timeout(options.sessionManager.timeouts!.renewal! * 1000 + 4000);
+		});
 
 		it('updates accessedAt each time session is verified', async () => {
 			/* AUTHENTICATE */
@@ -349,10 +345,10 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(authResp.status).to.be.eq(HttpStatusCode.Created);
 			expect(authResp.headers.get(CACHE_CONTROL)).to.be.eq('no-cache="set-cookie, set-cookie2"'); // only set for browsers
-			const cookie = authResp.headers.get(SET_COOKIE)!;
+			const cookie = authResp.headers.get(SET_COOKIE) ?? '';
 
 			/* GET RESOURCE (first time) */
-			const getFirstResourceTimestamp = timestamp.now();
+			const getFirstResourceTimestamp = chrono.unix();
 			const resourceFirstResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 				method: routes.get_resource.method,
 				headers: {
@@ -433,11 +429,13 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(resourceResp.headers.get(SET_COOKIE)).to.be.eq(null); // will set it only when session is GIVEN and NOT VALID
 		});
 
-		it("doesn't accept expired session ids after idle period", async () => {
-			const renewalTimeoutSnapshot = options.sessionManager.timeouts!.renewal;
+		it("doesn't accept expired session ids after idle period", { timeout: ((options.sessionManager.timeouts?.idle ?? 0) + 2) * 1000 }, async () => {
+			expect.hasAssertions();
+
+			const renewalTimeoutSnapshot = options.sessionManager.timeouts?.renewal ?? 0;
 
 			try {
-				(options.sessionManager.timeouts! as MutableSome<UserSessionTimeouts, 'renewal'>).renewal = undefined;
+				(options.sessionManager.timeouts as MutableSome<UserSessionTimeouts, 'renewal'>).renewal = undefined;
 
 				/* AUTHENTICATE */
 				const authResp = await fetch(`${serverAddress}${routes.login.path}?location=1`, {
@@ -450,9 +448,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 				expect(authResp.status).to.be.eq(HttpStatusCode.Created);
 
 				/* GET RESOURCE AFTER BEING IDLE */
-				await setTimeout(options.sessionManager.timeouts!.idle! * 1000 + 100, { ref: true });
+				await setTimeout((options.sessionManager.timeouts?.idle ?? 0) * 1000 + 100, { ref: true });
 
-				const cookie = authResp.headers.get(SET_COOKIE)!;
+				const cookie = authResp.headers.get(SET_COOKIE) ?? '';
 				const resourceResp = await fetch(`${serverAddress}${routes.get_resource.path}?uid=uid1`, {
 					method: routes.get_resource.method,
 					headers: {
@@ -473,9 +471,9 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 					}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=${capitalize(options.session.cookie.sameSite as string)}`
 				);
 			} finally {
-				(options.sessionManager.timeouts! as MutableSome<UserSessionTimeouts, 'renewal'>).renewal = renewalTimeoutSnapshot;
+				(options.sessionManager.timeouts as MutableSome<UserSessionTimeouts, 'renewal'>).renewal = renewalTimeoutSnapshot;
 			}
-		}).timeout((options.sessionManager.timeouts!.idle! + 2) * 1000);
+		});
 	});
 
 	describe('renew session spec', () => {
@@ -491,7 +489,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(authResp.headers.get(CACHE_CONTROL)).to.be.eq('no-cache="set-cookie, set-cookie2"'); // only set for browsers
 
 			/* RENEW */
-			const cookie = authResp.headers.get(SET_COOKIE)!;
+			const cookie = authResp.headers.get(SET_COOKIE) ?? '';
 			const renewResp = await fetch(`${serverAddress}${routes.renew_session.path}?uid=uid1`, {
 				method: routes.renew_session.method,
 				headers: {
@@ -503,7 +501,7 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			expect(renewResp.status).to.be.eq(HttpStatusCode.Ok);
 
 			/* LOGOUT (with renewed cookie) */
-			const renewedCookie = renewResp.headers.get(SET_COOKIE)!;
+			const renewedCookie = renewResp.headers.get(SET_COOKIE) ?? '';
 			const logoutResp = await fetch(`${serverAddress}${routes.logout.path}?uid=uid1`, {
 				method: routes.logout.method,
 				headers: {
@@ -519,12 +517,12 @@ describe(`${CookieUserSessionMiddleware.name} spec`, () => {
 			});
 			expect(getActiveSessionsResp.status).to.be.eq(HttpStatusCode.Ok);
 
-			const activeSessions = await getActiveSessionsResp.json();
-			if (options.sessionManager.timeouts!.oldSessionAvailabilityAfterRenewal) {
+			const activeSessions = (await getActiveSessionsResp.json()) as GetActiveSessionsBody;
+			if (options.sessionManager.timeouts?.oldSessionAvailabilityAfterRenewal) {
 				const oldSessionId = Object.entries(parse(cookie))[0][1];
-				expect(Object.keys(activeSessions)).to.be.equalTo([oldSessionId]);
+				expect(Object.keys(activeSessions)).toStrictEqual([oldSessionId]);
 			} else {
-				expect(Object.keys(activeSessions)).to.be.ofSize(0);
+				expect(Object.keys(activeSessions)).to.have.length(0);
 			}
 		});
 	});

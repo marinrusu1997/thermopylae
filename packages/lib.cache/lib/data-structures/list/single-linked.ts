@@ -1,22 +1,16 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-import { Nullable } from '@thermopylae/core.declarations';
-import { LinkedList } from './interface';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { types } from '@thermopylae/lib.utils';
+import type { LinkedList } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 const NEXT_SYM = Symbol('NEXT_SYM_SLL');
 
-/**
- * @private
- */
+/** @private */
 interface SingleLinkedListNode<Node> {
 	[NEXT_SYM]: Nullable<Node>;
 }
 
-/**
- * @private
- */
+/** @private */
 class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
 
@@ -26,7 +20,7 @@ class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implemen
 
 	public next(): IteratorResult<Node, Node> {
 		if (this.node == null) {
-			return { value: null!, done: true };
+			return { value: types.SOFT_DELETE, done: true };
 		}
 
 		const result: IteratorResult<Node, Node> = { value: this.node, done: false };
@@ -36,9 +30,8 @@ class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implemen
 	}
 }
 
-/**
- * @private
- */
+/** @private */
+// oxlint-disable-next-line max-classes-per-file
 class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements LinkedList<SingleLinkedListNode<Node>> {
 	public head: Nullable<Node>;
 
@@ -47,11 +40,11 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 	public size: number;
 
 	public constructor(startNode: Nullable<Node> = null) {
-		if (startNode != null) {
+		if (startNode == null) {
+			this.size = 0;
+		} else {
 			startNode[NEXT_SYM] = null;
 			this.size = 1;
-		} else {
-			this.size = 0;
 		}
 
 		this.head = startNode;
@@ -101,12 +94,12 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 				this.tail = null; // last element was removed
 			}
 		} else {
-			let current: Node = this.head![NEXT_SYM]!; // there is at least two nodes
-			let previous: Node = this.head!;
+			let current = (this.head && this.head[NEXT_SYM]) as Node; // there is at least two nodes
+			let previous = this.head as Node;
 
 			while (current !== node) {
 				previous = current;
-				current = current[NEXT_SYM]!;
+				current = current[NEXT_SYM] as Node;
 			}
 
 			previous[NEXT_SYM] = current[NEXT_SYM];
@@ -143,4 +136,4 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 	}
 }
 
-export { SingleLinkedList, SingleLinkedListNode, SingleLinkedListIterator, NEXT_SYM };
+export { SingleLinkedList, type SingleLinkedListNode, SingleLinkedListIterator, NEXT_SYM };

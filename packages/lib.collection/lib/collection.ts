@@ -1,70 +1,61 @@
-import { Mapper, Nullable, ObjMap, Optional } from '@thermopylae/core.declarations';
+import type { Mapper, Nullable, ObjMap, Optional } from '@thermopylae/core.declarations';
 import { IndexedStore } from '@thermopylae/lib.indexed-store';
-import rxsubject, { Subject, Subscribable } from 'rx-subject';
-import { JSONSchema } from 'json-schema-typed';
-import Ajv from 'ajv';
-// eslint-disable-next-line import/extensions
-import AjvLocalizeEn from 'ajv-i18n/localize/en';
-import { createException, ErrorCodes } from './error';
-import { DeleteOptions, DocumentContract, FindOptions, IndexedKey, IndexOptions, Query, ReplaceOptions, UpdateOptions, PK_INDEX_NAME } from './typings';
-import { Processor } from './processor';
-import { Retriever } from './retriever';
-
-// @ts-ignore There is a problem with ESM version of rx-subject,
-// as it actually exports an object with property `default` that contains createSubject function
-const createSubject = rxsubject.default;
+import Ajv, { type Ajv as AjvType } from 'ajv';
+import AjvLocalizeEn from 'ajv-i18n/localize/en/index.js';
+import type { JSONSchema } from 'json-schema-typed';
+import rxsubject, { type Subject, type Subscribable } from 'rx-subject';
+import { ErrorCodes, createException } from './error.js';
+import { Processor } from './processor.js';
+import { Retriever } from './retriever.js';
+import {
+	type DeleteOptions,
+	type DocumentContract,
+	type FindOptions,
+	type IndexOptions,
+	type IndexedKey,
+	PK_INDEX_NAME,
+	type Query,
+	type ReplaceOptions,
+	type UpdateOptions
+} from './typings.js';
 
 type Cursor<Document> = Iterator<Document>;
 
-/**
- * Describes which version of document needs to be stored by {@link Collection}.
- */
-const enum DocumentOriginality {
-	/**
-	 * Store a clone of the document.
-	 */
-	CLONE,
-	/**
-	 * Store it's original.
-	 */
-	ORIGINAL
+/** Describes which version of document needs to be stored by {@link Collection}. */
+enum DocumentOriginality {
+	/** Store a clone of the document. */
+	CLONE = 0,
+	/** Store it's original. */
+	ORIGINAL = 1
 }
 
-const enum DocumentOperation {
+enum DocumentOperation {
 	CREATED = 'created',
 	UPDATED = 'updated',
 	DELETED = 'deleted',
 	CLEARED = 'cleared'
 }
 
-/**
- * Notification sent to observers when {@link Collection} suffers modifications.
- */
+/** Notification sent to observers when {@link Collection} suffers modifications. */
 interface DocumentNotification<Document> {
-	/**
-	 * Operation that took place.
-	 */
+	/** Operation that took place. */
 	operation: DocumentOperation;
-	/**
-	 * Affected documents.
-	 */
-	documents: Array<Document>;
+	/** Affected documents. */
+	documents: Document[];
 }
 
-/**
- * {@link Collection} construction options.
- */
+/** {@link Collection} construction options. */
 interface CollectionOptions<Document> {
 	/**
 	 * Name of document keys, in dot notation, that need to be indexed.
 	 *
-	 * @default null	Only primary key property will be indexed.
+	 * @default null Only primary key property will be indexed.
 	 */
-	indexKeys: Array<IndexedKey<Document>>;
+	indexKeys: IndexedKey<Document>[];
 	/**
 	 * [JSON Schema]{@link https://json-schema.org/} used for document validation.
 	 *
-	 * @default null	Documents won't be validated.
+	 * @default null Documents won't be validated.
 	 */
 	schema: JSONSchema;
 	/**
@@ -84,8 +75,7 @@ interface CollectionOptions<Document> {
 /**
  * Collection of documents which are kept indexed.
  *
- * @template Document	Type of the document. <br/>
- * 						Document must implement {@link DocumentContract}.
+ * @template Document Type of the document. <br/> Document must implement {@link DocumentContract}.
  */
 class Collection<Document extends DocumentContract<Document>> implements Iterable<Document> {
 	private readonly storage: IndexedStore<Document>;
@@ -94,7 +84,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 
 	private readonly originality: DocumentOriginality;
 
-	private readonly validator: Nullable<Ajv>;
+	private readonly validator: Nullable<AjvType>;
 
 	private readonly retriever: Retriever<Document>;
 
@@ -104,36 +94,37 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		options = options || {};
 
 		this.storage = new IndexedStore<Document>({ indexes: options.indexKeys });
-		this.notifier = createSubject<DocumentNotification<Document>>();
-		this.originality = options.documentsOriginality != null ? options.documentsOriginality : DocumentOriginality.ORIGINAL;
+		// @ts-expect-error-error
+		this.notifier = rxsubject<DocumentNotification<Document>>();
+		this.originality = options.documentsOriginality == null ? DocumentOriginality.ORIGINAL : options.documentsOriginality;
 
 		this.retriever = new Retriever<Document>(this.storage, options.validateQueries);
 		this.processor = new Processor<Document>(this.storage, options.validateQueries);
 
 		if (options.schema) {
-			this.validator = new Ajv({ allErrors: true });
-			this.validator.addSchema(options.schema, Collection.constructor.name);
+			// @ts-expect-error-error
+			const validator = new Ajv({ allErrors: true });
+			validator.addSchema(options.schema, Collection.constructor.name);
+			this.validator = validator;
 		} else {
 			this.validator = null;
 		}
 	}
 
-	/**
-	 * Returns the indexed properties.
-	 */
-	public get indexes(): Array<IndexedKey<Document>> {
+	/** Returns the indexed properties. */
+	public get indexes(): IndexedKey<Document>[] {
 		return this.storage.indexes;
 	}
 
 	/**
-	 * Inserts `documents` into {@link Collection}. <br/>
-	 * Documents are validated according to JSON Schema (if given). <br/>
-	 * When documents originality is {@link DocumentOriginality.CLONE}, they will be cloned, prior indexing. <br/>
-	 * After indexing, {@link DocumentNotification} which contains inserted documents is emitted. <br/>
+	 * Inserts `documents` into {@link Collection}. <br/> Documents are validated according to JSON
+	 * Schema (if given). <br/> When documents originality is {@link DocumentOriginality.CLONE}, they
+	 * will be cloned, prior indexing. <br/> After indexing, {@link DocumentNotification} which
+	 * contains inserted documents is emitted. <br/>
 	 */
-	public insert(documents: Document | Array<Document>): void {
+	public insert(documents: Document | readonly Document[]): void {
 		if (!Array.isArray(documents)) {
-			documents = [documents];
+			documents = [documents] as readonly Document[];
 		}
 
 		if (this.validator) {
@@ -141,84 +132,87 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 
 		if (this.originality === DocumentOriginality.CLONE) {
-			documents = Processor.clone(documents);
+			documents = Processor.clone(documents as readonly Document[]);
 		}
 
-		this.storage.insert(documents);
+		this.storage.insert(documents as readonly Document[]);
 
 		this.notifier.sink.next({
 			operation: DocumentOperation.CREATED,
-			documents
+			documents: documents as Document[]
 		});
 	}
 
 	/**
-	 * Selects documents in a collection and returns them. <br>
-	 * Found documents are post-processed according to `options`.
+	 * Selects documents in a collection and returns them. <br> Found documents are post-processed
+	 * according to `options`.
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * Find all documents
-	 * ------------------
-	 * <pre><code>collection.find()</code></pre>
+	 * 	Find all documents
+	 * 	------------------
+	 * 	<pre><code>collection.find()</code></pre>
 	 *
-	 * Find document by id
-	 * -------------------
-	 * <pre><code>collection.find('unique-id')</code></pre>
+	 * 	Find document by id
+	 * 	-------------------
+	 * 	<pre><code>collection.find('unique-id')</code></pre>
 	 *
-	 * Find documents by indexed property
-	 * -------------------
-	 * <pre><code>// returns all documents having `birthYear` equals to 2000
-	 * collection.find(null, {
-	 *    index: {
-	 *        name: 'birthYear',
-	 *        value: 2000
-	 *    }
-	 * });
-	 * </code></pre>
+	 * 	Find documents by indexed property
+	 * 	-------------------
+	 * 	<pre><code>// returns all documents having `birthYear` equals to 2000
+	 * 	collection.find(null, {
+	 * 	index: {
+	 * 	name: 'birthYear',
+	 * 	value: 2000
+	 * 	}
+	 * 	});
+	 * 	</code></pre>
 	 *
-	 * Find documents and post-process them
-	 * -------------------
-	 * <pre><code>// returns all documents having `birthYear` greater than 2000, sorted by `firstName`
-	 * const query = { birthYear: { $gt: 2000 } };
-	 * const options = { sort: { firstName: {@link SortDirection.ASCENDING} } };
-	 * const matches = collection.find(query, options);
-	 * </code></pre>
+	 * 	Find documents and post-process them
+	 * 	-------------------
+	 * 	<pre><code>// returns all documents having `birthYear` greater than 2000, sorted by `firstName`
+	 * 	const query = { birthYear: { $gt: 2000 } };
+	 * 	const options = { sort: { firstName: {@link SortDirection.ASCENDING} } };
+	 * 	const matches = collection.find(query, options);
+	 * 	</code></pre>
 	 */
-	public find(query?: Nullable<Query<Document>>, options?: Partial<FindOptions<Document>>): Array<Document> {
+	public find(query?: Nullable<Query<Document>>, options?: Partial<FindOptions<Document>>): Document[] {
 		return this.retriever.retrieve(query, options);
 	}
 
 	/**
-	 * Replace documents that match the `query` with the `replacement`. <br>
-	 * Emits 2 {@link DocumentNotification} when matches were replaced:
+	 * Replace documents that match the `query` with the `replacement`. <br> Emits 2
+	 * {@link DocumentNotification} when matches were replaced:
+	 *
 	 * 1. {@link DocumentOperation.DELETED} with the matches that were removed.
 	 * 2. {@link DocumentOperation.CREATED} with the replacement.
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * Replace document by id
-	 * -------------------
-	 * <pre><code>collection.replace('unique-id', replacement);</code></pre>
+	 * 	Replace document by id
+	 * 	-------------------
+	 * 	<pre><code>collection.replace('unique-id', replacement);</code></pre>
 	 *
-	 * Replace multiple documents with a single one
-	 * -------------------
-	 * <pre><code> // replace all documents having `birthYear` greater than 2000
-	 * const query = { birthYear: { $gt: 2000 } };
-	 * collection.replace(query, replacement);
-	 * </code></pre>
+	 * 	Replace multiple documents with a single one
+	 * 	-------------------
+	 * 	<pre><code> // replace all documents having `birthYear` greater than 2000
+	 * 	const query = { birthYear: { $gt: 2000 } };
+	 * 	collection.replace(query, replacement);
+	 * 	</code></pre>
 	 *
-	 * Insert replacement if no matches found
-	 * -------------------
-	 * <pre><code> // no persons with name 'John' are present in the collection
-	 * const query = { firstName: 'John' };
-	 * collection.replace(query, replacement, { upsert: true });
-	 * </code></pre>
+	 * 	Insert replacement if no matches found
+	 * 	-------------------
+	 * 	<pre><code> // no persons with name 'John' are present in the collection
+	 * 	const query = { firstName: 'John' };
+	 * 	collection.replace(query, replacement, { upsert: true });
+	 * 	</code></pre>
 	 */
-	public replace(query: Query<Document>, replacement: Document, options?: Partial<ReplaceOptions<Document>>): Array<Document> {
+	public replace(query: Query<Document>, replacement: Document, options?: Partial<ReplaceOptions<Document>>): Document[] {
 		const matches = this.findAndDelete(query, options);
 
-		if (matches.length || (matches.length === 0 && options && options.upsert)) {
+		if (matches.length > 0 || (matches.length === 0 && options && options.upsert)) {
 			this.insert(replacement);
 		}
 
@@ -226,70 +220,70 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	/**
-	 * Modifies an existing document or documents.
-	 * The method can modify specific fields of an existing document or documents. <br>
-	 * When one of the indexed properties is updated, documents will be re-indexed with
-	 * the new values of them. <br>
-	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.UPDATED} which
-	 * contains the updated documents.
+	 * Modifies an existing document or documents. The method can modify specific fields of an
+	 * existing document or documents. <br> When one of the indexed properties is updated, documents
+	 * will be re-indexed with the new values of them. <br> Emits {@link DocumentNotification} with
+	 * operation {@link DocumentOperation.UPDATED} which contains the updated documents.
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * Update document by id
-	 * -------------------
-	 * <pre><code>const update = {
-	 *   $set: {
-	 *       birthYear: 2000
-	 *   }
-	 * };
-	 * // returns old document
-	 * collection.update('unique-id', update);
-	 * </code></pre>
+	 * 	Update document by id
+	 * 	-------------------
+	 * 	<pre><code>const update = {
+	 * 	$set: {
+	 * 	birthYear: 2000
+	 * 	}
+	 * 	};
+	 * 	// returns old document
+	 * 	collection.update('unique-id', update);
+	 * 	</code></pre>
 	 *
-	 * Update multiple documents
-	 * -------------------
-	 * <pre><code>const update = {
-	 *   $inc: {
-	 *       salary: 100
-	 *   }
-	 * };
-	 * const query = {
-	 *   commits: {
-	 *       $gt: 25
-	 *   }
-	 * };
-	 * const options = {
-	 *   returnUpdates: true
-	 * };
-	 * // returns updated documents
-	 * collection.update(query, update, options);
-	 * </code></pre>
+	 * 	Update multiple documents
+	 * 	-------------------
+	 * 	<pre><code>const update = {
+	 * 	$inc: {
+	 * 	salary: 100
+	 * 	}
+	 * 	};
+	 * 	const query = {
+	 * 	commits: {
+	 * 	$gt: 25
+	 * 	}
+	 * 	};
+	 * 	const options = {
+	 * 	returnUpdates: true
+	 * 	};
+	 * 	// returns updated documents
+	 * 	collection.update(query, update, options);
+	 * 	</code></pre>
 	 *
-	 * Reindex renamed property
-	 * -------------------
-	 * <pre><code>const update = {
-	 *    $rename: {
-	 *        oldIndexName: newName
-	 *    }
-	 * };
-	 * // will de-index renamed index property
-	 * collection.update('unique-id', update);
+	 * 	Reindex renamed property
+	 * 	-------------------
+	 * 	<pre><code>const update = {
+	 * 	$rename: {
+	 * 	oldIndexName: newName
+	 * 	}
+	 * 	};
+	 * 	// will de-index renamed index property
+	 * 	collection.update('unique-id', update);
 	 *
-	 * const bringBackIndex = {
-	 *   $unset: {
-	 *       newName: ''
-	 *   },
-	 *   $set: {
-	 *       oldIndexName: 'new-value'
-	 *   }
-	 * };
-	 * collection.update('unique-id', bringBackIndex);
-	 * </code></pre>
+	 * 	const bringBackIndex = {
+	 * 	$unset: {
+	 * 	newName: ''
+	 * 	},
+	 * 	$set: {
+	 * 	oldIndexName: 'new-value'
+	 * 	}
+	 * 	};
+	 * 	collection.update('unique-id', bringBackIndex);
+	 * 	</code></pre>
 	 */
-	public update(query: Query<Document>, update: ObjMap, options?: Partial<UpdateOptions<Document>>): Array<Document> {
+	public update(query: Query<Document>, update: ObjMap, options?: Partial<UpdateOptions<Document>>): Document[] {
+		// oxlint-disable-next-line no-array-method-this-argument
 		const matches = this.find(query, options);
 
-		let original: Optional<Array<Document>>;
+		let original: Optional<Array<Document>> = undefined;
 		if (!(options && options.returnUpdated)) {
 			original = Processor.clone(matches);
 		}
@@ -305,58 +299,58 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	/**
-	 * Removes documents that match the `query`.
-	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.DELETED} which
-	 * contains the deleted documents.
+	 * Removes documents that match the `query`. Emits {@link DocumentNotification} with operation
+	 * {@link DocumentOperation.DELETED} which contains the deleted documents.
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * Delete document by id
-	 * -------------------
-	 * <pre><code>collection.delete('unique-id');</code></pre>
+	 * 	Delete document by id
+	 * 	-------------------
+	 * 	<pre><code>collection.delete('unique-id');</code></pre>
 	 *
-	 * Delete multiple documents
-	 * -------------------
-	 * <pre><code>// removes all documents having `fullName` equal to 'John'
-	 * const query = {
-	 *    fullName: 'John'
-	 * };
-	 * collection.delete(query);
-	 * </code></pre>
+	 * 	Delete multiple documents
+	 * 	-------------------
+	 * 	<pre><code>// removes all documents having `fullName` equal to 'John'
+	 * 	const query = {
+	 * 	fullName: 'John'
+	 * 	};
+	 * 	collection.delete(query);
+	 * 	</code></pre>
 	 *
-	 * @returns     Deleted documents.
+	 * @returns Deleted documents.
 	 */
-	public delete(query: Query<Document>, options?: Partial<DeleteOptions<Document>>): Array<Document> {
+	public delete(query: Query<Document>, options?: Partial<DeleteOptions<Document>>): Document[] {
 		return this.findAndDelete(query, options);
 	}
 
 	/**
 	 * Get the number of documents in the {@link Collection}.
 	 *
-	 * @returns		Total number of documents.
+	 * @returns Total number of documents.
 	 */
 	public get count(): number {
 		return this.storage.size;
 	}
 
 	/**
-	 * Clear the {@link Collection} by removing all documents. <br>
-	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.CLEARED} and documents `null`. <br>
-	 * After clearing you can add new documents. <br>
+	 * Clear the {@link Collection} by removing all documents. <br> Emits {@link DocumentNotification}
+	 * with operation {@link DocumentOperation.CLEARED} and documents `null`. <br> After clearing you
+	 * can add new documents. <br>
 	 */
 	public clear(): void {
 		this.storage.clear();
 		this.notifier.sink.next({
 			operation: DocumentOperation.CLEARED,
-			// @ts-ignore They will be assigned later (maybe, I don't know for sure)
+			// @ts-expect-error They will be assigned later (maybe, I don't know for sure) sure)
 			documents: null
 		});
 	}
 
 	/**
-	 * Clear the {@link Collection} by removing all documents. <br>
-	 * Emits {@link DocumentNotification} with operation {@link DocumentOperation.CLEARED} and documents `null`. <br>
-	 * After dropping, collection becomes non-reactive, and no more {@link DocumentNotification} will be emitted.
+	 * Clear the {@link Collection} by removing all documents. <br> Emits {@link DocumentNotification}
+	 * with operation {@link DocumentOperation.CLEARED} and documents `null`. <br> After dropping,
+	 * collection becomes non-reactive, and no more {@link DocumentNotification} will be emitted.
 	 * Therefore it's recommended to not reuse {@link Collection} object after this operation.
 	 */
 	public drop(): void {
@@ -367,15 +361,15 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 
 	/**
-	 * Maps {@link Collection} documents. <br>
-	 * If you need to map only a subset of documents, you can specify an index that needs to be mapped by using `options` argument.
+	 * Maps {@link Collection} documents. <br> If you need to map only a subset of documents, you can
+	 * specify an index that needs to be mapped by using `options` argument.
 	 *
-	 * @param mapper	Mapping function.
-	 * @param options	Options which control set of documents that needs to be mapped.
+	 * @param   mapper  Mapping function.
+	 * @param   options Options which control set of documents that needs to be mapped.
 	 *
-	 * @returns		Mapped documents.
+	 * @returns         Mapped documents.
 	 */
-	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, options?: Partial<IndexOptions<Document>>): Array<MappedDocument> {
+	public map<MappedDocument>(mapper: Mapper<Document, MappedDocument>, options?: Partial<IndexOptions<Document>>): MappedDocument[] {
 		if (options == null || options.index == null) {
 			return this.storage.map(mapper);
 		}
@@ -385,7 +379,7 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	/**
 	 * Watch the collection and receive {@link DocumentNotification} when something changes.
 	 *
-	 * @returns	Subscribable for subscribing to notifications.
+	 * @returns Subscribable for subscribing to notifications.
 	 */
 	public watch(): Subscribable<DocumentNotification<Document>> {
 		return this.notifier.source$;
@@ -394,19 +388,19 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	/**
 	 * Create indexes for document keys.
 	 *
-	 * @param keys	Keys to be indexed.
+	 * @param keys Keys to be indexed.
 	 */
-	public createIndexes(...keys: Array<IndexedKey<Document>>): void {
+	public createIndexes(...keys: IndexedKey<Document>[]): void {
 		this.storage.createIndexes(keys);
 	}
 
 	/**
 	 * Create index for property only if is not indexed already.
 	 *
-	 * @param key	Key to be indexed.
+	 * @param   key Key to be indexed.
 	 *
-	 * @returns		Whether index was created or not.
-	 * 				Returning `false` means index was present already.
+	 * @returns     Whether index was created or not. Returning `false` means index was present
+	 *   already.
 	 */
 	public createIndexIfMissing(key: IndexedKey<Document>): boolean {
 		if (!this.storage.containsIndex(key)) {
@@ -419,10 +413,10 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	/**
 	 * Remove indexes associated with `keys`.
 	 *
-	 * @param keys	Name of properties, associated indexes of which needs to be removed.
+	 * @param keys Name of properties, associated indexes of which needs to be removed.
 	 */
-	public dropIndexes(...keys: Array<IndexedKey<Document>>): void {
-		if (!keys.length) {
+	public dropIndexes(...keys: IndexedKey<Document>[]): void {
+		if (keys.length === 0) {
 			this.storage.dropIndexes();
 			return;
 		}
@@ -432,19 +426,18 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		}
 	}
 
-	/**
-	 * Iterate over {@link Collection} documents.
-	 */
+	/** Iterate over {@link Collection} documents. */
 	[Symbol.iterator](): Cursor<Document> {
 		return this.storage[Symbol.iterator]();
 	}
 
-	private findAndDelete(query: Query<Document>, options?: Partial<FindOptions<Document>>): Array<Document> {
+	private findAndDelete(query: Query<Document>, options?: Partial<FindOptions<Document>>): Document[] {
+		// oxlint-disable-next-line no-array-method-this-argument
 		const matches = this.find(query, options);
 
-		if (matches.length) {
-			for (let i = 0; i < matches.length; i++) {
-				this.storage.remove(PK_INDEX_NAME, matches[i][PK_INDEX_NAME]);
+		if (matches.length > 0) {
+			for (const match of matches) {
+				this.storage.remove(PK_INDEX_NAME, match[PK_INDEX_NAME]);
 			}
 
 			this.notifier.sink.next({
@@ -456,9 +449,10 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 		return matches;
 	}
 
-	private static validateDocuments<DocumentType>(validator: Ajv, documents: ReadonlyArray<DocumentType>): void | never {
+	private static validateDocuments<DocumentType>(validator: AjvType, documents: readonly DocumentType[]): void | never {
 		for (const document of documents) {
 			if (!validator.validate(Collection.constructor.name, document)) {
+				// @ts-expect-error-error
 				AjvLocalizeEn(validator.errors as null); // dumb ajv typings
 				throw createException(ErrorCodes.DOCUMENT_NOT_VALID_AGAINST_JSON_SCHEMA, validator.errorsText(validator.errors, { separator: '\n' }), document);
 			}
@@ -466,4 +460,4 @@ class Collection<Document extends DocumentContract<Document>> implements Iterabl
 	}
 }
 
-export { Collection, CollectionOptions, DocumentOriginality, DocumentOperation, DocumentNotification };
+export { Collection, type CollectionOptions, DocumentOriginality, DocumentOperation, type DocumentNotification };

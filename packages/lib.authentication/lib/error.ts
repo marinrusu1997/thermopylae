@@ -1,7 +1,7 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
 	ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
 	ACCOUNT_WITH_DUPLICATED_FIELDS = 'ACCOUNT_WITH_DUPLICATED_FIELDS',
@@ -18,6 +18,7 @@ const enum ErrorCodes {
 	INVALID_AUTHENTICATION_STEP_OUTPUT = 'INVALID_AUTHENTICATION_STEP_OUTPUT',
 
 	NO_TELEPHONE_NUMBER = 'NO_TELEPHONE_NUMBER',
+	NOT_FOUND = 'NOT_FOUND',
 
 	SIMILAR_PASSWORDS = 'SIMILAR_PASSWORDS',
 	WEAK_PASSWORD = 'WEAK_PASSWORD',
@@ -26,15 +27,16 @@ const enum ErrorCodes {
 
 	PWNED_PASSWORDS_API_ERROR = 'PWNED_PASSWORDS_API_ERROR',
 
+	PHONE_NUMBER_REQUIRED = 'PHONE_NUMBER_REQUIRED',
+
 	TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY = 'TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY',
+	TWO_FACTOR_AUTH_TOKEN_IS_MISSING = 'TWO_FACTOR_AUTH_TOKEN_IS_MISSING',
 
 	UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL = 'UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL'
 }
 
-/**
- * @private
- */
-function createException(code: string, message: string, data?: any): Exception {
+/** @private */
+function createException(code: string, message: string, data?: unknown): Exception {
 	return new Exception(Library.AUTHENTICATION, code, message, data);
 }
 

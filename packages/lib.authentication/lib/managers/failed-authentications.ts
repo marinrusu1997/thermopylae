@@ -1,14 +1,12 @@
 import type { PartialSome, Seconds, Threshold } from '@thermopylae/core.declarations';
-import { getCurrentTimestamp } from '../utils';
-import type { AccountModel, FailedAuthenticationModel } from '../types/models';
-import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../types/repositories';
-import type { AccountManager } from './account';
-import type { BaseContext } from '../types/contexts';
-import type { FailedAuthenticationAttemptSession } from '../types/sessions';
+import { chrono } from '@thermopylae/lib.utils';
+import type { BaseContext } from '../types/contexts.js';
+import type { AccountModel, FailedAuthenticationModel } from '../types/models.js';
+import type { FailedAuthAttemptSessionRepository, FailedAuthenticationAttemptsRepository } from '../types/repositories.js';
+import type { FailedAuthenticationAttemptSession } from '../types/sessions.js';
+import type { AccountManager } from './account.js';
 
-/**
- * @private
- */
+/** @private */
 class FailedAuthenticationsManager<Account extends AccountModel> {
 	private readonly failedAuthAttemptsAccountDisableThreshold: Threshold;
 
@@ -39,10 +37,11 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 	}
 
 	/**
-	 * @returns     Session on successful increment or `null` if session was deleted and account disabled.
+	 * @returns Session on successful increment or `null` if session was deleted and account
+	 *   disabled.
 	 */
 	public async incrementSession(account: Account, context: BaseContext): Promise<FailedAuthenticationAttemptSession | null> {
-		const currentTimestamp = getCurrentTimestamp();
+		const currentTimestamp = chrono.unix();
 
 		let failedAuthAttemptSession = await this.failedAuthAttemptSessionRepository.read(account.username);
 		if (failedAuthAttemptSession == null) {
@@ -72,7 +71,7 @@ class FailedAuthenticationsManager<Account extends AccountModel> {
 			delete (failedAuthAttemptSession as PartialSome<FailedAuthenticationAttemptSession, 'counter'>).counter;
 
 			await Promise.all([
-				await this.accountManager.disable(
+				this.accountManager.disable(
 					account,
 					currentTimestamp + this.accountDisableTimeout,
 					`Threshold of failed authentication attempts was reached (${failedAuthAttemptSession.counter} attempts).`

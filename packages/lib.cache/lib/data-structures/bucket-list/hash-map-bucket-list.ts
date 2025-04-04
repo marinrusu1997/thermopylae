@@ -1,5 +1,5 @@
-import { Processor } from '@thermopylae/core.declarations';
-import { BucketList } from './interface';
+import type { Processor } from '@thermopylae/core.declarations';
+import type { BucketList } from './interface.js';
 
 /**
  * Data structures which keeps buckets identified by bucket key into EcmaScript 6 {@link Map}.
@@ -63,12 +63,14 @@ class HashMapBucketList<BucketKey, BucketEntry> implements BucketList<BucketKey,
 		this.buckets.clear();
 	}
 
-	public dropBucket(bucketId: BucketKey, cb: Processor<BucketEntry>): void {
+	public dropBucket(bucketId: BucketKey, finalizer: Processor<BucketEntry>): void {
 		const bucket = this.buckets.get(bucketId);
 		if (bucket == null) {
 			return;
 		}
-		bucket.forEach(cb);
+		for (const item of bucket) {
+			finalizer(item);
+		}
 		this.buckets.delete(bucketId);
 	}
 }

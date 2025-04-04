@@ -1,10 +1,10 @@
-import { Consumer, Kafka, logLevel, Producer } from 'kafkajs';
-import { ObjMap } from '@thermopylae/core.declarations';
-// eslint-disable-next-line import/extensions, node/no-extraneous-import
-import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
-import { createException, ErrorCodes } from '../error';
-import { kafkaLogger, logger } from '../logger';
-import { APP_NODE_ID } from '../constants';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { json, type types } from '@thermopylae/lib.utils';
+import { type Consumer, Kafka, type Producer, logLevel } from 'kafkajs';
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config/index.js';
+import { APP_NODE_ID } from '../constants.js';
+import { ErrorCodes, createException } from '../error.js';
+import { kafkaLogger, logger } from '../logger.js';
 
 interface KafkaClientOptions {
 	clientId: string;
@@ -29,7 +29,7 @@ class KafkaClient {
 
 	private readonly topic: string;
 
-	public onMessage: OnKafkaMessageHandler<any, any> | null = null;
+	public onMessage: OnKafkaMessageHandler<types.Any, types.Any> | null = null;
 
 	public constructor(options: KafkaClientOptions) {
 		this.client = new Kafka({
@@ -55,21 +55,24 @@ class KafkaClient {
 		await this.consumer.subscribe({ topic: this.topic });
 		this.consumer
 			.run({
-				eachMessage: async (payload) => {
+				eachMessage: (payload) => {
 					try {
-						const key = payload.message.key != null ? payload.message.key.toString() : null;
-						const value = payload.message.value!.toString();
+						const key = payload.message.key == null ? null : payload.message.key.toString();
+						const value = payload.message.value?.toString() ?? '{';
 						kafkaLogger.debug(`Received message with key '${key}' and value '${value}'.`);
 
-						if (key !== APP_NODE_ID) {
-							this.onMessage!(JSON.parse(value));
+						if (key !== APP_NODE_ID && this.onMessage) {
+							this.onMessage(json.TypedJson.parse(value));
 						}
-					} catch (e) {
-						logger.error('Error occurred in Kafka eachMessage handler.', e);
+					} catch (error) {
+						logger.error('Error occurred in Kafka eachMessage handler.', error);
 					}
+
+					return Promise.resolve();
 				}
 			})
-			.catch((e) => kafkaLogger.error('Consumer run method caught exception.', e));
+			// oxlint-disable-next-line prefer-await-to-callbacks
+			.catch((error) => kafkaLogger.error('Consumer run method caught exception.', error));
 	}
 
 	public async disconnect(): Promise<void> {
@@ -87,8 +90,8 @@ class KafkaClient {
 					}
 				]
 			});
-		} catch (e) {
-			logger.error(`Failed to publish message to Kafka topic '${this.topic}'.`, e);
+		} catch (error) {
+			logger.error(`Failed to publish message to Kafka topic '${this.topic}'.`, error);
 		}
 	}
 
@@ -109,4 +112,4 @@ class KafkaClient {
 	}
 }
 
-export { KafkaClient, KafkaMessage, KafkaClientOptions, OnKafkaMessageHandler };
+export { KafkaClient, type KafkaMessage, type KafkaClientOptions, type OnKafkaMessageHandler };

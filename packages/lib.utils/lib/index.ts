@@ -1,14 +1,16 @@
-import * as array from './array';
-import * as boolean from './boolean';
-import * as chrono from './chrono';
-import * as error from './error';
-import * as fs from './fs';
-import * as http from './http';
-import * as method from './method';
-import * as number from './number';
-import * as object from './object';
-import * as string from './string';
-import * as token from './token';
-import * as totp from './totp';
+// oxlint-disable no-barrel-file
 
-export { array, boolean, chrono, error, fs, http, method, number, object, string, token, totp };
+export * as boolean from './boolean.js';
+export * as fs from './fs.js';
+export * as json from './json.js';
+export * as number from './number.js';
+export * as object from './object.js';
+export * as string from './string/index.js';
+export * as token from './token.js';
+export * as totp from './totp.js';
+export * as array from './array.js';
+export * as chrono from './chrono.js';
+export * as types from './typings/index.js';
+export * as generation from './generation.js';
+export { deepFreeze } from './deep-freeze.js';
+export * as encryption from './encryption/index.js';

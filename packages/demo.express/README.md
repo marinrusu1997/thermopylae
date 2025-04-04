@@ -16,23 +16,28 @@ npm install @thermopylae/demo.express
 ```
 
 ### Postinstall
+
 Although [farmhash](https://www.npmjs.com/package/farmhash), a dependency used by this package, has prebuilt binaries
 it would be recommended to rebuild them.
+
 ```shell
 npm rebuild --build-from-source farmhash
 ```
+
 Also, please consider to [update geoip-lite local database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
 
 ## Description
+
 This package contains an implementation of authentication service using Thermopylae framework.
 
 ## Prerequisites
 
 ### Configuration Files
+
 The following config files need to be created. <br/>
 ├─ redis <br/>
-│   ├─ [regular.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/redis.json) <br/>
-│   └─ [subscriber.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/redis.json) <br/>
+│ ├─ [regular.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/redis.json) <br/>
+│ └─ [subscriber.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/redis.json) <br/>
 └─ [app.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/app.json) <br/>
 └─ [authentication.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/auth-engine.json) <br/>
 └─ [email.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/email.json) <br/>
@@ -43,15 +48,18 @@ The following config files need to be created. <br/>
 └─ [sms.json](https://github.com/marinrusu1997/thermopylae/blob/master/packages/demo.express/lib/validation/schemes/config/sms.json) <br/>
 
 ### Environment Variables
+
 The **CONFIG_FILES_PATH** env var needs to be set with a value equal to directory absolute path
 where application config files described in previous step are located.
 
 ### Databases
+
 MySQL 8 and Redis 6 Server instances need to be started.
 Keyspace notification events need to be enabled on Redis Server.
 Apache Kafka broker needs to be started.
 
 ## Usage
+
 ```typescript
 import { bootstrap } from '@thermopylae/demo.express';
 
@@ -62,9 +70,9 @@ bootstrap();
 
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+- GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+- Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+- LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
 
 ## 📝 License
 

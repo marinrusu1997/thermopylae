@@ -1,30 +1,26 @@
-import dotprop from 'dot-prop';
-import { Mapper, ObjMap, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
-import { Index, IndexName, IndexValue, IndexRepo, Recordable, PK_INDEX_NAME } from './typings';
-import { createException, ErrorCodes } from './error';
+import type { Mapper, ObjMap, Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { getProperty, setProperty } from 'dot-prop';
+import isFunction from 'lodash.isfunction';
+import { ErrorCodes, createException } from './error.js';
+import { type Index, type IndexName, type IndexRepo, type IndexValue, PK_INDEX_NAME, type Recordable } from './typings.js';
 
-/**
- * Options used at {@link IndexedStore} construction.
- */
+/** Options used at {@link IndexedStore} construction. */
 interface IndexedStoreOptions<RecordType> {
-	/**
-	 * Name of the properties that need to be indexed.
-	 */
-	indexes?: ReadonlyArray<IndexName<RecordType>>;
+	/** Name of the properties that need to be indexed. */
+	indexes?: readonly IndexName<RecordType>[];
 }
 
 /**
- * {@link IndexedStore} represents a storage of records that are indexed over multiple properties. <br>
- * Records ar stored in a multilevel map, with the following structure: <br>
- * <pre><code>
- *     PrimaryIndexName 	--> IndexValue --> [document]
- *     					--> IndexValue --> [document]
- *     SecondaryIndexName   --> IndexValue --> [document, document]
- * </code></pre>
- * Indexed properties are allowed to be nullable (i.e. have `null` or `undefined` as their values). <br>
- * This is a low-level class and exposes raw primitives. It needs to be used by higher level abstractions.
+ * {@link IndexedStore} represents a storage of records that are indexed over multiple properties.
+ * <br> Records ar stored in a multilevel map, with the following structure: <br><pre><code>
+ * PrimaryIndexName --> IndexValue --> [document] --> IndexValue --> [document] SecondaryIndexName
+ * --> IndexValue --> [document, document] </code></pre>
  *
- * @template IndexedRecord	Type of the indexed record.
+ * Indexed properties are allowed to be nullable (i.e. have `null` or `undefined` as their values).
+ * <br> This is a low-level class and exposes raw primitives. It needs to be used by higher level
+ * abstractions.
+ *
+ * @template IndexedRecord Type of the indexed record.
  */
 class IndexedStore<IndexedRecord extends Recordable> implements Iterable<IndexedRecord> {
 	private readonly indexRepo: IndexRepo<IndexedRecord>;
@@ -32,59 +28,59 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	/**
 	 * {@link IndexedStore} constructor.
 	 *
-	 * @param options	Construction options. <br>
-	 *     				When {@link IndexedStoreOptions.indexes} is given, will create them.
+	 * @param options Construction options. <br> When {@link IndexedStoreOptions.indexes} is given,
+	 *   will create them.
 	 */
 	public constructor(options?: IndexedStoreOptions<IndexedRecord>) {
 		this.indexRepo = new Map<IndexName<IndexedRecord>, Index<IndexedRecord>>();
 
-		const indexes = ((options && options.indexes) || []).concat(PK_INDEX_NAME);
+		const indexes = [...(options?.indexes ?? []), PK_INDEX_NAME];
 		IndexedStore.defineIndexes(this.indexRepo, indexes);
 	}
 
 	/**
-	 * Inserts records into storage. <br>
-	 * After insertion is completed, will index records by properties that are indexable.
+	 * Inserts records into storage. <br> After insertion is completed, will index records by
+	 * properties that are indexable.
 	 *
-	 * @param records	List of documents to be inserted.
+	 * @param records List of documents to be inserted.
 	 */
-	public insert(records: Array<IndexedRecord>): void {
+	public insert(records: readonly IndexedRecord[]): void {
 		const { indexes } = this;
 
 		for (const record of records) {
-			if (this.indexRepo.get(PK_INDEX_NAME)!.has(record.id)) {
+			if (this.indexRepo.get(PK_INDEX_NAME)?.has(record.id)) {
 				throw createException(ErrorCodes.RECORD_EXISTS, `Record with primary key '${record.id}' has been added already.`);
 			}
 
 			IndexedStore.assertRecordIndexes(record, indexes);
 
 			for (const [indexName, index] of this.indexRepo) {
-				IndexedStore.indexRecordBy(record, dotprop.get(record, indexName), index);
+				IndexedStore.indexRecordBy(record, getProperty(record, indexName), index);
 			}
 		}
 	}
 
 	/**
-	 * Read documents under `indexName` having it's value equal to `indexValue`. <br>
-	 * Reference to internal index structure is returned, and therefore the caller should not alter it.
+	 * Read documents under `indexName` having it's value equal to `indexValue`. <br> Reference to
+	 * internal index structure is returned, and therefore the caller should not alter it.
 	 *
-	 * @param indexName		Name of the index.
-	 * @param indexValue	Value of that index.
+	 * @param   indexName  Name of the index.
+	 * @param   indexValue Value of that index.
 	 *
-	 * @returns				List of documents having `indexName` equal to `indexValue`.
+	 * @returns            List of documents having `indexName` equal to `indexValue`.
 	 */
-	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): Array<IndexedRecord> {
+	public read(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): IndexedRecord[] {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
 		return index.get(IndexedStore.assertNonNullableIndexValue(indexName, indexValue)) || [];
 	}
 
 	/**
-	 * Read all documents stored in the `indexName`. <br>
-	 * Reference to internal index structure is returned, and therefore the caller should not alter it.
+	 * Read all documents stored in the `indexName`. <br> Reference to internal index structure is
+	 * returned, and therefore the caller should not alter it.
 	 *
-	 * @param indexName		Name of the index.
+	 * @param   indexName Name of the index.
 	 *
-	 * @returns				The internal index for `indexName`.
+	 * @returns           The internal index for `indexName`.
 	 */
 	public readIndex(indexName: IndexName<IndexedRecord>): Index<IndexedRecord> {
 		return IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -93,8 +89,8 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	/**
 	 * Check whether `indexName` contains records indexed with `indexValue`.
 	 *
-	 * @param indexName		Name of the index.
-	 * @param indexValue	Value of that index.
+	 * @param indexName  Name of the index.
+	 * @param indexValue Value of that index.
 	 */
 	public contains(indexName: IndexName<IndexedRecord>, indexValue: IndexValue): boolean {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -104,48 +100,45 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	/**
 	 * Check whether index with `indexName` exists.
 	 *
-	 * @param indexName		Name of the index.
+	 * @param indexName Name of the index.
 	 */
 	public containsIndex(indexName: IndexName<IndexedRecord>): boolean {
 		return this.indexRepo.has(indexName);
 	}
 
 	/**
-	 * Remove from storage record that match search criteria. <br>
-	 * Search criteria is expressed as name of the index, it's value, and an optional predicate for filtering records from that index. <br>
-	 * Notice that only the first record that matched the predicate will be removed. <br>
+	 * Remove from storage record that match search criteria. <br> Search criteria is expressed as
+	 * name of the index, it's value, and an optional predicate for filtering records from that
+	 * index. <br> Notice that only the first record that matched the predicate will be removed.
+	 * <br>
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * Delete record by primary index
-	 * -------------------
-	 * <pre><code>storage.remove('id', 'value-of-id');</code></pre>
+	 * 	Delete record by primary index
+	 * 	-------------------
+	 * 	<pre><code>storage.remove('id', 'value-of-id');</code></pre>
 	 *
-	 * Delete record by secondary index
-	 * -------------------
-	 * <pre><code>// removes record having `fullName` equal to 'John', and `age` equal to 18
-	 * storage.remove('fullName', 'John', record => record.age === 18);
-	 * </code></pre>
+	 * 	Delete record by secondary index
+	 * 	-------------------
+	 * 	<pre><code>// removes record having `fullName` equal to 'John', and `age` equal to 18
+	 * 	storage.remove('fullName', 'John', record => record.age === 18);
+	 * 	</code></pre>
 	 *
-	 * @param indexName		Name of the index.
-	 * @param indexValue	Value of that index.
-	 * @param predicate		Predicate used for record filtering. <br>
-	 * 						When `indexName` is the primary one, this parameter is optional.
+	 * @param   indexName  Name of the index.
+	 * @param   indexValue Value of that index.
+	 * @param   predicate  Predicate used for record filtering. <br> When `indexName` is the primary
+	 *   one, this parameter is optional.
 	 *
-	 * @returns				Removed document, if found.
+	 * @returns            Removed document, if found.
 	 */
 	public remove(indexName: IndexName<IndexedRecord>, indexValue: IndexValue, predicate?: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
 		indexValue = IndexedStore.assertNonNullableIndexValue(indexName, indexValue);
 
-		if (indexName !== PK_INDEX_NAME) {
-			if (predicate == null) {
-				throw createException(
-					ErrorCodes.PREDICATE_REQUIRED,
-					`Predicate is required when removing from index '${indexName}', which is a non primary one.`
-				);
-			}
-		} else {
+		if (indexName === PK_INDEX_NAME) {
 			predicate = (record: IndexedRecord) => record[PK_INDEX_NAME] === indexValue;
+		} else if (predicate == null) {
+			throw createException(ErrorCodes.PREDICATE_REQUIRED, `Predicate is required when removing from index '${indexName}', which is a non primary one.`);
 		}
 
 		const records = this.getIndexRecords(indexName, indexValue);
@@ -160,59 +153,60 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 
 		for (const [registryIndexName, registryIndex] of this.indexRepo) {
-			IndexedStore.removeIndexedRecordBy(record, dotprop.get(record, registryIndexName), registryIndex);
+			IndexedStore.removeIndexedRecordBy(record, getProperty(record, registryIndexName), registryIndex);
 		}
 
-		this.indexRepo.get(PK_INDEX_NAME)!.delete(record[PK_INDEX_NAME]);
+		this.indexRepo.get(PK_INDEX_NAME)?.delete(record[PK_INDEX_NAME]);
 
 		return record;
 	}
 
 	/**
-	 * Reindex document after it's `indexName` property has been changed. <br>
-	 * This method will also set the new value of `indexName` to record. <br>
-	 * Caller needs to call this method everytime value for one of the indexed properties changes. <br>
-	 * Notice that primary key should remain immutable, it's change is forbidden. <br/>
+	 * Reindex document after it's `indexName` property has been changed. <br> This method will also
+	 * set the new value of `indexName` to record. <br> Caller needs to call this method everytime
+	 * value for one of the indexed properties changes. <br> Notice that primary key should remain
+	 * immutable, it's change is forbidden. <br/>
 	 *
-	 * @example <br>
+	 * @example
+	 * 	<br>
 	 *
-	 * **Index record that wasn't indexed before**
-	 * ------------------------------------------------
-	 * <pre><code>// insert a record that wasn't indexed by 'birthYear', because it was null
-	 * const record = { id: 1, birthYear: null };
-	 * storage.insert([record]);
+	 * 	**Index record that wasn't indexed before**
+	 * 	------------------------------------------------
+	 * 	<pre><code>// insert a record that wasn't indexed by 'birthYear', because it was null
+	 * 	const record = { id: 1, birthYear: null };
+	 * 	storage.insert([record]);
 	 *
-	 * // (re)index it by birth year
-	 * storage.reindex('birthYear', record.birthYear, 1997, record.id);
-	 * console.log(record.birthYear) // 1997
-	 * </code></pre>
+	 * 	// (re)index it by birth year
+	 * 	storage.reindex('birthYear', record.birthYear, 1997, record.id);
+	 * 	console.log(record.birthYear) // 1997
+	 * 	</code></pre>
 	 *
-	 * **Reindex record that was indexed before**
-	 * ___________________
-	 * <pre><code>// insert a record that is indexed by 'birthYear'
-	 * const record = { id: 1, birthYear: 2000 };
-	 * storage.insert([record]);
+	 * 	**Reindex record that was indexed before**
+	 * 	___________________
+	 * 	<pre><code>// insert a record that is indexed by 'birthYear'
+	 * 	const record = { id: 1, birthYear: 2000 };
+	 * 	storage.insert([record]);
 	 *
-	 * // reindex it by birth year
-	 * storage.reindex('birthYear', record.birthYear, 1997, record.id);
-	 * console.log(record.birthYear) // 1997
-	 * </code></pre>
+	 * 	// reindex it by birth year
+	 * 	storage.reindex('birthYear', record.birthYear, 1997, record.id);
+	 * 	console.log(record.birthYear) // 1997
+	 * 	</code></pre>
 	 *
-	 * **De-index record that was indexed before**
-	 * ___________________
-	 * <pre><code>// insert a record that is indexed by 'birthYear'
-	 * const record = { id: 1, birthYear: 2000 };
-	 * storage.insert([record]);
+	 * 	**De-index record that was indexed before**
+	 * 	___________________
+	 * 	<pre><code>// insert a record that is indexed by 'birthYear'
+	 * 	const record = { id: 1, birthYear: 2000 };
+	 * 	storage.insert([record]);
 	 *
-	 * // de-index it by birth year
-	 * storage.reindex('birthYear', record.birthYear, null, record.id);
-	 * console.log(record.birthYear) // null
-	 * </code></pre>
+	 * 	// de-index it by birth year
+	 * 	storage.reindex('birthYear', record.birthYear, null, record.id);
+	 * 	console.log(record.birthYear) // null
+	 * 	</code></pre>
 	 *
-	 * @param indexName		Name of the index.
-	 * @param oldValue		Old value of the index. It is used for record retrieval.
-	 * @param newValue		The updated value of the index. Used for actual reindexing.
-	 * @param matcher		Predicate that matches record, indexed property of which has been changed.
+	 * @param indexName Name of the index.
+	 * @param oldValue  Old value of the index. It is used for record retrieval.
+	 * @param newValue  The updated value of the index. Used for actual reindexing.
+	 * @param matcher   Predicate that matches record, indexed property of which has been changed.
 	 */
 	public reindex(indexName: IndexName<IndexedRecord>, oldValue: IndexValue, newValue: IndexValue, matcher: UnaryPredicate<IndexedRecord> | IndexValue): void {
 		if (indexName === PK_INDEX_NAME) {
@@ -220,14 +214,14 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 
 		if (oldValue === newValue) {
-			throw createException(ErrorCodes.REINDEXING_SAME_VALUE, `New and old values for index '${indexName}' are the same: ${JSON.stringify(oldValue)}.`);
+			return;
 		}
 
 		if (oldValue == null) {
 			if (newValue != null) {
 				// creation
 
-				if (matcher instanceof Function) {
+				if (isFunction(matcher)) {
 					throw createException(
 						ErrorCodes.PRIMARY_KEY_VALUE_REQUIRED,
 						`Matcher needs to be primary key value when indexing record that was not indexed before. Context: index '${indexName}', new value '${JSON.stringify(
@@ -243,16 +237,15 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 					throw createException(ErrorCodes.RECORD_NOT_FOUND, `No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
 				}
 
-				dotprop.set(record[0], indexName, IndexedStore.assertIndexValue(indexName, newValue, record[0]));
+				setProperty(record[0], indexName, IndexedStore.assertIndexValue(indexName, newValue, record[0]));
 
 				const storageIndex = this.readIndex(indexName);
 				IndexedStore.indexRecordBy(record[0], newValue, storageIndex);
 			}
 		} else {
 			// removal
-
 			const records = this.read(indexName, oldValue);
-			const predicate = matcher instanceof Function ? matcher : (record: IndexedRecord) => record[PK_INDEX_NAME] === matcher;
+			const predicate = isFunction(matcher) ? matcher : (record: IndexedRecord) => record[PK_INDEX_NAME] === matcher;
 
 			const removed = IndexedStore.removeRecord(records, predicate);
 			if (removed == null) {
@@ -262,22 +255,21 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 				);
 			}
 
-			if (newValue != null) {
+			if (newValue == null) {
+				setProperty(removed, indexName, newValue);
+			} else {
 				// update
-
-				dotprop.set(removed, indexName, IndexedStore.assertIndexValue(indexName, newValue, removed));
+				setProperty(removed, indexName, IndexedStore.assertIndexValue(indexName, newValue, removed));
 
 				const storageIndex = this.readIndex(indexName);
 				IndexedStore.indexRecordBy(removed, newValue, storageIndex);
-			} else {
-				dotprop.set(removed, indexName, newValue);
 			}
 		}
 	}
 
 	/**
-	 * Removes all records from storage and leaves it empty. <br>
-	 * Notice that indexes are not removed, only their associated records are deleted.
+	 * Removes all records from storage and leaves it empty. <br> Notice that indexes are not
+	 * removed, only their associated records are deleted.
 	 */
 	public clear(): void {
 		for (const index of this.indexRepo.values()) {
@@ -286,21 +278,22 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	/**
-	 * Create new indexes for a set of record properties. <br>
-	 * When storage already contains records, they will be indexed for newly defined indexes.
+	 * Create new indexes for a set of record properties. <br> When storage already contains
+	 * records, they will be indexed for newly defined indexes.
 	 *
-	 * @param newIndexProperties	Name of properties that need to be indexed.
+	 * @param newIndexProperties Name of properties that need to be indexed.
 	 */
-	public createIndexes(newIndexProperties: Array<IndexName<IndexedRecord>>): void {
+	public createIndexes(newIndexProperties: readonly IndexName<IndexedRecord>[]): void {
 		IndexedStore.defineIndexes(this.indexRepo, newIndexProperties);
 
-		let newIndex: Index<IndexedRecord>;
-		let indexValue: IndexValue;
-
 		for (const newIndexProperty of newIndexProperties) {
-			newIndex = this.indexRepo.get(newIndexProperty)!;
+			const newIndex = this.indexRepo.get(newIndexProperty);
+			if (!newIndex) {
+				throw new Error(`No index with name '${newIndexProperty}' exists.`);
+			}
+
 			for (const record of this) {
-				indexValue = dotprop.get(record, newIndexProperty);
+				const indexValue = getProperty(record, newIndexProperty);
 
 				IndexedStore.assertIndexValue(newIndexProperty, indexValue, record);
 				IndexedStore.indexRecordBy(record, indexValue, newIndex);
@@ -309,12 +302,12 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	/**
-	 * Remove index from storage. <br>
-	 * Notice that records are not removed, and can be found by another existing indexes.
+	 * Remove index from storage. <br> Notice that records are not removed, and can be found by
+	 * another existing indexes.
 	 *
-	 * @param indexName		Name of the index.
+	 * @param   indexName Name of the index.
 	 *
-	 * @returns		Whether index was removed or not.
+	 * @returns           Whether index was removed or not.
 	 */
 	public dropIndex(indexName: IndexName<IndexedRecord>): boolean {
 		if (indexName === PK_INDEX_NAME) {
@@ -323,9 +316,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return this.indexRepo.delete(indexName);
 	}
 
-	/**
-	 * Remove all indexes, except the primary one.
-	 */
+	/** Remove all indexes, except the primary one. */
 	public dropIndexes(): void {
 		for (const [indexName, index] of this.indexRepo) {
 			if (indexName !== PK_INDEX_NAME) {
@@ -336,16 +327,16 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	/**
-	 * Map a set of records. <br>
-	 * When index related params are not specified, will map all of the records.
+	 * Map a set of records. <br> When index related params are not specified, will map all of the
+	 * records.
 	 *
-	 * @param mapper		Mapping function.
-	 * @param onIndex		Index from were documents need to be retrieved.
-	 * @param withValue		Value of that index.
+	 * @param   mapper    Mapping function.
+	 * @param   onIndex   Index from were documents need to be retrieved.
+	 * @param   withValue Value of that index.
 	 *
-	 * @returns		List of mapped records.
+	 * @returns           List of mapped records.
 	 */
-	public map<MappedType>(mapper: Mapper<IndexedRecord, MappedType>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Array<MappedType> {
+	public map<MappedType>(mapper: Mapper<IndexedRecord, MappedType>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): MappedType[] {
 		if (onIndex == null) {
 			onIndex = PK_INDEX_NAME;
 		}
@@ -353,33 +344,28 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			let records: Optional<Array<IndexedRecord>>;
-			if ((records = index.get(withValue)) != null) {
-				return records.map(mapper);
-			}
-
-			return [];
+			return index.get(withValue)?.map(mapper) ?? [];
 		}
 
-		let mappings = new Array<MappedType>();
+		const mappings = new Array<MappedType>();
 		for (const indexRecords of index.values()) {
-			mappings = mappings.concat(indexRecords.map(mapper));
+			mappings.push(...indexRecords.map(mapper));
 		}
 
 		return mappings;
 	}
 
 	/**
-	 * Filter a set of documents. <br>
-	 * When index related params are not specified, will apply `predicate` over all records.
+	 * Filter a set of documents. <br> When index related params are not specified, will apply
+	 * `predicate` over all records.
 	 *
-	 * @param predicate		Predicate function.
-	 * @param onIndex		Index from were documents need to be retrieved.
-	 * @param withValue		Value of that index.
+	 * @param   predicate Predicate function.
+	 * @param   onIndex   Index from were documents need to be retrieved.
+	 * @param   withValue Value of that index.
 	 *
-	 * @returns		List of filtered records.
+	 * @returns           List of filtered records.
 	 */
-	public filter(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Array<IndexedRecord> {
+	public filter(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): IndexedRecord[] {
 		if (onIndex == null) {
 			onIndex = PK_INDEX_NAME;
 		}
@@ -387,12 +373,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			let records: Optional<Array<IndexedRecord>>;
-			if ((records = index.get(withValue)) != null) {
-				return records.filter(predicate);
-			}
-
-			return [];
+			return index.get(withValue)?.filter(predicate) ?? [];
 		}
 
 		const filtered = new Array<IndexedRecord>();
@@ -408,14 +389,14 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 
 	/**
-	 * Find a single record from storage. <br>
-	 * When index related params are not specified, will apply `predicate` over all records.
+	 * Find a single record from storage. <br> When index related params are not specified, will
+	 * apply `predicate` over all records.
 	 *
-	 * @param predicate		Predicate function.
-	 * @param onIndex		Index from were documents need to be retrieved.
-	 * @param withValue		Value of that index.
+	 * @param   predicate Predicate function.
+	 * @param   onIndex   Index from were documents need to be retrieved.
+	 * @param   withValue Value of that index.
 	 *
-	 * @returns		Record matching search criteria, if found.
+	 * @returns           Record matching search criteria, if found.
 	 */
 	public find(predicate: UnaryPredicate<IndexedRecord>, onIndex?: IndexName<IndexedRecord>, withValue?: IndexValue): Optional<IndexedRecord> {
 		if (onIndex == null) {
@@ -425,12 +406,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		const index = IndexedStore.assertIndex(onIndex, this.indexRepo.get(onIndex));
 
 		if (withValue != null) {
-			let records: Optional<Array<IndexedRecord>>;
-			if ((records = index.get(withValue)) != null) {
-				return records.find(predicate);
-			}
-
-			return undefined;
+			return index.get(withValue)?.find(predicate);
 		}
 
 		for (const indexRecords of index.values()) {
@@ -447,7 +423,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	/**
 	 * Get number of records stored under `indexName`.
 	 *
-	 * @param indexName		Name of the index.
+	 * @param indexName Name of the index.
 	 */
 	public getIndexRecordsCount(indexName: IndexName<IndexedRecord>): number {
 		const index = IndexedStore.assertIndex(indexName, this.indexRepo.get(indexName));
@@ -460,40 +436,35 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return counter;
 	}
 
-	/**
-	 * Get number of records present in the storage.
-	 */
+	/** Get number of records present in the storage. */
 	public get size(): number {
 		return IndexedStore.assertIndex(PK_INDEX_NAME, this.indexRepo.get(PK_INDEX_NAME)).size;
 	}
 
-	/**
-	 * Get names of indexed properties.
-	 */
-	public get indexes(): Array<IndexName<IndexedRecord>> {
-		return Array.from(this.indexRepo.keys());
+	/** Get names of indexed properties. */
+	public get indexes(): IndexName<IndexedRecord>[] {
+		return [...this.indexRepo.keys()];
 	}
 
 	/**
 	 * Get a view of all records from storage.
 	 *
-	 * @returns		Array of all records. Array can be modified by client, as it is created on each method call.
+	 * @returns Array of all records. Array can be modified by client, as it is created on each
+	 *   method call.
 	 */
-	public get values(): Array<IndexedRecord> {
+	public get values(): IndexedRecord[] {
 		const primaryIndex = IndexedStore.assertIndex(PK_INDEX_NAME, this.indexRepo.get(PK_INDEX_NAME));
 		const records = new Array(primaryIndex.size);
 
-		let i = 0;
+		let _i = 0;
 		for (const record of primaryIndex.values()) {
-			[records[i++]] = record;
+			[records[_i++]] = record;
 		}
 
 		return records;
 	}
 
-	/**
-	 * Iterate over records from storage.
-	 */
+	/** Iterate over records from storage. */
 	[Symbol.iterator](): Iterator<IndexedRecord> {
 		const primaryIndex = IndexedStore.assertIndex(PK_INDEX_NAME, this.indexRepo.get(PK_INDEX_NAME));
 		const iterator = primaryIndex[Symbol.iterator]();
@@ -502,7 +473,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 			next(): IteratorResult<IndexedRecord> {
 				const entry = iterator.next();
 				return {
-					done: entry.done,
+					done: entry.done as true,
 					value: entry.value && entry.value[1][0]
 				};
 			}
@@ -514,7 +485,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return index.get(indexValue);
 	}
 
-	private static defineIndexes<R>(indexes: IndexRepo<R>, indexNames: ReadonlyArray<IndexName<R>>): void {
+	private static defineIndexes<R>(indexes: IndexRepo<R>, indexNames: readonly IndexName<R>[]): void {
 		let i = indexNames.length;
 		while (i--) {
 			if (indexes.has(indexNames[i])) {
@@ -531,9 +502,9 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		return index;
 	}
 
-	private static assertRecordIndexes<R>(record: R, indexes: ReadonlyArray<IndexName<R>>): R | never {
+	private static assertRecordIndexes<R>(record: R, indexes: readonly IndexName<R>[]): R | never {
 		for (const indexName of indexes) {
-			IndexedStore.assertIndexValue(indexName, dotprop.get(record as unknown as ObjMap, indexName), record);
+			IndexedStore.assertIndexValue(indexName, getProperty(record as unknown as ObjMap, indexName), record);
 		}
 		return record;
 	}
@@ -584,7 +555,7 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 		}
 	}
 
-	private static removeRecord<IndexedRecord>(records: Array<IndexedRecord>, predicate: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
+	private static removeRecord<IndexedRecord>(records: IndexedRecord[], predicate: UnaryPredicate<IndexedRecord>): Optional<IndexedRecord> {
 		const recordPosition = records.findIndex(predicate);
 		if (recordPosition === -1) {
 			return undefined;
@@ -615,4 +586,4 @@ class IndexedStore<IndexedRecord extends Recordable> implements Iterable<Indexed
 	}
 }
 
-export { IndexedStore, IndexedStoreOptions };
+export { IndexedStore, type IndexedStoreOptions };

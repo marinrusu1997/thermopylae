@@ -1,49 +1,47 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, afterEach, before } from 'mocha';
 import argon2 from 'argon2';
-import { createHash, privateDecrypt, publicEncrypt, randomBytes } from 'crypto';
+import { createHash, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import {
-	AccountWithTotpSecret,
+	type AccountWithTotpSecret,
 	Argon2PasswordHashingAlgorithm,
-	AuthenticationEngineOptions,
+	type AuthenticationEngineOptions,
 	PasswordLengthValidator,
 	PasswordStrengthValidator,
 	PwnedPasswordValidator,
 	TotpTwoFactorAuthStrategy,
-	TotpTwoFactorAuthStrategyOptions,
-	UserInputsProvider
-} from '../../lib';
-import { AccountRepositoryMongo } from './repositories/mongo/account';
-import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth';
-import { FailedAuthenticationAttemptsRepositoryMongo } from './repositories/mongo/failed-auth';
-import { ActivateAccountSessionMemoryRepository } from './repositories/memory/activate-account-session';
-import { AuthenticationSessionMemoryRepository } from './repositories/memory/auth-session';
-import { FailedAuthAttemptSessionMemoryRepository } from './repositories/memory/failed-auth-session';
-import { ForgotPasswordSessionMemoryRepository } from './repositories/memory/forgot-password-session';
-import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from './mongodb';
-import { MemoryCache } from './memory-cache';
-import { EmailSenderInstance } from './senders/email';
-import { SmsSenderInstance } from './senders/sms';
-import { OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
-import { challengeResponseValidator, recaptchaValidator } from './validators';
-import { BcryptPasswordHashingAlgorithm } from './password/bcrypt';
+	type TotpTwoFactorAuthStrategyOptions,
+	type UserInputsProvider
+} from '../../lib/index.js';
+import { OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks.js';
+import { MemoryCache } from './memory-cache.js';
+import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from './mongodb.js';
+import { BcryptPasswordHashingAlgorithm } from './password/bcrypt.js';
+import { ActivateAccountSessionMemoryRepository } from './repositories/memory/activate-account-session.js';
+import { AuthenticationSessionMemoryRepository } from './repositories/memory/auth-session.js';
+import { FailedAuthAttemptSessionMemoryRepository } from './repositories/memory/failed-auth-session.js';
+import { ForgotPasswordSessionMemoryRepository } from './repositories/memory/forgot-password-session.js';
+import { AccountRepositoryMongo } from './repositories/mongo/account.js';
+import { FailedAuthenticationAttemptsRepositoryMongo } from './repositories/mongo/failed-auth.js';
+import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth.js';
+import { EmailSenderInstance } from './senders/email.js';
+import { SmsSenderInstance } from './senders/sms.js';
+import { challengeResponseValidator, recaptchaValidator } from './validators.js';
 
 const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	type: argon2.argon2id,
 	hashLength: 5,
 	memoryCost: 8192,
 	parallelism: 4,
-	timeCost: 2,
-	saltLength: 8
+	timeCost: 2
 });
 
-const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = {
+const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = Object.freeze({
 	serviceName: 'thermopylae',
 	totp: {
 		secretLength: 5,
 		encryption: {
 			algorithm: 'aes-256-ctr',
-			secret: createHash('sha256').update('7hiufha809273509ujhifou909i6jg').digest('base64').substr(0, 32),
+			secret: createHash('sha256').update('7hiufha809273509ujhifou909i6jg').digest('base64').slice(0, 32),
 			iv: randomBytes(16).toString('hex').slice(0, 16)
 		},
 		authenticator: {
@@ -54,8 +52,7 @@ const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = {
 			digits: 6
 		}
 	}
-};
-Object.freeze(TotpDefaultOptions);
+});
 
 const ThermopylaeUserInputsProvider: UserInputsProvider<AccountWithTotpSecret> = (account) => {
 	if (account.telephone == null) {
@@ -65,23 +62,18 @@ const ThermopylaeUserInputsProvider: UserInputsProvider<AccountWithTotpSecret> =
 	return ['thermopylae', account.username, account.email, account.telephone];
 };
 
-const PasswordLengthValidatorOptions = {
+const PasswordLengthValidatorOptions = Object.freeze({
 	minLength: 4,
-	maxLength: 4_096
-};
-Object.freeze(PasswordLengthValidatorOptions);
+	maxLength: 4096
+});
 
-const ForgotPasswordTokenEncryption = {
-	encrypt: async (pubKey: string, token: string) => {
-		return publicEncrypt(pubKey, Buffer.from(token)).toString('base64');
-	},
-	decrypt: (privateKey: string, token: string) => {
-		return privateDecrypt(privateKey, Buffer.from(token, 'base64')).toString('utf8');
-	}
-};
-Object.freeze(ForgotPasswordTokenEncryption);
+const ForgotPasswordTokenEncryption = Object.freeze({
+	// oxlint-disable-next-line require-await
+	encrypt: async (pubKey: string, token: string) => publicEncrypt(pubKey, Buffer.from(token)).toString('base64'),
+	decrypt: (privateKey: string, token: string) => privateDecrypt(privateKey, Buffer.from(token, 'base64')).toString('utf8')
+});
 
-const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = {
+const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWithTotpSecret> = Object.freeze({
 	thresholds: {
 		maxFailedAuthAttempts: 3,
 		failedAuthAttemptsRecaptcha: 2
@@ -121,7 +113,7 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 			currentAlgorithmId: 0,
 			currentAlgorithm: argon2PasswordHashingAlgorithm
 		},
-		encryption: false,
+		encryption: false as const,
 		strength: [
 			new PasswordLengthValidator(PasswordLengthValidatorOptions.minLength, PasswordLengthValidatorOptions.maxLength),
 			new PasswordStrengthValidator(ThermopylaeUserInputsProvider),
@@ -137,11 +129,15 @@ const AuthenticationEngineDefaultOptions: AuthenticationEngineOptions<AccountWit
 	smsSender: SmsSenderInstance,
 	twoFactorAuthStrategy: new TotpTwoFactorAuthStrategy<AccountWithTotpSecret>(TotpDefaultOptions),
 	tokensLength: 15
-};
-Object.freeze(AuthenticationEngineDefaultOptions);
+});
 
-// trigger automatic clean up after each test (will be done at the first import)
+// oxlint-disable-next-line require-top-level-describe
+beforeAll(connectToMongoDatabase);
+
+// oxlint-disable-next-line require-top-level-describe
 afterEach(async () => {
+	// trigger automatic clean up after each test (will be done at the first import)
+
 	await clearMongoDatabase();
 	MemoryCache.clear();
 	EmailSenderInstance.client.reset();
@@ -152,8 +148,7 @@ afterEach(async () => {
 	OnPasswordChangedHookMock.calls.length = 0;
 });
 
-// trigger global hooks at the first import in test suite files
-before(connectToMongoDatabase);
-after(dropMongoDatabase);
+// oxlint-disable-next-line require-top-level-describe
+afterAll(dropMongoDatabase);
 
 export { AuthenticationEngineDefaultOptions, TotpDefaultOptions, PasswordLengthValidatorOptions, ForgotPasswordTokenEncryption };

@@ -1,4 +1,4 @@
-export { EmailClient } from './client';
-export type { EmailClientOptions, SendMailOptions } from './client';
-export type { EmailTransportDefaults, EmailTransportOptions, SentMessageInfo, SMTPEnvelope } from './types';
-export type { OnTransportIdle, OnTransportError } from './hooks';
+export { EmailClient } from './client.js';
+export type { EmailClientOptions, SendMailOptions } from './client.js';
+export type { EmailTransportDefaults, EmailTransportOptions, SentMessageInfo, SMTPEnvelope } from './types.js';
+export type { OnTransportIdle, OnTransportError } from './hooks.js';

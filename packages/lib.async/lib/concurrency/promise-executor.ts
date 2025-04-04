@@ -1,10 +1,8 @@
-import { AsyncFunction } from '@thermopylae/core.declarations';
+import type { AsyncFunction } from '@thermopylae/core.declarations';
 import asyncPool from 'tiny-async-pool';
-import { ErrorCodes, createException } from '../error';
+import { ErrorCodes, createException } from '../error.js';
 
-/**
- * Class which executes a task over a data set.
- */
+/** Class which executes a task over a data set. */
 class PromiseExecutor<Input, Output> {
 	public static readonly SEQUENTIAL = 0;
 
@@ -12,11 +10,11 @@ class PromiseExecutor<Input, Output> {
 
 	private readonly processor: AsyncFunction<Input, Output>;
 
-	private readonly data: ReadonlyArray<Input>;
+	private readonly data: readonly Input[];
 
 	private readonly concurrency: number;
 
-	private constructor(processor: AsyncFunction<Input, Output>, data: ReadonlyArray<Input>, concurrency: number) {
+	private constructor(processor: AsyncFunction<Input, Output>, data: readonly Input[], concurrency: number) {
 		this.processor = processor;
 		this.data = data;
 		this.concurrency = concurrency;
@@ -25,25 +23,23 @@ class PromiseExecutor<Input, Output> {
 	/**
 	 * Execute processor over data set.
 	 *
-	 * @returns		Processing results.
+	 * @returns Processing results.
 	 */
-	public execute(): Promise<Array<Output>> {
+	public execute(): Promise<Output[]> {
 		return PromiseExecutor.run<Input, Output>(this.processor, this.data, this.concurrency);
 	}
 
 	/**
-	 * Creates a new {@link PromiseExecutor} which encapsulates task that needs to be run over data set. <br/>
-	 * Follows Command Design Pattern.
+	 * Creates a new {@link PromiseExecutor} which encapsulates task that needs to be run over data
+	 * set. <br/> Follows Command Design Pattern.
 	 *
-	 * @param processor     Processing function.
-	 * @param data          Data Set.
-	 * @param concurrency   Processing concurrency.
-	 * 						Can take the following values: <br/>
-	 * 							- 0 - data will be processed in sequential order <br/>
-	 * 						 	- [1, *Infinity*) - data will be processed in batches of `concurrency` size <br/>
-	 * 						 	- *Infinity* - all data will be processed in parallel
+	 * @param processor   Processing function.
+	 * @param data        Data Set.
+	 * @param concurrency Processing concurrency. Can take the following values: <br/> - 0 - data
+	 *   will be processed in sequential order <br/> - [1, _Infinity_) - data will be processed in
+	 *   batches of `concurrency` size <br/> - _Infinity_ - all data will be processed in parallel.
 	 */
-	public static command<I, O>(processor: AsyncFunction<I, O>, data: ReadonlyArray<I>, concurrency: number): PromiseExecutor<I, O> {
+	public static command<I, O>(processor: AsyncFunction<I, O>, data: readonly I[], concurrency: number): PromiseExecutor<I, O> {
 		PromiseExecutor.assertConcurrency(concurrency);
 		return new PromiseExecutor<I, O>(processor, data, concurrency);
 	}
@@ -51,22 +47,21 @@ class PromiseExecutor<Input, Output> {
 	/**
 	 * Runs `processor` over `data` with specified `concurrency`.
 	 *
-	 * @param processor     Processing function.
-	 * @param data          Data Set.
-	 * @param concurrency   Processing concurrency.
-	 * 						Can take the following values: <br/>
-	 * 							- 0 - data will be processed in sequential order <br/>
-	 * 						 	- [1, *Infinity*) - data will be processed in batches of `concurrency` size <br/>
-	 * 						 	- *Infinity* - all data will be processed in parallel
+	 * @param   processor   Processing function.
+	 * @param   data        Data Set.
+	 * @param   concurrency Processing concurrency. Can take the following values: <br/> - 0 - data
+	 *   will be processed in sequential order <br/> - [1, _Infinity_) - data will be processed in
+	 *   batches of `concurrency` size <br/> - _Infinity_ - all data will be processed in parallel.
 	 *
-	 * @returns				Processing results.
+	 * @returns             Processing results.
 	 */
-	public static async run<I, O>(processor: AsyncFunction<I, O>, data: ReadonlyArray<I>, concurrency: number): Promise<Array<O>> {
-		let results: Array<O>;
+	public static async run<I, O>(processor: AsyncFunction<I, O>, data: readonly I[], concurrency: number): Promise<O[]> {
+		let results: O[] | null = null;
 		switch (concurrency) {
 			case PromiseExecutor.SEQUENTIAL:
 				results = new Array<O>(data.length);
 				for (let i = 0; i < data.length; i++) {
+					// oxlint-disable-next-line no-await-in-loop
 					results[i] = await processor(data[i]);
 				}
 				break;
@@ -75,7 +70,7 @@ class PromiseExecutor<Input, Output> {
 				break;
 			default:
 				PromiseExecutor.assertConcurrency(concurrency);
-				results = await asyncPool<I, O>(concurrency, data, processor);
+				results = await Array.fromAsync(asyncPool<I, O>(concurrency, data, processor));
 				break;
 		}
 		return results;
@@ -84,7 +79,7 @@ class PromiseExecutor<Input, Output> {
 	/**
 	 * Formats `concurrency` to human readable format.
 	 *
-	 * @param concurrency	Processing concurrency.
+	 * @param concurrency Processing concurrency.
 	 */
 	public static formatConcurrency(concurrency: number): string {
 		PromiseExecutor.assertConcurrency(concurrency);
@@ -101,7 +96,7 @@ class PromiseExecutor<Input, Output> {
 	/**
 	 * Checks whether `concurrency` has an accepted value.
 	 *
-	 * @param concurrency   Processing concurrency.
+	 * @param concurrency Processing concurrency.
 	 */
 	private static assertConcurrency(concurrency: number): void {
 		const minLimit = 1;

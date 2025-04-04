@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro.js';
 import { UserSessionManager } from '@thermopylae/lib.user-session';
-import type { CookieUserSessionMiddlewareOptions } from '../../lib';
-import { logger } from '../../lib/logger';
-import { CookieUserSessionMiddleware, UserSessionRedisStorage } from '../../lib';
+import { CookieUserSessionMiddleware, type CookieUserSessionMiddlewareOptions, UserSessionRedisStorage } from '../../lib/index.js';
+import { logger } from '../../lib/logger.js';
 
 const options: CookieUserSessionMiddlewareOptions = {
 	sessionManager: {
@@ -27,8 +25,8 @@ const options: CookieUserSessionMiddlewareOptions = {
 					)}', because it was renewed already. Renew has been made from another NodeJS process.`
 				);
 			},
-			onOldSessionDeleteFailure(sessionId: string, e: Error) {
-				logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, e);
+			onOldSessionDeleteFailure(sessionId: string, error: Error) {
+				logger.error(`Failed to delete renewed session '${UserSessionManager.hash(sessionId)}'.`, error);
 			}
 		},
 		storage: new UserSessionRedisStorage({

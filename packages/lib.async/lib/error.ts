@@ -1,7 +1,7 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_ARGUMENT = 'INVALID_ARGUMENT',
 	UNABLE_TO_LOCK = 'UNABLE_TO_LOCK',
 	LOCK_NOT_FOUND = 'LOCK_NOT_FOUND',
@@ -10,10 +10,8 @@ const enum ErrorCodes {
 	INCONSISTENCY = 'INCONSISTENCY'
 }
 
-/**
- * @private
- */
-function createException(code: string, message: string, cause?: any): Exception {
+/** @private */
+function createException(code: string, message: string, cause?: unknown): Exception {
 	return new Exception(Library.ASYNC, code, message, cause);
 }
 

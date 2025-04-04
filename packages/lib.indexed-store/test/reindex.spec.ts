@@ -1,18 +1,18 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-import { number, object, string } from '@thermopylae/lib.utils';
-import dotprop from 'dot-prop';
+import { IndexValueGenerators, type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { IndexedStore, IndexValue, PK_INDEX_NAME, ErrorCodes } from '../lib';
-import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
+import { deepFreeze, generation } from '@thermopylae/lib.utils';
+import cryptoRandomString from 'crypto-random-string';
+import { deleteProperty, getProperty, setProperty } from 'dot-prop';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, type IndexValue, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { NOT_FOUND_IDX, PersonsRepo, type ReadonlyPerson, randomPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 	it('should not update primary index', () => {
 		const store = new IndexedStore<Person>();
 
-		const oldVal = string.random();
-		const newVal = string.random();
+		const oldVal = cryptoRandomString({ length: 5 });
+		const newVal = generation.differentFrom(oldVal, () => cryptoRandomString({ length: 5 }));
 		const reindex = () => store.reindex(PK_INDEX_NAME, oldVal, newVal, () => true);
 
 		expect(reindex).to.throw(`Can't reindex primary index '${PK_INDEX_NAME}' value.`);
@@ -33,8 +33,8 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const originalSize = store.size;
 
 		const candidate = randomPerson();
-		const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
+		const oldVal = getProperty(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const newVal = generation.differentFrom(oldVal, IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]);
 		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, predicate);
@@ -49,9 +49,8 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		store.insert([indexed]);
 		const originalSize = store.size;
 
-		const oldVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		let newVal: IndexValue;
-		while ((newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!()) === oldVal);
+		const oldVal = IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]();
+		const newVal = generation.differentFrom(oldVal, IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]);
 
 		const predicate = (person: Person) => person[PK_INDEX_NAME] === indexed[PK_INDEX_NAME];
 
@@ -66,35 +65,37 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const indexed = randomPerson();
 		store.insert([indexed]);
 
-		let candidate: Person;
-		while ((candidate = randomPerson()) === indexed);
+		let candidate: Person = randomPerson();
+		while (candidate[PK_INDEX_NAME] === indexed[PK_INDEX_NAME]) {
+			candidate = randomPerson();
+		}
 
-		dotprop.set(candidate, PersonIndexes.I_BIRTH_YEAR, null);
+		setProperty(candidate, PersonIndexes.I_BIRTH_YEAR, null);
 		store.insert([candidate]);
 
 		const originalSize = store.size;
 		expect(originalSize).to.be.eq(2);
 
-		const oldVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const newVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const oldVal = getProperty(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const newVal = getProperty(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 
 		store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, candidate[PK_INDEX_NAME]);
-		expect(dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newVal);
+		expect(getProperty(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newVal);
 		expect(store.size).to.be.eq(originalSize);
 
 		const indexedRecords = store.read(PersonIndexes.I_BIRTH_YEAR, newVal);
-		expect(indexedRecords).to.be.equalTo([indexed, candidate]);
+		expect(indexedRecords).toStrictEqual([indexed, candidate]);
 	});
 
 	it('should throw when reindex record that was not indexed before and matcher is not value of primary key', () => {
 		const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 		const record = randomPerson();
-		dotprop.delete(record, PersonIndexes.I_BIRTH_YEAR);
+		deleteProperty(record, PersonIndexes.I_BIRTH_YEAR);
 		store.insert([record]);
 
-		const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
+		const oldVal = getProperty(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const newVal = generation.differentFrom(oldVal, IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]);
 		const matcher = (rec: Person) => rec[PK_INDEX_NAME] === record[PK_INDEX_NAME];
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
@@ -109,12 +110,12 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 		const store = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 
 		const record = randomPerson();
-		dotprop.delete(record, PersonIndexes.I_BIRTH_YEAR);
+		deleteProperty(record, PersonIndexes.I_BIRTH_YEAR);
 		store.insert([record]);
 
-		const oldVal = dotprop.get(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
-		const newVal = IndexValueGenerators.get(PersonIndexes.I_BIRTH_YEAR)!();
-		const matcher = string.random();
+		const oldVal = getProperty(record, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const newVal = generation.differentFrom(oldVal, IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]);
+		const matcher = cryptoRandomString({ length: 5 });
 
 		const reindex = () => store.reindex(PersonIndexes.I_BIRTH_YEAR, oldVal, newVal, matcher);
 		expect(reindex).to.throw(`No record found for index '${PK_INDEX_NAME} with matching value '${matcher}'.`);
@@ -123,31 +124,32 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 	it('should update first level index value', () => {
 		const indexes = Object.values(PersonIndexes);
 		const store = new IndexedStore<Person>({ indexes });
-		store.insert(PersonsRepo);
+		store.insert(structuredClone(PersonsRepo as Person[]));
 
 		const birthYearIndex = store.readIndex(PersonIndexes.I_BIRTH_YEAR);
 
-		const candidate = randomPerson();
+		const [candidate] = store.read(PK_INDEX_NAME, randomPerson().id);
+		const originalCandidate = deepFreeze(structuredClone(candidate));
+
 		const oldBirthYear = candidate.birthYear;
-		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
+		const predicate = (person: ReadonlyPerson) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		/** BEFORE REINDEX (assert some invariants) */
 		const countryCodeIndexRecordsLenBefore = store.read(PersonIndexes.II_COUNTRY_CODE, candidate.address.countryCode).length;
 		const bankNameIndexRecordsLen = store.read(PersonIndexes.III_BANK_NAME, candidate.finance.bank.name).length;
-		const originalCandidate = object.cloneDeep(candidate);
 
-		expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
+		expect(birthYearIndex.get(oldBirthYear)?.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
-		/** REINDEX */
-		const newBirthYear = number.randomInt(2010, 2020);
+		/** REINDEX. */
+		const newBirthYear = generation.differentFrom(oldBirthYear, IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]);
 		store.reindex(PersonIndexes.I_BIRTH_YEAR, candidate.birthYear, newBirthYear, candidate[PK_INDEX_NAME]);
 
+		expect(getProperty(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newBirthYear);
 		expect(originalCandidate).to.not.be.deep.eq(candidate);
-		expect(dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR)).to.be.eq(newBirthYear);
 
-		/** AFTER REINDEX */
-		expect(birthYearIndex.get(oldBirthYear)!.findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
-		expect(birthYearIndex.get(newBirthYear)!.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
+		/** AFTER REINDEX. */
+		expect(birthYearIndex.get(oldBirthYear)?.findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
+		expect(birthYearIndex.get(newBirthYear)?.findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 
 		const countryCodeIndexRecords = store.read(PersonIndexes.II_COUNTRY_CODE, candidate.address.countryCode);
 		const bankNameIndexRecords = store.read(PersonIndexes.III_BANK_NAME, originalCandidate.finance.bank.name);
@@ -160,26 +162,28 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 	});
 
 	it('should update nested level index', () => {
+		expect.hasAssertions();
+
 		const indexes = Object.values(PersonIndexes);
 		const store = new IndexedStore<Person>({ indexes });
-		store.insert(PersonsRepo);
+		store.insert(structuredClone(PersonsRepo as Person[]));
 
-		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
+		const [candidate] = store.read(PK_INDEX_NAME, randomPerson().id);
+		const predicate = (person: ReadonlyPerson) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		const originalSize = store.size;
 
 		for (const indexName of indexes) {
-			const originalCandidate = object.cloneDeep(candidate);
+			const originalCandidate = structuredClone(candidate);
 
-			const oldValue = dotprop.get(originalCandidate, indexName) as IndexValue;
-			const newValue = IndexValueGenerators.get(indexName)!();
+			const oldValue = getProperty(originalCandidate, indexName) as IndexValue;
+			const newValue = generation.differentFrom(oldValue, IndexValueGenerators[indexName]);
 
 			expect(store.read(indexName, oldValue).findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX);
 			expect(store.read(indexName, newValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 
 			store.reindex(indexName, oldValue, newValue, predicate);
 			expect(candidate).to.not.be.deep.eq(originalCandidate);
-			expect(dotprop.get(candidate, indexName)).to.be.deep.eq(newValue); // it updated value
+			expect(getProperty(candidate, indexName)).to.be.deep.eq(newValue); // it updated value
 
 			expect(store.read(indexName, oldValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX); // de-indexed
 			expect(store.read(indexName, newValue).findIndex(predicate)).to.not.be.eq(NOT_FOUND_IDX); // indexed under new value
@@ -189,25 +193,27 @@ describe(`${IndexedStore.prototype.reindex.name} spec`, () => {
 	});
 
 	it('should de-index record when new index value is a nullable one', () => {
+		expect.hasAssertions();
+
 		const indexes = Object.values(PersonIndexes);
 		const store = new IndexedStore<Person>({ indexes });
-		store.insert(PersonsRepo);
+		store.insert(structuredClone(PersonsRepo as Person[]));
 
-		const candidate = randomPerson();
-		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
+		const [candidate] = store.read(PK_INDEX_NAME, randomPerson().id);
+		const predicate = (person: ReadonlyPerson) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 		const originalSize = store.size;
 
 		for (const indexName of indexes) {
-			const originalCandidate = object.cloneDeep(candidate);
+			const originalCandidate = structuredClone(candidate);
 
-			const oldIndexValue = dotprop.get(originalCandidate, indexName) as IndexValue;
+			const oldIndexValue = getProperty(originalCandidate, indexName) as IndexValue;
 			const newIndexValue = null;
 
 			store.reindex(indexName, oldIndexValue, newIndexValue, predicate);
 			expect(store.size).to.be.eq(originalSize); // nothing changed in records no
 
 			expect(candidate).to.not.be.deep.eq(originalCandidate);
-			expect(dotprop.get(candidate, indexName)).to.be.deep.eq(newIndexValue); // it updated value
+			expect(getProperty(candidate, indexName)).to.be.deep.eq(newIndexValue); // it updated value
 
 			// record was de-indexed
 			expect(store.read(indexName, oldIndexValue).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);

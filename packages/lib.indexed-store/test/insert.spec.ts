@@ -1,60 +1,60 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { IndexValueGenerators, type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { number, string } from '@thermopylae/lib.utils';
-import dotprop from 'dot-prop';
-import { ErrorCodes, IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo } from './utils';
+import cryptoRandomString from 'crypto-random-string';
+import { setProperty } from 'dot-prop';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo, type ReadonlyPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 	it('saves persons without indexing', () => {
-		const storage = new IndexedStore<Person>();
+		const storage = new IndexedStore<ReadonlyPerson>();
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
 	it('saves persons with indexing on level 1 index', () => {
-		const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: [PersonIndexes.I_BIRTH_YEAR] });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
 	it('saves persons with indexing on level 2 index', () => {
-		const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.II_COUNTRY_CODE] });
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: [PersonIndexes.II_COUNTRY_CODE] });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
 	it('saves persons with indexing on level 3 index', () => {
-		const storage = new IndexedStore<Person>({ indexes: [PersonIndexes.III_BANK_NAME] });
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: [PersonIndexes.III_BANK_NAME] });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
 	it('saves persons with indexing on level 1, 2, 3 index', () => {
-		const storage = new IndexedStore<Person>({ indexes: Object.values(PersonIndexes) });
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: Object.values(PersonIndexes) });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 	});
 
 	it('fails to insert records which have indexed properties different from indexable types (string|number)', () => {
-		const storage = new IndexedStore<Person>();
+		const storage = new IndexedStore<ReadonlyPerson>();
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
 		let invalidPerson = {} as Person;
 
-		/** NO ID */
+		/** NO ID. */
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
 			.haveOwnProperty('code', ErrorCodes.NULLABLE_PRIMARY_KEY_CANNOT_BE_INDEXED);
 
-		/** ARRAY INDEX */
+		/** ARRAY INDEX. */
 		storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 		invalidPerson = {
-			id: string.random(),
-			// @ts-ignore This is for test purposes
+			id: cryptoRandomString({ length: 10 }),
+			// @ts-expect-error This is for test purposesrposes
 			birthYear: []
 		};
 
@@ -63,13 +63,13 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		/** OBJECT INDEX */
+		/** OBJECT INDEX. */
 		storage.createIndexes([PersonIndexes.II_COUNTRY_CODE]);
 		invalidPerson = {
-			id: string.random(),
-			birthYear: number.randomInt(1990, 2000),
+			id: cryptoRandomString({ length: 10 }),
+			birthYear: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR](),
 			address: {
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				countryCode: {}
 			}
 		};
@@ -79,18 +79,18 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		/** BOOLEAN INDEX */
+		/** BOOLEAN INDEX. */
 		storage.createIndexes([PersonIndexes.III_BANK_NAME]);
 		invalidPerson = {
-			id: string.random(),
-			birthYear: number.randomInt(1990, 2000),
-			// @ts-ignore This is for test purposes
+			id: cryptoRandomString({ length: 10 }),
+			birthYear: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR](),
+			// @ts-expect-error This is for test purposesrposes
 			address: {
-				countryCode: string.random()
+				countryCode: IndexValueGenerators[PersonIndexes.II_COUNTRY_CODE]()
 			},
 			finance: {
 				bank: {
-					// @ts-ignore This is for test purposes
+					// @ts-expect-error This is for test purposesrposes
 					name: true
 				}
 			}
@@ -103,18 +103,18 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 	});
 
 	it('fails to insert duplicate records', () => {
-		const storage = new IndexedStore<Person>();
+		const storage = new IndexedStore<ReadonlyPerson>();
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		expect(() => storage.insert([PersonsRepo[number.randomInt(0, PersonsRepo.length - 1)]]))
+		expect(() => storage.insert([PersonsRepo[randomInt(0, PersonsRepo.length)]]))
 			.to.throw(Exception)
 			.haveOwnProperty('code', ErrorCodes.RECORD_EXISTS);
 	});
 
 	it('saves records with undefined index properties', () => {
-		const indexNames = Object.values(PersonIndexes) as Array<string>;
-		const storage = new IndexedStore<Person>({ indexes: indexNames });
+		const indexNames = Object.values(PersonIndexes) as string[];
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: indexNames });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
@@ -125,11 +125,11 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			initialIndexLoad.set(index, storage.readIndex(index).size);
 		}
 
-		function generatePerson(nulledIndexName: string): Person {
-			const person: Person = { ...PersonsRepo[0] };
+		function generatePerson(nulledIndexName: string): ReadonlyPerson {
+			const person: ReadonlyPerson = structuredClone(PersonsRepo[0]);
 			for (const indexName of indexNames) {
-				const value = indexName === nulledIndexName ? undefined : string.random();
-				dotprop.set(person, indexName, value);
+				const value = indexName === nulledIndexName ? undefined : cryptoRandomString({ length: 10 });
+				setProperty(person, indexName, value);
 			}
 			return person;
 		}
@@ -142,7 +142,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		function increaseAdditions(nulledIndexName: string): void {
 			for (const indexName of indexNames) {
 				if (indexName !== nulledIndexName) {
-					additions.set(indexName, additions.get(indexName)! + 1);
+					additions.set(indexName, (additions.get(indexName) ?? 0) + 1);
 				}
 			}
 		}
@@ -152,15 +152,15 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			increaseAdditions(nulledIndexName);
 
 			for (const indexName of indexNames) {
-				const records = initialIndexLoad.get(indexName)! + additions.get(indexName)!;
+				const records = (initialIndexLoad.get(indexName) ?? 0) + (additions.get(indexName) ?? 0);
 				expect(storage.readIndex(indexName).size).to.be.eq(records);
 			}
 		}
 	});
 
 	it('saves records with null index properties', () => {
-		const indexNames = Object.values(PersonIndexes) as Array<string>;
-		const storage = new IndexedStore<Person>({ indexes: indexNames });
+		const indexNames = Object.values(PersonIndexes) as string[];
+		const storage = new IndexedStore<ReadonlyPerson>({ indexes: indexNames });
 		storage.insert(PersonsRepo);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
@@ -171,11 +171,11 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			initialIndexLoad.set(index, storage.readIndex(index).size);
 		}
 
-		function generatePerson(nulledIndexName: string): Person {
-			const person: Person = { ...PersonsRepo[0] };
+		function generatePerson(nulledIndexName: string): ReadonlyPerson {
+			const person: ReadonlyPerson = structuredClone(PersonsRepo[0]);
 			for (const indexName of indexNames) {
-				const value = indexName === nulledIndexName ? null : string.random();
-				dotprop.set(person, indexName, value);
+				const value = indexName === nulledIndexName ? null : cryptoRandomString({ length: 10 });
+				setProperty(person, indexName, value);
 			}
 			return person;
 		}
@@ -188,7 +188,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		function increaseAdditions(nulledIndexName: string): void {
 			for (const indexName of indexNames) {
 				if (indexName !== nulledIndexName) {
-					additions.set(indexName, additions.get(indexName)! + 1);
+					additions.set(indexName, (additions.get(indexName) ?? 0) + 1);
 				}
 			}
 		}
@@ -198,7 +198,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			increaseAdditions(nulledIndexName);
 
 			for (const indexName of indexNames) {
-				const records = initialIndexLoad.get(indexName)! + additions.get(indexName)!;
+				const records = (initialIndexLoad.get(indexName) ?? 0) + (additions.get(indexName) ?? 0);
 				expect(storage.readIndex(indexName).size).to.be.eq(records);
 			}
 		}
@@ -206,7 +206,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 	it('saves records partially while error not encountered', () => {
 		const indexes = Object.values(PersonIndexes);
-		const store = new IndexedStore<Person>({ indexes });
+		const store = new IndexedStore<ReadonlyPerson>({ indexes });
 		expect(store.size).to.be.eq(0);
 
 		const validRecordsNo = 3;
@@ -215,11 +215,11 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 		const toSave = new Array<Person>(validRecordsNo + invalidRecordsNo);
 		let i = 0;
 		for (; i < validRecordsNo; i++) {
-			toSave[i] = PersonsRepo[i];
+			toSave[i] = PersonsRepo[i] as Person;
 		}
 		for (; i < toSave.length; i++) {
-			toSave[i] = { ...PersonsRepo[i] };
-			// @ts-ignore This is for test purposes
+			toSave[i] = structuredClone(PersonsRepo[i] as Person);
+			// @ts-expect-error This is for test purposesrposes
 			delete toSave[i].id;
 		}
 

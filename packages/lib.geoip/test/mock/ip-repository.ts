@@ -1,18 +1,18 @@
-import { IpLocation, IpLocationsRepository } from '../../lib';
+import type { IpLocation, IpLocationsRepository } from '../../lib/index.js';
 
 class IpRepositoryMock implements IpLocationsRepository {
 	public availability: boolean;
 
-	public location: IpLocation | any | null;
+	public location: IpLocation | null;
 
 	public lookups: number;
 
-	private readonly w: number;
+	readonly #weight: number;
 
 	public constructor(weight: number) {
 		this.availability = true;
 		this.location = null;
-		this.w = weight;
+		this.#weight = weight;
 		this.lookups = 0;
 	}
 
@@ -25,7 +25,7 @@ class IpRepositoryMock implements IpLocationsRepository {
 	}
 
 	public get weight(): number {
-		return this.w;
+		return this.#weight;
 	}
 
 	public lookup(): Promise<IpLocation | null> {

@@ -1,64 +1,56 @@
-import { Seconds } from '@thermopylae/core.declarations';
+import type { Seconds } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { AbstractExpirationPolicy, ExpirableCacheEntry } from './abstract';
-import { EntryValidity } from '../../contracts/cache-replacement-policy';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants.js';
+import { EntryValidity } from '../../typings/cache-replacement-policy.js';
+import { AbstractExpirationPolicy, type ExpirableCacheEntry } from './abstract.js';
 
-/**
- * @private
- */
+/** @private */
 const TIME_SPAN_SYM = Symbol('TIME_SPAN_SYM_REACTIVE');
 
-/**
- * @private
- */
+/** @private */
 interface ExpirableSlidingCacheEntry<Key, Value> extends ExpirableCacheEntry<Key, Value> {
 	[TIME_SPAN_SYM]?: Seconds;
 }
 
 interface SlidingExpirationPolicyArgsBundle {
 	/**
-	 * Time span identifies how long the data should remain in the cache
-	 * after the data was last accessed.
+	 * Time span identifies how long the data should remain in the cache after the data was last
+	 * accessed.
 	 */
 	timeSpan?: Seconds;
 }
 
 /**
- * Expiration policy which evicts keys based on time span access. <br/>
- * If key wasn't accessed in the specified {@link SlidingExpirationPolicyArgsBundle.timeSpan},
- * it will be evicted on the next {@link Cache.get} operation. <br/>
- * If key was accessed in that time span, it's expiration time will be increased with the value of time span.
+ * Expiration policy which evicts keys based on time span access. <br/> If key wasn't accessed in
+ * the specified {@link SlidingExpirationPolicyArgsBundle.timeSpan}, it will be evicted on the next
+ * {@link Cache.get} operation. <br/> If key was accessed in that time span, it's expiration time
+ * will be increased with the value of time span.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class SlidingReactiveExpirationPolicy<
 	Key,
 	Value,
 	ArgumentsBundle extends SlidingExpirationPolicyArgsBundle = SlidingExpirationPolicyArgsBundle
 > extends AbstractExpirationPolicy<Key, Value, ArgumentsBundle> {
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onHit(entry: ExpirableSlidingCacheEntry<Key, Value>): EntryValidity {
 		if (entry[TIME_SPAN_SYM] == null) {
 			return EntryValidity.VALID; // nothing to do
 		}
 
-		if (entry[EXPIRES_AT_SYM]! <= chrono.unixTime()) {
+		if (entry[EXPIRES_AT_SYM] != null && entry[EXPIRES_AT_SYM] <= chrono.unix()) {
 			this.deleteFromCache(entry); // metadata will be cleared by `onDelete` hook which is called by cache deleter
 			return EntryValidity.NOT_VALID;
 		}
 
-		SlidingReactiveExpirationPolicy.setEntryExpiration(entry, entry[TIME_SPAN_SYM]!); // refresh expiration
+		SlidingReactiveExpirationPolicy.setEntryExpiration(entry, entry[TIME_SPAN_SYM]); // refresh expiration
 		return EntryValidity.VALID;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onSet(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || SlidingReactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
@@ -67,9 +59,7 @@ class SlidingReactiveExpirationPolicy<
 		SlidingReactiveExpirationPolicy.storeExpirationMetadata(entry, options);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onUpdate(entry: ExpirableSlidingCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.timeSpan == null) {
 			return undefined;
@@ -95,17 +85,13 @@ class SlidingReactiveExpirationPolicy<
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public override onDelete(entry: ExpirableSlidingCacheEntry<Key, Value>): void {
 		super.onDelete(entry); // detach expiration metadata
 		entry[TIME_SPAN_SYM] = undefined; // logical delete time span metadata
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public onClear(): void {
 		return undefined; // we have to do nothing
 	}
@@ -114,8 +100,10 @@ class SlidingReactiveExpirationPolicy<
 		entry: ExpirableSlidingCacheEntry<EntryKey, EntryValue>,
 		options: ArgsBundle
 	) {
-		entry[TIME_SPAN_SYM] = options.timeSpan;
-		SlidingReactiveExpirationPolicy.setEntryExpiration(entry, options.timeSpan!);
+		if (options.timeSpan != null) {
+			entry[TIME_SPAN_SYM] = options.timeSpan;
+			SlidingReactiveExpirationPolicy.setEntryExpiration(entry, options.timeSpan);
+		}
 	}
 
 	private static isNonExpirable(options: SlidingExpirationPolicyArgsBundle): boolean {
@@ -123,4 +111,4 @@ class SlidingReactiveExpirationPolicy<
 	}
 }
 
-export { SlidingReactiveExpirationPolicy, SlidingExpirationPolicyArgsBundle, ExpirableSlidingCacheEntry, TIME_SPAN_SYM };
+export { SlidingReactiveExpirationPolicy, type SlidingExpirationPolicyArgsBundle, type ExpirableSlidingCacheEntry, TIME_SPAN_SYM };

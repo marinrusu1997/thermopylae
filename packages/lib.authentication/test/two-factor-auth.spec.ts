@@ -1,25 +1,22 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono } from '@thermopylae/lib.utils';
+import { convert } from 'convert';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { assert, describe, expect, it } from 'vitest';
 import {
-	AccountWithTotpSecret,
+	type AccountWithTotpSecret,
 	AuthenticationEngine,
 	EmailTwoFactorAuthStrategy,
 	ErrorCodes,
 	SmsTwoFactorAuthStrategy,
 	TotpTwoFactorAuthStrategy,
-	TwoFactorAuthStrategy
-} from '../lib';
-import { AuthenticationStepName } from '../lib/types/enums';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { buildAccountToBeRegistered, generateTotp, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
-import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session';
+	type TwoFactorAuthStrategy
+} from '../lib/index.js';
+import { AuthenticationStepName } from '../lib/types/enums.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, generateTotp, validateSuccessfulLogin } from './utils.js';
 
 describe('Two Factor Authentication spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	describe(`${TotpTwoFactorAuthStrategy.name} spec`, () => {
@@ -34,17 +31,17 @@ describe('Two Factor Authentication spec', function suite() {
 			await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
 
 			let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.be.eq(undefined);
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeUndefined();
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-			expect(authStatus.authenticated).to.be.eq(undefined);
+			expect(authStatus.authenticated).toBeUndefined();
 
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: "some garbage, we don't care" });
 
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error!.soft).to.be.instanceOf(Exception);
-			expect(authStatus.error!.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-			expect(authStatus.error!.soft).to.haveOwnProperty(
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error?.soft).to.be.instanceOf(Exception);
+			expect(authStatus.error?.soft).to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(authStatus.error?.soft).to.haveOwnProperty(
 				'message',
 				`Credentials are not valid. Remaining attempts (${AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1}).`
 			);
@@ -63,47 +60,47 @@ describe('Two Factor Authentication spec', function suite() {
 			await AuthEngineInstance.register(account);
 
 			await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
-			account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
+			account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id)) as AccountWithTotpSecret; // get totp secret from repository
 
 			/* TRY BYPASS PASSWORD */
 			let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'password-bypassing' });
-			const failedAuthAttemptsSession = (await AuthenticationEngineDefaultOptions.repositories.failedAuthAttemptSession.read(account.username))!;
+			const failedAuthAttemptsSession = await AuthenticationEngineDefaultOptions.repositories.failedAuthAttemptSession.read(account.username);
 
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
-			expect(authStatus.authenticated).to.be.eq(undefined);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.not.be.eq(undefined);
-			expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-			expect(authStatus.error!.soft).to.haveOwnProperty(
+			expect(authStatus.authenticated).toBeUndefined();
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeDefined();
+			expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(authStatus.error?.soft).to.haveOwnProperty(
 				'message',
 				`Credentials are not valid. Remaining attempts (${
-					AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - failedAuthAttemptsSession.counter
+					AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - (failedAuthAttemptsSession?.counter ?? 0)
 				}).`
 			);
 
 			/* SEND TOTP TOO LATE */
 			authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-			expect(authStatus.authenticated).to.be.eq(undefined);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.be.eq(undefined);
+			expect(authStatus.authenticated).toBeUndefined();
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeUndefined();
 
 			// w8 till auth session that contains totp marker to expire
-			await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.authenticationSession) + 50);
+			await sleep(convert(AuthenticationEngineDefaultOptions.ttl.authenticationSession, 's').to('ms') + 50);
 
 			authStatus = await AuthEngineInstance.authenticate({
 				...GlobalAuthenticationContext,
 				twoFactorAuthenticationToken: generateTotp(account.totpSecret)
 			});
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-			expect(authStatus.authenticated).to.be.eq(undefined);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.not.be.eq(undefined);
-			expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-			expect(authStatus.error!.soft).to.haveOwnProperty(
+			expect(authStatus.authenticated).toBeUndefined();
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeDefined();
+			expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(authStatus.error?.soft).to.haveOwnProperty(
 				'message',
 				`Credentials are not valid. Remaining attempts (${
-					AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - failedAuthAttemptsSession.counter
+					AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - (failedAuthAttemptsSession?.counter ?? 0)
 				}).`
 			);
 		});
@@ -122,16 +119,16 @@ describe('Two Factor Authentication spec', function suite() {
 			/* AUTHENTICATE WITH PASSWORD */
 			const authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-			expect(authStatus.authenticated).to.be.eq(undefined);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.be.eq(undefined);
+			expect(authStatus.authenticated).toBeUndefined();
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeUndefined();
 
 			/* TRY CONTINUE AUTHENTICATION WITHOUT TOTP */
 			let err: Error | null = null;
 			try {
 				await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-			} catch (e) {
-				err = e;
+			} catch (error) {
+				err = error;
 			}
 			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY);
 			expect(err).to.haveOwnProperty(
@@ -152,7 +149,8 @@ describe('Two Factor Authentication spec', function suite() {
 
 			/* ENABLE 2FA */
 			await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
-			account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
+			account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id)) as AccountWithTotpSecret; // get totp secret from repository
+			expect(account).toBeDefined();
 
 			/* GENERATE 2FA TOKEN */
 			let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
@@ -165,11 +163,11 @@ describe('Two Factor Authentication spec', function suite() {
 			/* REPLAY 2FA TOKEN */
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: totp });
 			expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
-			expect(authStatus.authenticated).to.be.eq(undefined);
-			expect(authStatus.token).to.be.eq(undefined);
-			expect(authStatus.error).to.not.be.eq(undefined);
-			expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-			expect(authStatus.error!.soft).to.haveOwnProperty(
+			expect(authStatus.authenticated).toBeUndefined();
+			expect(authStatus.token).toBeUndefined();
+			expect(authStatus.error).toBeDefined();
+			expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(authStatus.error?.soft).to.haveOwnProperty(
 				'message',
 				`Credentials are not valid. Remaining attempts (${AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1}).`
 			);
@@ -179,16 +177,18 @@ describe('Two Factor Authentication spec', function suite() {
 	describe(`${SmsTwoFactorAuthStrategy.name} & ${EmailTwoFactorAuthStrategy.name} spec`, () => {
 		const tokens = new Map<string, string>();
 
-		const strategies: Array<TwoFactorAuthStrategy<AccountWithTotpSecret>> = [
+		const strategies: TwoFactorAuthStrategy<AccountWithTotpSecret>[] = [
 			new SmsTwoFactorAuthStrategy({
-				sendSms: async (telephone, token) => {
+				sendSms: (telephone, token) => {
 					tokens.set(telephone, token);
+					return Promise.resolve();
 				},
 				tokenLength: 5
 			}),
 			new EmailTwoFactorAuthStrategy({
-				sendEmail: async (email, token) => {
+				sendEmail: (email, token) => {
 					tokens.set(email, token);
+					return Promise.resolve();
 				},
 				tokenLength: 5
 			})
@@ -196,17 +196,17 @@ describe('Two Factor Authentication spec', function suite() {
 
 		function getToken(strategy: TwoFactorAuthStrategy<AccountWithTotpSecret>, account: AccountWithTotpSecret): string {
 			if (strategy instanceof SmsTwoFactorAuthStrategy) {
-				return tokens.get(account.telephone!)!;
+				return tokens.get(account.telephone ?? '') ?? '';
 			}
 
 			if (strategy instanceof EmailTwoFactorAuthStrategy) {
-				return tokens.get(account.email)!;
+				return tokens.get(account.email) ?? '';
 			}
 
 			throw new Error('Unknown 2fa strategy.');
 		}
 
-		for (const strategy of strategies) {
+		describe.each(strategies)(`Strategy spec`, (strategy) => {
 			const AuthenticationEngineInstance = new AuthenticationEngine({
 				...AuthenticationEngineDefaultOptions,
 				twoFactorAuthStrategy: strategy
@@ -248,8 +248,8 @@ describe('Two Factor Authentication spec', function suite() {
 				let err: Exception | null = null;
 				try {
 					await AuthenticationEngineInstance.authenticate(GlobalAuthenticationContext);
-				} catch (e) {
-					err = e;
+				} catch (error) {
+					err = error;
 				}
 				expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.TWO_FACTOR_AUTH_TOKEN_ISSUED_ALREADY);
 			});
@@ -269,9 +269,9 @@ describe('Two Factor Authentication spec', function suite() {
 				/* AUTHENTICATE WITH INVALID TOKEN */
 				authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-				expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-				expect(authStatus.token).to.be.eq(undefined);
-				expect(authStatus.authenticated).to.be.eq(undefined);
+				expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+				expect(authStatus.token).toBeUndefined();
+				expect(authStatus.authenticated).toBeUndefined();
 			});
 
 			it("doesn't allow to bypass password authentication", async () => {
@@ -285,9 +285,9 @@ describe('Two Factor Authentication spec', function suite() {
 				/* AUTHENTICATE WITH INVALID TOKEN */
 				const authStatus = await AuthenticationEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD); // we bypassed password
-				expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
-				expect(authStatus.token).to.be.eq(undefined);
-				expect(authStatus.authenticated).to.be.eq(undefined);
+				expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+				expect(authStatus.token).toBeUndefined();
+				expect(authStatus.authenticated).toBeUndefined();
 			});
 
 			it('skips recaptcha when authentication reached 2fa step', async () => {
@@ -308,7 +308,7 @@ describe('Two Factor Authentication spec', function suite() {
 					authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 				}
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-				expect((await AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId))!.recaptchaRequired).to.be.eq(
+				expect((await AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId))?.recaptchaRequired).to.be.eq(
 					true
 				);
 
@@ -319,6 +319,6 @@ describe('Two Factor Authentication spec', function suite() {
 				});
 				validateSuccessfulLogin(authStatus);
 			});
-		}
+		});
 	});
 });

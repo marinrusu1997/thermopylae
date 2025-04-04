@@ -1,11 +1,8 @@
-// eslint-disable-next-line import/extensions
-import { createPool, Pool, PoolConnection, PoolOptions } from 'mysql2/promise';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { ConnectionsManager, PoolConfigurator } from './interface';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { type Pool, type PoolConnection, type PoolOptions, createPool } from 'mysql2/promise.js';
+import type { ConnectionsManager, PoolConfigurator } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 class PoolConnectionsManager implements ConnectionsManager {
 	private readonly pool: Pool;
 

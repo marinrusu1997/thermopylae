@@ -1,3 +1,3 @@
-export * from './labeled-conditional-variable-manager';
-export * from './promise-executor';
-export * from './utils';
+export * from './labeled-conditional-variable-manager.js';
+export * from './promise-executor.js';
+export * from './utils.js';

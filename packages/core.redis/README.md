@@ -13,81 +13,81 @@
 > Redis client.
 
 ## Install
+
 ```sh
 npm install @thermopylae/core.redis
 ```
 
 ## Description
+
 This package contains [client][redis-client-link] for Redis Server. <br/>
 It can maintain up to 3 [types of connections][connection-type-link] to Redis Server.
 Each connection represents an instance of [node-redis](https://www.npmjs.com/package/redis) client. <br/>
 [Redis Modules](https://redis.io/modules) are also supported. For now, only [Redis JSON][redis-json-module-link] is implemented.
 
 ## Usage
-Package exports a singleton of [RedisClient][redis-client-link] class, called *RedisClientInstance*, which needs to be configured before being used.
+
+Package exports a singleton of [RedisClient][redis-client-link] class, called _RedisClientInstance_, which needs to be configured before being used.
 After that you can access connections that were established and work with them. <br/>
 Let's take a look at the following example which demonstrates how the package can be used.
+
 ```typescript
-import { 
-    RedisClientInstance, 
-    ConnectionType,
-    RedisConnectionOptions,
-    RedisModule,
-    initLogger as initCoreRedisLogger 
-} from '@thermopylae/core.redis';
 import { LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { ConnectionType, RedisClientInstance, RedisConnectionOptions, RedisModule, initLogger as initCoreRedisLogger } from '@thermopylae/core.redis';
 
 (async function main() {
-    /* Firstly init logging system */
-    LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF);
-    LoggerManagerInstance.console.createTransport({ level: 'info' });
-    initCoreRedisLogger();
-    
-    /* Connect to Redis Server */
-    const connectionOptions = {
-        host: '127.0.0.1',
-        port: 3306,
-        password: 'your-password',
-        connect_timeout: 10_000,
-        max_attempts: 10,
-        retry_max_delay: 5_000,
-        attachDebugListeners: new Set<DebuggableEventType>(['end', 'reconnecting'])
-    } as RedisConnectionOptions;
-    
-    await RedisClientInstance.connect(
-        {
-            [ConnectionType.REGULAR]: connectionOptions,
-            [ConnectionType.SUBSCRIBER]: connectionOptions
-        },
-        {
-            // add commands for redis json module on connections
-            modules: new Set([RedisModule.JSON])
-        }
-    );
-    
-    /* Set up Keyspace Notification Events */
-    await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
-    await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:KEY`);
-    RedisClientInstance.on(ConnectionType.SUBSCRIBER, 'message', (channel, message) => {
-        console.log(`Received new message on channel '${channel}': ${message}`);
-    });
-    
-    /* Issue commands (see node-redis documentation for multiple details) */
-    await RedisClientInstance.client.set('KEY', 'VALUE', ['EX', 2], 'NX'); // will be logged
-    await RedisClientInstance.subscriber.unsubscribe(`__keyspace@${RedisClientInstance.db}__:KEY`);
-    await RedisClientInstance.client.del('KEY'); // won't be logged
-    
-    await RedisClientInstance.client.json_del('JSON_KEY'); // RedisJSON module commands are available too
-    
-    /* Disconnect */
-    await RedisClientInstance.disconnect();
+	/* Firstly init logging system */
+	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF);
+	LoggerManagerInstance.console.createTransport({ level: 'info' });
+	initCoreRedisLogger();
+
+	/* Connect to Redis Server */
+	const connectionOptions = {
+		host: '127.0.0.1',
+		port: 3306,
+		password: 'your-password',
+		connect_timeout: 10_000,
+		max_attempts: 10,
+		retry_max_delay: 5_000,
+		attachDebugListeners: new Set<DebuggableEventType>(['end', 'reconnecting'])
+	} as RedisConnectionOptions;
+
+	await RedisClientInstance.connect(
+		{
+			[ConnectionType.REGULAR]: connectionOptions,
+			[ConnectionType.SUBSCRIBER]: connectionOptions
+		},
+		{
+			// add commands for redis json module on connections
+			modules: new Set([RedisModule.JSON])
+		}
+	);
+
+	/* Set up Keyspace Notification Events */
+	await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
+	await RedisClientInstance.subscriber.subscribe(`__keyspace@${RedisClientInstance.db}__:KEY`);
+	RedisClientInstance.on(ConnectionType.SUBSCRIBER, 'message', (channel, message) => {
+		console.log(`Received new message on channel '${channel}': ${message}`);
+	});
+
+	/* Issue commands (see node-redis documentation for multiple details) */
+	await RedisClientInstance.client.set('KEY', 'VALUE', ['EX', 2], 'NX'); // will be logged
+	await RedisClientInstance.subscriber.unsubscribe(`__keyspace@${RedisClientInstance.db}__:KEY`);
+	await RedisClientInstance.client.del('KEY'); // won't be logged
+
+	await RedisClientInstance.client.json_del('JSON_KEY'); // RedisJSON module commands are available too
+
+	/* Disconnect */
+	await RedisClientInstance.disconnect();
 })();
 ```
 
 ## API Reference
+
 API documentation is available [here][api-doc-link].
 
 It can also be generated by issuing the following commands:
+
 ```shell
 git clone git@github.com:marinrusu1997/thermopylae.git
 cd thermopylae
@@ -96,13 +96,15 @@ yarn workspace @thermopylae/core.redis run doc
 ```
 
 ## Author
+
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
+- GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+- Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+- LinkedIn: [@marinrusu1997](https://www.linkedin.com/in/rusu-marin-1638b0156/)
 
 ## 📝 License
+
 Copyright © 2021 [Rusu Marin](https://github.com/marinrusu1997). <br/>
 This project is [MIT](https://github.com/marinrusu1997/thermopylae/blob/master/LICENSE) licensed.
 

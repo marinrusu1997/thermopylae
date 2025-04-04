@@ -1,22 +1,17 @@
-import { chai, getPersonRepositoryClone, Person } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { beforeEach } from 'mocha';
-import { array } from '@thermopylae/lib.utils';
+import { type Person, getPersonRepositoryClone } from '@thermopylae/dev.unit-test';
+import { deepFreeze } from '@thermopylae/lib.utils';
+import randomItem from 'random-item';
+import type { DeepReadonly } from 'ts-essentials';
 
-const { expect } = chai;
+type ReadonlyPerson = DeepReadonly<Person>;
 
 const NOT_FOUND_IDX = -1;
 
-// eslint-disable-next-line import/no-mutable-exports
-let PersonsRepo: Array<Person>;
-
-// eslint-disable-next-line mocha/no-hooks-for-single-case
-beforeEach(async () => {
-	PersonsRepo = await getPersonRepositoryClone();
-});
+const PersonsRepo = deepFreeze(await getPersonRepositoryClone());
 
 function randomPerson(): Person {
-	return array.randomElement(PersonsRepo);
+	return structuredClone(randomItem(PersonsRepo) as Person);
 }
 
-export { PersonsRepo, expect, randomPerson, NOT_FOUND_IDX };
+export { PersonsRepo, randomPerson, NOT_FOUND_IDX };
+export type { ReadonlyPerson };

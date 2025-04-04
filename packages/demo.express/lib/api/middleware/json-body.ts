@@ -1,5 +1,5 @@
-import { RequestHandler } from 'express';
 import { HttpStatusCode } from '@thermopylae/core.declarations';
+import type { RequestHandler } from 'express';
 
 const jsonBody: RequestHandler = (req, res, next) => {
 	if (req.is('json')) {

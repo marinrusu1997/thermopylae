@@ -1,55 +1,56 @@
-import { Cloneable, Equals, ObjMap } from '@thermopylae/core.declarations';
-import { array, chrono, number, object, string } from '@thermopylae/lib.utils';
-import { IndexValue } from '@thermopylae/lib.indexed-store';
-import { Exception } from '@thermopylae/lib.exception';
+// oxlint-disable no-array-method-this-argument
+import type { QueryConditions } from '@b4dnewz/mongodb-operators';
+import { faker } from '@faker-js/faker';
+import type { Cloneable, Equals } from '@thermopylae/core.declarations';
 import {
-	chai,
-	Person,
-	Address,
-	Finance,
-	Transaction,
-	PersonIndexes,
+	type Address,
+	type Finance,
 	IndexValueGenerators,
+	type Person,
+	PersonIndexes,
 	PersonJsonSchema,
-	getPersonRepositoryClone
+	generatePerson,
+	generatePersons,
+	generateTransaction,
+	logger
 } from '@thermopylae/dev.unit-test';
-
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { beforeEach, describe, it } from 'mocha';
-import { $enum } from 'ts-enum-util';
-// @ts-ignore This package has no typings
-import range from 'range-generator';
-import uniqBy from 'lodash.uniqby';
-import orderBy from 'lodash.orderby';
-import dotProp from 'dot-prop';
+import { Exception } from '@thermopylae/lib.exception';
+import type { IndexValue } from '@thermopylae/lib.indexed-store';
+import { chrono, type types } from '@thermopylae/lib.utils';
 import difference from 'array-differ';
-// @ts-ignore This package has no typings
+// @ts-expect-error This package has no typingsypings
 import duplicates from 'array-find-duplicates';
-// eslint-disable-next-line import/no-unresolved
-import { QueryConditions } from '@b4dnewz/mongodb-operators';
+import cryptoRandomString from 'crypto-random-string';
+import { getProperty, setProperty } from 'dot-prop';
+import orderBy from 'lodash.orderby';
+import uniqBy from 'lodash.uniqby';
+import { randomInt } from 'node:crypto';
+import randomItem from 'random-item';
+// @ts-expect-error This package has no typingsypings
+import range from 'range-generator';
+import { $enum } from 'ts-enum-util';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
 	Collection,
-	DocumentOriginality,
-	DocumentNotification,
+	type DocumentNotification,
 	DocumentOperation,
-	FindOptions,
-	Projection,
+	DocumentOriginality,
+	type FindOptions,
+	type IndexOptions,
+	type IndexedKey,
+	type KeyOf,
+	PK_INDEX_NAME,
+	type Projection,
 	ProjectionType,
-	Query,
-	IndexOptions,
-	IndexedKey,
-	KeyOf,
+	type Query,
 	QueryOperators,
-	ReplaceOptions,
-	UpdateOptions,
+	type ReplaceOptions,
 	SortDirection,
-	PK_INDEX_NAME
-} from '../lib';
-
-const { expect } = chai;
+	type UpdateOptions
+} from '../lib/index.js';
 
 class PersonDocument implements Person, Cloneable<PersonDocument> {
-	public readonly id: NonNullable<IndexValue>;
+	public readonly id: NonNullable<string>;
 
 	public firstName: string;
 
@@ -59,10 +60,10 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 
 	public finance: Finance;
 
-	public visitedCountries: Array<string>;
+	public visitedCountries: string[];
 
 	public constructor(person: Person) {
-		this.id = person[PK_INDEX_NAME]!;
+		this.id = person[PK_INDEX_NAME];
 		this.firstName = person.firstName;
 		this.address = person.address;
 		this.birthYear = person.birthYear;
@@ -71,64 +72,36 @@ class PersonDocument implements Person, Cloneable<PersonDocument> {
 	}
 
 	public clone(): PersonDocument {
-		return new PersonDocument(
-			object.cloneDeep({
-				[PK_INDEX_NAME]: this.id,
-				firstName: this.firstName,
-				birthYear: this.birthYear,
-				address: this.address,
-				finance: this.finance,
-				visitedCountries: this.visitedCountries
-			})
-		);
+		return new PersonDocument(structuredClone(this));
 	}
 }
 
-let PersonsRepo: Array<PersonDocument>;
-
-function generateTransaction(): Transaction {
-	return {
-		amount: string.random({ length: 3, allowedCharRegex: /[0-9]/ }),
-		currencySymbol: string.random({ length: 1, allowedCharRegex: /\$/ }),
-		transactionType: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
-	};
-}
+const PersonsRepo: PersonDocument[] = [];
 
 function generatePersonDocument(): PersonDocument {
-	return new PersonDocument({
-		[PK_INDEX_NAME]: string.random({ length: 20 }),
-		firstName: string.random({ length: 5 }),
-		birthYear: number.randomInt(1990, 2000),
-		address: {
-			countryCode: string.random({ length: 2, allowedCharRegex: /[A-Z]/ }),
-			city: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
-		},
-		finance: {
-			bank: {
-				name: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
-			},
-			transactions: array.filledWith(number.randomInt(0, 5), generateTransaction)
-		},
-		visitedCountries: array.filledWith(number.randomInt(0, 5), () => string.random({ length: 2, allowedCharRegex: /[A-Z]/ }))
-	});
+	return new PersonDocument(generatePerson());
 }
 
-function randomDocuments(min?: number, max?: number): Array<PersonDocument> {
+function randomDocuments(min?: number, max?: number, repo?: readonly PersonDocument[]): PersonDocument[] {
+	min ??= 10;
+	max ??= 15;
+	repo ??= PersonsRepo;
+
 	return uniqBy(
-		array.filledWith(number.randomInt(min || 10, max || 15), () => array.randomElement(PersonsRepo)),
+		Array.from({ length: randomInt(min, max) }, () => randomItem(repo)),
 		PK_INDEX_NAME
 	);
 }
 
-function ordered(matches: Array<PersonDocument>): Array<PersonDocument> {
+function ordered(matches: readonly PersonDocument[]): PersonDocument[] {
 	return orderBy(matches, [PK_INDEX_NAME], ['asc']);
 }
 
 function assertFoundByIndexes(
 	collection: Collection<PersonDocument>,
-	documents: PersonDocument | Array<PersonDocument>,
-	indexed?: Array<IndexedKey<PersonDocument>>,
-	nonIndexed?: Array<IndexedKey<PersonDocument>>
+	documents: PersonDocument | PersonDocument[],
+	indexed?: IndexedKey<PersonDocument>[],
+	nonIndexed?: IndexedKey<PersonDocument>[]
 ): void {
 	documents = Array.isArray(documents) ? documents : [documents];
 	indexed = indexed == null ? $enum(PersonIndexes).getValues() : indexed;
@@ -139,32 +112,35 @@ function assertFoundByIndexes(
 	for (const document of documents) {
 		for (const index of indexed) {
 			const options: Partial<FindOptions<PersonDocument>> = {
-				index: { name: index, value: dotProp.get(document, index) }
+				index: { name: index, value: getProperty(document, index) }
 			};
 			const matches = collection.find(null, options);
-			expect(matches).to.be.containing(document);
+			expect(matches).to.contain(document);
 
-			expect(duplicates(matches)).to.be.ofSize(0); // by ref
-			expect(duplicates(matches, equals)).to.be.ofSize(0); // by value
+			expect(duplicates(matches)).to.have.length(0); // by ref
+			expect(duplicates(matches, equals)).to.have.length(0); // by value
 		}
 
 		for (const nonIndex of nonIndexed) {
 			const options: Partial<FindOptions<PersonDocument>> = {
-				index: { name: nonIndex, value: dotProp.get(document, nonIndex) }
+				index: { name: nonIndex, value: getProperty(document, nonIndex) }
 			};
 			const matches = collection.find(null, options);
-			expect(matches).to.not.be.containing(document);
+			expect(matches).to.not.contain(document);
 
-			expect(duplicates(matches)).to.be.ofSize(0); // by ref
-			expect(duplicates(matches, equals)).to.be.ofSize(0); // by value
+			expect(duplicates(matches)).to.have.length(0); // by ref
+			expect(duplicates(matches, equals)).to.have.length(0); // by value
 		}
 	}
 }
 
 describe(`${Collection.name} spec`, () => {
-	beforeEach(async () => {
-		const persons = await getPersonRepositoryClone();
-		PersonsRepo = persons.map((person) => new PersonDocument(person));
+	beforeEach(() => {
+		PersonsRepo.length = 0;
+		const samples = generatePersons(100).map((person) => new PersonDocument(person));
+		for (const sample of samples) {
+			PersonsRepo.push(sample);
+		}
 	});
 
 	describe(`${Collection.prototype.insert.name} spec`, () => {
@@ -181,8 +157,8 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const person = array.randomElement(PersonsRepo);
-			// @ts-ignore This is for test purposes
+			const person = randomItem(PersonsRepo);
+			// @ts-expect-error This is for test purposesrposes
 			delete person.birthYear;
 
 			const throwable = () => collection.insert(new PersonDocument(person));
@@ -195,55 +171,72 @@ describe(`${Collection.name} spec`, () => {
 			});
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
-			expect(collection.indexes).to.be.containingAllOf(Object.values(PersonIndexes));
+			expect(collection.indexes).to.containSubset(Object.values(PersonIndexes));
 		});
 
-		it('inserts document clones', (done) => {
+		it('inserts document clones', async () => {
+			expect.hasAssertions();
+
 			const collection = new Collection<PersonDocument>({
 				documentsOriginality: DocumentOriginality.CLONE
 			});
 
-			collection.watch().subscribe((notification) => {
-				try {
-					expect(notification.operation).to.be.eq(DocumentOperation.CREATED);
-					expect(notification.documents.length).to.be.eq(collection.count);
-					expect(notification.documents).to.not.containingAnyOf(PersonsRepo);
+			const promise = new Promise<void>((resolve, reject) =>
+				collection.watch().subscribe((notification) => {
+					try {
+						expect(notification.operation).to.be.eq(DocumentOperation.CREATED);
+						expect(notification.documents.length).to.be.eq(collection.count);
 
-					return done();
-				} catch (e) {
-					return done(e);
-				}
-			});
+						const sortedNotificationDocuments = notification.documents.toSorted((p1, p2) => p1.id.localeCompare(p2.id));
+						const sortedPersonsRepo = PersonsRepo.toSorted((p1, p2) => p1.id.localeCompare(p2.id));
+						for (let i = 0; i < sortedNotificationDocuments.length; i++) {
+							expect(sortedNotificationDocuments[i]).not.toBe(sortedPersonsRepo[i]);
+							expect(sortedNotificationDocuments[i]).toStrictEqual(sortedPersonsRepo[i]);
+						}
+
+						return resolve();
+					} catch (error) {
+						return reject(error);
+					}
+				})
+			);
 
 			collection.insert(PersonsRepo);
+			await promise;
 		});
 
-		it('emits notifications with inserted documents', (done) => {
+		it('emits notifications with inserted documents', async () => {
+			expect.hasAssertions();
+
 			const collection = new Collection<PersonDocument>();
 
-			collection.watch().subscribe((notification) => {
-				try {
-					expect(notification.operation).to.be.eq(DocumentOperation.CREATED);
-					expect(notification.documents.length).to.be.eq(collection.count);
-					expect(notification.documents).to.be.containingAllOf(PersonsRepo);
+			const promise = new Promise<void>((resolve, reject) =>
+				collection.watch().subscribe((notification) => {
+					try {
+						expect(notification.operation).to.be.eq(DocumentOperation.CREATED);
+						expect(notification.documents.length).to.be.eq(collection.count);
+						expect(notification.documents).to.containSubset(PersonsRepo);
 
-					return done();
-				} catch (e) {
-					return done(e);
-				}
-			});
+						return resolve();
+					} catch (error) {
+						return reject(error);
+					}
+				})
+			);
 
 			collection.insert(PersonsRepo);
+			await promise;
 		});
 	});
 
 	describe(`${Collection.prototype.find.name} spec`, () => {
 		describe(`${Collection.prototype.find.name}ById spec`, () => {
-			let suiteCollection: Collection<PersonDocument>;
+			// oxlint-disable-next-line require-hook
+			let suiteCollection: Collection<PersonDocument> = undefined as types.Any;
 
 			beforeEach(() => {
 				suiteCollection = new Collection<PersonDocument>();
-				const docsNo = number.randomInt(5_000, 10_000);
+				const docsNo = randomInt(5000, 10_000);
 
 				for (let i = 0; i < docsNo; i++) {
 					suiteCollection.insert(generatePersonDocument());
@@ -252,15 +245,15 @@ describe(`${Collection.name} spec`, () => {
 				expect(suiteCollection.count).to.be.eq(docsNo);
 			});
 
-			function findSlowly(pk: NonNullable<IndexValue>): chrono.TimedExecutionResult<Array<PersonDocument>> {
+			function findSlowly(pk: NonNullable<string>): chrono.TimedExecutionResult<Array<PersonDocument>> {
 				const query: Query<PersonDocument> = {
 					$or: [{ [PK_INDEX_NAME]: pk }, { [PK_INDEX_NAME]: '' }] // it will never be an empty string
 				};
-				return chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				return chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
 			}
 
 			it('should return a single document when providing value of primary key as query', () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = desired[PK_INDEX_NAME];
 				// these fields from options are ignored
@@ -268,21 +261,21 @@ describe(`${Collection.name} spec`, () => {
 					multiple: true,
 					index: {
 						name: PersonIndexes.I_BIRTH_YEAR,
-						value: number.randomInt(1990, 2000)
+						value: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]()
 					}
 				};
 
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query, options);
-				expect(measuredMatches.result).to.be.equalTo([desired]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query, options);
+				expect(measuredMatches.result).toStrictEqual([desired]);
 
 				const slowMeasuredMatches = findSlowly(query);
-				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+				expect(slowMeasuredMatches.result).toStrictEqual([desired]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
 
 			it('should return a single document when providing query and hint to primary index', () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: desired[PK_INDEX_NAME]
@@ -293,67 +286,64 @@ describe(`${Collection.name} spec`, () => {
 						value: desired[PK_INDEX_NAME]
 					}
 				};
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query, options);
-				expect(measuredMatches.result).to.be.equalTo([desired]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query, options);
+				expect(measuredMatches.result).toStrictEqual([desired]);
 
 				const slowMeasuredMatches = findSlowly(desired[PK_INDEX_NAME]);
-				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+				expect(slowMeasuredMatches.result).toStrictEqual([desired]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
 
 			it('should return a single document when providing query with primary key value (no hint)', () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: desired[PK_INDEX_NAME]
 				};
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
-				expect(measuredMatches.result).to.be.equalTo([desired]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).toStrictEqual([desired]);
 
 				const slowMeasuredMatches = findSlowly(desired[PK_INDEX_NAME]);
-				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+				expect(slowMeasuredMatches.result).toStrictEqual([desired]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
 
 			it(`should return a single document when providing query with primary key value (no hint)`, () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: desired[PK_INDEX_NAME]
 				};
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
-				expect(measuredMatches.result).to.be.equalTo([desired]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).toStrictEqual([desired]);
 
 				const slowMeasuredMatches = findSlowly(desired[PK_INDEX_NAME]);
-				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+				expect(slowMeasuredMatches.result).toStrictEqual([desired]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
 
 			it(`should return a single document when providing query with primary key and ${QueryOperators.IN} operator with single value in array (no hint)`, () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: {
 						$in: [desired[PK_INDEX_NAME]]
 					}
 				};
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
-				expect(measuredMatches.result).to.be.equalTo([desired]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).toStrictEqual([desired]);
 
 				const slowMeasuredMatches = findSlowly(desired[PK_INDEX_NAME]);
-				expect(slowMeasuredMatches.result).to.be.equalTo([desired]);
+				expect(slowMeasuredMatches.result).toStrictEqual([desired]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
 
 			it(`should return a multiple documents when providing query with primary key and ${QueryOperators.IN} operator with multiple value in array (no hint with index)`, () => {
-				const desiredDocuments = uniqBy(
-					array.filledWith(number.randomInt(10, 15), () => array.randomElement(suiteCollection.find())),
-					PK_INDEX_NAME
-				);
+				const desiredDocuments = randomDocuments(10, 15, suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: {
@@ -362,12 +352,12 @@ describe(`${Collection.name} spec`, () => {
 				};
 				const matches = suiteCollection.find(query, { multiple: true });
 
-				expect(matches).to.be.ofSize(desiredDocuments.length);
-				expect(matches).to.be.containingAllOf(desiredDocuments);
+				expect(matches).to.have.length(desiredDocuments.length);
+				expect(matches).to.containSubset(desiredDocuments);
 			});
 
 			it('should not return document when providing query with primary key and another conditions that are not met by that single document (no hint)', () => {
-				const desired = array.randomElement(suiteCollection.find());
+				const desired = randomItem(suiteCollection.find());
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: desired[PK_INDEX_NAME],
@@ -377,17 +367,17 @@ describe(`${Collection.name} spec`, () => {
 				};
 				const matches = suiteCollection.find(query, { multiple: true });
 
-				expect(matches).to.be.ofSize(0);
+				expect(matches).to.have.length(0);
 			});
 
 			it('should not return documents when providing invalid value of primary key as query', () => {
-				const query: Query<PersonDocument> = number.randomInt(10, 100);
+				const query: Query<PersonDocument> = randomInt(10, 100);
 
-				const measuredMatches = chrono.executionTime<any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
-				expect(measuredMatches.result).to.be.equalTo([]);
+				const measuredMatches = chrono.executionTime<types.Any, Array<PersonDocument>>(suiteCollection.find, suiteCollection, query);
+				expect(measuredMatches.result).toStrictEqual([]);
 
-				const slowMeasuredMatches = findSlowly(query);
-				expect(slowMeasuredMatches.result).to.be.equalTo([]);
+				const slowMeasuredMatches = findSlowly(String(query));
+				expect(slowMeasuredMatches.result).toStrictEqual([]);
 
 				expect(measuredMatches.time.milliseconds).to.be.lessThan(slowMeasuredMatches.time.milliseconds);
 			});
@@ -399,7 +389,7 @@ describe(`${Collection.name} spec`, () => {
 
 				const query: Query<PersonDocument> = {
 					birthYear: {
-						$eq: number.randomInt(1990, 2000)
+						$eq: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]()
 					}
 				};
 
@@ -413,7 +403,7 @@ describe(`${Collection.name} spec`, () => {
 
 				const query: Query<PersonDocument> = {
 					birthYear: {
-						$eq: number.randomInt(1990, 2000)
+						$eq: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]()
 					}
 				};
 
@@ -428,7 +418,7 @@ describe(`${Collection.name} spec`, () => {
 
 				const query: Query<PersonDocument> = {
 					birthYear: {
-						$eq: number.randomInt(1990, 2000)
+						$eq: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]()
 					}
 				};
 
@@ -448,34 +438,7 @@ describe(`${Collection.name} spec`, () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
-			const minBirthYear = 1990;
-			const maxBirthYear = 1995;
-			const countryCodes = ['DE', 'EN'];
-			const transactionCurrency = '$';
-
-			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.random(),
-				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.random({ length: 5 }),
-				address: {
-					countryCode: array.randomElement(countryCodes),
-					city: string.random({ length: 5 })
-				},
-				finance: {
-					bank: {
-						name: string.random({ length: 5 })
-					},
-					transactions: [
-						{
-							currencySymbol: transactionCurrency,
-							amount: '889.6',
-							transactionType: 'transfer'
-						}
-					]
-				},
-				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
-			});
-
+			const desired = new PersonDocument(generatePerson());
 			collection.insert(desired);
 
 			const query: Query<PersonDocument> = {
@@ -494,7 +457,7 @@ describe(`${Collection.name} spec`, () => {
 
 			const query: Query<PersonDocument> = {
 				birthYear: {
-					$in: Array.from(range(1990, 2000))
+					$in: [...range(1990, 2e3)]
 				}
 			};
 
@@ -502,41 +465,14 @@ describe(`${Collection.name} spec`, () => {
 			expect(multipleMatches.length).to.be.greaterThan(1);
 
 			const singleMatch = collection.find(query, { multiple: false });
-			expect(singleMatch).to.be.ofSize(1);
+			expect(singleMatch).to.have.length(1);
 		});
 
 		it('should find a single document matching the predicate', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
-			const minBirthYear = 1990;
-			const maxBirthYear = 1995;
-			const countryCodes = ['DE', 'EN'];
-			const transactionCurrency = '$';
-
-			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.random({ length: 10 }),
-				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.random({ length: 5 }),
-				address: {
-					countryCode: array.randomElement(countryCodes),
-					city: string.random({ length: 5 })
-				},
-				finance: {
-					bank: {
-						name: string.random({ length: 5 })
-					},
-					transactions: [
-						{
-							currencySymbol: transactionCurrency,
-							amount: '889.6',
-							transactionType: 'transfer'
-						}
-					]
-				},
-				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
-			});
-
+			const desired = new PersonDocument(generatePerson());
 			collection.insert(desired);
 
 			function predicate(person: PersonDocument): boolean {
@@ -545,53 +481,21 @@ describe(`${Collection.name} spec`, () => {
 
 			const matches = collection.find(predicate);
 			expect(matches.length).to.be.eq(1);
-
-			for (const match of matches) {
-				expect(match.birthYear).to.be.oneOf(Array.from(range(minBirthYear, maxBirthYear + 1))); // upper bound is not inclusive in `range`
-				expect(match.address.countryCode).to.be.oneOf(countryCodes);
-				expect(match.finance.transactions.some((tx) => tx.currencySymbol === transactionCurrency)).to.be.eq(true);
-			}
+			expect(matches[0].address.countryCode).to.be.eq(desired.address.countryCode);
 		});
 
 		it('should find a single document and apply projection', () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
-			const minBirthYear = 1990;
-			const maxBirthYear = 1995;
-			const countryCodes = ['DE', 'EN'];
-			const transactionCurrency = '$';
-
-			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.random(),
-				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.random({ length: 5 }),
-				address: {
-					countryCode: array.randomElement(countryCodes),
-					city: string.random({ length: 5 })
-				},
-				finance: {
-					bank: {
-						name: string.random({ length: 5 })
-					},
-					transactions: [
-						{
-							currencySymbol: transactionCurrency,
-							amount: '889.6',
-							transactionType: 'transfer'
-						}
-					]
-				},
-				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
-			});
-
+			const desired = new PersonDocument(generatePerson());
 			collection.insert(desired);
 
 			function predicate(person: PersonDocument): boolean {
 				return person[PK_INDEX_NAME] === desired[PK_INDEX_NAME];
 			}
 
-			/** EXCLUDE */
+			/** EXCLUDE. */
 			const excludeProjection: Projection<PersonDocument> = {
 				type: ProjectionType.EXCLUDE,
 				fields: ['birthYear', 'finance.transactions']
@@ -606,10 +510,10 @@ describe(`${Collection.name} spec`, () => {
 			expect(matches[0][PK_INDEX_NAME]).to.be.eq(desired[PK_INDEX_NAME]); // just to be confident it found what we need
 
 			for (const excludedProp of excludeProjection.fields) {
-				expect(dotProp.get(matches[0], excludedProp)).to.be.eq(undefined);
+				expect(getProperty(matches[0], excludedProp)).toBeUndefined();
 			}
 
-			/** INCLUDE */
+			/** INCLUDE. */
 			const includeProjection: Projection<PersonDocument> = {
 				type: ProjectionType.INCLUDE,
 				fields: [PK_INDEX_NAME, 'address.countryCode']
@@ -624,7 +528,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(Object.keys(matches[0]).length).to.be.eq(includeProjection.fields.length); // only included fields
 
 			for (const includedProp of includeProjection.fields) {
-				expect(dotProp.get(matches[0], includedProp)).to.be.eq(dotProp.get(desired, includedProp));
+				expect(getProperty(matches[0], includedProp)).to.be.eq(getProperty(desired, includedProp));
 			}
 		});
 
@@ -632,7 +536,7 @@ describe(`${Collection.name} spec`, () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
-			const desired = array.randomElement(PersonsRepo);
+			const desired = randomItem(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: desired[PK_INDEX_NAME]
@@ -644,7 +548,7 @@ describe(`${Collection.name} spec`, () => {
 			};
 
 			const matches = collection.find(query, options);
-			expect(matches).to.be.equalTo([desired]);
+			expect(matches).toStrictEqual([desired]);
 		});
 
 		it('should find multiple documents and sort them by a single property (ASCENDING)', () => {
@@ -656,7 +560,7 @@ describe(`${Collection.name} spec`, () => {
 					$gte: 1990,
 					$lt: 2000
 				},
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				'address.countryCode': {
 					$in: ['EN', 'RU', 'DE']
 				}
@@ -671,11 +575,11 @@ describe(`${Collection.name} spec`, () => {
 			const matches = collection.find(query, options);
 
 			function filter(doc: PersonDocument): boolean {
-				const birthYearRange = Array.from(range(dotProp.get(query.birthYear! as ObjMap, '$gte'), dotProp.get(query.birthYear! as ObjMap, '$lt')));
+				const birthYearRange = [...range(getProperty(query.birthYear, '$gte'), getProperty(query.birthYear, '$lt'))];
 				const isInBirthYearRange = birthYearRange.includes(doc.birthYear);
 
-				const countryCode = dotProp.get(doc, 'address.countryCode');
-				// @ts-ignore This is for test purposes
+				const countryCode = getProperty(doc, 'address.countryCode');
+				// @ts-expect-error This is for test purposesrposes
 				const isInCountryCodeRange = query['address.countryCode'].$in.includes(countryCode);
 
 				return isInBirthYearRange && isInCountryCodeRange;
@@ -722,94 +626,10 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const toBeRetrievedLater = [
-				new PersonDocument({
-					[PK_INDEX_NAME]: string.random(),
-					birthYear: 1995,
-					firstName: 'John',
-					address: {
-						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.random({ length: 5 })
-					},
-					finance: {
-						bank: {
-							name: string.random({ length: 5 })
-						},
-						transactions: [
-							{
-								currencySymbol: '$',
-								amount: '889.6',
-								transactionType: 'transfer'
-							}
-						]
-					},
-					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
-				}),
-				new PersonDocument({
-					[PK_INDEX_NAME]: string.random(),
-					birthYear: 1999,
-					firstName: 'John',
-					address: {
-						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.random({ length: 5 })
-					},
-					finance: {
-						bank: {
-							name: string.random({ length: 5 })
-						},
-						transactions: [
-							{
-								currencySymbol: '$',
-								amount: '889.6',
-								transactionType: 'transfer'
-							}
-						]
-					},
-					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
-				}),
-				new PersonDocument({
-					[PK_INDEX_NAME]: string.random(),
-					birthYear: 1992,
-					firstName: 'Clint',
-					address: {
-						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.random({ length: 5 })
-					},
-					finance: {
-						bank: {
-							name: string.random({ length: 5 })
-						},
-						transactions: [
-							{
-								currencySymbol: '$',
-								amount: '889.6',
-								transactionType: 'transfer'
-							}
-						]
-					},
-					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
-				}),
-				new PersonDocument({
-					[PK_INDEX_NAME]: string.random(),
-					birthYear: 2000,
-					firstName: 'Easter',
-					address: {
-						countryCode: array.randomElement(['EN', 'DE']),
-						city: string.random({ length: 5 })
-					},
-					finance: {
-						bank: {
-							name: string.random({ length: 5 })
-						},
-						transactions: [
-							{
-								currencySymbol: '$',
-								amount: '889.6',
-								transactionType: 'transfer'
-							}
-						]
-					},
-					visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(['EN', 'DE']))
-				})
+				new PersonDocument(generatePerson()),
+				new PersonDocument(generatePerson()),
+				new PersonDocument(generatePerson()),
+				new PersonDocument(generatePerson())
 			];
 			collection.insert(toBeRetrievedLater);
 
@@ -829,7 +649,7 @@ describe(`${Collection.name} spec`, () => {
 			const matches = collection.find(query, options);
 
 			expect(matches.length).to.be.eq(toBeRetrievedLater.length);
-			expect(matches).to.containingAllOf(toBeRetrievedLater);
+			expect(matches).to.containSubset(toBeRetrievedLater);
 
 			for (let i = 1; i < matches.length; i++) {
 				expect(matches[i].firstName.localeCompare(matches[i - 1].firstName)).to.be.lte(0); // first sort field
@@ -857,7 +677,7 @@ describe(`${Collection.name} spec`, () => {
 			const matches = collection.find(null, options);
 			const crossCheck = orderBy(PersonsRepo, [PersonIndexes.I_BIRTH_YEAR], ['asc']);
 
-			expect(matches).to.be.ofSize(crossCheck.length);
+			expect(matches).to.have.length(crossCheck.length);
 			for (let i = 0; i < crossCheck.length; i++) {
 				expect(matches[i]).to.be.eq(crossCheck[i]);
 			}
@@ -868,15 +688,15 @@ describe(`${Collection.name} spec`, () => {
 				indexKeys: [PersonIndexes.I_BIRTH_YEAR]
 			});
 
-			const sortFields: Array<KeyOf<Person>> = ['birthYear', 'firstName'];
+			const sortFields: KeyOf<Person>[] = ['birthYear', 'firstName'];
 			const nullables = [null, undefined];
 
-			const docsNo = number.randomInt(1, 10);
+			const docsNo = randomInt(1, 10);
 			const documents = new Array<PersonDocument>(docsNo);
 
 			for (let i = 0; i < docsNo; i++) {
 				const document = generatePersonDocument();
-				dotProp.set(document, array.randomElement(sortFields), array.randomElement(nullables));
+				setProperty(document, randomItem(sortFields), randomItem(nullables));
 				collection.insert(document);
 				documents[i] = document;
 			}
@@ -890,7 +710,7 @@ describe(`${Collection.name} spec`, () => {
 			const matches = collection.find(null, options);
 			const crossCheck = orderBy(documents, sortFields, ['desc', 'asc']);
 
-			expect(matches).to.be.ofSize(crossCheck.length);
+			expect(matches).to.have.length(crossCheck.length);
 			for (let i = 0; i < crossCheck.length; i++) {
 				expect(matches[i]).to.be.eq(crossCheck[i]);
 			}
@@ -915,9 +735,9 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				[PersonIndexes.II_COUNTRY_CODE]: {
-					$in: array.filledWith(5, () => dotProp.get(array.randomElement(PersonsRepo), PersonIndexes.II_COUNTRY_CODE))
+					$in: Array.from({ length: 5 }, () => getProperty(randomItem(PersonsRepo), PersonIndexes.II_COUNTRY_CODE))
 				}
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {
@@ -931,17 +751,17 @@ describe(`${Collection.name} spec`, () => {
 			expect(matches.length).to.be.gt(0);
 
 			const crossCheck = PersonsRepo.filter((person) => {
-				// @ts-ignore This is for test purposes
-				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as Array<string>;
-				const actual = dotProp.get(person, PersonIndexes.II_COUNTRY_CODE) as string;
+				// @ts-expect-error This is for test purposesrposes
+				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as (string | undefined)[];
+				const actual = getProperty(person, PersonIndexes.II_COUNTRY_CODE);
 				return expected.includes(actual);
 			});
-			expect(matches).to.be.containingAllOf(crossCheck);
+			expect(matches).to.containSubset(crossCheck);
 
 			for (const match of matches) {
-				const actual = dotProp.get(match, PersonIndexes.II_COUNTRY_CODE) as string;
-				// @ts-ignore This is for test purposes
-				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as Array<string>;
+				const actual = getProperty(match, PersonIndexes.II_COUNTRY_CODE);
+				// @ts-expect-error This is for test purposesrposes
+				const expected = query[PersonIndexes.II_COUNTRY_CODE].$in as string[];
 				expect(actual).to.be.oneOf(expected);
 			}
 		});
@@ -956,19 +776,19 @@ describe(`${Collection.name} spec`, () => {
 				multiple: true,
 				index: {
 					name: PersonIndexes.II_COUNTRY_CODE,
-					value: dotProp.get(array.randomElement(PersonsRepo), PersonIndexes.II_COUNTRY_CODE)
+					value: getProperty(randomItem(PersonsRepo), PersonIndexes.II_COUNTRY_CODE)
 				}
 			};
 
 			const matches = collection.find(null, options);
 			expect(matches.length).to.be.gt(0);
 
-			const crossCheck = PersonsRepo.filter((person) => dotProp.get(person, PersonIndexes.II_COUNTRY_CODE) === options.index!.value);
-			expect(matches).to.be.containingAllOf(crossCheck);
+			const crossCheck = PersonsRepo.filter((person) => getProperty(person, PersonIndexes.II_COUNTRY_CODE) === options.index?.value);
+			expect(matches).to.containSubset(crossCheck);
 
 			for (const match of matches) {
-				const actual = dotProp.get(match, PersonIndexes.II_COUNTRY_CODE) as string;
-				const expected = options.index!.value;
+				const actual = getProperty(match, PersonIndexes.II_COUNTRY_CODE);
+				const expected = options.index?.value;
 				expect(actual).to.be.eq(expected);
 			}
 		});
@@ -979,44 +799,17 @@ describe(`${Collection.name} spec`, () => {
 			});
 			collection.insert(PersonsRepo);
 
-			const minBirthYear = 1990;
-			const maxBirthYear = 1995;
-			const countryCodes = ['DE', 'EN'];
-			const transactionCurrency = '$';
-
-			const desired = new PersonDocument({
-				[PK_INDEX_NAME]: string.random(),
-				birthYear: number.randomInt(minBirthYear, maxBirthYear),
-				firstName: string.random({ length: 5 }),
-				address: {
-					countryCode: array.randomElement(countryCodes),
-					city: string.random({ length: 5 })
-				},
-				finance: {
-					bank: {
-						name: string.random({ length: 5 })
-					},
-					transactions: [
-						{
-							currencySymbol: transactionCurrency,
-							amount: '889.6',
-							transactionType: 'transfer'
-						}
-					]
-				},
-				visitedCountries: array.filledWith(number.randomInt(0, 5), array.randomElement(countryCodes))
-			});
-
+			const desired = new PersonDocument(generatePerson());
 			collection.insert(desired);
 
 			const query: Query<PersonDocument> = {
 				birthYear: {
-					$gte: minBirthYear,
-					$lte: maxBirthYear
+					$gte: desired.birthYear - 1,
+					$lte: desired.birthYear + 1
 				},
-				// @ts-ignore This is for test purposes
+				// @ts-expect-error This is for test purposesrposes
 				'address.countryCode': {
-					$in: countryCodes
+					$in: [desired.address.countryCode]
 				},
 				'finance.transactions': {
 					$elemMatch: desired.finance.transactions[0]
@@ -1037,14 +830,13 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				// @ts-ignore This is for test purposes
-				[PersonIndexes.II_COUNTRY_CODE]: string.random({ length: 5, allowedCharRegex: /[0-9]/ })
+				[PersonIndexes.II_COUNTRY_CODE as string]: cryptoRandomString({ length: 5, type: 'numeric' })
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {
 				multiple: true,
 				index: {
 					name: PersonIndexes.II_COUNTRY_CODE,
-					value: dotProp.get(array.randomElement(PersonsRepo), PersonIndexes.II_COUNTRY_CODE)
+					value: getProperty(randomItem(PersonsRepo), PersonIndexes.II_COUNTRY_CODE)
 				}
 			};
 
@@ -1059,7 +851,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.random({ length: 5, allowedCharRegex: /[0-9]/ })
+				[PK_INDEX_NAME]: cryptoRandomString({ length: 5, type: 'numeric' })
 			};
 			const options: Partial<FindOptions<PersonDocument>> = {
 				multiple: false,
@@ -1082,7 +874,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const replaced = array.randomElement(PersonsRepo);
+			const replaced = randomItem(PersonsRepo);
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
@@ -1091,15 +883,15 @@ describe(`${Collection.name} spec`, () => {
 			const oldDoc = collection.replace(queryForOldDoc, replacement);
 
 			expect(collection.count).to.be.eq(PersonsRepo.length); // same number of elements remained
-			expect(oldDoc).to.be.equalTo([replaced]); // returned old doc
-			expect(collection.find(queryForOldDoc)).to.be.equalTo([]); // removed old doc
+			expect(oldDoc).toStrictEqual([replaced]); // returned old doc
+			expect(collection.find(queryForOldDoc)).toStrictEqual([]); // removed old doc
 
 			const queryForNewDoc: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: replacement[PK_INDEX_NAME]
 			};
 			const newDoc = collection.find(queryForNewDoc);
 
-			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
+			expect(newDoc).toStrictEqual([replacement]); // replaced with new doc
 		});
 
 		it('should replace document by id when providing as query the value of id', () => {
@@ -1107,20 +899,20 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const replaced = array.randomElement(PersonsRepo);
+			const replaced = randomItem(PersonsRepo);
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = replaced[PK_INDEX_NAME];
 			const oldDoc = collection.replace(queryForOldDoc, replacement);
 
 			expect(collection.count).to.be.eq(PersonsRepo.length); // same number of elements remained
-			expect(oldDoc).to.be.equalTo([replaced]); // returned old doc
-			expect(collection.find(queryForOldDoc)).to.be.equalTo([]); // removed old doc
+			expect(oldDoc).toStrictEqual([replaced]); // returned old doc
+			expect(collection.find(queryForOldDoc)).toStrictEqual([]); // removed old doc
 
 			const queryForNewDoc: Query<PersonDocument> = replacement[PK_INDEX_NAME];
 			const newDoc = collection.find(queryForNewDoc);
 
-			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
+			expect(newDoc).toStrictEqual([replacement]); // replaced with new doc
 		});
 
 		it('should replace multiple documents with a single one', () => {
@@ -1144,15 +936,15 @@ describe(`${Collection.name} spec`, () => {
 
 			expect(collection.count).to.be.eq(PersonsRepo.length - docsToBeReplaced.length + 1); // number of elements dropped
 			expect(oldDocs.length).to.be.eq(docsToBeReplaced.length); // returned all old docs ...
-			expect(oldDocs).to.be.containingAllOf(docsToBeReplaced); // ... in their exemplars
-			expect(collection.find(queryForOldDocs)).to.be.equalTo([]); // ... and removed all of them
+			expect(oldDocs).to.containSubset(docsToBeReplaced); // ... in their exemplars
+			expect(collection.find(queryForOldDocs)).toStrictEqual([]); // ... and removed all of them
 
 			const queryForNewDoc: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: replacement[PK_INDEX_NAME]
 			};
 			const newDoc = collection.find(queryForNewDoc, options);
 
-			expect(newDoc).to.be.equalTo([replacement]); // replaced with new doc
+			expect(newDoc).toStrictEqual([replacement]); // replaced with new doc
 		});
 
 		it('should upsert replacement if document for given query was not found', () => {
@@ -1172,15 +964,15 @@ describe(`${Collection.name} spec`, () => {
 			const oldDoc = collection.replace(queryForOldDoc, replacement, options);
 
 			expect(collection.count).to.be.eq(PersonsRepo.length + 1); // there was an upsert
-			expect(oldDoc).to.be.equalTo([]); // no old docs found
-			expect(collection.find(queryForOldDoc)).to.be.equalTo([]); // pedantic check that no old docs are present
+			expect(oldDoc).toStrictEqual([]); // no old docs found
+			expect(collection.find(queryForOldDoc)).toStrictEqual([]); // pedantic check that no old docs are present
 
 			const queryForNewDoc: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: replacement[PK_INDEX_NAME]
 			};
 			const newDoc = collection.find(queryForNewDoc);
 
-			expect(newDoc).to.be.equalTo([replacement]); // upserted the replacement
+			expect(newDoc).toStrictEqual([replacement]); // upserted the replacement
 		});
 
 		it('when search options says not to upsert should not upsert replacement if document for given query was not found', () => {
@@ -1197,14 +989,14 @@ describe(`${Collection.name} spec`, () => {
 			const oldDoc = collection.replace(queryForOldDoc, replacement);
 
 			expect(collection.count).to.be.eq(PersonsRepo.length); // old doc not found, so replacement (i.e. upsert) didn't took place
-			expect(oldDoc).to.be.equalTo([]); // no old docs found
+			expect(oldDoc).toStrictEqual([]); // no old docs found
 
 			const queryForNewDoc: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: replacement[PK_INDEX_NAME]
 			};
 			const newDoc = collection.find(queryForNewDoc);
 
-			expect(newDoc).to.be.equalTo([]); // replacement was not upserted
+			expect(newDoc).toStrictEqual([]); // replacement was not upserted
 		});
 
 		it('should clone replacement when document identity is set to clone', () => {
@@ -1213,7 +1005,7 @@ describe(`${Collection.name} spec`, () => {
 			});
 			collection.insert(PersonsRepo);
 
-			const replaced = array.randomElement(PersonsRepo);
+			const replaced = randomItem(PersonsRepo);
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
@@ -1226,8 +1018,9 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const newDoc = collection.find(queryForNewDoc);
 
-			expect(newDoc).to.not.be.equalTo([replacement]); // new doc is a clone of replacement ...
-			expect(newDoc).to.be.ofSize(1);
+			expect(newDoc).to.have.length(1);
+			expect(newDoc[0]).to.not.be.equal(replacement); // new doc is a clone of replacement ...
+			expect(newDoc[0]).to.be.deep.equal(replacement);
 			expect(newDoc[0][PK_INDEX_NAME]).to.be.eq(replacement[PK_INDEX_NAME]); // ... although they have the same values
 		});
 
@@ -1238,7 +1031,7 @@ describe(`${Collection.name} spec`, () => {
 			const notifications = new Array<DocumentNotification<PersonDocument>>();
 			collection.watch().subscribe((notification) => notifications.push(notification));
 
-			const replaced = array.randomElement(PersonsRepo);
+			const replaced = randomItem(PersonsRepo);
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
@@ -1246,14 +1039,14 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const oldDocs = collection.replace(queryForOldDoc, replacement);
 
-			expect(notifications).to.be.ofSize(2); // delete + insert
+			expect(notifications).to.have.length(2); // delete + insert
 
 			expect(notifications[0].operation).to.be.eq(DocumentOperation.DELETED);
-			expect(notifications[0].documents).to.be.equalTo([replaced]);
-			expect(notifications[0].documents).to.be.equalTo(oldDocs); // they are same references
+			expect(notifications[0].documents).toStrictEqual([replaced]);
+			expect(notifications[0].documents).toStrictEqual(oldDocs); // they are same references
 
 			expect(notifications[1].operation).to.be.eq(DocumentOperation.CREATED);
-			expect(notifications[1].documents).to.be.equalTo([replacement]);
+			expect(notifications[1].documents).toStrictEqual([replacement]);
 		});
 
 		it('should notify when replacement was upserted', () => {
@@ -1266,19 +1059,19 @@ describe(`${Collection.name} spec`, () => {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.random({ length: 2 })
+				[PK_INDEX_NAME]: cryptoRandomString({ length: 2 })
 			};
 			const options: Partial<ReplaceOptions<PersonDocument>> = {
 				upsert: true
 			};
 			const oldDocs = collection.replace(queryForOldDoc, replacement, options);
-			expect(oldDocs).to.be.ofSize(0);
+			expect(oldDocs).to.have.length(0);
 			expect(collection.count).to.be.eq(1);
 
-			expect(notifications).to.be.ofSize(1); // insert
+			expect(notifications).to.have.length(1); // insert
 
 			expect(notifications[0].operation).to.be.eq(DocumentOperation.CREATED);
-			expect(notifications[0].documents).to.be.equalTo([replacement]);
+			expect(notifications[0].documents).toStrictEqual([replacement]);
 		});
 
 		it('should not notify when replacement was not upserted', () => {
@@ -1291,13 +1084,13 @@ describe(`${Collection.name} spec`, () => {
 			const replacement = generatePersonDocument();
 
 			const queryForOldDoc: Query<PersonDocument> = {
-				[PK_INDEX_NAME]: string.random({ length: 2 })
+				[PK_INDEX_NAME]: cryptoRandomString({ length: 2 })
 			};
 			const oldDocs = collection.replace(queryForOldDoc, replacement);
-			expect(oldDocs).to.be.ofSize(0);
+			expect(oldDocs).to.have.length(0);
 			expect(collection.count).to.be.eq(0);
 
-			expect(notifications).to.be.ofSize(0);
+			expect(notifications).to.have.length(0);
 		});
 	});
 
@@ -1308,11 +1101,11 @@ describe(`${Collection.name} spec`, () => {
 				collection.insert(PersonsRepo);
 
 				const query: Query<PersonDocument> = {
-					[PK_INDEX_NAME]: randomDocuments(1, 1)[0][PK_INDEX_NAME]
+					[PK_INDEX_NAME]: randomDocuments(1, 2)[0][PK_INDEX_NAME]
 				};
 				const update = {
 					$fff: {
-						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
+						$bb: cryptoRandomString({ length: 5, type: 'alphanumeric' })
 					}
 				};
 
@@ -1327,11 +1120,11 @@ describe(`${Collection.name} spec`, () => {
 				collection.insert(PersonsRepo);
 
 				const query: Query<PersonDocument> = {
-					[PK_INDEX_NAME]: randomDocuments(1, 1)[0][PK_INDEX_NAME]
+					[PK_INDEX_NAME]: randomDocuments(1, 2)[0][PK_INDEX_NAME]
 				};
 				const update = {
 					$fff: {
-						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
+						$bb: cryptoRandomString({ length: 5, type: 'alphanumeric' })
 					}
 				};
 
@@ -1346,11 +1139,11 @@ describe(`${Collection.name} spec`, () => {
 				collection.insert(PersonsRepo);
 
 				const query: Query<PersonDocument> = {
-					[PK_INDEX_NAME]: randomDocuments(1, 1)[0][PK_INDEX_NAME]
+					[PK_INDEX_NAME]: randomDocuments(1, 2)[0][PK_INDEX_NAME]
 				};
 				const update = {
 					$fff: {
-						$bb: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
+						$bb: cryptoRandomString({ length: 5, type: 'alphanumeric' })
 					}
 				};
 
@@ -1364,14 +1157,14 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeUpdated = array.randomElement(PersonsRepo);
+			const toBeUpdated = randomItem(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: toBeUpdated[PK_INDEX_NAME]
 			};
 			const update = {
 				$set: {
-					firstName: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
+					firstName: faker.person.firstName()
 				}
 			};
 
@@ -1380,18 +1173,18 @@ describe(`${Collection.name} spec`, () => {
 			const oldDoc = collection.update(query, update);
 			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
 
-			expect(oldDoc).to.be.ofSize(1);
+			expect(oldDoc).to.have.length(1);
 			expect(oldDoc[0]).not.to.be.equal(toBeUpdated); // it returned a clone of old document...
 			expect(oldDoc[0]).not.to.be.deep.equal(toBeUpdated); // ...with different values
 			expect(oldDoc[0]).to.be.deep.equal(originalSnapshot); // just to be sure it returned old value
 
 			const updatedDoc = collection.find(query);
 
-			expect(updatedDoc).to.be.ofSize(1);
+			expect(updatedDoc).to.have.length(1);
 			expect(updatedDoc[0][PK_INDEX_NAME]).to.be.eq(toBeUpdated[PK_INDEX_NAME]);
 
 			for (const [prop, value] of Object.entries(update.$set)) {
-				expect(dotProp.get(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
+				expect(getProperty(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
 			}
 		});
 
@@ -1399,29 +1192,29 @@ describe(`${Collection.name} spec`, () => {
 			const collection = new Collection<PersonDocument>();
 			collection.insert(PersonsRepo);
 
-			const toBeUpdated = array.randomElement(PersonsRepo);
+			const toBeUpdated = randomItem(PersonsRepo);
 
 			const query: Query<PersonDocument> = toBeUpdated[PK_INDEX_NAME];
 			const update = {
 				$set: {
-					birthYear: number.randomInt(2000, 2010)
+					birthYear: IndexValueGenerators[PersonIndexes.I_BIRTH_YEAR]()
 				}
 			};
 
 			const oldDoc = collection.update(query, update);
 			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
 
-			expect(oldDoc).to.be.ofSize(1);
+			expect(oldDoc).to.have.length(1);
 			expect(oldDoc[0]).not.to.be.equal(toBeUpdated); // it returned a clone of old document...
 			expect(oldDoc[0]).not.to.be.deep.equal(toBeUpdated); // ...with different values
 
 			const updatedDoc = collection.find(query);
 
-			expect(updatedDoc).to.be.ofSize(1);
+			expect(updatedDoc).to.have.length(1);
 			expect(updatedDoc[0][PK_INDEX_NAME]).to.be.eq(toBeUpdated[PK_INDEX_NAME]);
 
 			for (const [prop, value] of Object.entries(update.$set)) {
-				expect(dotProp.get(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
+				expect(getProperty(updatedDoc[0], prop)).to.be.deep.eq(value); // ...with updated properties
 			}
 		});
 
@@ -1452,13 +1245,13 @@ describe(`${Collection.name} spec`, () => {
 				},
 				$push: {
 					'finance.transactions': {
-						$each: array.filledWith(2, generateTransaction)
+						$each: Array.from({ length: 2 }, generateTransaction)
 					}
 				}
 			};
 
 			const originalSnapshots = ordered(collection.find(query, options).map((doc) => doc.clone()));
-			expect(originalSnapshots).to.be.ofSize(toBeUpdated.length);
+			expect(originalSnapshots).to.have.length(toBeUpdated.length);
 
 			const oldDocs = ordered(collection.update(query, update, options));
 			expect(collection.count).to.be.eq(PersonsRepo.length); // there was just an update
@@ -1467,20 +1260,20 @@ describe(`${Collection.name} spec`, () => {
 			for (let i = 0; i < originalSnapshots.length; i++) {
 				expect(oldDocs[i]).to.be.deep.equal(originalSnapshots[i]); // they are both clones
 			}
-			expect(oldDocs).not.to.be.equalTo(toBeUpdated); // ... and updated in the collection
+			expect(oldDocs).not.toStrictEqual(toBeUpdated); // ... and updated in the collection
 
 			const updatedDocs = ordered(collection.find(query, options));
 
-			expect(updatedDocs).to.be.equalTo(toBeUpdated); // returned updates
+			expect(updatedDocs).toStrictEqual(toBeUpdated); // returned updates
 			for (let i = 0; i < updatedDocs.length; i++) {
 				// removed property
-				expect(dotProp.get(updatedDocs[i], 'firstName')).to.be.eq(undefined);
+				expect(getProperty(updatedDocs[i], 'firstName')).toBeUndefined();
 				// incremented property
 				expect(updatedDocs[i].birthYear).to.be.eq(oldDocs[i].birthYear + 10);
 				// renamed property
-				expect(dotProp.get(updatedDocs[i], 'finance.bank.id')).to.be.eq(dotProp.get(oldDocs[i], 'finance.bank.name'));
+				expect(getProperty(updatedDocs[i], 'finance.bank.id')).to.be.eq(getProperty(oldDocs[i], 'finance.bank.name'));
 				// additional elements
-				expect(updatedDocs[i].finance.transactions).to.be.containingAllOf(update.$push['finance.transactions'].$each);
+				expect(updatedDocs[i].finance.transactions).to.containSubset(update.$push['finance.transactions'].$each);
 			}
 		});
 
@@ -1489,7 +1282,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeUpdated = array.randomElement(PersonsRepo);
+			const toBeUpdated = randomItem(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: toBeUpdated[PK_INDEX_NAME]
@@ -1506,7 +1299,7 @@ describe(`${Collection.name} spec`, () => {
 			const originalSnapshot = collection.find(query)[0].clone();
 
 			const updatedDocs = collection.update(query, update, options);
-			expect(updatedDocs).to.be.ofSize(1);
+			expect(updatedDocs).to.have.length(1);
 
 			// returned the update ...
 			expect(updatedDocs).not.to.be.eq(originalSnapshot);
@@ -1516,7 +1309,7 @@ describe(`${Collection.name} spec`, () => {
 			const updatedTx = orderBy(updatedDocs[0].finance.transactions, ['amount'], ['asc']);
 			const slicedOriginalTx = orderBy(originalSnapshot.finance.transactions.slice(1), ['amount'], ['asc']);
 
-			expect(updatedTx).to.be.ofSize(slicedOriginalTx.length);
+			expect(updatedTx).to.have.length(slicedOriginalTx.length);
 			for (let i = 0; i < updatedTx.length; i++) {
 				expect(updatedTx[i]).to.be.deep.equal(slicedOriginalTx[i]);
 			}
@@ -1527,14 +1320,14 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const original = array.randomElement(PersonsRepo).clone();
+			const original = randomItem(PersonsRepo).clone();
 
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: original[PK_INDEX_NAME]
 			};
 			const update = {
 				$set: {
-					[PK_INDEX_NAME]: string.random({ length: 5 })
+					[PK_INDEX_NAME]: cryptoRandomString({ length: 5 })
 				}
 			};
 
@@ -1542,7 +1335,7 @@ describe(`${Collection.name} spec`, () => {
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
 			const nonExistentDoc = collection.find(query);
-			expect(nonExistentDoc).to.be.ofSize(0);
+			expect(nonExistentDoc).to.have.length(0);
 		});
 
 		it('should update indexes when they values are changed', () => {
@@ -1564,17 +1357,13 @@ describe(`${Collection.name} spec`, () => {
 				returnUpdated: true
 			};
 			const update = {
-				$set: {
-					[PersonIndexes.I_BIRTH_YEAR]: number.randomInt(2010, 2020),
-					[PersonIndexes.II_COUNTRY_CODE]: string.random({ length: 3, allowedCharRegex: /[A-Z]/ }),
-					[PersonIndexes.III_BANK_NAME]: string.random({ length: 5, allowedCharRegex: /[a-zA-Z]/ })
-				}
+				$set: Object.fromEntries(Object.entries(IndexValueGenerators).map(([index, generator]) => [index, generator()]))
 			};
 
 			assertFoundByIndexes(collection, toBeUpdated); // finds by old values of indexes
 
 			const updatedDocs = collection.update(query, update, options);
-			expect(updatedDocs).to.be.ofSize(toBeUpdated.length);
+			expect(updatedDocs).to.have.length(toBeUpdated.length);
 
 			assertFoundByIndexes(collection, updatedDocs); // finds by new values of indexes
 		});
@@ -1592,7 +1381,7 @@ describe(`${Collection.name} spec`, () => {
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate);
 
-				const updatedIdx = array.randomElement(indexNames);
+				const updatedIdx = randomItem(indexNames);
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
@@ -1602,11 +1391,11 @@ describe(`${Collection.name} spec`, () => {
 						[updatedIdx]: ''
 					},
 					$set: {
-						[updatedIdx]: IndexValueGenerators.get(updatedIdx)!()
+						[updatedIdx]: IndexValueGenerators[updatedIdx]()
 					}
 				};
 
-				expect(collection.update(query, update)).to.be.ofSize(1);
+				expect(collection.update(query, update)).to.have.length(1);
 
 				assertFoundByIndexes(collection, toUpdate); // index was updated with new value
 			}
@@ -1626,18 +1415,18 @@ describe(`${Collection.name} spec`, () => {
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate);
 
-				const nullifiedIndex = array.randomElement(indexNames);
+				const nullifiedIndex = randomItem(indexNames);
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
 				};
 				const update = {
 					$set: {
-						[nullifiedIndex]: array.randomElement(nullables)
+						[nullifiedIndex]: randomItem(nullables)
 					}
 				};
 
-				expect(collection.update(query, update)).to.be.ofSize(1);
+				expect(collection.update(query, update)).to.have.length(1);
 
 				const nonIndexed = [nullifiedIndex];
 				const indexed = difference(indexNames, nonIndexed);
@@ -1658,7 +1447,7 @@ describe(`${Collection.name} spec`, () => {
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate);
 
-				const nullifiedIndex = array.randomElement(indexNames);
+				const nullifiedIndex = randomItem(indexNames);
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
@@ -1669,7 +1458,7 @@ describe(`${Collection.name} spec`, () => {
 					}
 				};
 
-				expect(collection.update(query, update)).to.be.ofSize(1);
+				expect(collection.update(query, update)).to.have.length(1);
 
 				const nonIndexed = [nullifiedIndex];
 				const indexed = difference(indexNames, nonIndexed);
@@ -1690,19 +1479,19 @@ describe(`${Collection.name} spec`, () => {
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate);
 
-				const renamedIndex = array.randomElement(indexNames);
-				const newName = string.random({ length: 5, allowedCharRegex: /[a-zA-z]/ });
+				const renamedIndex = randomItem(indexNames);
+				const newIndexName = cryptoRandomString({ length: 5, type: 'alphanumeric' });
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
 				};
 				const update = {
 					$rename: {
-						[renamedIndex]: newName
+						[renamedIndex]: newIndexName
 					}
 				};
 
-				expect(collection.update(query, update)).to.be.ofSize(1);
+				expect(collection.update(query, update)).to.have.length(1);
 
 				const nonIndexed = [renamedIndex];
 				const indexed = difference(indexNames, nonIndexed);
@@ -1710,13 +1499,13 @@ describe(`${Collection.name} spec`, () => {
 
 				const bringNameBackUpdate = {
 					$unset: {
-						[newName]: ''
+						[newIndexName]: ''
 					},
 					$set: {
-						[renamedIndex]: dotProp.get(toUpdate, newName)
+						[renamedIndex]: getProperty(toUpdate, newIndexName)
 					}
 				};
-				expect(collection.update(query, bringNameBackUpdate)).to.be.ofSize(1);
+				expect(collection.update(query, bringNameBackUpdate)).to.have.length(1);
 
 				assertFoundByIndexes(collection, toUpdate);
 			}
@@ -1736,18 +1525,18 @@ describe(`${Collection.name} spec`, () => {
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate);
 
-				const nullifiedIndex = array.randomElement(indexNames);
+				const nullifiedIndex = randomItem(indexNames);
 
 				const query: Query<PersonDocument> = {
 					[PK_INDEX_NAME]: toUpdate[PK_INDEX_NAME]
 				};
 				const update = {
 					$set: {
-						[nullifiedIndex]: array.randomElement(nullables)
+						[nullifiedIndex]: randomItem(nullables)
 					}
 				};
 
-				expect(collection.update(query, update)).to.be.ofSize(1);
+				expect(collection.update(query, update)).to.have.length(1);
 
 				const nonIndexed = [nullifiedIndex];
 				const indexed = difference(indexNames, nonIndexed);
@@ -1755,23 +1544,23 @@ describe(`${Collection.name} spec`, () => {
 
 				const createIndexBackUpdate = {
 					$set: {
-						[nullifiedIndex]: IndexValueGenerators.get(nullifiedIndex)!()
+						[nullifiedIndex]: IndexValueGenerators[nullifiedIndex]()
 					}
 				};
 
-				expect(collection.update(query, createIndexBackUpdate)).to.be.ofSize(1);
+				expect(collection.update(query, createIndexBackUpdate)).to.have.length(1);
 				assertFoundByIndexes(collection, toUpdate);
 			}
 		});
 
-		it('should throw when updates for index cancel each other (i.e. it remains with same value after all updates)', () => {
+		it('should allow updates for index to cancel each other (i.e. it remains with same value after all updates)', () => {
 			const collection = new Collection<PersonDocument>({
 				indexKeys: [PersonIndexes.I_BIRTH_YEAR]
 			});
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeUpdated = ordered(randomDocuments(10, 15));
+			const toBeUpdated = ordered(randomDocuments());
 
 			for (const toUpdate of toBeUpdated) {
 				assertFoundByIndexes(collection, toUpdate, [PersonIndexes.I_BIRTH_YEAR]); // it finds it
@@ -1784,12 +1573,15 @@ describe(`${Collection.name} spec`, () => {
 						[PersonIndexes.I_BIRTH_YEAR]: 10
 					},
 					$set: {
-						[PersonIndexes.I_BIRTH_YEAR]: dotProp.get(toUpdate, PersonIndexes.I_BIRTH_YEAR)
+						[PersonIndexes.I_BIRTH_YEAR]: getProperty(toUpdate, PersonIndexes.I_BIRTH_YEAR)
 					}
 				};
 
-				const throwable = () => collection.update(query, update);
-				expect(throwable).to.throw(`New and old values for index 'birthYear' are the same: ${dotProp.get(toUpdate, PersonIndexes.I_BIRTH_YEAR)}.`);
+				const originalBirthYear = toUpdate.birthYear;
+
+				const updates = collection.update(query, update);
+				expect(updates).to.have.length(1);
+				expect(updates[0].birthYear).toBe(originalBirthYear);
 
 				assertFoundByIndexes(collection, toUpdate, [PersonIndexes.I_BIRTH_YEAR]); // finds it again because it was not modified
 			}
@@ -1803,25 +1595,25 @@ describe(`${Collection.name} spec`, () => {
 			const notifications = new Array<DocumentNotification<PersonDocument>>();
 			collection.watch().subscribe((notification) => notifications.push(notification));
 
-			const toBeUpdated = array.randomElement(PersonsRepo);
+			const toBeUpdated = randomItem(PersonsRepo);
 
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: toBeUpdated[PK_INDEX_NAME]
 			};
 			const update = {
 				$set: {
-					firstName: string.random({ length: 5, allowedCharRegex: /[A-Za-z]/ })
+					firstName: faker.person.firstName()
 				}
 			};
 			const options: Partial<UpdateOptions<PersonDocument>> = {
 				returnUpdated: true
 			};
 			const updatedDocs = collection.update(query, update, options);
-			expect(updatedDocs).to.be.ofSize(1);
+			expect(updatedDocs).to.have.length(1);
 
-			expect(notifications).to.be.ofSize(1);
+			expect(notifications).to.have.length(1);
 			expect(notifications[0].operation).to.be.eq(DocumentOperation.UPDATED);
-			expect(notifications[0].documents).to.be.equalTo(updatedDocs);
+			expect(notifications[0].documents).toStrictEqual(updatedDocs);
 		});
 	});
 
@@ -1831,17 +1623,17 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeDeleted = array.randomElement(PersonsRepo);
+			const toBeDeleted = randomItem(PersonsRepo);
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: toBeDeleted[PK_INDEX_NAME]
 			};
 
 			const deleted = collection.delete(query);
 			expect(collection.count).to.be.eq(PersonsRepo.length - 1); // it was removed
-			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+			expect(deleted).toStrictEqual([toBeDeleted]); // the right one
 
 			const notFoundDoc = collection.find(query);
-			expect(notFoundDoc).to.be.ofSize(0);
+			expect(notFoundDoc).to.have.length(0);
 		});
 
 		it('should delete document by id when providing as query the value of id', () => {
@@ -1849,15 +1641,15 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeDeleted = array.randomElement(PersonsRepo);
+			const toBeDeleted = randomItem(PersonsRepo);
 			const query: Query<PersonDocument> = toBeDeleted[PK_INDEX_NAME];
 
 			const deleted = collection.delete(query);
 			expect(collection.count).to.be.eq(PersonsRepo.length - 1); // it was removed
-			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+			expect(deleted).toStrictEqual([toBeDeleted]); // the right one
 
 			const notFoundDoc = collection.find(query);
-			expect(notFoundDoc).to.be.ofSize(0);
+			expect(notFoundDoc).to.have.length(0);
 		});
 
 		it('should delete multiple documents', () => {
@@ -1865,7 +1657,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeDeleted = randomDocuments(10, 15);
+			const toBeDeleted = randomDocuments();
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: {
 					$in: toBeDeleted.map((doc) => doc[PK_INDEX_NAME])
@@ -1874,11 +1666,11 @@ describe(`${Collection.name} spec`, () => {
 
 			const deleted = collection.delete(query);
 			expect(collection.count).to.be.eq(PersonsRepo.length - toBeDeleted.length); // it was removed
-			expect(deleted).to.be.ofSize(toBeDeleted.length);
-			expect(deleted).to.be.containingAllOf(toBeDeleted); // the right ones
+			expect(deleted).to.have.length(toBeDeleted.length);
+			expect(deleted).to.containSubset(toBeDeleted); // the right ones
 
 			const notFoundDoc = collection.find(query);
-			expect(notFoundDoc).to.be.ofSize(0);
+			expect(notFoundDoc).to.have.length(0);
 		});
 
 		it('should de-index deleted documents', () => {
@@ -1888,7 +1680,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.insert(PersonsRepo);
 			expect(collection.count).to.be.eq(PersonsRepo.length);
 
-			const toBeDeleted = randomDocuments(10, 15);
+			const toBeDeleted = randomDocuments();
 			assertFoundByIndexes(collection, toBeDeleted);
 
 			const query: Query<PersonDocument> = {
@@ -1897,9 +1689,9 @@ describe(`${Collection.name} spec`, () => {
 				}
 			};
 			const deleted = collection.delete(query);
-			expect(deleted).to.be.ofSize(toBeDeleted.length);
+			expect(deleted).to.have.length(toBeDeleted.length);
 			const notFoundDoc = collection.find(query);
-			expect(notFoundDoc).to.be.ofSize(0);
+			expect(notFoundDoc).to.have.length(0);
 
 			assertFoundByIndexes(collection, toBeDeleted, [], collection.indexes);
 		});
@@ -1912,16 +1704,16 @@ describe(`${Collection.name} spec`, () => {
 			const notifications = new Array<DocumentNotification<PersonDocument>>();
 			collection.watch().subscribe((notification) => notifications.push(notification));
 
-			const toBeDeleted = array.randomElement(PersonsRepo);
+			const toBeDeleted = randomItem(PersonsRepo);
 			const query: Query<PersonDocument> = {
 				[PK_INDEX_NAME]: toBeDeleted[PK_INDEX_NAME]
 			};
 			const deleted = collection.delete(query);
-			expect(deleted).to.be.equalTo([toBeDeleted]); // the right one
+			expect(deleted).toStrictEqual([toBeDeleted]); // the right one
 
-			expect(notifications).to.be.ofSize(1);
+			expect(notifications).to.have.length(1);
 			expect(notifications[0].operation).to.be.eq(DocumentOperation.DELETED);
-			expect(notifications[0].documents).to.be.equalTo(deleted);
+			expect(notifications[0].documents).toStrictEqual(deleted);
 		});
 	});
 
@@ -1935,7 +1727,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.clear();
 			expect(collection.count).to.be.eq(0);
 
-			expect(collection.find()).to.be.equalTo([]);
+			expect(collection.find()).toStrictEqual([]);
 		});
 
 		it('notifies about clearing', () => {
@@ -1945,7 +1737,7 @@ describe(`${Collection.name} spec`, () => {
 			collection.watch().subscribe((notification) => notifications.push(notification));
 
 			collection.clear();
-			expect(notifications).to.be.ofSize(1);
+			expect(notifications).to.have.length(1);
 			expect(notifications[0].operation).to.be.eq(DocumentOperation.CLEARED);
 			expect(notifications[0].documents).to.be.eq(null);
 		});
@@ -1965,8 +1757,7 @@ describe(`${Collection.name} spec`, () => {
 					notifications.push(notification);
 				},
 				error(err) {
-					// eslint-disable-next-line no-console
-					console.error(err);
+					logger.error(err);
 				},
 				complete() {
 					completions += 1;
@@ -1977,8 +1768,7 @@ describe(`${Collection.name} spec`, () => {
 					notifications.push(notification);
 				},
 				error(err) {
-					// eslint-disable-next-line no-console
-					console.error(err);
+					logger.error(err);
 				},
 				complete() {
 					completions += 1;
@@ -1987,7 +1777,7 @@ describe(`${Collection.name} spec`, () => {
 
 			collection.drop();
 
-			expect(notifications).to.be.ofSize(2);
+			expect(notifications).to.have.length(2);
 			for (const notification of notifications) {
 				expect(notification.operation).to.be.eq(DocumentOperation.CLEARED);
 				expect(notification.documents).to.be.eq(null);
@@ -2004,9 +1794,9 @@ describe(`${Collection.name} spec`, () => {
 
 			const primaryKeys = collection.map((doc) => doc[PK_INDEX_NAME]);
 			const primaryKeysCrossCheck = PersonsRepo.map((person) => person[PK_INDEX_NAME]);
-			expect(primaryKeys).to.be.ofSize(PersonsRepo.length);
-			expect(primaryKeysCrossCheck).to.be.ofSize(PersonsRepo.length);
-			expect(primaryKeys).to.be.containingAllOf(primaryKeysCrossCheck);
+			expect(primaryKeys).to.have.length(PersonsRepo.length);
+			expect(primaryKeysCrossCheck).to.have.length(PersonsRepo.length);
+			expect(primaryKeys).to.containSubset(primaryKeysCrossCheck);
 		});
 
 		it('should map documents from index', () => {
@@ -2016,8 +1806,8 @@ describe(`${Collection.name} spec`, () => {
 			});
 			collection.insert(PersonsRepo);
 
-			const indexName = array.randomElement(indexNames);
-			const indexValue = dotProp.get(randomDocuments(1, 1)[0], indexName) as IndexValue;
+			const indexName = randomItem(indexNames);
+			const indexValue = getProperty(randomDocuments(1, 2)[0], indexName) as IndexValue;
 			const options: IndexOptions<PersonDocument> = {
 				index: {
 					name: indexName,
@@ -2026,10 +1816,10 @@ describe(`${Collection.name} spec`, () => {
 			};
 			const primaryKeys = collection.map((doc) => doc[PK_INDEX_NAME], options);
 
-			const primaryKeysCrossCheck = PersonsRepo.filter((person) => dotProp.get(person, indexName) === indexValue).map((person) => person[PK_INDEX_NAME]);
+			const primaryKeysCrossCheck = PersonsRepo.filter((person) => getProperty(person, indexName) === indexValue).map((person) => person[PK_INDEX_NAME]);
 
-			expect(primaryKeys).to.be.ofSize(primaryKeysCrossCheck.length);
-			expect(primaryKeys).to.be.containingAllOf(primaryKeysCrossCheck);
+			expect(primaryKeys).to.have.length(primaryKeysCrossCheck.length);
+			expect(primaryKeys).to.containSubset(primaryKeysCrossCheck);
 		});
 	});
 
@@ -2111,7 +1901,7 @@ describe(`${Collection.name} spec`, () => {
 
 			let iterations = 0;
 			for (const document of collection) {
-				expect(PersonsRepo).to.be.containing(document);
+				expect(PersonsRepo).to.contain(document);
 				iterations += 1;
 			}
 			expect(iterations).to.be.eq(PersonsRepo.length);

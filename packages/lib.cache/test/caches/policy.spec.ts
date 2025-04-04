@@ -1,81 +1,79 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { PolicyBasedCache, EsMapCacheBackend, EntryValidity, CacheEvent } from '../../lib';
-import { PolicyMock } from './mocks/policy';
+import { describe, expect, it } from 'vitest';
+import { CacheEvent, EntryValidity, EsMapCacheBackend, PolicyBasedCache } from '../../lib/index.js';
+import { PolicyMock } from './mocks/policy.js';
 
 describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCache.prototype.get.name.magenta} spec`, () => {
 		it('returns undefined if item is not present in cache', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend);
-			expect(cache.get('key')).to.be.eq(undefined);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend);
+			expect(cache.get('key')).toBeUndefined();
 		});
 
 		it('returns undefined if item was present in cache, but some of the policies decided that it needs to be evicted (e.g. expired)', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const policy = new PolicyMock<string, any, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend, [policy]);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const policy = new PolicyMock<string, unknown, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend, [policy]);
 
-			policy.methodBehaviours.get('onHit')!.returnValue = EntryValidity.NOT_VALID;
+			(policy.methodBehaviours.get('onHit') ?? PolicyMock.DEFAULT_METHOD_BEHAVIOUR).returnValue = EntryValidity.NOT_VALID;
 			backend.set('key', 'value');
 
-			expect(cache.get('key')).to.be.eq(undefined);
-			expect(backend.get('key')).to.be.eq(undefined); // it also evicted from backend...
-			expect(policy.methodBehaviours.get('onDelete')!.calls).to.be.eq(1); // ... via onDelete hook
+			expect(cache.get('key')).toBeUndefined();
+			expect(backend.get('key')).toBeUndefined(); // it also evicted from backend...
+			expect(policy.methodBehaviours.get('onDelete')?.calls).to.be.eq(1); // ... via onDelete hook
 		});
 
 		it('returns value if key was present in cache (no policies registered)', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend);
 
 			backend.set('key', 'value');
 			expect(cache.get('key')).to.be.eq('value');
 		});
 
 		it('returns value if key was present in cache and policies decided not to evict item', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const policy = new PolicyMock<string, any, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend, [policy]);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const policy = new PolicyMock<string, unknown, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend, [policy]);
 
-			policy.methodBehaviours.get('onHit')!.returnValue = EntryValidity.VALID;
+			(policy.methodBehaviours.get('onHit') ?? PolicyMock.DEFAULT_METHOD_BEHAVIOUR).returnValue = EntryValidity.VALID;
 			backend.set('key', 'value');
 
 			expect(cache.get('key')).to.be.eq('value');
-			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(1);
-			expect(policy.methodBehaviours.get('onHit')!.arguments![0]).to.be.eq(backend.get('key'));
+			expect(policy.methodBehaviours.get('onHit')?.calls).to.be.eq(1);
+			expect(policy.methodBehaviours.get('onHit')?.arguments[0]).to.be.eq(backend.get('key'));
 
-			expect(policy.methodBehaviours.get('onMiss')!.calls).to.be.eq(0);
+			expect(policy.methodBehaviours.get('onMiss')?.calls).to.be.eq(0);
 		});
 
 		it("calls 'onMiss' hook when key was not found in the cache", () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const policy1 = new PolicyMock<string, any, any>();
-			const policy2 = new PolicyMock<string, any, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend, [policy1, policy2]);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const policy1 = new PolicyMock<string, unknown, unknown>();
+			const policy2 = new PolicyMock<string, unknown, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend, [policy1, policy2]);
 
-			expect(cache.get('key')).to.be.eq(undefined);
+			expect(cache.get('key')).toBeUndefined();
 
-			const p1OnMiss = policy1.methodBehaviours.get('onMiss')!;
-			expect(p1OnMiss.calls).to.be.eq(1);
-			expect(p1OnMiss.arguments).to.be.equalTo(['key']);
+			const p1OnMiss = policy1.methodBehaviours.get('onMiss');
+			expect(p1OnMiss?.calls).to.be.eq(1);
+			expect(p1OnMiss?.arguments).toStrictEqual(['key']);
 
-			const p2OnMiss = policy2.methodBehaviours.get('onMiss')!;
-			expect(p2OnMiss.calls).to.be.eq(1);
-			expect(p2OnMiss.arguments).to.be.equalTo(['key']);
+			const p2OnMiss = policy2.methodBehaviours.get('onMiss');
+			expect(p2OnMiss?.calls).to.be.eq(1);
+			expect(p2OnMiss?.arguments).toStrictEqual(['key']);
 		});
 	});
 
 	describe(`${PolicyBasedCache.prototype.has.name.magenta} spec`, () => {
-		it('returns whether key is present in the cache without calling any policies hooks', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const policy = new PolicyMock<string, any, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend, [policy]);
+		it('returns whether key is present in the cache without calling unknown policies hooks', () => {
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const policy = new PolicyMock<string, unknown, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend, [policy]);
 
 			backend.set('key', 'value');
 
 			expect(cache.has('key')).to.be.eq(true);
-			expect(policy.methodBehaviours.get('onHit')!.calls).to.be.eq(0);
+			expect(policy.methodBehaviours.get('onHit')?.calls).to.be.eq(0);
 		});
 	});
 
@@ -85,22 +83,22 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			let eventKey;
-			let eventValue;
+			let eventKey = null;
+			let eventValue = null;
 			cache.on(CacheEvent.INSERT, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
 
 			cache.set('key', 'value', 'bundle');
-			const entry = backend.get('key')!;
+			const entry = backend.get('key');
 
-			expect(entry.value).to.be.eq('value');
+			expect(entry?.value).to.be.eq('value');
 			expect(backend.get('key')).to.be.deep.eq({ key: 'key', value: 'value' });
 
-			const onSetInvocation = policy.methodBehaviours.get('onSet')!;
-			expect(onSetInvocation.arguments![1]).to.be.eq('bundle');
-			expect(onSetInvocation.calls).to.be.eq(1);
+			const onSetInvocation = policy.methodBehaviours.get('onSet');
+			expect(onSetInvocation?.arguments[1]).to.be.eq('bundle');
+			expect(onSetInvocation?.calls).to.be.eq(1);
 
 			expect(eventKey).to.be.eq('key');
 			expect(eventValue).to.be.eq('value');
@@ -111,10 +109,10 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			let setEventKey;
-			let setEventValue;
-			let updateEventKey;
-			let updateEventValue;
+			let setEventKey = null;
+			let setEventValue = null;
+			let updateEventKey = null;
+			let updateEventValue = null;
 			cache.on(CacheEvent.INSERT, (key, value) => {
 				setEventKey = key;
 				setEventValue = value;
@@ -125,23 +123,23 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			});
 
 			cache.set('key', 'value', 'bundle');
-			const entry = backend.get('key')!;
+			const entry = backend.get('key');
 
-			expect(entry.value).to.be.eq('value');
+			expect(entry?.value).to.be.eq('value');
 			expect(cache.size).to.be.eq(1);
 
 			cache.set('key', 'new_value', 'new_bundle');
-			expect(entry.value).to.be.eq('new_value');
+			expect(entry?.value).to.be.eq('new_value');
 			expect(backend.get('key')).to.be.deep.eq({ key: 'key', value: 'new_value' });
 			expect(cache.size).to.be.eq(1);
 
-			const onSetInvocation = policy.methodBehaviours.get('onSet')!;
-			expect(onSetInvocation.arguments![1]).to.be.eq('bundle');
-			expect(onSetInvocation.calls).to.be.eq(1);
+			const onSetInvocation = policy.methodBehaviours.get('onSet');
+			expect(onSetInvocation?.arguments[1]).to.be.eq('bundle');
+			expect(onSetInvocation?.calls).to.be.eq(1);
 
-			const onUpdateInvocation = policy.methodBehaviours.get('onUpdate')!;
-			expect(onUpdateInvocation.arguments![0]).to.be.deep.eq(backend.get('key'));
-			expect(onUpdateInvocation.calls).to.be.eq(1);
+			const onUpdateInvocation = policy.methodBehaviours.get('onUpdate');
+			expect(onUpdateInvocation?.arguments[0]).to.be.deep.eq(backend.get('key'));
+			expect(onUpdateInvocation?.calls).to.be.eq(1);
 
 			expect(setEventKey).to.be.eq('key');
 			expect(setEventValue).to.be.eq('value');
@@ -149,35 +147,35 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			expect(updateEventValue).to.be.eq('new_value');
 		});
 
-		it('rolls back insertion if any of the policies "onSet" hook throws', () => {
+		it('rolls back insertion if unknown of the policies "onSet" hook throws', () => {
 			const backend = new EsMapCacheBackend<string, string>();
 			const expirationPolicy = new PolicyMock<string, string, string>();
 			const evictionPolicy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [expirationPolicy, evictionPolicy]);
 
-			const expirationPolicyOnSetBehaviour = expirationPolicy.methodBehaviours.get('onSet')!;
-			const evictionPolicyOnSetBehaviour = evictionPolicy.methodBehaviours.get('onSet')!;
+			const expirationPolicyOnSetBehaviour = expirationPolicy.methodBehaviours.get('onSet');
+			const evictionPolicyOnSetBehaviour = evictionPolicy.methodBehaviours.get('onSet') ?? PolicyMock.DEFAULT_METHOD_BEHAVIOUR;
 
-			const expirationPolicyOnDeleteBehaviour = expirationPolicy.methodBehaviours.get('onDelete')!;
-			const evictionPolicyOnDeleteBehaviour = evictionPolicy.methodBehaviours.get('onDelete')!;
+			const expirationPolicyOnDeleteBehaviour = expirationPolicy.methodBehaviours.get('onDelete');
+			const evictionPolicyOnDeleteBehaviour = evictionPolicy.methodBehaviours.get('onDelete');
 
 			evictionPolicyOnSetBehaviour.throws = new Error('TEST');
 
 			expect(() => cache.set('key', 'value')).to.throw('TEST');
-			expect(backend.get('key')).to.be.eq(undefined);
-			expect(cache.keys()).to.be.equalTo([]);
+			expect(backend.get('key')).toBeUndefined();
+			expect(cache.keys()).toStrictEqual([]);
 
-			expect(evictionPolicyOnSetBehaviour.calls).to.be.eq(1);
-			expect(expirationPolicyOnSetBehaviour.calls).to.be.eq(1);
-			expect(expirationPolicyOnDeleteBehaviour.calls).to.be.eq(1); // rollback
-			expect(evictionPolicyOnDeleteBehaviour.calls).to.be.eq(0); // it thrown, so no need to rollback
+			expect(evictionPolicyOnSetBehaviour?.calls).to.be.eq(1);
+			expect(expirationPolicyOnSetBehaviour?.calls).to.be.eq(1);
+			expect(expirationPolicyOnDeleteBehaviour?.calls).to.be.eq(1); // rollback
+			expect(evictionPolicyOnDeleteBehaviour?.calls).to.be.eq(0); // it thrown, so no need to rollback
 		});
 	});
 
 	describe(`${PolicyBasedCache.prototype.del.name.magenta} spec`, () => {
 		it('does not delete entry that does not exist', () => {
-			const backend = new EsMapCacheBackend<string, any>();
-			const cache = new PolicyBasedCache<string, any, any>(backend);
+			const backend = new EsMapCacheBackend<string, unknown>();
+			const cache = new PolicyBasedCache<string, unknown, unknown>(backend);
 
 			expect(cache.del('key')).to.be.eq(false);
 		});
@@ -189,29 +187,29 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy3 = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy1, policy2, policy3]);
 
-			let eventKey;
-			let eventValue;
+			let eventKey = null;
+			let eventValue = null;
 			cache.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
 			});
 
 			cache.set('key', 'value');
-			const entry = backend.get('key')!;
-			expect(entry.value).to.be.eq('value');
+			const entry = backend.get('key');
+			expect(entry?.value).to.be.eq('value');
 
 			expect(cache.del('key')).to.be.eq(true);
-			expect(entry.value).to.be.eq(undefined);
+			expect(entry?.value).toBeUndefined();
 			expect(cache.has('key')).to.be.eq(false);
 
-			const methodBehaviour1 = policy1.methodBehaviours.get('onDelete')!;
-			expect(methodBehaviour1.calls).to.be.eq(1);
+			const methodBehaviour1 = policy1.methodBehaviours.get('onDelete');
+			expect(methodBehaviour1?.calls).to.be.eq(1);
 
-			const methodBehaviour2 = policy2.methodBehaviours.get('onDelete')!;
-			expect(methodBehaviour2.calls).to.be.eq(1);
+			const methodBehaviour2 = policy2.methodBehaviours.get('onDelete');
+			expect(methodBehaviour2?.calls).to.be.eq(1);
 
-			const methodBehaviour3 = policy3.methodBehaviours.get('onDelete')!;
-			expect(methodBehaviour3.calls).to.be.eq(1);
+			const methodBehaviour3 = policy3.methodBehaviours.get('onDelete');
+			expect(methodBehaviour3?.calls).to.be.eq(1);
 
 			expect(eventKey).to.be.eq('key');
 			expect(eventValue).to.be.eq('value');
@@ -222,8 +220,8 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			const policy = new PolicyMock<string, string, string>();
 			const cache = new PolicyBasedCache<string, string, string>(backend, [policy]);
 
-			let eventKey;
-			let eventValue;
+			let eventKey = null;
+			let eventValue = null;
 			cache.on(CacheEvent.DELETE, (key, value) => {
 				eventKey = key;
 				eventValue = value;
@@ -232,10 +230,10 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 			cache.set('key', 'value');
 			expect(cache.has('key')).to.be.eq(true);
 
-			policy.deleteFromCache(backend.get('key')!);
+			policy.deleteFromCache(backend.get('key') ?? { key: '', value: '' });
 
 			expect(cache.has('key')).to.be.eq(false);
-			expect(policy.methodBehaviours.get('onDelete')!.calls).to.be.eq(1);
+			expect(policy.methodBehaviours.get('onDelete')?.calls).to.be.eq(1);
 
 			expect(eventKey).to.be.eq('key');
 			expect(eventValue).to.be.eq('value');
@@ -258,7 +256,7 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			cache.clear();
 			expect(cache.size).to.be.eq(0);
-			expect(policy.methodBehaviours.get('onClear')!.calls).to.be.eq(1);
+			expect(policy.methodBehaviours.get('onClear')?.calls).to.be.eq(1);
 
 			expect(flushEmitted).to.be.eq(true);
 		});

@@ -1,7 +1,7 @@
-import { AccountWithTotpSecret, EmailSender } from '../../../lib';
+import type { AccountWithTotpSecret, EmailSender } from '../../../lib/index.js';
 
 class EmailClientMock {
-	private readonly outbox: Map<string, Map<keyof EmailSender<AccountWithTotpSecret>, Array<string>>> = new Map();
+	private readonly outbox = new Map<string, Map<keyof EmailSender<AccountWithTotpSecret>, Array<string>>>();
 
 	public deliveryWillFail = false;
 
@@ -25,7 +25,7 @@ class EmailClientMock {
 		emails.push(message);
 	}
 
-	outboxFor(userEmail: string, type: keyof EmailSender<AccountWithTotpSecret>): Array<string> {
+	outboxFor(userEmail: string, type: keyof EmailSender<AccountWithTotpSecret>): string[] {
 		const emailsByType = this.outbox.get(userEmail);
 		if (emailsByType == null) {
 			return [];

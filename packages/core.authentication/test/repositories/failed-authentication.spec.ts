@@ -1,56 +1,25 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import faker from 'faker';
-import '../fixtures/bootstrap';
-import { AccountStatus, AccountWithTotpSecret, FailedAuthenticationModel } from '@thermopylae/lib.authentication';
-import { array, chrono, number } from '@thermopylae/lib.utils';
-import { AccountMySqlRepository, FailedAuthenticationsMysqlRepository } from '../../lib';
+import { chrono } from '@thermopylae/lib.utils';
+import { randomInt } from 'node:crypto';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { AccountMySqlRepository, FailedAuthenticationsMysqlRepository } from '../../lib/index.js';
+import { generateAccount, generateFailedAuthenticationModel } from '../fixtures/generator.js';
 
 describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
-	this.timeout(2_500);
-
 	const failedAuthenticationRepository = new FailedAuthenticationsMysqlRepository();
 	const accountRepository = new AccountMySqlRepository();
 
-	let firstAccount: AccountWithTotpSecret;
-	let secondAccount: AccountWithTotpSecret;
+	const firstAccount = generateAccount();
+	const secondAccount = generateAccount();
 
-	beforeEach(async function () {
-		this.timeout(2_500);
-
-		firstAccount = {
-			id: undefined!,
-			username: faker.internet.userName(),
-			passwordHash: faker.internet.password(),
-			passwordAlg: faker.datatype.number(9),
-			email: faker.internet.email(),
-			disabledUntil: AccountStatus.DISABLED_UNTIL_ACTIVATION,
-			mfa: faker.datatype.boolean(),
-			totpSecret: faker.datatype.string()
-		};
-		secondAccount = {
-			id: undefined!,
-			username: faker.internet.userName(),
-			passwordHash: faker.internet.password(),
-			passwordAlg: faker.datatype.number(9),
-			email: faker.internet.email(),
-			disabledUntil: AccountStatus.DISABLED_UNTIL_ACTIVATION,
-			mfa: faker.datatype.boolean(),
-			totpSecret: faker.datatype.string()
-		};
-
+	beforeEach(async () => {
 		await Promise.all([accountRepository.insert(firstAccount), accountRepository.insert(secondAccount)]);
-	});
+	}, 2500);
 
 	describe(`${FailedAuthenticationsMysqlRepository.prototype.insert.name} spec`, () => {
 		it('inserts authentication without device and location', async () => {
-			const failedAuthenticationModel: FailedAuthenticationModel = {
-				id: undefined!,
-				accountId: firstAccount.id,
-				ip: faker.internet.ip(),
-				detectedAt: chrono.unixTime()
-			};
+			const failedAuthenticationModel = generateFailedAuthenticationModel(firstAccount, {
+				nullify: ['id', 'device', 'location']
+			});
 			await failedAuthenticationRepository.insert(failedAuthenticationModel);
 
 			expect(typeof failedAuthenticationModel.id).to.be.eq('string');
@@ -59,52 +28,24 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 
 	describe(`${FailedAuthenticationsMysqlRepository.prototype.readRange.name} spec`, () => {
 		it('returns empty array when there are no authentications', async () => {
-			const failedAuth: FailedAuthenticationModel = {
-				id: undefined!,
-				accountId: secondAccount.id, // SECOND
-				ip: faker.internet.ip(),
-				detectedAt: chrono.unixTime()
-			};
+			const failedAuth = generateFailedAuthenticationModel(secondAccount, {
+				nullify: ['id', 'device', 'location']
+			});
 			await failedAuthenticationRepository.insert(failedAuth);
 
 			expect(typeof failedAuth.id).to.be.eq('string');
 
 			const authentications = await failedAuthenticationRepository.readRange(firstAccount.id); // FIRST
-			expect(authentications).to.be.equalTo([]);
+			expect(authentications).toStrictEqual([]);
 		});
 
 		it('returns all authentications for account', async () => {
 			/* CREATE MODELS */
-			const authentications = array.filledWith(20, () => ({
-				id: undefined!,
-				accountId: Math.random() > 0.5 ? secondAccount.id : firstAccount.id,
-				ip: faker.internet.ip(),
-				device:
-					Math.random() > 0.5
-						? {
-								device: {
-									type: 'smartphone',
-									brand: 'Android',
-									model: '9'
-								},
-								bot: null,
-								os: null,
-								client: null
-						  }
-						: null,
-				location:
-					Math.random() < 0.5
-						? {
-								countryCode: 'MD',
-								regionCode: 'FL',
-								city: 'Pietrosu',
-								timezone: 'Bucharest +2',
-								longitude: 45.5,
-								latitude: 46.6
-						  }
-						: null,
-				detectedAt: chrono.unixTime()
-			})) as FailedAuthenticationModel[];
+			const authentications = Array.from({ length: 20 }, () =>
+				generateFailedAuthenticationModel(Math.random() > 0.5 ? secondAccount : firstAccount, {
+					nullify: ['id']
+				})
+			);
 
 			/* INSERT THEM */
 			await Promise.all(authentications.map((authentication) => failedAuthenticationRepository.insert(authentication)));
@@ -116,7 +57,7 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -124,47 +65,25 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 		});
 
 		it('returns authentications starting from unix timestamp', async () => {
-			const now = chrono.unixTime();
+			const now = chrono.unix();
 
 			/* CREATE MODELS */
-			const authentications = array.filledWith(20, () => ({
-				id: undefined!,
-				accountId: Math.random() > 0.5 ? secondAccount.id : firstAccount.id,
-				ip: faker.internet.ip(),
-				device:
-					Math.random() > 0.5
-						? {
-								device: {
-									type: 'smartphone',
-									brand: 'Android',
-									model: '9'
-								},
-								bot: null,
-								os: null,
-								client: null
-						  }
-						: null,
-				location:
-					Math.random() < 0.5
-						? {
-								countryCode: 'MD',
-								regionCode: 'FL',
-								city: 'Pietrosu',
-								timezone: 'Bucharest +2',
-								longitude: 45.5,
-								latitude: 46.6
-						  }
-						: null,
-				detectedAt: now - number.randomInt(1, 100)
-			})) as FailedAuthenticationModel[];
+			const authentications = Array.from({ length: 20 }, () =>
+				generateFailedAuthenticationModel(Math.random() > 0.5 ? secondAccount : firstAccount, {
+					nullify: ['id'],
+					include: {
+						detectedAt: now - randomInt(1, 100)
+					}
+				})
+			);
 
 			/* INSERT THEM */
 			await Promise.all(authentications.map((authentication) => failedAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await failedAuthenticationRepository.readRange(firstAccount.id, now)).to.be.equalTo([]);
+			await expect(failedAuthenticationRepository.readRange(firstAccount.id, now)).resolves.toStrictEqual([]);
 
-			const startingFrom = now - number.randomInt(1, 100);
+			const startingFrom = now - randomInt(1, 100);
 			const accountId = Math.random() > 0.5 ? secondAccount.id : firstAccount.id;
 
 			const readAuthentications = await failedAuthenticationRepository.readRange(accountId, startingFrom);
@@ -175,7 +94,7 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -183,47 +102,25 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 		});
 
 		it('returns authentications ending with unix timestamp', async () => {
-			const now = chrono.unixTime();
+			const now = chrono.unix();
 
 			/* CREATE MODELS */
-			const authentications = array.filledWith(20, () => ({
-				id: undefined!,
-				accountId: Math.random() > 0.5 ? secondAccount.id : firstAccount.id,
-				ip: faker.internet.ip(),
-				device:
-					Math.random() > 0.5
-						? {
-								device: {
-									type: 'smartphone',
-									brand: 'Android',
-									model: '9'
-								},
-								bot: null,
-								os: null,
-								client: null
-						  }
-						: null,
-				location:
-					Math.random() < 0.5
-						? {
-								countryCode: 'MD',
-								regionCode: 'FL',
-								city: 'Pietrosu',
-								timezone: 'Bucharest +2',
-								longitude: 45.5,
-								latitude: 46.6
-						  }
-						: null,
-				detectedAt: now - number.randomInt(1, 100)
-			})) as FailedAuthenticationModel[];
+			const authentications = Array.from({ length: 20 }, () =>
+				generateFailedAuthenticationModel(Math.random() > 0.5 ? secondAccount : firstAccount, {
+					nullify: ['id'],
+					include: {
+						detectedAt: now - randomInt(1, 100)
+					}
+				})
+			);
 
 			/* INSERT THEM */
 			await Promise.all(authentications.map((authentication) => failedAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await failedAuthenticationRepository.readRange(firstAccount.id, undefined, now - 101)).to.be.equalTo([]);
+			await expect(failedAuthenticationRepository.readRange(firstAccount.id, undefined, now - 101)).resolves.toStrictEqual([]);
 
-			const endingTo = now - number.randomInt(1, 100);
+			const endingTo = now - randomInt(1, 100);
 			const accountId = Math.random() > 0.5 ? secondAccount.id : firstAccount.id;
 
 			const readAuthentications = await failedAuthenticationRepository.readRange(accountId, undefined, endingTo);
@@ -234,7 +131,7 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -242,48 +139,26 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 		});
 
 		it('returns authentications starting from and ending to unix timestamps', async () => {
-			const now = chrono.unixTime();
+			const now = chrono.unix();
 
 			/* CREATE MODELS */
-			const authentications = array.filledWith(20, () => ({
-				id: undefined!,
-				accountId: Math.random() > 0.5 ? secondAccount.id : firstAccount.id,
-				ip: faker.internet.ip(),
-				device:
-					Math.random() > 0.5
-						? {
-								device: {
-									type: 'smartphone',
-									brand: 'Android',
-									model: '9'
-								},
-								bot: null,
-								os: null,
-								client: null
-						  }
-						: null,
-				location:
-					Math.random() < 0.5
-						? {
-								countryCode: 'MD',
-								regionCode: 'FL',
-								city: 'Pietrosu',
-								timezone: 'Bucharest +2',
-								longitude: 45.5,
-								latitude: 46.6
-						  }
-						: null,
-				detectedAt: now - number.randomInt(1, 100)
-			})) as FailedAuthenticationModel[];
+			const authentications = Array.from({ length: 20 }, () =>
+				generateFailedAuthenticationModel(Math.random() > 0.5 ? secondAccount : firstAccount, {
+					nullify: ['id'],
+					include: {
+						detectedAt: now - randomInt(1, 100)
+					}
+				})
+			);
 
 			/* INSERT THEM */
 			await Promise.all(authentications.map((authentication) => failedAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await failedAuthenticationRepository.readRange(firstAccount.id, now - 102, now - 101)).to.be.equalTo([]);
+			await expect(failedAuthenticationRepository.readRange(firstAccount.id, now - 102, now - 101)).resolves.toStrictEqual([]);
 
-			const startingFrom = now - number.randomInt(50, 100);
-			const endingTo = now - number.randomInt(1, 49);
+			const startingFrom = now - randomInt(50, 100);
+			const endingTo = now - randomInt(1, 49);
 			const accountId = Math.random() > 0.5 ? secondAccount.id : firstAccount.id;
 
 			const readAuthentications = await failedAuthenticationRepository.readRange(accountId, startingFrom, endingTo);
@@ -294,7 +169,7 @@ describe(`${FailedAuthenticationsMysqlRepository.name} spec`, function suite() {
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);

@@ -1,4 +1,4 @@
-import { SmsClient, SmsClientOptions } from './client';
-import { ErrorCodes } from './error';
+import { SmsClient, type SmsClientOptions } from './client.js';
+import { ErrorCodes } from './error.js';
 
-export { SmsClient, SmsClientOptions, ErrorCodes };
+export { SmsClient, type SmsClientOptions, ErrorCodes };

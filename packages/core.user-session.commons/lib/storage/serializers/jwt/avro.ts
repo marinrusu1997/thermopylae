@@ -1,17 +1,13 @@
-import avsc from 'avsc';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { UserSessionMetaData } from '@thermopylae/lib.user-session.commons';
-import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../../../typings';
-import { AVRO_SCHEMA } from '../common/avro-schema';
+import avsc from 'avsc';
+import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../../../typings.js';
+import { AVRO_SCHEMA } from '../common/avro-schema.js';
 
-/**
- * @private
- */
+/** @private */
 const AVRO_TYPE = avsc.Type.forSchema(AVRO_SCHEMA, { omitRecordMethods: true });
 
-/**
- * @private
- */
+/** @private */
 const AVRO_SERIALIZER: Readonly<UserSessionMetaDataSerializer<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>>> = Object.freeze({
 	serialize(session: UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>): Buffer {
 		return AVRO_TYPE.toBuffer(session);

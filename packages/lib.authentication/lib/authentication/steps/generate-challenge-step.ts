@@ -1,13 +1,11 @@
 import safeUid from 'uid-safe';
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../../types/contexts';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class GenerateChallengeStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly nonceSize: number;
 

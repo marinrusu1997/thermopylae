@@ -1,32 +1,28 @@
-import { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { TwoFactorAuthStrategy } from './interface';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationContext } from '../../types/contexts';
-import { createException, ErrorCodes } from '../../error';
+import { ErrorCodes, createException } from '../../error.js';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import type { AccountModel } from '../../types/models.js';
+import type { TwoFactorAuthStrategy } from './interface.js';
 
 /**
  * Send sms containing two factor authentication token to user.
  *
- * @param telephone		User telephone.
- * @param token			Two factor authentication token.
+ * @param telephone User telephone.
+ * @param token     Two factor authentication token.
  */
 type SendSmsWithToken = (telephone: string, token: string) => Promise<void>;
 
 interface SmsTwoFactorAuthStrategyOptions {
-	/**
-	 * Two factor authentication token length.
-	 */
+	/** Two factor authentication token length. */
 	readonly tokenLength: number;
-	/**
-	 * Two factor authentication token sms sender.
-	 */
+	/** Two factor authentication token sms sender. */
 	readonly sendSms: SendSmsWithToken;
 }
 
 /**
- * Two factor authentication strategy which sends token to user via sms. <br/>
- * Generated token is stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property
- * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
+ * Two factor authentication strategy which sends token to user via sms. <br/> Generated token is
+ * stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property and is valid
+ * until {@link AuthenticationSession} expires or token is send by client and validated.
  */
 class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	private readonly options: SmsTwoFactorAuthStrategyOptions;
@@ -35,21 +31,21 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		this.options = options;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
-	public async onTwoFactorAuthEnabled(): Promise<null> {
-		return null;
+	/** @inheritdoc */
+	public onTwoFactorAuthEnabled(): Promise<null> {
+		return Promise.resolve(null);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
 		authenticationSessionRepositoryHolder: AuthenticationSessionRepositoryHolder
 	): Promise<void> {
+		if (!account.telephone) {
+			throw createException(ErrorCodes.PHONE_NUMBER_REQUIRED, `Account with id '${account.id}' is missing phone number.`);
+		}
+
 		const authenticationSession = await authenticationSessionRepositoryHolder.get();
 		if (authenticationSession.twoFactorAuthenticationToken != null) {
 			throw createException(
@@ -60,13 +56,11 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 
 		const token = SmsTwoFactorAuthStrategy.getRandomNumber(this.options.tokenLength);
 
-		await this.options.sendSms(account.telephone!, token);
+		await this.options.sendSms(account.telephone, token);
 		authenticationSession.twoFactorAuthenticationToken = token;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,
@@ -83,7 +77,7 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	}
 
 	private static getRandomNumber(digit: number): string {
-		return Math.random().toFixed(digit).substr(2); // 0.
+		return Math.random().toFixed(digit).slice(2); // 0.
 	}
 }
 

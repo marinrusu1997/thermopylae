@@ -1,10 +1,11 @@
-import {
+// oxlint-disable require-await
+import type {
 	AccountWithTotpSecret,
 	OnAccountDisabledHook,
+	OnAuthenticationFromDifferentContextHook,
 	OnForgottenPasswordChangedHook,
-	OnPasswordChangedHook,
-	OnAuthenticationFromDifferentContextHook
-} from '../../lib';
+	OnPasswordChangedHook
+} from '../../lib/index.js';
 
 const OnAuthFromDifferentContextHookMock: { calls: string[]; hook: OnAuthenticationFromDifferentContextHook<AccountWithTotpSecret> } = {
 	calls: [],

@@ -1,4 +1,4 @@
-import { ApiSchema } from '../../../typings';
+import type { ApiSchema } from '../../../typings.js';
 
 type ApiMethod = 'refreshUserSession' | 'getActiveUserSessions' | 'logout' | 'logoutOne' | 'logoutAll';
 

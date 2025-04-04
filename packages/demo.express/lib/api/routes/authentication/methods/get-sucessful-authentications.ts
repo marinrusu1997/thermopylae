@@ -1,14 +1,15 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
-// @ts-ignore This module has no typings
-import isStringInt from 'is-string-int';
+import { HttpStatusCode, type ObjMap, UnixTimestampC } from '@thermopylae/core.declarations';
+import type { SuccessfulAuthenticationModel } from '@thermopylae/lib.authentication';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
-import { SuccessfulAuthenticationModel } from '@thermopylae/lib.authentication';
-import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
+// @ts-expect-error This module has no typingsypings
+import isStringInt from 'is-string-int';
+import { AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -65,13 +66,17 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 	next();
 };
 
-// @ts-ignore  The typings are not correct
 const route = handler(async (req: RequestWithUserSession<ObjMap, ResponseBody, never, RequestQuery>, res: Response<ResponseBody>) => {
+	const userSession = req[REQUEST_USER_SESSION_SYM];
+	if (!userSession) {
+		throw createException(AppErrorCodes.MISCONFIGURATION, 'Request is missing user session');
+	}
+
 	res.status(HttpStatusCode.Ok).send(
 		await AUTHENTICATION_ENGINE.getSuccessfulAuthentications(
-			req[REQUEST_USER_SESSION_SYM]!.sub,
-			req.query.from as number | undefined,
-			req.query.to as number | undefined
+			userSession.sub,
+			UnixTimestampC(Number(req.query.from)) || undefined,
+			UnixTimestampC(Number(req.query.to)) || undefined
 		)
 	);
 });

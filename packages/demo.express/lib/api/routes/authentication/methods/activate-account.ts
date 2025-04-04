@@ -1,12 +1,12 @@
-import { HttpStatusCode, Library, ObjMap } from '@thermopylae/core.declarations';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { Exception } from '@thermopylae/lib.exception';
+import { HttpStatusCode, Library, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
-import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { logger } from '../../../../logger';
+import { Exception } from '@thermopylae/lib.exception';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { logger } from '../../../../logger.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT',
 	INVALID_TOKEN = 'INVALID_TOKEN'
 }
@@ -40,16 +40,15 @@ const validateRequestQueryParams: RequestHandler<ObjMap, ResponseBody, never, Re
 	next();
 };
 
-// @ts-ignore The typings are not correct
 const route = handler(async (req: Request<ObjMap, ResponseBody, never, RequestQuery>, res: Response<ResponseBody>) => {
 	try {
 		await AUTHENTICATION_ENGINE.activateAccount(req.query.token);
 		res.status(HttpStatusCode.NoContent).send();
-	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Account activation failed. Request origin: ${req.ip}.`, e);
+	} catch (error) {
+		if (error instanceof Exception && error.emitter === Library.AUTHENTICATION) {
+			logger.error(`Account activation failed. Request origin: ${req.ip}.`, error);
 
-			if (e.code === AuthenticationErrorCodes.SESSION_NOT_FOUND) {
+			if (error.code === AuthenticationErrorCodes.SESSION_NOT_FOUND) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_TOKEN,
@@ -59,17 +58,17 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, never, RequestQu
 				return;
 			}
 
-			if (e.code === AuthenticationErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS) {
+			if (error.code === AuthenticationErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS) {
 				res.status(HttpStatusCode.Conflict).send({
 					error: {
-						code: e.code,
-						message: e.origin
+						code: error.code,
+						message: error.message
 					}
 				});
 				return;
 			}
 		}
-		throw e;
+		throw error;
 	}
 });
 

@@ -1,7 +1,5 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { LoggerManager, OutputFormat } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { LoggerManager, OutputFormat } from '../lib/index.js';
 
 describe('Logger spec', () => {
 	it('returns logging managers', () => {
@@ -36,7 +34,7 @@ describe('Logger spec', () => {
 
 		const instance = logger.for('realsys');
 		expect(() => {
-			// @ts-ignore For testing purposes
+			// @ts-expect-error For testing purposesrposes
 			instance.log = null;
 		}).to.throw('Cannot add property log, object is not extensible');
 	});

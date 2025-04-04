@@ -1,14 +1,13 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono, string } from '@thermopylae/lib.utils';
-import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { ActivateAccountSessionMemoryRepository } from './fixtures/repositories/memory/activate-account-session';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { buildAccountToBeRegistered } from './utils';
+import { chrono } from '@thermopylae/lib.utils';
+import cryptoRandomString from 'crypto-random-string';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures/index.js';
+import { ActivateAccountSessionMemoryRepository } from './fixtures/repositories/memory/activate-account-session.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { buildAccountToBeRegistered } from './utils.js';
 
 describe('Register spec', () => {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
@@ -32,7 +31,7 @@ describe('Register spec', () => {
 		expect(accountToBeRegistered.mfa).to.be.eq(account.mfa);
 	});
 
-	it('fails to register new account if it is registered already (account is enabled)', async () => {
+	it('fails to register new account if it is registered already (account is enabled)', { timeout: 4000 }, async () => {
 		const account = buildAccountToBeRegistered();
 		account.disabledUntil = AccountStatus.ENABLED;
 
@@ -41,16 +40,17 @@ describe('Register spec', () => {
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.register(account);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
 		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
-		expect(err!.origin).to.be.equalTo(['username', 'email', 'telephone']);
-	}).timeout(4000);
+		expect(err?.origin).toHaveLength(3);
+		expect(err?.origin).to.containSubset(['username', 'email', 'telephone']);
+	});
 
-	it('fails to register new account if it is registered already (account is disabled)', async () => {
+	it('fails to register new account if it is registered already (account is disabled)', { timeout: 4000 }, async () => {
 		const account = buildAccountToBeRegistered();
 
 		account.disabledUntil = AccountStatus.ENABLED;
@@ -61,14 +61,15 @@ describe('Register spec', () => {
 			account.disabledUntil = AccountStatus.DISABLED_UNTIL_ACTIVATION;
 			account.telephone = '+4078562326';
 			await AuthEngineInstance.register(account);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
 		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
-		expect(err!.origin).to.be.equalTo(['username', 'email']);
-	}).timeout(4000);
+		expect(err?.origin).toHaveLength(2);
+		expect(err?.origin).to.containSubset(['username', 'email']);
+	});
 
 	it('fails to register new account if provided password is too weak', async () => {
 		const errors = new Array<Exception>();
@@ -76,25 +77,25 @@ describe('Register spec', () => {
 		try {
 			await AuthEngineInstance.register({
 				...buildAccountToBeRegistered(),
-				passwordHash: string.random({ length: PasswordLengthValidatorOptions.minLength - 1 })
+				passwordHash: cryptoRandomString({ length: PasswordLengthValidatorOptions.minLength - 1 })
 			});
-		} catch (e) {
-			errors.push(e);
+		} catch (error) {
+			errors.push(error);
 		}
 
 		try {
 			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: 'qwerty' });
-		} catch (e) {
-			errors.push(e);
+		} catch (error) {
+			errors.push(error);
 		}
 
 		try {
 			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), passwordHash: '2307mgd73fn' });
-		} catch (e) {
-			errors.push(e);
+		} catch (error) {
+			errors.push(error);
 		}
 
-		expect(errors).to.be.ofSize(3);
+		expect(errors).to.have.length(3);
 		expect(errors[0].code).to.be.eq(ErrorCodes.WEAK_PASSWORD);
 		expect(errors[0].message).to.be.eq(
 			`Password needs to contain at least ${PasswordLengthValidatorOptions.minLength} characters, but it has ${
@@ -110,13 +111,13 @@ describe('Register spec', () => {
 	});
 
 	it('fails to register accounts that are disabled until unix timestamp', async () => {
-		const now = chrono.unixTime();
+		const now = chrono.unix();
 
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.register({ ...buildAccountToBeRegistered(), disabledUntil: now });
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INVALID_DISABLED_UNTIL_VALUE);
@@ -133,35 +134,35 @@ describe('Register spec', () => {
 
 		/* GET TOKEN FROM EMAIL */
 		const emails = EmailSenderInstance.client.outboxFor(accountToBeRegistered.email, 'sendActivateAccountToken');
-		expect(emails).to.be.ofSize(1);
+		expect(emails).to.have.length(1);
 
 		/* CHECK STORAGES */
 		const activationToken = emails[0];
-		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).to.eventually.be.deep.equal(accountToBeRegistered); // temp storage
-		await expect(AccountRepositoryMongo.readByUsername(accountToBeRegistered.username)).to.eventually.be.eq(null); // not in permanent storage
+		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).resolves.to.be.deep.equal(accountToBeRegistered); // temp storage
+		await expect(AccountRepositoryMongo.readByUsername(accountToBeRegistered.username)).resolves.to.be.eq(null); // not in permanent storage
 
 		/* ACTIVATE ACCOUNT */
 		await AuthEngineInstance.activateAccount(activationToken);
 		expect(accountToBeRegistered.disabledUntil).to.be.eq(AccountStatus.ENABLED);
 
 		/* CHECK STORAGES */
-		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).to.eventually.be.equal(null); // deleted from temp storage, prevent replay attack
-		await expect(AccountRepositoryMongo.readById((accountToBeRegistered as AccountWithTotpSecret).id)).to.eventually.be.deep.equal(accountToBeRegistered);
+		await expect(ActivateAccountSessionMemoryRepository.read(activationToken)).resolves.to.be.eq(null); // deleted from temp storage, prevent replay attack
+		await expect(AccountRepositoryMongo.readById((accountToBeRegistered as AccountWithTotpSecret).id)).resolves.to.be.deep.equal(accountToBeRegistered);
 	});
 
 	it("doesn't activate account if provided token is not valid", async () => {
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.activateAccount('invalid-token');
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Activate account session identified by token 'invalid-token' not found.`);
 	});
 
-	it("doesn't activate account if it has duplicated fields", async () => {
+	it("doesn't activate account if it has duplicated fields", { timeout: 4000 }, async () => {
 		const account = buildAccountToBeRegistered();
 
 		/* REGISTER VALID ACCOUNT */
@@ -177,33 +178,33 @@ describe('Register spec', () => {
 
 		/* GET TOKEN FROM EMAIL */
 		const emails = EmailSenderInstance.client.outboxFor(account.email, 'sendActivateAccountToken');
-		expect(emails).to.be.ofSize(1);
+		expect(emails).to.have.length(1);
 		const activationToken = emails[0];
 
 		/* MEANWHILE FIRST ACCOUNT CHANGES IT'S EMAIL */
-		await AccountRepositoryMongo.update(account.id!, { email: account.email });
+		await AccountRepositoryMongo.update(account.id ?? '', { email: account.email });
 
 		/* TRY TO ACTIVATE TEMPORARY ACCOUNT (EXPECT DUPLICATE) */
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.activateAccount(activationToken);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS);
 		expect(err).to.haveOwnProperty('message', "Account can't be registered, because it has duplicated fields.");
-		expect(err!.origin).to.be.equalTo(['email']);
+		expect(err?.origin).toStrictEqual(['email']);
 
 		/* TRY TO ACTIVATE TEMPORARY ACCOUNT (EXPECT INVALID TOKEN) */
 		err = null;
 		try {
 			await AuthEngineInstance.activateAccount(activationToken);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.SESSION_NOT_FOUND);
 		expect(err).to.haveOwnProperty('message', `Activate account session identified by token '${activationToken}' not found.`);
-	}).timeout(4000);
+	});
 });

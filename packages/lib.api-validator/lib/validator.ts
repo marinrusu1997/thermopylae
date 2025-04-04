@@ -1,61 +1,51 @@
-import { fs, object } from '@thermopylae/lib.utils';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { readdir } from 'fs';
-import { promisify } from 'util';
-import Ajv, { ErrorObject } from 'ajv';
-// eslint-disable-next-line import/extensions
-import AjvLocalizeEn from 'ajv-i18n/localize/en';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { fs, object, type types } from '@thermopylae/lib.utils';
+import { Ajv, type Ajv as AjvType, type ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
+import AjvLocalizeEn from 'ajv-i18n/localize/en/index.js';
+import { readdir } from 'node:fs';
+import { promisify } from 'node:util';
 import { FilterXSS } from 'xss';
 
-/**
- * @private
- */
+/** @private */
 const readDir = promisify(readdir);
 
 /**
- * Class which allows to validate data that is coming to API endpoints. <br/>
- * Internally it uses [ajv](https://www.npmjs.com/package/ajv) in order to validate JSON objects. <br/>
- * XSS sanitization is performed with the [xss](https://www.npmjs.com/package/xss) npm package.
+ * Class which allows to validate data that is coming to API endpoints. <br/> Internally it uses
+ * [ajv](https://www.npmjs.com/package/ajv) in order to validate JSON objects. <br/> XSS
+ * sanitization is performed with the [xss](https://www.npmjs.com/package/xss) npm package.
  */
 class ApiValidator {
 	private static readonly JOIN_ERRORS_TEXT_OPTIONS = { separator: '\n' };
 
 	private static readonly JOIN_ERRORS_SKIPPED_KEYWORDS = ['pattern'];
 
-	private validator: Ajv | null;
+	private validator: AjvType | null;
 
 	private readonly xssFilter: FilterXSS;
 
-	/**
-	 * Create {@link ApiValidator} instance.
-	 */
+	/** Create {@link ApiValidator} instance. */
 	public constructor() {
 		this.validator = null;
 		this.xssFilter = new FilterXSS();
 	}
 
 	/**
-	 * Initializes {@link ApiValidator} and reads validation JSON Schemas.
-	 * Each JSON schema needs to have an id of this format: `#${service}-${method}`. <br/>
-	 * JSON schemas needs to be located on the file system in the following topology: <br/>
+	 * Initializes {@link ApiValidator} and reads validation JSON Schemas. Each JSON schema needs to
+	 * have an id of this format: `#${service}-${method}`. <br/> JSON schemas needs to be located on
+	 * the file system in the following topology: <br/>
 	 *
-	 * └─ <${validationSchemasDir}> <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;└─ service-1 <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-1.json <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;└─ schema-2.json <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;├─ service-2 <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-1.json <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;├─ schema-2.json <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;│  &nbsp;└─ schema-n.json <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;└─ service-n <br/>
-	 * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ schema-1.json
+	 * └─ <${validationSchemasDir}> <br/> └─ service-1 <br/> │ ├─ schema-1.json <br/> │ └─
+	 * schema-2.json <br/> ├─ service-2 <br/> │ ├─ schema-1.json <br/> │ ├─ schema-2.json <br/> │ └─
+	 * schema-n.json <br/> └─ service-n <br/> └─ schema-1.json.
 	 *
-	 * @param validationSchemasDir		Directory where validation schemas are located. <br/>
-	 * 									Defaults to **`${process.env['XDG_CONFIG_HOME'] || `${process.env['HOME']}/.config`}/${process.env['APP_NAME']}/validation`**.
-	 * @param excludeDirs				Directories from the `validationSchemasDir` which needs to be excluded, i.e. their schemas should not be loaded.
+	 * @param validationSchemasDir Directory where validation schemas are located. <br/> Defaults to
+	 *   **`${process.env['XDG_CONFIG_HOME'] ||
+	 *   `${process.env['HOME']}/.config`}/${process.env['APP_NAME']}/validation`**.
+	 * @param excludeDirs          Directories from the `validationSchemasDir` which needs to be
+	 *   excluded, i.e. their schemas should not be loaded.
 	 */
-	public async init(validationSchemasDir?: string, excludeDirs?: Array<string>): Promise<void> {
+	public async init(validationSchemasDir?: string, excludeDirs?: string[]): Promise<void> {
 		if (validationSchemasDir == null) {
 			validationSchemasDir = `${process.env['XDG_CONFIG_HOME'] || `${process.env['HOME']}/.config`}/${process.env['APP_NAME']}/validation`;
 		}
@@ -63,25 +53,27 @@ class ApiValidator {
 		this.validator = new Ajv({
 			loadSchema: (uri) => fs.readJsonFromFile(`${validationSchemasDir}/${uri}`)
 		});
-		addFormats(this.validator as any);
+		// @ts-expect-error -- It is callablellable
+		addFormats(this.validator as types.Any);
 
 		let servicesSchemasDirs = await readDir(validationSchemasDir);
-		if (excludeDirs && excludeDirs.length !== 0) {
+		if (excludeDirs && excludeDirs.length > 0) {
 			servicesSchemasDirs = servicesSchemasDirs.filter((schemaDir) => !excludeDirs.includes(schemaDir));
 		}
 
 		const servicesSchemasPromises = [];
-		for (let i = 0; i < servicesSchemasDirs.length; i++) {
+		for (const serviceSchemasDir of servicesSchemasDirs) {
 			servicesSchemasPromises.push(
-				readDir(`${validationSchemasDir}/${servicesSchemasDirs[i]}`).then((schemas) => {
+				readDir(`${validationSchemasDir}/${serviceSchemasDir}`).then((schemas) => {
 					const schemasPromises = [];
-					for (let j = 0; j < schemas.length; j++) {
+					for (const schema of schemas) {
 						schemasPromises.push(
-							fs.readJsonFromFile(`${validationSchemasDir}/${servicesSchemasDirs[i]}/${schemas[j]}`).then((schema) => {
-								// @ts-ignore The schema as incorrect typings
+							// oxlint-disable-next-line no-nesting
+							fs.readJsonFromFile(`${validationSchemasDir}/${serviceSchemasDir}/${schema}`).then((schema) => {
+								// @ts-expect-error The schema as incorrect typingsypings
 								schema.$async = true;
-								this.validator!.addSchema(schema);
-								return this.validator!.compileAsync(schema);
+								this.validator?.addSchema(schema);
+								return this.validator?.compileAsync(schema);
 							})
 						);
 					}
@@ -94,29 +86,29 @@ class ApiValidator {
 	}
 
 	/**
-	 * Validate data against JSON schema.
-	 * Id of the schema is formed from `#${service}-${method}`.
+	 * Validate data against JSON schema. Id of the schema is formed from `#${service}-${method}`.
 	 *
-	 * @param service		Name of the service.
-	 * @param method		Name of the method.
-	 * @param data			Data to be validated.
+	 * @param   service             Name of the service.
+	 * @param   method              Name of the method.
+	 * @param   data                Data to be validated.
 	 *
-	 * @throws {ErrorObject} When data doesn't match schema.
+	 * @returns         Validated data.
 	 *
-	 * @returns				Validated data.
+	 * @throws  {ErrorObject}         When data doesn't match schema.
 	 */
-	public async validate(service: string, method: string, data: ObjMap): Promise<ObjMap> {
-		return this.validator!.validate(ApiValidator.computeSchemaId(service, method), data) as unknown as Promise<ObjMap>;
+	public validate(service: string, method: string, data: ObjMap): Promise<ObjMap> {
+		return this.validator?.validate(ApiValidator.computeSchemaId(service, method), data) as unknown as Promise<ObjMap>;
 	}
 
 	/**
-	 * Sanitizes data against XSS vulnerability. <br/>
-	 * Notice that in case of JSON data, only values will be sanitized, while keys will be left untouched.
+	 * Sanitizes data against XSS vulnerability. <br/> Notice that in case of JSON data, only values
+	 * will be sanitized, while keys will be left untouched.
 	 *
-	 * @param data				Data to be sanitized.
-	 * @param exceptPaths		When data is an object, you can specify a set of [dot paths](https://www.npmjs.com/package/dot-prop), values of which should not be sanitized.
+	 * @param   data        Data to be sanitized.
+	 * @param   exceptPaths When data is an object, you can specify a set of [dot
+	 *   paths](https://www.npmjs.com/package/dot-prop), values of which should not be sanitized.
 	 *
-	 * @returns					Sanitized data.
+	 * @returns             Sanitized data.
 	 */
 	public sanitize(data: ObjMap | string, exceptPaths?: Set<string>): ObjMap | string {
 		if (typeof data === 'string') {
@@ -135,23 +127,27 @@ class ApiValidator {
 	}
 
 	/**
-	 * Joins errors from the exception thrown by {@link ApiValidator.validate} method. <br/>
-	 * Errors can be joined into text or object. <br/>
-	 * When *text* is specified, errors will be joined into message using [ajv-i18n](https://github.com/ajv-validator/ajv-i18n). <br/>
-	 * When *json* is specified, errors will be joined into an object,
-	 * having as key [instancePath](https://ajv.js.org/api.html#error-objects) error property and as value [message](https://ajv.js.org/api.html#error-objects) error property.
+	 * Joins errors from the exception thrown by {@link ApiValidator.validate} method. <br/> Errors
+	 * can be joined into text or object. <br/> When _text_ is specified, errors will be joined into
+	 * message using [ajv-i18n](https://github.com/ajv-validator/ajv-i18n). <br/> When _json_ is
+	 * specified, errors will be joined into an object, having as key
+	 * [instancePath](https://ajv.js.org/api.html#error-objects) error property and as value
+	 * [message](https://ajv.js.org/api.html#error-objects) error property.
 	 *
-	 * @param errors				[Error objects](https://ajv.js.org/api.html#error-objects) from the exception thrown by {@link ApiValidator.validate} method.
-	 * @param into					Format into which errors need to be joined.
-	 * @param skippedKeywords		When format is *json*, you can skip some error objects having [keyword](https://ajv.js.org/api.html#error-objects) property present in this list.
+	 * @param   errors          [Error objects](https://ajv.js.org/api.html#error-objects) from the
+	 *   exception thrown by {@link ApiValidator.validate} method.
+	 * @param   into            Format into which errors need to be joined.
+	 * @param   skippedKeywords When format is _json_, you can skip some error objects having
+	 *   [keyword](https://ajv.js.org/api.html#error-objects) property present in this list.
 	 *
-	 * @returns						Joined errors.
+	 * @returns                 Joined errors.
 	 */
-	public joinErrors(errors: Array<ErrorObject | Partial<ErrorObject>>, into: 'text' | 'object', skippedKeywords?: string[]): string | ObjMap {
+	public joinErrors(errors: (ErrorObject | Partial<ErrorObject>)[], into: 'text' | 'object', skippedKeywords?: string[]): string | ObjMap {
 		switch (into) {
 			case 'text':
-				AjvLocalizeEn(errors as any);
-				return this.validator!.errorsText(errors as Array<ErrorObject>, ApiValidator.JOIN_ERRORS_TEXT_OPTIONS);
+				// @ts-expect-error -- It is callablellable
+				AjvLocalizeEn(errors as unknown);
+				return this.validator?.errorsText(errors as ErrorObject[], ApiValidator.JOIN_ERRORS_TEXT_OPTIONS) ?? '';
 
 			case 'object': {
 				if (skippedKeywords == null) {
@@ -159,14 +155,12 @@ class ApiValidator {
 				}
 
 				const errObj: ObjMap = {};
-
-				for (let i = 0; i < errors.length; i++) {
-					if (skippedKeywords.includes((errors[i] as ErrorObject).keyword)) {
+				for (const error of errors) {
+					if (skippedKeywords.includes((error as ErrorObject).keyword)) {
 						continue;
 					}
-					errObj[(errors[i] as ErrorObject).instancePath] = errors[i].message;
+					errObj[(error as ErrorObject).instancePath] = error.message;
 				}
-
 				return errObj;
 			}
 

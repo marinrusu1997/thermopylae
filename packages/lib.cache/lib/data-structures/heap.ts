@@ -1,24 +1,19 @@
-import { Comparator, Undefinable } from '@thermopylae/core.declarations';
+import type { Comparator, Undefinable } from '@thermopylae/core.declarations';
+import { types } from '@thermopylae/lib.utils';
 
-/**
- * @private
- */
+/** @private */
 const HEAP_NODE_IDX_SYM = Symbol('HEAP_NODE_INDEX_SYMBOL');
 
-/**
- * @private
- */
+/** @private */
 interface HeapNode {
 	[HEAP_NODE_IDX_SYM]: number;
 }
 
-/**
- * @private
- */
+/** @private */
 class Heap<T extends HeapNode> {
 	private readonly comparator: Comparator<T>;
 
-	private readonly nodes: Array<T>;
+	private readonly nodes: T[];
 
 	public constructor(comparator: Comparator<T>) {
 		this.comparator = comparator;
@@ -36,12 +31,12 @@ class Heap<T extends HeapNode> {
 
 	public pop(): Undefinable<T> {
 		const lastChildNode = this.nodes.pop(); // extract last child
-		let nodeToBeReturned: Undefinable<T>;
+		let nodeToBeReturned: Undefinable<T> | null = null;
 
-		if (this.nodes.length) {
+		if (this.nodes.length > 0 && lastChildNode) {
 			nodeToBeReturned = this.root; // save current root
-			this.root = lastChildNode!; // move last child node to root
-			this.propagateDown(lastChildNode!); // find the "correct" position for the new root
+			this.root = lastChildNode; // move last child node to root
+			this.propagateDown(lastChildNode); // find the "correct" position for the new root
 		} else {
 			nodeToBeReturned = lastChildNode;
 		}
@@ -106,7 +101,7 @@ class Heap<T extends HeapNode> {
 	}
 
 	private propagateUp(node: T): void {
-		let parent: T;
+		let parent: T | null = null;
 		while (Heap.isNotRoot(node)) {
 			parent = this.parent(node);
 			if (this.comparator(node, parent) < 0) {
@@ -122,16 +117,16 @@ class Heap<T extends HeapNode> {
 	 *
 	 * @private
 	 *
-	 * @param node	Node to propagate down.
+	 * @param   node Node to propagate down.
 	 *
-	 * @returns		The node where propagation stopped. <br/>
-	 * 				Might return the same `node` from argument if no propagation occurred.
+	 * @returns      The node where propagation stopped. <br/> Might return the same `node` from
+	 *   argument if no propagation occurred.
 	 */
 	private propagateDown(node: T): T {
 		let leftChild = this.leftChild(node);
-		let rightChild: Undefinable<T>;
+		let rightChild: Undefinable<T> | null = null;
 
-		let largest;
+		let largest: T | null = null;
 
 		// if doesn't have left child, then it does not have children at all
 		while (leftChild) {
@@ -181,7 +176,7 @@ class Heap<T extends HeapNode> {
 	}
 
 	private parent(childNode: T): T {
-		// eslint-disable-next-line no-bitwise
+		// oxlint-disable-next-line no-bitwise
 		return this.nodes[(childNode[HEAP_NODE_IDX_SYM] - 1) >> 1];
 	}
 
@@ -190,8 +185,8 @@ class Heap<T extends HeapNode> {
 	}
 
 	private static detachMetadata(node: HeapNode): void {
-		node[HEAP_NODE_IDX_SYM] = undefined!; // logical delete
+		node[HEAP_NODE_IDX_SYM] = types.SOFT_DELETE;
 	}
 }
 
-export { Heap, HeapNode, HEAP_NODE_IDX_SYM };
+export { Heap, type HeapNode, HEAP_NODE_IDX_SYM };

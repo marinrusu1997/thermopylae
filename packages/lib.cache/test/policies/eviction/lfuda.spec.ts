@@ -1,16 +1,18 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
-import { array, number } from '@thermopylae/lib.utils';
-import { LFUDAEvictionPolicy } from '../../../lib';
-import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import shuffle from 'knuth-shuffle-seeded';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { LFUDAEvictionPolicy } from '../../../lib/index.js';
+import type { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
 describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 	it('replaces stale popular entries', () => {
+		expect.hasAssertions();
+
 		const ENTRIES = new Map<string, number>([
 			['a', 0],
 			['b', 1],
@@ -31,7 +33,11 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 		]);
 		const CAPACITY = ENTRIES.size;
 
-		const GET_ORDER = array.shuffle([...ENTRY_FREQ.keys()].map((k) => array.filledWith(ENTRY_FREQ.get(k)!, k)).flat());
+		const GET_ORDER = shuffle(
+			ENTRY_FREQ.keys()
+				.flatMap((k) => new Array(ENTRY_FREQ.get(k)).fill(k))
+				.toArray()
+		);
 
 		const ADDITIONAL_ENTRIES = new Map<string, number>([
 			['h', 7],
@@ -43,7 +49,7 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 		try {
 			let totalEntriesNo = 0;
 
-			const policy = new LFUDAEvictionPolicy<string, number, any>(CAPACITY, {
+			const policy = new LFUDAEvictionPolicy<string, number, unknown>(CAPACITY, {
 				get size() {
 					return totalEntriesNo;
 				}
@@ -51,12 +57,12 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 			const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>();
 			policy.setDeleter((evictedEntry) => {
 				EVICTED_KEYS.push(evictedEntry.key);
-				policy.onDelete(evictedEntry as any);
+				policy.onDelete(evictedEntry as EvictableCacheEntry<string, number>);
 			});
 
 			/* Add entries */
 			for (const [key, value] of ENTRIES) {
-				// @ts-ignore This is for testing purposes
+				// @ts-expect-error This is for testing purposesrposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
@@ -74,7 +80,10 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				policy.onHit(entry);
 			}
 			for (const [key, freq] of ENTRY_FREQ) {
-				const entry = lfuEntries.get(key)!;
+				const entry = lfuEntries.get(key);
+				if (!entry) {
+					throw new Error(`Could not find entry for ${key.magenta}.`);
+				}
 				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(freq);
 			}
 
@@ -82,14 +91,14 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
-				// @ts-ignore This is for testing purposes
+				// @ts-expect-error This is for testing purposesrposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.containSubset(['a', 'b']);
 
 			/* Set additional entries frequency */
 			for (const key of ADDITIONAL_ENTRIES.keys()) {
@@ -105,19 +114,18 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.containSubset(['a', 'b']);
 
-			// @ts-ignore This is for testing purposes
-			const entry: EvictableCacheEntry<string, number> = { key: 'x', value: number.randomInt(10, 20) };
+			const entry = { key: 'x', value: randomInt(10, 20) } as EvictableCacheEntry<string, number>;
 			policy.onSet(entry);
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size + 1);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size + 1);
 			expect(EVICTED_KEYS).to.satisfy((keys: string[]) => keys.includes('c') || keys.includes('d'));
-		} catch (e) {
+		} catch (error) {
 			const message = ['Test Context:', `${'GET_ORDER'.magenta}: ${GET_ORDER.map((v) => `'${v}'`)}`];
 			logger.info(message.join('\n'));
-			throw e;
+			throw error;
 		}
 	});
 });

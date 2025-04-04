@@ -1,28 +1,28 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, before, beforeEach } from 'mocha';
-import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/dev.unit-test';
-import { ConnectionType, DebuggableEventType, initLogger as initRedisClientLogger, RedisClientInstance, RedisConnectionOptions } from '@thermopylae/core.redis';
-import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+// oxlint-disable require-top-level-describe
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { ClientModule, CoreModule, DevModule } from '@thermopylae/core.declarations';
-import { config as dotEnvConfig } from 'dotenv';
+import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+import {
+	ConnectionType,
+	type DebuggableEventType,
+	RedisClientInstance,
+	type RedisConnectionOptions,
+	initLogger as initRedisClientLogger
+} from '@thermopylae/core.redis';
 import { initLogger as initUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
-import type { Server } from 'http';
-import { initLogger as initCoreCookieSessionLogger } from '../lib/logger';
-import { app } from './fixtures/server';
+import { logger } from '@thermopylae/dev.unit-test';
+import crypto from 'node:crypto';
+import type { Server } from 'node:http';
+import { afterAll, beforeAll, beforeEach } from 'vitest';
+import { initLogger as initCoreCookieSessionLogger } from '../lib/logger.js';
+import { app } from './fixtures/server.js';
 
 const PORT = 7569;
 
-let redisContainer: DockerContainer;
-let server: Server;
+let redisContainer: StartedRedisContainer | null = null;
+let server: Server | null = null;
 
-before(async function boot() {
-	this.timeout(120_000);
-
-	const dotEnv = dotEnvConfig();
-	if (dotEnv.error) {
-		throw dotEnv.error;
-	}
-
+beforeAll(async function boot() {
 	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
@@ -33,21 +33,22 @@ before(async function boot() {
 			[ClientModule.REDIS]: 'error'
 		}
 	});
-	LoggerManagerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] || 'debug' });
+	LoggerManagerInstance.console.createTransport({ level: 'debug' });
 
-	initUnitTestLogger();
 	initRedisClientLogger();
 	initCoreCookieSessionLogger();
 	initUserSessionCommonsLogger();
 
-	let connectDetails: ConnectionDetails;
-	[redisContainer, connectDetails] = await bootRedisContainer();
+	const password = crypto.randomBytes(5).toString('hex');
+	redisContainer = await new RedisContainer('redis:latest').withPassword(password).start();
 
 	const redisClientOptions: RedisConnectionOptions = {
-		...connectDetails,
+		host: redisContainer.getHost(),
+		port: redisContainer.getFirstMappedPort(),
+		password,
 		connect_timeout: 10_000,
 		max_attempts: 10,
-		retry_max_delay: 5_000,
+		retry_max_delay: 5000,
 		attachDebugListeners: new Set<DebuggableEventType>(['end', 'reconnecting'])
 	};
 
@@ -68,19 +69,17 @@ before(async function boot() {
 		});
 	});
 
-	logger.crit('Refresh token storage has serialization schemas to user session metadata, which needs to be updated from time to time.');
-});
+	logger.error('Refresh token storage has serialization schemas to user session metadata, which needs to be updated from time to time.');
+}, 120_000);
 
 beforeEach(async () => {
 	await RedisClientInstance.client.flushall(); // flush storage
 });
 
-after(async function testEnvCleaner(): Promise<void> {
-	this.timeout(10_000);
-
+afterAll(async function testEnvCleaner(): Promise<void> {
 	if (server) {
 		await new Promise<void>((resolve, reject) => {
-			server.close((err) => {
+			server?.close((err) => {
 				if (err) {
 					return reject(err);
 				}
@@ -91,21 +90,14 @@ after(async function testEnvCleaner(): Promise<void> {
 		});
 	}
 
-	const proceed = [undefined, 1, '1', true, 'true', 'yes', 'y'];
 	if (redisContainer) {
-		if (proceed.includes(process.env['STOP_REDIS_CONTAINER_AFTER_TESTS'])) {
-			logger.info(`Stopping redis container with id ${redisContainer.id}`);
-			await redisContainer.stop();
-		}
-		if (proceed.includes(process.env['REMOVE_REDIS_CONTAINER_AFTER_TESTS'])) {
-			logger.info(`Removing redis container with id ${redisContainer.id}`);
-			await redisContainer.remove();
-		}
+		logger.info(`Stopping redis container`);
+		await redisContainer.stop();
 	} else {
 		logger.debug(`Redis container was not created by 'before' hook. Therefore, cleanup is not needed.`);
 	}
 
 	await RedisClientInstance.disconnect(false);
-});
+}, 10_000);
 
 export { PORT };

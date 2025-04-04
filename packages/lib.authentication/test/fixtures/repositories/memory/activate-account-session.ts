@@ -1,13 +1,12 @@
-import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+// oxlint-disable require-await
+import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const ActivateAccountSessionMemoryRepository: ActivateAccountSessionRepository<AccountWithTotpSecret> = {
 	insert: async (token, account, ttl) => {
 		MemoryCache.set(`act-acc:${token}`, account, { expiresAfter: ttl });
 	},
-	read: async (token) => {
-		return MemoryCache.get(`act-acc:${token}`) || null;
-	},
+	read: async (token) => MemoryCache.get(`act-acc:${token}`) ?? null,
 	delete: async (token) => {
 		MemoryCache.del(`act-acc:${token}`);
 	}

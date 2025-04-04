@@ -1,13 +1,12 @@
-import { ForgotPasswordSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+// oxlint-disable require-await
+import type { ForgotPasswordSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const ForgotPasswordSessionMemoryRepository: ForgotPasswordSessionRepository = {
 	insert: async (token, ttl) => {
 		MemoryCache.set(`fgt-pwd:${token}`, null, { expiresAfter: ttl });
 	},
-	exists: async (token) => {
-		return MemoryCache.has(`fgt-pwd:${token}`);
-	},
+	exists: async (token) => MemoryCache.has(`fgt-pwd:${token}`),
 	delete: async (token) => {
 		MemoryCache.del(`fgt-pwd:${token}`);
 	}

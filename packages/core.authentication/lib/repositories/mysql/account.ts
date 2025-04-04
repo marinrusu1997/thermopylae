@@ -1,8 +1,8 @@
-import type { AccountRepository, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
-import { MySqlClientInstance, QueryType, ResultSetHeader, RowDataPacket } from '@thermopylae/core.mysql';
-import { TableNames } from '../constants';
-import { createException, ErrorCodes } from '../../error';
+import { MySqlClientInstance, QueryType, type ResultSetHeader, type RowDataPacket } from '@thermopylae/core.mysql';
+import type { AccountRepository, AccountWithTotpSecret } from '@thermopylae/lib.authentication';
+import { ErrorCodes, createException } from '../../error.js';
+import { TableNames } from '../constants.js';
 
 class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret> {
 	private static readonly DUPLICATED_FIELD_REGEXP = new RegExp(`for key '${TableNames.Account}\\.(username|email|telephone)'$`);
@@ -33,15 +33,15 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 			account.id = String(results.insertId);
 
 			return null;
-		} catch (e) {
-			if (e.code === 'ER_DUP_ENTRY') {
-				const match = AccountMySqlRepository.DUPLICATED_FIELD_REGEXP.exec(e.message);
+		} catch (error) {
+			if (error.code === 'ER_DUP_ENTRY') {
+				const match = AccountMySqlRepository.DUPLICATED_FIELD_REGEXP.exec(error.message);
 				if (match != null && typeof match[1] === 'string') {
 					return [match[1] as keyof AccountWithTotpSecret];
 				}
 			}
 
-			throw e;
+			throw error;
 		} finally {
 			connection.release();
 		}
@@ -191,20 +191,17 @@ class AccountMySqlRepository implements AccountRepository<AccountWithTotpSecret>
 
 			const duplicatedFields = new Array<keyof AccountWithTotpSecret>();
 
-			// eslint-disable-next-line no-template-curly-in-string
 			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.USERNAME] === 1) {
 				duplicatedFields.push('username');
 			}
-			// eslint-disable-next-line no-template-curly-in-string
 			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.EMAIL] === 1) {
 				duplicatedFields.push('email');
 			}
-			// eslint-disable-next-line no-template-curly-in-string
 			if (results[0][AccountMySqlRepository.IS_DUPLICATE_EXISTS.TELEPHONE] === 1) {
 				duplicatedFields.push('telephone');
 			}
 
-			return duplicatedFields.length ? duplicatedFields : null;
+			return duplicatedFields.length > 0 ? duplicatedFields : null;
 		} finally {
 			connection.release();
 		}

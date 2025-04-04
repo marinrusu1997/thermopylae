@@ -1,14 +1,14 @@
-import { HttpStatusCode, Library, ObjMap, RequireAtLeastOne } from '@thermopylae/core.declarations';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
+import { HttpStatusCode, Library, type ObjMap, type RequireAtLeastOne } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import type { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
+import { logger } from '../../../../logger.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -34,24 +34,25 @@ const validateRequestBody: RequestHandler = handler(
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.CREATE_FORGOT_PASSWORD_SESSION, req.body);
 			next();
-		} catch (e) {
-			if (e instanceof ValidationError) {
+		} catch (error) {
+			// @ts-expect-error error
+			if (error instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_INPUT,
-						message: API_VALIDATOR.joinErrors(e.errors, 'text')
+						message: API_VALIDATOR.joinErrors(error.errors, 'text')
 					}
 				});
 				return;
 			}
-			throw e;
+			throw error;
 		}
 	}
 );
 
 const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>) => {
-	let readByField: 'readByUsername' | 'readByEmail' | 'readByTelephone' = null!;
-	let readByValue: string = null!;
+	let readByField: 'readByUsername' | 'readByEmail' | 'readByTelephone' = 'readByUsername';
+	let readByValue = '';
 
 	if (req.body.username != null) {
 		readByField = 'readByUsername';
@@ -69,14 +70,14 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 		logger.info(`Created forgot password session for account with id '${account.id}'.`);
 
 		res.status(HttpStatusCode.Accepted).send();
-	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Create forgot password session failed. Request origin: ${req.ip}.`, e);
+	} catch (error) {
+		if (error instanceof Exception && error.emitter === Library.AUTHENTICATION) {
+			logger.error(`Create forgot password session failed. Request origin: ${req.ip}.`, error);
 			res.status(HttpStatusCode.Accepted).send();
 			return;
 		}
 
-		throw e;
+		throw error;
 	}
 });
 

@@ -1,27 +1,25 @@
 /**
  * Function signature for checking equality of array elements.
  *
- * @template T	Element type.
+ * @template T Element type.
  */
-interface ArrayEqualsPredicate<T> {
-	(value: T, index: number, obj: T[]): boolean;
-}
+type ArrayEqualsPredicate<T> = (value: T, index: number, obj: T[]) => boolean;
 
 /**
  * Default function to compare element order.
  *
  * @private
  */
-function defaultCompare<T>(a: T, b: T): number {
-	if (a < b) {
+function defaultCompare<T>(first: T, second: T): number {
+	if (first < second) {
 		return -1;
 	}
 
-	if (a === b) {
+	if (first === second) {
 		return 0;
 	}
 
 	return 1;
 }
 
-export { ArrayEqualsPredicate, defaultCompare };
+export { type ArrayEqualsPredicate, defaultCompare };

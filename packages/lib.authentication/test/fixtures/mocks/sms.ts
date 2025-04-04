@@ -1,7 +1,7 @@
-import { AccountWithTotpSecret, SmsSender } from '../../../lib';
+import type { AccountWithTotpSecret, SmsSender } from '../../../lib/index.js';
 
 class SmsClientMock {
-	private readonly outbox: Map<string, Map<keyof SmsSender<AccountWithTotpSecret>, Array<string>>> = new Map();
+	private readonly outbox = new Map<string, Map<keyof SmsSender<AccountWithTotpSecret>, Array<string>>>();
 
 	public deliveryWillFail = false;
 
@@ -25,7 +25,7 @@ class SmsClientMock {
 		sms.push(body);
 	}
 
-	outboxFor(userTelephone: string, type: keyof SmsSender<AccountWithTotpSecret>): Array<string> {
+	outboxFor(userTelephone: string, type: keyof SmsSender<AccountWithTotpSecret>): string[] {
 		const smsByType = this.outbox.get(userTelephone);
 		if (smsByType == null) {
 			return [];

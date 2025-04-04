@@ -1,9 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-import { ApiValidator } from '../lib';
-import { apiValidator } from './bootstrap';
+import { describe, expect, it } from 'vitest';
+import { ApiValidator } from '../lib/index.js';
+import { apiValidator } from './bootstrap.js';
 
 describe(`${ApiValidator.prototype.sanitize.name} spec`, () => {
 	it('sanitizes string with xss in tag', () => {

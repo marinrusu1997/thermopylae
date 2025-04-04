@@ -1,12 +1,9 @@
-/**
- * @private
- */
-const TableNames = {
+/** @private */
+const TableNames = Object.freeze({
 	Account: 'Account',
 	Device: 'AuthenticationDevice',
 	SuccessfulAuthentication: 'SuccessfulAuthentication',
 	FailedAuthentication: 'FailedAuthentication'
-};
-Object.freeze(TableNames);
+});
 
 export { TableNames };

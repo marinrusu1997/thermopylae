@@ -1,12 +1,14 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import type { HTTPRequestLocation, HttpDevice } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
-import { AccountStatus, AccountWithTotpSecret, FailedAuthenticationModel } from '../lib';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { FailedAuthenticationAttemptsRepositoryMongo } from './fixtures/repositories/mongo/failed-auth';
-import { SuccessfulAuthenticationsRepositoryMongo } from './fixtures/repositories/mongo/successful-auth';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, type FailedAuthenticationModel } from '../lib/index.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+
+const {
+	account: AccountRepositoryMongo,
+	failedAuthenticationAttempts: FailedAuthenticationAttemptsRepositoryMongo,
+	successfulAuthentications: SuccessfulAuthenticationsRepositoryMongo
+} = AuthenticationEngineDefaultOptions.repositories;
 
 describe('Repositories spec', () => {
 	const location: HTTPRequestLocation = {
@@ -14,8 +16,8 @@ describe('Repositories spec', () => {
 		regionCode: 'CA',
 		city: 'Los Angeles',
 		timezone: 'America/Los_Angeles',
-		latitude: 34.0577507019043,
-		longitude: -118.41380310058594
+		latitude: 34.057_750_701_904_3,
+		longitude: -118.413_803_100_585_94
 	};
 	const androidDevice: HttpDevice = {
 		device: {
@@ -40,7 +42,7 @@ describe('Repositories spec', () => {
 
 	it('account', async () => {
 		const account: AccountWithTotpSecret = {
-			id: undefined!,
+			id: '',
 			username: 'user',
 			passwordHash: 'hash',
 			passwordSalt: undefined,
@@ -54,25 +56,25 @@ describe('Repositories spec', () => {
 		};
 
 		await AccountRepositoryMongo.insert(account);
-		expect(await AccountRepositoryMongo.readById(account.id)).to.be.deep.equal(account);
-		expect(await AccountRepositoryMongo.readByUsername(account.username)).to.be.deep.equal(account);
-		expect(await AccountRepositoryMongo.readByEmail(account.email)).to.be.deep.equal(account);
-		expect(await AccountRepositoryMongo.readByTelephone(account.telephone!)).to.be.deep.equal(account);
+		await expect(AccountRepositoryMongo.readById(account.id)).resolves.to.be.deep.equal(account);
+		await expect(AccountRepositoryMongo.readByUsername(account.username)).resolves.to.be.deep.equal(account);
+		await expect(AccountRepositoryMongo.readByEmail(account.email)).resolves.to.be.deep.equal(account);
+		await expect(AccountRepositoryMongo.readByTelephone(account.telephone ?? '')).resolves.to.be.deep.equal(account);
 		await AccountRepositoryMongo.setDisabledUntil(account.id, AccountStatus.DISABLED_UNTIL_ACTIVATION);
-		expect((await AccountRepositoryMongo.readByUsername(account.username))!.disabledUntil).to.be.equal(AccountStatus.DISABLED_UNTIL_ACTIVATION);
+		expect((await AccountRepositoryMongo.readByUsername(account.username))?.disabledUntil).to.be.equal(AccountStatus.DISABLED_UNTIL_ACTIVATION);
 		await AccountRepositoryMongo.setDisabledUntil(account.id, AccountStatus.ENABLED);
-		expect((await AccountRepositoryMongo.readByUsername(account.username))!.disabledUntil).to.be.equal(AccountStatus.ENABLED);
+		expect((await AccountRepositoryMongo.readByUsername(account.username))?.disabledUntil).to.be.equal(AccountStatus.ENABLED);
 		await AccountRepositoryMongo.update(account.id, { mfa: true });
-		expect((await AccountRepositoryMongo.readByUsername(account.username))!.mfa).to.be.equal(true);
+		expect((await AccountRepositoryMongo.readByUsername(account.username))?.mfa).to.be.equal(true);
 		await AccountRepositoryMongo.update(account.id, { mfa: false });
-		expect((await AccountRepositoryMongo.readByUsername(account.username))!.mfa).to.be.equal(false);
+		expect((await AccountRepositoryMongo.readByUsername(account.username))?.mfa).to.be.equal(false);
 	});
 
 	it('failed authentication', async () => {
-		const now = chrono.unixTime();
+		const now = chrono.unix();
 
 		const attempt1: FailedAuthenticationModel = {
-			id: undefined!,
+			id: '',
 			accountId: '1',
 			ip: '127.0.0.1',
 			detectedAt: now
@@ -80,7 +82,7 @@ describe('Repositories spec', () => {
 		await FailedAuthenticationAttemptsRepositoryMongo.insert(attempt1);
 
 		const attempt2 = {
-			id: undefined!,
+			id: '',
 			accountId: '1',
 			ip: '127.0.0.1',
 			device: androidDevice,
@@ -89,7 +91,7 @@ describe('Repositories spec', () => {
 		await FailedAuthenticationAttemptsRepositoryMongo.insert(attempt2);
 
 		const attempt3 = {
-			id: undefined!,
+			id: '',
 			accountId: '1',
 			ip: '127.0.0.1',
 			location,
@@ -99,15 +101,15 @@ describe('Repositories spec', () => {
 
 		const attempts = await FailedAuthenticationAttemptsRepositoryMongo.readRange('1', attempt3.detectedAt, attempt2.detectedAt);
 
-		expect(attempts).to.be.ofSize(2);
+		expect(attempts).to.have.length(2);
 		expect(attempts[0]).to.be.deep.equal(attempt3);
 		expect(attempts[1]).to.be.deep.equal(attempt2);
 	});
 
 	it('successful authentication', async () => {
-		const now = chrono.unixTime();
+		const now = chrono.unix();
 		await SuccessfulAuthenticationsRepositoryMongo.insert({
-			id: undefined!,
+			id: '',
 			accountId: '1',
 			ip: '127.0.0.1',
 			device: androidDevice,
@@ -115,15 +117,15 @@ describe('Repositories spec', () => {
 			authenticatedAt: now
 		});
 		await SuccessfulAuthenticationsRepositoryMongo.insert({
-			id: undefined!,
+			id: '',
 			accountId: '2',
 			ip: '127.0.0.1',
 			device: iosDevice,
 			location,
 			authenticatedAt: now + 10
 		});
-		expect(await SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('1', androidDevice)).to.be.equal(true);
-		expect(await SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('1', iosDevice)).to.be.equal(false);
-		expect(await SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('2', iosDevice)).to.be.equal(true);
+		await expect(SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('1', androidDevice)).resolves.to.be.equal(true);
+		await expect(SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('1', iosDevice)).resolves.to.be.equal(false);
+		await expect(SuccessfulAuthenticationsRepositoryMongo.authBeforeFromThisDevice('2', iosDevice)).resolves.to.be.equal(true);
 	});
 });

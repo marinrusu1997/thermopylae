@@ -4,7 +4,7 @@ import type { FastifyReply } from 'fastify';
 /**
  * Adapter for fastify reply instance.
  *
- * @template Payload	Type of the response payload.
+ * @template Payload Type of the response payload.
  */
 class FastifyResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> {
 	private readonly res: FastifyReply;
@@ -13,47 +13,35 @@ class FastifyResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> 
 		this.res = res;
 	}
 
-	/**
-	 * Get raw fastify response instance.
-	 */
+	/** Get raw fastify response instance. */
 	public get raw(): FastifyReply {
 		return this.res;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get sent(): boolean {
 		return this.res.sent;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public status(statusCode: HttpStatusCode): this {
 		this.res.status(statusCode);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public header(field: HttpResponseHeader | string, value: HttpHeaderValue): this {
 		this.res.header(field, value);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public type(mimeType: MimeType | string): this {
 		this.res.type(mimeType);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public send(payload?: Payload): void {
 		this.res.send(payload);
 	}

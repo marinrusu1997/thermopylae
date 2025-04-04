@@ -1,0 +1,146 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+
+  "env": {
+    "node": true,
+    "commonjs": false,
+    "es6": true
+  },
+
+  "ignorePatterns": ["**/docs/**", "**/node_modules/**", "**/dist/**", "**/coverage/**", "**/*.js"],
+
+  "categories": {
+    "suspicious": "error",
+    "correctness": "error",
+    "nursery": "error",
+    "pedantic": "error",
+    "perf": "error",
+    "restriction": "error",
+    "style": "error"
+  },
+
+  "plugins": ["typescript", "unicorn", "oxc", "import", "jsdoc", "node", "promise", "jest", "vitest"],
+
+  "rules": {
+    "getter-return": "error",
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "export": "error",
+    "named": "error",
+    "no-map-spread": "error",
+    "no-return-in-finally": "error",
+    "require-render-return": "error",
+
+    "import/consistent-type-specifier-style": "off",
+    "import/max-dependencies": "off",
+    "import/prefer-default-export": "off",
+    "import/unambiguous": "off",
+    "import/extensions": ["error", "always"],
+
+    "typescript/explicit-function-return-type": "off",
+
+    "jsdoc/require-param": "off",
+    "jsdoc/require-returns": "off",
+    "jsdoc/require-returns-type": "off",
+    "jsdoc/require-param-type": "off",
+    "jsdoc/require-param-description": "off",
+    "jsdoc/require-returns-description": "off",
+
+    "promise/catch-or-return": "off",
+    "promise/prefer-await-to-then": "off",
+    "promise/avoid-new": "off",
+
+    "jest/no-hooks": "off",
+    "jest/valid-expect": "off",
+    "jest/padding-around-all": "off",
+    "jest/padding-around-expect-groups": "off",
+    "jest/prefer-ending-with-an-expect": "off",
+    "jest/max-expects": "off",
+    "jest/no-conditional-in-test": "off",
+    "jest/unbound-method": "off",
+    "jest/prefer-lowercase-title": "off",
+    "jest/no-confusing-set-timeout": "off",
+    "no-conditional-expect": "off",
+    "jest/no-identical-title": "off",
+    "jest/no-standalone-expect": "off",
+    "jest/prefer-expect-assertions": [
+      "error",
+      {
+        "onlyFunctionsWithAsyncKeyword": false,
+        "onlyFunctionsWithExpectInLoop": true,
+        "onlyFunctionsWithExpectInCallback": true
+      }
+    ],
+
+    "max-lines-per-function": "off",
+    "max-params": "off",
+    "max-depth": "off",
+    "max-lines": "off",
+
+    "no-ternary": "off",
+    "no-nested-ternary": "off",
+    "no-undefined": "off",
+    "no-null": "off",
+    "no-plusplus": "off",
+    "no-labels": "off",
+    "no-async-await": "off",
+    "no-magic-numbers": "off",
+    "no-rest-spread-properties": "off",
+    "no-continue": "off",
+    "no-eq-null": "off",
+    "no-optional-chaining": "off",
+    "no-await-expression-member": "off",
+
+    "object-shorthand": "error",
+    "sort-keys": "off",
+    "sort-imports": "off",
+    "yoda": "off",
+
+    "typescript/no-extraneous-class": "off",
+
+    "unicorn/prefer-event-target": "off",
+    "unicorn/no-nested-ternary": "off",
+    "unicorn/no-static-only-class": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-new-array": "off",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "kebabCase": true,
+          "pascalCase": true
+        }
+      }
+    ],
+    "func-style": [
+      "error",
+      "declaration",
+      {
+        "allowArrowFunctions": true
+      }
+    ],
+    "eqeqeq": ["error", "smart"],
+    "id-length": [
+      "error",
+      {
+        "exceptions": ["i", "j", "k", "v", "T", "U", "R", "I", "O", "P", "A", "N", "J", "E", "B", "S", "F", "L", "K", "V", "_"]
+      }
+    ],
+    "max-classes-per-file": [
+      "error",
+      {
+        "ignoreExpressions": true
+      }
+    ]
+  },
+
+  "overrides": [
+    {
+      "files": ["**/test/**/*.spec.ts"],
+      "rules": {
+        "no-await-in-loop": "off",
+        "id-length": "off"
+      }
+    }
+  ]
+}

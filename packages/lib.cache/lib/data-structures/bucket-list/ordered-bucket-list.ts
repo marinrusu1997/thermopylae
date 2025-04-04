@@ -1,23 +1,18 @@
-import { Nullable } from '@thermopylae/core.declarations';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../list/doubly-linked';
-import { LinkedList } from '../list/interface';
-import { BucketList } from './interface';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { types } from '@thermopylae/lib.utils';
+import { DoublyLinkedList, type DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../list/doubly-linked.js';
+import type { LinkedList } from '../list/interface.js';
+import type { BucketList } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 const BUCKET_HEADER_SYM = Symbol('BUCKET_HEADER_SYM');
 
-/**
- * @private
- */
+/** @private */
 interface BucketEntryNode<BucketEntry> extends DoublyLinkedListNode<BucketEntryNode<BucketEntry>> {
 	[BUCKET_HEADER_SYM]: BucketHeaderNode<BucketEntry>;
 }
 
-/**
- * @private
- */
+/** @private */
 interface BucketHeaderNode<BucketEntry> extends DoublyLinkedListNode<BucketHeaderNode<BucketEntry>> {
 	id: number;
 	bucket: LinkedList<BucketEntry>;
@@ -35,30 +30,22 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 		this.buckets = new DoublyLinkedList<BucketHeaderNode<BucketEntry>>();
 	}
 
-	/**
-	 * Get the first bucket header.
-	 */
+	/** Get the first bucket header. */
 	public get head(): Nullable<BucketHeaderNode<BucketEntry>> {
 		return this.buckets.head;
 	}
 
-	/**
-	 * Get the last bucket header.
-	 */
+	/** Get the last bucket header. */
 	public get tail(): Nullable<BucketHeaderNode<BucketEntry>> {
 		return this.buckets.tail;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get numberOfBuckets(): number {
 		return this.buckets.size;
 	}
 
-	/**
-	 * Get total number of entries from ordered bucket list.
-	 */
+	/** Get total number of entries from ordered bucket list. */
 	public get size(): number {
 		let items = 0;
 		for (const bucketHeader of this.buckets) {
@@ -67,20 +54,18 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 		return items;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public has(inTheBucketId: number, entry: BucketEntry): boolean {
 		return entry[BUCKET_HEADER_SYM].id === inTheBucketId;
 	}
 
 	/**
-	 * Add *entry* into *bucketId*. <br/>
-	 * This operation has **O(N) complexity in worst case**, because it stats search of the *bucketId* from the list head.
-	 * Therefore, is recommended to add entries to *bucketId* closer to the head, to reduce search time.
+	 * Add _entry_ into _bucketId_. <br/> This operation has **O(N) complexity in worst case**,
+	 * because it stats search of the _bucketId_ from the list head. Therefore, is recommended to
+	 * add entries to _bucketId_ closer to the head, to reduce search time.
 	 *
-	 * @param bucketId		Id of the bucket where *entry* needs to be inserted.
-	 * @param entry			Entry to be added.
+	 * @param bucketId Id of the bucket where _entry_ needs to be inserted.
+	 * @param entry    Entry to be added.
 	 */
 	public add(bucketId: number, entry: BucketEntry): void {
 		const bucketHeader = this.getInsertionBucket(this.buckets.head, bucketId);
@@ -88,13 +73,13 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 	}
 
 	/**
-	 * Move *entry* from it's current bucket into new bucket with *toBucketId* id. <br/>
-	 * The same restrictions apply as in the {@link OrderedBucketList.add} method.
-	 * Therefore, it's recommended that *toBucketId* being as closer as possible to entry's current bucked id.
+	 * Move _entry_ from it's current bucket into new bucket with _toBucketId_ id. <br/> The same
+	 * restrictions apply as in the {@link OrderedBucketList.add} method. Therefore, it's recommended
+	 * that _toBucketId_ being as closer as possible to entry's current bucked id.
 	 *
-	 * @param _fromBucketId	**Ignored parameter**.
-	 * @param toBucketId	Id of the bucket where entry needs to be moved.
-	 * @param entry			Entry to be moved.
+	 * @param _fromBucketId **Ignored parameter**.
+	 * @param toBucketId    Id of the bucket where entry needs to be moved.
+	 * @param entry         Entry to be moved.
 	 */
 	public move(_fromBucketId: number, toBucketId: number, entry: BucketEntry): void {
 		const currentBucketId = entry[BUCKET_HEADER_SYM].id;
@@ -114,24 +99,22 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 	/**
 	 * Removes entry from ordered bucket list. This operation has O(1) complexity.
 	 *
-	 * @param _fromBucketId		**Ignored parameter**.
-	 * @param entry				Entry to be removed.
+	 * @param _fromBucketId **Ignored parameter**.
+	 * @param entry         Entry to be removed.
 	 */
 	public remove(_fromBucketId: number, entry: BucketEntry): void {
 		this.removeEntryFromBucketHeader(entry);
 	}
 
-	/**
-	 * Clear entries from ordered bucket list.
-	 */
+	/** Clear entries from ordered bucket list. */
 	public clear(): void {
 		this.buckets.clear();
 	}
 
 	/**
-	 * Get the id of the bucket where *entry* currently resides.
+	 * Get the id of the bucket where _entry_ currently resides.
 	 *
-	 * @param entry		Queried entry.
+	 * @param entry Queried entry.
 	 */
 	public static getBucketId<Entry extends BucketEntryNode<Entry>>(entry: Entry): number {
 		return entry[BUCKET_HEADER_SYM].id;
@@ -144,8 +127,8 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 			}
 
 			let current: Nullable<BucketHeaderNode<BucketEntry>> = startingBucketHeader;
-			let addTo: keyof typeof DoublyLinkedList.prototype;
-			let appendSym: typeof PREV_SYM | typeof NEXT_SYM;
+			let addTo: keyof typeof DoublyLinkedList.prototype | null = null;
+			let appendSym: typeof PREV_SYM | typeof NEXT_SYM | null = null;
 
 			if (bucketId > startingBucketHeader.id) {
 				// we search forward until reaching the end or needed id
@@ -175,7 +158,7 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 
 			const newBucketHeader: BucketHeaderNode<BucketEntry> = {
 				id: bucketId,
-				// @ts-ignore It actually satisfies the constraint
+				// @ts-expect-error It actually satisfies the constrainttraint
 				bucket: new DoublyLinkedList<BucketEntry>(),
 				[PREV_SYM]: null,
 				[NEXT_SYM]: null
@@ -186,7 +169,10 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 				this.buckets[addTo](newBucketHeader);
 			} else {
 				// we are somewhere in the middle
-				this.buckets.insertAfter(current[appendSym]!, newBucketHeader);
+				const afterThisBlock = current[appendSym];
+				if (afterThisBlock) {
+					this.buckets.insertAfter(afterThisBlock, newBucketHeader);
+				}
 			}
 
 			return newBucketHeader;
@@ -195,7 +181,7 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 		// the buckets list is empty, code duplicated for performance, damn those 0.00000001 ms
 		const newBucketHeader: BucketHeaderNode<BucketEntry> = {
 			id: bucketId,
-			// @ts-ignore It actually satisfies constraints
+			// @ts-expect-error It actually satisfies constraintsraints
 			bucket: new DoublyLinkedList<BucketEntry>(),
 			[PREV_SYM]: null,
 			[NEXT_SYM]: null
@@ -212,7 +198,7 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 			this.buckets.remove(entry[BUCKET_HEADER_SYM]);
 		}
 
-		entry[BUCKET_HEADER_SYM] = undefined!; // soft delete
+		entry[BUCKET_HEADER_SYM] = types.SOFT_DELETE;
 	}
 
 	private static addEntryToBucketHeader<Entry extends BucketEntryNode<Entry>>(bucketHeader: BucketHeaderNode<Entry>, entry: Entry): void {
@@ -221,4 +207,4 @@ class OrderedBucketList<BucketEntry extends BucketEntryNode<BucketEntry>> implem
 	}
 }
 
-export { OrderedBucketList, BucketEntryNode, BUCKET_HEADER_SYM };
+export { OrderedBucketList, type BucketEntryNode, BUCKET_HEADER_SYM };

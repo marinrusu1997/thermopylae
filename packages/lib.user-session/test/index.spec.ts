@@ -1,11 +1,9 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it, before } from 'mocha';
-import { expect, logger, initLogger } from '@thermopylae/dev.unit-test';
-import { LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
+import { logger } from '@thermopylae/dev.unit-test';
 import type { DeviceBase, UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
-import { setTimeout } from 'timers/promises';
-import { RenewSessionHooks, UserSessionManager, UserSessionManagerOptions } from '../lib';
-import { StorageMock } from './storage-mock';
+import { setTimeout } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { type RenewSessionHooks, UserSessionManager, type UserSessionManagerOptions } from '../lib/index.js';
+import { StorageMock } from './storage-mock.js';
 
 function buildContext(): UserSessionOperationContext<DeviceBase, string> {
 	return {
@@ -20,20 +18,17 @@ function buildContext(): UserSessionOperationContext<DeviceBase, string> {
 
 const matchOperatorsRe = /[|\\{}()[\]^$+*?.]/g;
 function escapeStringRegexp(str: string): string {
-	if (typeof str !== 'string') {
-		throw new TypeError('Expected a string');
-	}
-	return str.replace(matchOperatorsRe, '\\$&');
+	return str.replace(matchOperatorsRe, String.raw`\$&`);
 }
 
 const renewSessionHooks: RenewSessionHooks = {
 	onRenewMadeAlreadyFromCurrentProcess(sessionId: string) {
-		logger.warning(
+		logger.warn(
 			`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from this NodeJS process.`
 		);
 	},
 	onRenewMadeAlreadyFromAnotherProcess(sessionId: string) {
-		logger.warning(
+		logger.warn(
 			`Can't renew session '${UserSessionManager.hash(sessionId)}', because it was renewed already. Renew has been made from another NodeJS process.`
 		);
 	},
@@ -43,12 +38,6 @@ const renewSessionHooks: RenewSessionHooks = {
 };
 
 describe(`${UserSessionManager.name} spec`, () => {
-	before(() => {
-		LoggerManagerInstance.console.createTransport({ level: 'info' });
-		LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, { colorize: true });
-		initLogger();
-	});
-
 	it(`creates new session which expires after a given ttl`, async () => {
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
@@ -67,7 +56,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session.expiresAt).to.be.lessThan(currentTimestamp + 3); // rounding to 3
 
 		await setTimeout(1100, { ref: true });
-		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
+		await expect(sessionManager.read('uid1', sessionId, buildContext())).rejects.toThrow(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
 	});
@@ -89,7 +78,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 				type: 'MOBILE'
 			}
 		};
-		await expect(sessionManager.read('uid1', sessionId, otherDeviceContext)).to.eventually.be.rejectedWith(
+		await expect(sessionManager.read('uid1', sessionId, otherDeviceContext)).rejects.toThrow(
 			new RegExp(
 				`^Attempting to access session '${escapeStringRegexp(
 					UserSessionManager.hash(sessionId)
@@ -98,7 +87,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		);
 	});
 
-	it('removes session after being idle', async () => {
+	it('removes session after being idle', { timeout: 3500 }, async () => {
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
 			sessionTtl: 10,
@@ -122,12 +111,12 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session.accessedAt).to.not.be.eq(accessedAtSnapshot);
 
 		await setTimeout(2100, { ref: true });
-		await expect(sessionManager.read('uid1', sessionId, buildContext())).to.eventually.be.rejectedWith(
+		await expect(sessionManager.read('uid1', sessionId, buildContext())).rejects.toThrow(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' it's expired, because it was idle`)
 		);
-	}).timeout(3500);
+	});
 
-	it('renews session only once from same NodeJS process', async () => {
+	it('renews session only once from same NodeJS process', { timeout: 2500 }, async () => {
 		const storage = new StorageMock();
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
@@ -157,9 +146,9 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session1.accessedAt).to.be.equal(session.accessedAt);
 		expect(session2.accessedAt).to.be.equal(session.accessedAt);
 
-		const renewedSessionId = (renewSessionId1 || renewSessionId2)!;
+		const renewedSessionId = renewSessionId1 || renewSessionId2 || '';
 		const [renewedSession] = await sessionManager.read('uid1', renewedSessionId, context);
-		expect(renewedSession.device!.type).to.be.eq('smartphone');
+		expect(renewedSession.device?.type).to.be.eq('smartphone');
 
 		if (renewedSessionId === renewSessionId1) {
 			expect(renewSessionId2).to.be.eq(null);
@@ -168,12 +157,12 @@ describe(`${UserSessionManager.name} spec`, () => {
 		}
 
 		await setTimeout(1100, { ref: true });
-		await expect(sessionManager.read('uid1', sessionId, context)).to.eventually.be.rejectedWith(
+		await expect(sessionManager.read('uid1', sessionId, context)).rejects.toThrow(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
-	}).timeout(2500);
+	});
 
-	it('renews session only once from multiple NodeJS processes', async () => {
+	it('renews session only once from multiple NodeJS processes', { timeout: 2500 }, async () => {
 		const storage = new StorageMock();
 		const context = buildContext();
 
@@ -204,7 +193,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		expect(session1).to.be.deep.equal(session);
 		expect(session2).to.be.deep.equal(session);
 
-		const renewedSessionId = (renewSessionId1 || renewSessionId2)!;
+		const renewedSessionId = renewSessionId1 || renewSessionId2 || '';
 		const [renewedSession] = await process2.read('uid1', renewedSessionId, context);
 		expect(renewedSession.location).to.be.eq('Bucharest');
 
@@ -215,15 +204,15 @@ describe(`${UserSessionManager.name} spec`, () => {
 		}
 
 		await setTimeout(1100, { ref: true });
-		await expect(process1.read('uid1', sessionId, context)).to.eventually.be.rejectedWith(
+		await expect(process1.read('uid1', sessionId, context)).rejects.toThrow(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
-		await expect(process2.read('uid1', sessionId, context)).to.eventually.be.rejectedWith(
+		await expect(process2.read('uid1', sessionId, context)).rejects.toThrow(
 			new RegExp(`^Session '${escapeStringRegexp(UserSessionManager.hash(sessionId))}' doesn't exist\\.`)
 		);
-	}).timeout(2500);
+	});
 
-	it('deletes explicitly user session that was recently renewed', async () => {
+	it('deletes explicitly user session that was recently renewed', { timeout: 2500 }, async () => {
 		const storage = new StorageMock();
 		const sessionManager = new UserSessionManager({
 			idLength: 18,
@@ -246,7 +235,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 		await sessionManager.delete('uid1', sessionId);
 		await setTimeout(1100, { ref: true });
 		expect(storage.invocations.get('delete')).to.be.eq(1);
-	}).timeout(2500);
+	});
 
 	it('deletes all user sessions', async () => {
 		const storage = new StorageMock();
@@ -274,7 +263,7 @@ describe(`${UserSessionManager.name} spec`, () => {
 			expect(session.ip).to.be.oneOf(['192.168.5.9', '192.168.5.10']);
 		}
 
-		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(2);
-		await expect(sessionManager.deleteAll('uid1')).to.eventually.be.eq(0);
+		await expect(sessionManager.deleteAll('uid1')).resolves.toBe(2);
+		await expect(sessionManager.deleteAll('uid1')).resolves.toBe(0);
 	});
 });

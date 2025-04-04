@@ -1,15 +1,21 @@
-import { expect } from '@thermopylae/dev.unit-test';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
-import { CacheEntry } from '../../../lib/contracts/commons';
+import type { types } from '@thermopylae/lib.utils';
+import { expect } from 'vitest';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../../lib/typings/cache-replacement-policy.js';
+import type { CacheEntry } from '../../../lib/typings/commons.js';
 
 interface MethodBehaviour {
 	calls: number;
-	arguments?: any[];
-	returnValue?: any;
-	throws?: any;
+	arguments: types.Any[];
+	returnValue?: types.Any;
+	throws?: Error;
 }
 
 class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
+	public static readonly DEFAULT_METHOD_BEHAVIOUR: MethodBehaviour = Object.freeze({
+		calls: 0,
+		arguments: []
+	});
+
 	public deleteFromCache!: Deleter<Key, Value>;
 
 	public readonly methodBehaviours: Map<keyof PolicyMock<Key, Value, ArgumentsBundle>, MethodBehaviour>;
@@ -17,17 +23,21 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 	public constructor() {
 		this.methodBehaviours = new Map<keyof PolicyMock<Key, Value, ArgumentsBundle>, MethodBehaviour>();
 
-		const methods = Object.getOwnPropertyNames(PolicyMock.prototype) as unknown as Array<keyof PolicyMock<Key, Value, ArgumentsBundle>>;
+		const methods = Object.getOwnPropertyNames(PolicyMock.prototype) as unknown as (keyof PolicyMock<Key, Value, ArgumentsBundle>)[];
 		for (const method of methods) {
-			this.methodBehaviours.set(method, { calls: 0 });
+			this.methodBehaviours.set(method, { calls: 0, arguments: [] });
 		}
 	}
 
 	public onHit(entry: CacheEntry<Key, Value>): EntryValidity {
-		expect(entry.key).to.not.be.eq(undefined);
-		expect(entry.value).to.not.be.eq(undefined);
+		expect(entry.key).toBeDefined();
+		expect(entry.value).toBeDefined();
 
-		const methodBehaviour = this.methodBehaviours.get('onHit')!;
+		const methodBehaviour = this.methodBehaviours.get('onHit');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.arguments = [entry];
 		methodBehaviour.calls += 1;
 
@@ -39,16 +49,24 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 	}
 
 	public onMiss(key: Key): void {
-		const methodBehaviour = this.methodBehaviours.get('onMiss')!;
+		const methodBehaviour = this.methodBehaviours.get('onMiss');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.arguments = [key];
 		methodBehaviour.calls += 1;
 	}
 
 	public onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void {
-		expect(entry.key).to.not.be.eq(undefined);
-		expect(entry.value).to.not.be.eq(undefined);
+		expect(entry.key).toBeDefined();
+		expect(entry.value).toBeDefined();
 
-		const methodBehaviour = this.methodBehaviours.get('onSet')!;
+		const methodBehaviour = this.methodBehaviours.get('onSet');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.arguments = [entry, argsBundle];
 		methodBehaviour.calls += 1;
 
@@ -58,10 +76,14 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 	}
 
 	public onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void {
-		expect(entry.key).to.not.be.eq(undefined);
-		expect(entry.value).to.not.be.eq(undefined);
+		expect(entry.key).toBeDefined();
+		expect(entry.value).toBeDefined();
 
-		const methodBehaviour = this.methodBehaviours.get('onUpdate')!;
+		const methodBehaviour = this.methodBehaviours.get('onUpdate');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.arguments = [entry, argsBundle];
 		methodBehaviour.calls += 1;
 
@@ -71,16 +93,24 @@ class PolicyMock<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<
 	}
 
 	public onDelete(entry: CacheEntry<Key, Value>): void {
-		expect(entry.key).to.not.be.eq(undefined);
-		expect(entry.value).to.not.be.eq(undefined);
+		expect(entry.key).toBeDefined();
+		expect(entry.value).toBeDefined();
 
-		const methodBehaviour = this.methodBehaviours.get('onDelete')!;
+		const methodBehaviour = this.methodBehaviours.get('onDelete');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.arguments = [entry];
 		methodBehaviour.calls += 1;
 	}
 
 	public onClear(): void {
-		const methodBehaviour = this.methodBehaviours.get('onClear')!;
+		const methodBehaviour = this.methodBehaviours.get('onClear');
+		if (!methodBehaviour) {
+			throw new Error('No method behaviour');
+		}
+
 		methodBehaviour.calls += 1;
 	}
 

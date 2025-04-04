@@ -1,12 +1,10 @@
-import type { IpLocationsRepository } from './repository';
+import type { IpLocationsRepository } from './repository/index.js';
 
-/**
- * @private
- */
+/** @private */
 class LoadBalancer {
-	public readonly repositories: ReadonlyArray<IpLocationsRepository>;
+	public readonly repositories: readonly IpLocationsRepository[];
 
-	private readonly available: Array<IpLocationsRepository>;
+	private readonly available: IpLocationsRepository[];
 
 	private availableLength!: number;
 
@@ -14,7 +12,7 @@ class LoadBalancer {
 
 	private totalWeight!: number;
 
-	public constructor(repositories: ReadonlyArray<IpLocationsRepository>) {
+	public constructor(repositories: readonly IpLocationsRepository[]) {
 		this.repositories = repositories;
 		this.available = new Array(repositories.length);
 		this.detectAvailable();
@@ -25,12 +23,12 @@ class LoadBalancer {
 		this.detectTotalWeight();
 
 		const rnd = Math.floor(Math.random() * this.totalWeight) + 1;
-		let n = 0;
+		let weightTotal = 0;
 
 		this.availableIter = 0;
 		for (; this.availableIter < this.availableLength; this.availableIter++) {
-			n += this.available[this.availableIter].weight;
-			if (n >= rnd) {
+			weightTotal += this.available[this.availableIter].weight;
+			if (weightTotal >= rnd) {
 				return this.available[this.availableIter];
 			}
 		}

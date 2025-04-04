@@ -1,22 +1,22 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-
-import { Nullable, Runnable, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import { type Nullable, type Runnable, type Seconds, SecondsC, type UnixTimestamp, UnixTimestampC } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { HashMapBucketList } from '../data-structures/bucket-list/hash-map-bucket-list';
-import { EXPIRES_AT_SYM } from '../constants';
+import { convert } from 'convert';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import { HashMapBucketList } from '../data-structures/bucket-list/hash-map-bucket-list.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
 // reference: https://groups.google.com/g/memcached/c/MdNPv0oxhO8
 
 /**
- * {@link GarbageCollector} implementation which uses a map of buckets to keep entries that needs to be evicted. <br/>
- * Each timestamp has an according bucket with entries that need to be evicted at that time. <br/>
- * A timer is set to tick on each second and evicts all entries from the bucket corresponding to timestamp when timer fired.
+ * {@link GarbageCollector} implementation which uses a map of buckets to keep entries that needs to
+ * be evicted. <br/> Each timestamp has an according bucket with entries that need to be evicted at
+ * that time. <br/> A timer is set to tick on each second and evicts all entries from the bucket
+ * corresponding to timestamp when timer fired.
  *
- * @template T	Type of the cache entry.
+ * @template T Type of the cache entry.
  */
 class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollector<T> {
-	private static readonly EVICTION_TIMEOUT: Seconds = 1;
+	private static readonly EVICTION_TIMEOUT: Seconds = SecondsC(1);
 
 	private readonly buckets: HashMapBucketList<UnixTimestamp, T>;
 
@@ -39,19 +39,25 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 	}
 
 	public manage(entry: T): void {
-		this.buckets.add(entry[EXPIRES_AT_SYM], entry);
-		this.evictionTimer.restart(entry[EXPIRES_AT_SYM]);
+		if (entry[EXPIRES_AT_SYM] != null) {
+			this.buckets.add(entry[EXPIRES_AT_SYM], entry);
+			this.evictionTimer.restart(entry[EXPIRES_AT_SYM]);
+		}
 	}
 
 	public update(oldExpiration: UnixTimestamp, entry: T): void {
-		this.buckets.move(oldExpiration, entry[EXPIRES_AT_SYM], entry);
-		this.evictionTimer.synchronize(entry[EXPIRES_AT_SYM]);
+		if (entry[EXPIRES_AT_SYM] != null) {
+			this.buckets.move(oldExpiration, entry[EXPIRES_AT_SYM], entry);
+			this.evictionTimer.synchronize(entry[EXPIRES_AT_SYM]);
+		}
 	}
 
 	public leave(entry: T): void {
-		this.buckets.remove(entry[EXPIRES_AT_SYM], entry);
-		if (this.buckets.numberOfBuckets === 0) {
-			this.evictionTimer.stop();
+		if (entry[EXPIRES_AT_SYM] != null) {
+			this.buckets.remove(entry[EXPIRES_AT_SYM], entry);
+			if (this.buckets.numberOfBuckets === 0) {
+				this.evictionTimer.stop();
+			}
 		}
 	}
 
@@ -60,20 +66,19 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 		this.evictionTimer.stop();
 	}
 
-	public setEntryExpiredCallback(cb: EntryExpiredCallback<T>): void {
-		this.entryExpiredCb = cb;
+	public setEntryExpiredCallback(handler: EntryExpiredCallback<T>): void {
+		this.entryExpiredCb = handler;
 	}
 
 	private evictionTimerHandler = () => {
 		// handle scenario when dropBucket took more than {@link BucketGarbageCollector.EVICTION_TIMEOUT}
 		// in this case we need to also drop nearest bucket, to no skip him when we schedule timer for next second
-		let now = chrono.unixTime();
-		let evictedBucketId: UnixTimestamp;
-		// eslint-disable-next-line no-constant-condition
+		let now = chrono.unix();
+		let evictedBucketId: UnixTimestamp | null = null;
 		while (true) {
 			evictedBucketId = now;
 			this.buckets.dropBucket(now, this.entryExpiredCb);
-			now = chrono.unixTime();
+			now = chrono.unix();
 
 			if (evictedBucketId === now) {
 				break; // dropBucket took less than 1 sec
@@ -91,17 +96,14 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 	}
 }
 
-/**
- * @private
- */
+/** @private */
 interface EvictionInterval {
 	timeoutId: Nullable<NodeJS.Timeout>;
 	willTickOn: UnixTimestamp;
 }
 
-/**
- * @private
- */
+/** @private */
+// oxlint-disable-next-line max-classes-per-file
 class EvictionTimer {
 	private readonly evictionInterval: EvictionInterval;
 
@@ -110,7 +112,7 @@ class EvictionTimer {
 	public constructor(onTick: Runnable) {
 		this.evictionInterval = {
 			timeoutId: null,
-			willTickOn: -1
+			willTickOn: UnixTimestampC(-1)
 		};
 		this.onTick = onTick;
 	}
@@ -121,12 +123,12 @@ class EvictionTimer {
 
 	public startAt(startTimestamp: UnixTimestamp): void {
 		this.evictionInterval.willTickOn = startTimestamp;
-		this.evictionInterval.timeoutId = setTimeout(this.onTick, chrono.secondsToMilliseconds(startTimestamp - chrono.unixTime()));
+		this.evictionInterval.timeoutId = setTimeout(this.onTick, convert(startTimestamp - chrono.unix(), 's').to('ms'));
 	}
 
 	public startAfter(timeout: Seconds, now: UnixTimestamp): void {
-		this.evictionInterval.willTickOn = now + timeout;
-		this.evictionInterval.timeoutId = setTimeout(this.onTick, chrono.secondsToMilliseconds(timeout));
+		this.evictionInterval.willTickOn = UnixTimestampC(now + timeout);
+		this.evictionInterval.timeoutId = setTimeout(this.onTick, convert(timeout, 's').to('ms'));
 	}
 
 	public synchronize(withTimestamp: UnixTimestamp): void {
@@ -146,9 +148,11 @@ class EvictionTimer {
 	}
 
 	public stop(): void {
-		clearTimeout(this.evictionInterval.timeoutId!);
+		if (this.evictionInterval.timeoutId) {
+			clearTimeout(this.evictionInterval.timeoutId);
+		}
 		this.evictionInterval.timeoutId = null;
-		this.evictionInterval.willTickOn = -1;
+		this.evictionInterval.willTickOn = UnixTimestampC(-1);
 	}
 }
 

@@ -1,15 +1,12 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-
 import { Exception } from '@thermopylae/lib.exception';
-import { Undefinable } from '@thermopylae/core.declarations';
-import { randomInt, random, convertFrom, ErrorCodes, toLetter, percentage } from '../lib/number';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, convertFrom, percentage, random, toLetter } from '../lib/number.js';
 
 describe('number spec', () => {
 	describe(`${random.name} spec`, () => {
 		it('generates random number', () => {
+			expect.hasAssertions();
+
 			const LOWER_END = 1;
 			const HIGHER_END = 5;
 
@@ -23,34 +20,15 @@ describe('number spec', () => {
 		it('validates both interval ends', () => {
 			expect(() => random(0, 1)).to.not.throw(`${0} is greater than ${1}`);
 			expect(() => random(1, 1)).to.not.throw(`${1} is greater than ${1}`);
-			expect(() => random(1.1, 1.0)).to.throw(`${1.1} is greater than ${1.0}`);
+			expect(() => random(1.1, 1)).to.throw(`${1.1} is greater than ${1}`);
 			expect(() => random(2, 1)).to.throw(`${2} is greater than ${1}`);
-		});
-	});
-
-	describe(`${randomInt.name} spec`, () => {
-		it('generates random int', () => {
-			const LOWER_END = 1;
-			const HIGHER_END = 5;
-
-			for (let i = 0; i < 100; i++) {
-				const randomInteger = randomInt(LOWER_END, HIGHER_END);
-				expect(randomInteger).to.be.gte(LOWER_END);
-				expect(randomInteger).to.be.lte(HIGHER_END);
-				expect(randomInteger).to.be.eq(Math.trunc(randomInteger));
-			}
-		});
-
-		it('validates both interval ends', () => {
-			expect(() => randomInt(0, 1)).to.not.throw(`${0} is greater than ${1}`);
-			expect(() => randomInt(1, 1)).to.not.throw(`${1} is greater than ${1}`);
-			expect(() => randomInt(1.1, 1.0)).to.throw(`${1.1} is greater than ${1.0}`);
-			expect(() => randomInt(2, 1)).to.throw(`${2} is greater than ${1}`);
 		});
 	});
 
 	describe(`${percentage.name} spec`, () => {
 		it('calculates percentage', () => {
+			expect.hasAssertions();
+
 			for (let i = 0; i <= 1; i += 0.1) {
 				expect(percentage(100, i)).to.be.eq(i * 100);
 			}
@@ -64,28 +42,17 @@ describe('number spec', () => {
 
 	describe(`${convertFrom.name} spec`, () => {
 		it('returns back null or undefined when no strict mode enabled', () => {
-			expect(convertFrom(undefined)).to.be.eq(undefined);
 			expect(convertFrom(null)).to.be.eq(null);
 		});
 
 		it('throws when passing null or undefined and strict mode is enabled', () => {
-			let value: null | undefined;
-			let err: Undefinable<Error>;
-
-			function doTest() {
-				try {
-					convertFrom(value, true);
-				} catch (e) {
-					err = e;
-				}
-				expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
+			let err: Error | null = null;
+			try {
+				convertFrom(null, true);
+			} catch (error) {
+				err = error as Error;
 			}
-
-			doTest();
-
-			value = null;
-			err = undefined;
-			doTest();
+			expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
 		});
 
 		it('converts to number', () => {
@@ -97,7 +64,7 @@ describe('number spec', () => {
 
 	describe(`${toLetter.name} spec`, () => {
 		it('returns number converted to letter', () => {
-			expect(toLetter(10000000)).to.be.eq('2oMX');
+			expect(toLetter(10_000_000)).to.be.eq('2oMX');
 		});
 	});
 });

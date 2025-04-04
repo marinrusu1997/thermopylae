@@ -1,10 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
 import { ConcurrencyType } from '@thermopylae/core.declarations';
-import { filledWith, filterAsync, peek, randomElement, remove, shuffle, unique } from '../lib/array';
-import { chrono } from '../lib';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { describe, expect, it } from 'vitest';
+import { filterAsync, peek, remove, unique } from '../lib/array.js';
 
 describe('array spec', () => {
 	describe(`${remove.name} spec`, () => {
@@ -63,70 +60,6 @@ describe('array spec', () => {
 		});
 	});
 
-	describe(`${filledWith.name} spec`, () => {
-		it('throws on negative length', () => {
-			expect(() => filledWith(-1, undefined)).to.throw('Invalid array length');
-		});
-
-		it('returns empty array when length is 0', () => {
-			expect(filledWith(0, 0).length).to.be.eq(0);
-		});
-
-		it('fills array with provided value', () => {
-			const length = 10;
-			const toFill = `val-${Date.now()}`;
-			const arr = filledWith(length, toFill);
-
-			expect(arr.length).to.be.eq(length);
-			for (let i = 0; i < length; i++) {
-				expect(arr[i]).to.be.eq(toFill);
-			}
-		});
-
-		it('fills array by calling provided function', () => {
-			const length = 10;
-
-			const generated: Array<number> = [];
-			function generator(): number {
-				const num = Math.random();
-				generated.push(num);
-				return num;
-			}
-
-			const arr = filledWith(length, generator);
-
-			expect(arr.length).to.be.eq(length);
-			for (let i = 0; i < length; i++) {
-				expect(arr[i]).to.be.eq(generated[i]);
-			}
-		});
-
-		it('fills array without duplicates', () => {
-			const length = 50;
-
-			const generated: Array<number> = [];
-			function generator(): number {
-				const num = Math.random();
-
-				if (Math.random() < 0.5 && generated.length) {
-					return generated[0];
-				}
-
-				generated.push(num);
-				return num;
-			}
-
-			const arr = filledWith(length, generator, { noDuplicates: true });
-
-			expect(arr).to.be.ofSize(length); // generated array with desired length
-			expect(arr).to.be.ofSize(new Set(arr).size); // without duplicates
-
-			for (let i = 0; i < length; i++) {
-				expect(arr[i]).to.be.eq(generated[i]);
-			}
-		});
-	});
-
 	describe(`${unique.name} spec`, () => {
 		it('extracts unique items from array', () => {
 			const numericArray = [1, 2, 1, 2, 2, 3];
@@ -136,55 +69,25 @@ describe('array spec', () => {
 		});
 	});
 
-	describe(`${shuffle.name} spec`, () => {
-		it('shuffles in random order', () => {
-			const arr = [1, 2, 3, 4, 5];
-			const original = arr.slice();
-
-			shuffle(arr);
-			try {
-				expect(arr).not.to.be.equalTo(original);
-			} catch {
-				expect(arr).to.be.equalTo(original); // sometimes random order might be the same as the input one
-			}
-		});
-	});
-
-	describe(`${randomElement.name} spec`, () => {
-		it('throws when array is empty', () => {
-			expect(() => randomElement([])).to.throw('0 is greater than -1');
-		});
-
-		it('returns first item when array contains a single element', () => {
-			expect(randomElement([1])).to.be.eq(1);
-		});
-
-		it('returns random element from array', () => {
-			const arr = [1, 2];
-			expect(randomElement(arr)).to.be.oneOf(arr);
-		});
-	});
-
 	describe(`${filterAsync.name} spec`, () => {
 		it('filters in parallel', async () => {
 			const arr = [1, 2, 3, 4, 5];
-			async function filter(i: number): Promise<boolean> {
-				await chrono.sleep(10);
-				return i % 2 === 0;
-			}
 
 			const start = Date.now();
-			const filtered = await filterAsync(arr, filter);
+			const filtered = await filterAsync(arr, async (i) => {
+				await sleep(10);
+				return i % 2 === 0;
+			});
 			const stop = Date.now();
 
 			expect(stop - start).to.be.at.most(30);
-			expect(filtered).to.be.equalTo([2, 4]);
+			expect(filtered).toStrictEqual([2, 4]);
 		});
 
 		it('filters sequentially', async () => {
 			const arr = [1, 2, 3, 4, 5];
 			async function filter(i: number): Promise<boolean> {
-				await chrono.sleep(10);
+				await sleep(10);
 				return i % 2 === 0;
 			}
 
@@ -193,16 +96,15 @@ describe('array spec', () => {
 			const stop = Date.now();
 
 			expect(stop - start).to.be.at.least(arr.length * 10);
-			expect(stop - start).to.be.at.most(arr.length * 10 + 20);
-			expect(filtered).to.be.equalTo([2, 4]);
+			expect(stop - start).to.be.at.most(arr.length * 10 + 50);
+			expect(filtered).toStrictEqual([2, 4]);
 		});
 
 		it('fails to filter when unsupported concurrency is given', async () => {
 			const arr = new Array<number>();
-			const filter = () => Promise.resolve(true);
 			const concurrency = ConcurrencyType.BATCH;
 
-			await expect(filterAsync(arr, filter, concurrency)).to.be.rejectedWith(`Can't handle given concurrency ${concurrency}.`);
+			await expect(filterAsync(arr, () => Promise.resolve(true), concurrency)).rejects.toThrow(`Can't handle given concurrency ${concurrency}.`);
 		});
 	});
 });

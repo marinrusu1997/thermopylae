@@ -1,10 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import type { Comparator } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/dev.unit-test';
+import type { types } from '@thermopylae/lib.utils';
 import colors from 'colors';
-import { Comparator } from '@thermopylae/core.declarations';
-import { array, number } from '@thermopylae/lib.utils';
-import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/data-structures/heap';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { HEAP_NODE_IDX_SYM, Heap, type HeapNode } from '../../lib/data-structures/heap.js';
 
 interface HeapDataNode extends HeapNode {
 	data: number;
@@ -17,24 +17,26 @@ function buildNode(data: number): HeapDataNode {
 }
 
 function randomDifferentFrom(num: number): number {
-	let generated;
-	while ((generated = number.randomInt(0, 100)) === num);
+	let generated: number | null = null;
+	while ((generated = randomInt(0, 100)) === num) {
+		continue;
+	}
 	return generated;
 }
 
-function assertHeapProperties(heap: Heap<HeapDataNode>, sortedArr?: Array<number>) {
+function assertHeapProperties(heap: Heap<HeapDataNode>, sortedArr?: readonly number[]) {
 	const heapNumbers = [];
-	while (heap.size) {
-		const node = heap.pop()!;
-		expect(node[HEAP_NODE_IDX_SYM]).to.be.eq(undefined); // it was detached
+	while (heap.size > 0) {
+		const node = heap.pop() ?? ({} as types.Any);
+		expect(node[HEAP_NODE_IDX_SYM]).toBeUndefined(); // it was detached
 		heapNumbers.push(node.data);
 	}
 
 	if (sortedArr) {
-		expect(heapNumbers).to.be.ofSize(sortedArr.length);
-		expect(heapNumbers).to.be.equalTo(sortedArr);
+		expect(heapNumbers).to.have.length(sortedArr.length);
+		expect(heapNumbers).toStrictEqual(sortedArr);
 	} else {
-		expect(heapNumbers).to.be.sorted();
+		expect(heapNumbers).toStrictEqual(heapNumbers.toSorted());
 	}
 }
 
@@ -42,11 +44,11 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 	describe(`${Heap.prototype.push.name.magenta} & ${Heap.prototype.pop.name.magenta} spec`, () => {
 		it('should build a simple heap', () => {
 			const heap = new Heap<HeapDataNode>(comparator);
-			const numbers = [7, 2, 100, 25, 1, 19, 36, 3, 17];
-			const sortedNumbers = [100, 36, 25, 19, 17, 7, 3, 2, 1];
+			const numbers = Object.freeze([7, 2, 100, 25, 1, 19, 36, 3, 17]);
+			const sortedNumbers = Object.freeze([100, 36, 25, 19, 17, 7, 3, 2, 1]);
 
-			while (numbers.length) {
-				heap.push(buildNode(numbers.pop()!));
+			for (let i = numbers.length - 1; i >= 0; i--) {
+				heap.push(buildNode(numbers[i]));
 			}
 
 			assertHeapProperties(heap, sortedNumbers);
@@ -55,8 +57,10 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 
 	describe(`${Heap.prototype.delete.name.magenta} spec`, () => {
 		it('should delete arbitrary nodes', () => {
-			const CAPACITY = number.randomInt(1, 20);
-			const ELEMENTS = array.filledWith(CAPACITY, () => buildNode(number.randomInt(0, 100)));
+			expect.hasAssertions();
+
+			const CAPACITY = randomInt(1, 20);
+			const ELEMENTS = Array.from({ length: CAPACITY }, () => buildNode(randomInt(0, 100)));
 			const TO_BE_DELETED = ELEMENTS.filter((_, index) => index % 3 === 0); // delete 1/3 of nodes
 			const REMAINED_SORTED_ELEMENTS = ELEMENTS.filter((element) => !TO_BE_DELETED.includes(element))
 				.map((element) => element.data)
@@ -67,13 +71,13 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 				for (let i = 0; i < CAPACITY; i++) {
 					heap.push(ELEMENTS[i]);
 				}
-				for (let i = 0; i < TO_BE_DELETED.length; i++) {
-					heap.delete(TO_BE_DELETED[i]);
-					expect(TO_BE_DELETED[i][HEAP_NODE_IDX_SYM]).to.be.eq(undefined);
+				for (const toBeDeleted of TO_BE_DELETED) {
+					heap.delete(toBeDeleted);
+					expect(toBeDeleted[HEAP_NODE_IDX_SYM]).toBeUndefined();
 				}
 
 				assertHeapProperties(heap, REMAINED_SORTED_ELEMENTS);
-			} catch (e) {
+			} catch (error) {
 				const message = [
 					'Test Context:',
 					`${'CAPACITY'.magenta}\t\t\t\t: ${CAPACITY}`,
@@ -85,21 +89,23 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 				];
 
 				logger.info(message.join('\n'));
-				throw e;
+				throw error;
 			}
 		});
 	});
 
 	describe(`${Heap.prototype.heapifyUpdatedNode.name.magenta} spec`, () => {
 		it('should replace arbitrary nodes', () => {
-			const CAPACITY = number.randomInt(1, 20);
-			const ELEMENTS = array.filledWith(CAPACITY, () => buildNode(number.randomInt(0, 100)));
+			expect.hasAssertions();
+
+			const CAPACITY = randomInt(1, 20);
+			const ELEMENTS = Array.from({ length: CAPACITY }, () => buildNode(randomInt(0, 100)));
 			const TO_BE_HEAPIFIED = ELEMENTS.filter((_, index) => index % 3 === 0) // replace 1/3 of nodes
 				.map((element) => [element, buildNode(randomDifferentFrom(element.data))]);
 			const SORTED_ELEMENTS_AFTER_REPLACE = ELEMENTS.map((element) => {
-				for (let i = 0; i < TO_BE_HEAPIFIED.length; i++) {
-					if (TO_BE_HEAPIFIED[i][0] === element) {
-						return TO_BE_HEAPIFIED[i][1].data; // return the replacement
+				for (const toBeHeapified of TO_BE_HEAPIFIED) {
+					if (toBeHeapified[0] === element) {
+						return toBeHeapified[1].data; // return the replacement
 					}
 				}
 				return element.data; // not being replaced, return his data
@@ -110,14 +116,14 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 				for (let i = 0; i < CAPACITY; i++) {
 					heap.push(ELEMENTS[i]);
 				}
-				for (let i = 0; i < TO_BE_HEAPIFIED.length; i++) {
-					TO_BE_HEAPIFIED[i][0].data = TO_BE_HEAPIFIED[i][1].data;
-					heap.heapifyUpdatedNode(TO_BE_HEAPIFIED[i][0]);
-					expect(TO_BE_HEAPIFIED[i][0][HEAP_NODE_IDX_SYM]).to.not.be.eq(undefined);
+				for (const toBeHeapified of TO_BE_HEAPIFIED) {
+					toBeHeapified[0].data = toBeHeapified[1].data;
+					heap.heapifyUpdatedNode(toBeHeapified[0]);
+					expect(toBeHeapified[0][HEAP_NODE_IDX_SYM]).toBeDefined();
 				}
 
 				assertHeapProperties(heap, SORTED_ELEMENTS_AFTER_REPLACE);
-			} catch (e) {
+			} catch (error) {
 				const message = [
 					'Test Context:',
 					`${'CAPACITY'.magenta}\t\t\t\t: ${CAPACITY}`,
@@ -129,7 +135,7 @@ describe(`${colors.magenta(Heap.name)} spec`, () => {
 				];
 
 				logger.info(message.join('\n'));
-				throw e;
+				throw error;
 			}
 		});
 	});

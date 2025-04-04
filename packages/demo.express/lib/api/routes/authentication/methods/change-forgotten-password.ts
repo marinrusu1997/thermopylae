@@ -1,15 +1,15 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { HttpStatusCode, Library, ObjMap } from '@thermopylae/core.declarations';
+import { HttpStatusCode, Library, type ObjMap } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
-import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import { logger } from '../../../../logger.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -30,17 +30,18 @@ const validateRequestBody: RequestHandler = handler(
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.CHANGE_FORGOTTEN_PASSWORD, req.body);
 			next();
-		} catch (e) {
-			if (e instanceof ValidationError) {
+		} catch (error) {
+			// @ts-expect-error error
+			if (error instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_INPUT,
-						message: API_VALIDATOR.joinErrors(e.errors, 'text')
+						message: API_VALIDATOR.joinErrors(error.errors, 'text')
 					}
 				});
 				return;
 			}
-			throw e;
+			throw error;
 		}
 	}
 );
@@ -49,12 +50,12 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 	try {
 		await AUTHENTICATION_ENGINE.changeForgottenPassword(req.body.token, req.body.newPassword);
 		res.status(HttpStatusCode.NoContent).send();
-	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			logger.error(`Change forgotten password failed. Request origin: ${req.ip}.`, e);
+	} catch (error) {
+		if (error instanceof Exception && error.emitter === Library.AUTHENTICATION) {
+			logger.error(`Change forgotten password failed. Request origin: ${req.ip}.`, error);
 
-			let httpResponseStatus: number;
-			switch (e.code) {
+			let httpResponseStatus = -1;
+			switch (error.code) {
 				case AuthenticationErrorCodes.ACCOUNT_NOT_FOUND:
 					httpResponseStatus = HttpStatusCode.NotFound;
 					break;
@@ -70,20 +71,20 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 				default:
 					throw createException(
 						AppErrorCodes.MISCONFIGURATION,
-						`Could not determine http response code from Exception thrown by AuthenticationEngine.changeForgottenPassword method. Error code: ${e.code}.`
+						`Could not determine http response code from Exception thrown by AuthenticationEngine.changeForgottenPassword method. Error code: ${error.code}.`
 					);
 			}
 
 			res.status(httpResponseStatus).send({
 				error: {
-					code: e.code,
+					code: error.code,
 					message: 'Change forgotten password failed.'
 				}
 			});
 			return;
 		}
 
-		throw e;
+		throw error;
 	}
 });
 

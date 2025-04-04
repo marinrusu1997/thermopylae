@@ -1,32 +1,31 @@
-import morgan, { FormatFn } from 'morgan';
-import { logger } from '../../logger';
+import type { types } from '@thermopylae/lib.utils';
+import morgan, { type FormatFn } from 'morgan';
+import { logger } from '../../logger.js';
 
-morgan.token('id', (req) => {
-	return (req as any).id as string;
-});
+morgan.token('id', (req) => (req as types.Any).id);
 const morganFormat: FormatFn = (tokens, req, res): string => {
 	// get the status code if response written
-	const status = res.headersSent ? res.statusCode : undefined;
+	const status = res.headersSent ? res.statusCode : -1;
 
 	// get status color
 	const color =
-		status! >= 500
+		status >= 500
 			? 31 // red
-			: status! >= 400
-			? 33 // yellow
-			: status! >= 300
-			? 36 // cyan
-			: status! >= 200
-			? 32 // green
-			: 0; // no color
+			: status >= 400
+				? 33 // yellow
+				: status >= 300
+					? 36 // cyan
+					: status >= 200
+						? 32 // green
+						: 0; // no color
 
-	// @ts-ignore We embed colors in morgan object
+	// @ts-expect-error We embed colors in morgan objectobject
 	let fn = morganFormat[color];
 
 	if (!fn) {
-		// @ts-ignore We embed colors in morgan object
-		// eslint-disable-next-line no-multi-assign
-		fn = morganFormat[color] = morgan.compile(`:id \x1b[0m:method :url \x1b[${color}m:status\x1b[0m :response-time ms - :res[content-length]\x1b[0m`);
+		const compiledFormat = morgan.compile(`:id \u001B[0m:method :url \u001B[${color}m:status\u001B[0m :response-time ms - :res[content-length]\u001B[0m`);
+		(morganFormat as types.Any)[color] = compiledFormat;
+		fn = compiledFormat;
 	}
 
 	return fn(tokens, req, res);

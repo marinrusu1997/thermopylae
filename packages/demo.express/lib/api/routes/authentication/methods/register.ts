@@ -1,15 +1,15 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { HttpStatusCode, Library, ObjMap, PartialSome } from '@thermopylae/core.declarations';
+import { HttpStatusCode, Library, type ObjMap, type PartialSome } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import { AccountStatus, type AccountToBeRegistered, type AccountWithTotpSecret, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { publicEncrypt } from 'crypto';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { publicEncrypt } from 'node:crypto';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
+import { logger } from '../../../../logger.js';
 
-const enum ErrorCodes {
+enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
 }
 
@@ -34,17 +34,18 @@ const validateRequestBody: RequestHandler = handler(
 	async (req: Request<ObjMap, ResponseBody, RequestBody>, res: Response<ResponseBody>, next: NextFunction) => {
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.REGISTER, req.body);
-		} catch (e) {
-			if (e instanceof ValidationError) {
+		} catch (error) {
+			// @ts-expect-error error
+			if (error instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
 						code: ErrorCodes.INVALID_INPUT,
-						message: API_VALIDATOR.joinErrors(e.errors, 'text')
+						message: API_VALIDATOR.joinErrors(error.errors, 'text')
 					}
 				});
 				return;
 			}
-			throw e;
+			throw error;
 		}
 
 		try {
@@ -52,8 +53,8 @@ const validateRequestBody: RequestHandler = handler(
 				publicEncrypt(req.body.pubKey, PUBLIC_KEY_TEST_BUFFER); // @fixme use validator from auth engine
 			}
 			next();
-		} catch (e) {
-			logger.error('Failed to validate public key while registering account.', e);
+		} catch (error) {
+			logger.error('Failed to validate public key while registering account.', error);
 
 			res.status(HttpStatusCode.BadRequest).send({
 				error: {
@@ -75,29 +76,29 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 	try {
 		await AUTHENTICATION_ENGINE.register(account);
 		res.status(HttpStatusCode.Created).send();
-	} catch (e) {
-		if (e instanceof Exception && e.emitter === Library.AUTHENTICATION) {
-			if (e.code === AuthenticationErrorCodes.WEAK_PASSWORD) {
+	} catch (error) {
+		if (error instanceof Exception && error.emitter === Library.AUTHENTICATION) {
+			if (error.code === AuthenticationErrorCodes.WEAK_PASSWORD) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
-						code: e.code,
-						message: e.message
+						code: error.code,
+						message: error.message
 					}
 				});
 				return;
 			}
 
-			if (e.code === AuthenticationErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS) {
+			if (error.code === AuthenticationErrorCodes.ACCOUNT_WITH_DUPLICATED_FIELDS) {
 				res.status(HttpStatusCode.Conflict).send({
 					error: {
-						code: e.code,
-						message: e.origin
+						code: error.code,
+						message: error.message
 					}
 				});
 				return;
 			}
 		}
-		throw e;
+		throw error;
 	}
 });
 

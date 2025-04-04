@@ -1,32 +1,30 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { array, chrono } from '@thermopylae/lib.utils';
-import type { UnixTimestamp } from '@thermopylae/core.declarations';
+import { chrono, type types } from '@thermopylae/lib.utils';
+import { convert } from 'convert';
 import keypair from 'keypair';
+import { setTimeout as sleep } from 'node:timers/promises';
+import randomItem from 'random-item';
+import { describe, expect, it } from 'vitest';
 import {
 	AccountStatus,
-	AccountWithTotpSecret,
-	AuthenticationContext,
+	type AccountWithTotpSecret,
+	type AuthenticationContext,
 	AuthenticationEngine,
-	AuthenticationStatus,
+	type AuthenticationStatus,
 	ErrorCodes,
-	FailedAuthenticationModel,
-	SuccessfulAuthenticationModel
-} from '../lib';
-import { AuthenticationStepName } from '../lib/types/enums';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { buildAccountToBeRegistered, generateTotp, GlobalAuthenticationContext, signChallengeNonce, validateSuccessfulLogin } from './utils';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { FailedAuthAttemptSessionMemoryRepository } from './fixtures/repositories/memory/failed-auth-session';
-import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { OnAuthFromDifferentContextHookMock } from './fixtures/hooks';
+	type FailedAuthenticationModel,
+	type SuccessfulAuthenticationModel
+} from '../lib/index.js';
+import { AuthenticationStepName } from '../lib/types/enums.js';
+import { OnAuthFromDifferentContextHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session.js';
+import { FailedAuthAttemptSessionMemoryRepository } from './fixtures/repositories/memory/failed-auth-session.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, generateTotp, signChallengeNonce, validateSuccessfulLogin } from './utils.js';
 
 describe('Authenticate spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('fails to authenticate non existing accounts', async () => {
@@ -40,8 +38,8 @@ describe('Authenticate spec', function suite() {
 		let err: Error | null = null;
 		try {
 			await AuthEngineInstance.authenticate(authenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
@@ -62,8 +60,8 @@ describe('Authenticate spec', function suite() {
 		let err: Error | null = null;
 		try {
 			await AuthEngineInstance.authenticate(authenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_NOT_FOUND);
@@ -74,7 +72,7 @@ describe('Authenticate spec', function suite() {
 		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
 		await AuthEngineInstance.register(account);
 
-		account.disabledUntil = chrono.unixTime() + 10;
+		account.disabledUntil = chrono.unix() + 10;
 		await AuthEngineInstance.disableAccount(account.id, account.disabledUntil, 'Test purposes');
 
 		const authenticationContext: AuthenticationContext = {
@@ -87,8 +85,8 @@ describe('Authenticate spec', function suite() {
 		let err: Error | null = null;
 		try {
 			await AuthEngineInstance.authenticate(authenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
@@ -100,10 +98,10 @@ describe('Authenticate spec', function suite() {
 		const authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
-		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.have.property('code', ErrorCodes.INCORRECT_CREDENTIALS);
 
-		const authSessionTTLMs = chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.authenticationSession) + 50;
-		await chrono.sleep(authSessionTTLMs);
+		const authSessionTTLMs = convert(AuthenticationEngineDefaultOptions.ttl.authenticationSession, 's').to('ms') + 50;
+		await sleep(authSessionTTLMs);
 
 		const authSession = await AuthenticationEngineDefaultOptions.repositories.authenticationSession.read(
 			GlobalAuthenticationContext.username,
@@ -120,14 +118,14 @@ describe('Authenticate spec', function suite() {
 			...GlobalAuthenticationContext,
 			responseForChallenge: { signature: signatureOfTokenWhichWasNeverIssued, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
-		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.token).toBeDefined();
 
-		const signatureOfValidToken = signChallengeNonce(authStatus.token!);
+		const signatureOfValidToken = signChallengeNonce(authStatus.token ?? '');
 		authStatus = await AuthEngineInstance.authenticate({
 			...GlobalAuthenticationContext,
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
@@ -139,7 +137,7 @@ describe('Authenticate spec', function suite() {
 			...GlobalAuthenticationContext,
 			responseForChallenge: { signature: signatureOfValidToken, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
@@ -148,14 +146,14 @@ describe('Authenticate spec', function suite() {
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
-		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.token).toBeDefined();
 
-		const signature = signChallengeNonce(authStatus.token!, keypair().private);
+		const signature = signChallengeNonce(authStatus.token ?? '', (keypair as types.Any)().private);
 		authStatus = await AuthEngineInstance.authenticate({
 			...GlobalAuthenticationContext,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
@@ -164,14 +162,14 @@ describe('Authenticate spec', function suite() {
 
 		let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
-		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.token).toBeDefined();
 
 		const signature = signChallengeNonce('invalid token');
 		authStatus = await AuthEngineInstance.authenticate({
 			...GlobalAuthenticationContext,
 			responseForChallenge: { signature, signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 		});
-		expect(authStatus.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+		expect(authStatus.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 	});
 
@@ -181,35 +179,41 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
-		account = (await AccountRepositoryMongo.readById(account.id))!; // grab totp secret
+		{
+			const temp = await AccountRepositoryMongo.readById(account.id); // grab totp secret
+			if (!temp) {
+				throw new Error(`No account with id '${account.id}' found`);
+			}
+			account = temp;
+		}
 
 		/* AUTHENTICATE WITH PASSWORD */
-		const authenticationTime = chrono.unixTime();
+		const authenticationTime = chrono.unix();
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-		expect(authStatus.error).to.be.eq(undefined);
+		expect(authStatus.error).toBeUndefined();
 
 		/* FAIL AUTH WITH TOTP */
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
-		expect(authStatus.error).to.not.be.eq(undefined);
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyMultiFactorAuthenticationFailed')).to.be.ofSize(1);
+		expect(authStatus.error).toBeDefined();
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyMultiFactorAuthenticationFailed')).to.have.length(1);
 
 		/* ENSURE SESSIONS EXIST */
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.not.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.not.to.be.oneOf([
 			null,
 			undefined
 		]);
-		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).to.eventually.not.be.oneOf([null, undefined]);
+		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).resolves.not.to.be.oneOf([null, undefined]);
 
 		/* AUTHENTICATE SUCCESSFULLY */
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: generateTotp(account.totpSecret) });
 		validateSuccessfulLogin(authStatus);
 
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar, trust me
+		expect(OnAuthFromDifferentContextHookMock.calls).to.have.length(0); // first auth evar, trust me
 
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);
-		expect(successfulAuthentications).to.be.ofSize(1);
+		expect(successfulAuthentications).to.have.length(1);
 
 		expect(successfulAuthentications[0]).to.be.deep.eq({
 			id: successfulAuthentications[0].id,
@@ -221,11 +225,11 @@ describe('Authenticate spec', function suite() {
 		} as SuccessfulAuthenticationModel);
 		expect(successfulAuthentications[0].authenticatedAt).to.be.within(authenticationTime - 2, authenticationTime + 2);
 
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
-		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).to.eventually.be.oneOf([null, undefined]);
+		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).resolves.to.be.oneOf([null, undefined]);
 	});
 
 	it('detects authentication from different device', async () => {
@@ -236,7 +240,7 @@ describe('Authenticate spec', function suite() {
 		/* AUTHENTICATE FROM ONE DEVICE */
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 		validateSuccessfulLogin(authStatus);
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar
+		expect(OnAuthFromDifferentContextHookMock.calls).to.have.length(0); // first auth evar
 
 		/* AUTHENTICATE FROM ANOTHER DEVICE */
 		const authContext: AuthenticationContext = {
@@ -254,11 +258,11 @@ describe('Authenticate spec', function suite() {
 		};
 		authStatus = await AuthEngineInstance.authenticate(authContext);
 		validateSuccessfulLogin(authStatus);
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.equalTo([account.id]);
+		expect(OnAuthFromDifferentContextHookMock.calls).toStrictEqual([account.id]);
 
 		/* GET SUCCESSFUL AUTHENTICATIONS */
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);
-		expect(successfulAuthentications).to.be.ofSize(2);
+		expect(successfulAuthentications).to.have.length(2);
 	});
 
 	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can disable account on threshold", async () => {
@@ -273,12 +277,12 @@ describe('Authenticate spec', function suite() {
 
 		/* PROVIDE NO RECAPTCHA */
 		const authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		expect(authStatus.nextStep).to.be.eq(undefined);
-		expect(authStatus.authenticated).to.be.eq(undefined);
-		expect(authStatus.token).to.be.eq(undefined);
-		expect(authStatus.error).to.not.be.eq(undefined);
-		expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-		expect(authStatus.error!.hard).to.haveOwnProperty('message', 'Account was disabled due to reached threshold of failed auth attempts.');
+		expect(authStatus.nextStep).toBeUndefined();
+		expect(authStatus.authenticated).toBeUndefined();
+		expect(authStatus.token).toBeUndefined();
+		expect(authStatus.error).toBeDefined();
+		expect(authStatus.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus.error?.hard).to.haveOwnProperty('message', 'Account was disabled due to reached threshold of failed auth attempts.');
 	});
 
 	it('failed auth attempts are shared between auth sessions', async () => {
@@ -291,7 +295,7 @@ describe('Authenticate spec', function suite() {
 		let recaptchaThreshold = AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha - 1;
 		while (recaptchaThreshold--) {
 			const status = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, deviceId: 'device1', password: 'invalid' });
-			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(status.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(status.nextStep).to.be.eq(AuthenticationStepName.PASSWORD);
 			numberOfAuthAttempts += 1;
 		}
@@ -301,7 +305,7 @@ describe('Authenticate spec', function suite() {
 			AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - AuthenticationEngineDefaultOptions.thresholds.failedAuthAttemptsRecaptcha;
 		while (numberOfTriesTillAccountLock--) {
 			const status = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, deviceId: 'device2', password: 'invalid' });
-			expect(status.error!.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
+			expect(status.error?.soft).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.INCORRECT_CREDENTIALS);
 			expect(status.nextStep).to.be.eq(AuthenticationStepName.RECAPTCHA);
 			numberOfAuthAttempts += 1;
 		}
@@ -310,7 +314,7 @@ describe('Authenticate spec', function suite() {
 
 		/* DISABLE ACCOUNT ON THIRD SESSION */
 		const status = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, deviceId: 'device3', password: 'invalid' });
-		expect(status.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(status.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('disables the user account when providing invalid response to challenge', async () => {
@@ -326,16 +330,16 @@ describe('Authenticate spec', function suite() {
 				responseForChallenge: { signature: 'invalid signature', signAlgorithm: 'RSA-SHA512', signEncoding: 'base64' }
 			});
 
-			if (authStatus.error!.soft) {
-				expect(authStatus.error!.soft).to.be.instanceOf(Exception);
-				expect(authStatus.error!.soft!.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.INCORRECT_RECAPTCHA]);
+			if (authStatus.error?.soft) {
+				expect(authStatus.error?.soft).to.be.instanceOf(Exception);
+				expect(authStatus.error?.soft?.code).to.be.oneOf([ErrorCodes.INCORRECT_CREDENTIALS, ErrorCodes.INCORRECT_RECAPTCHA]);
 				expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 
 				continue;
 			}
 
-			if (authStatus.error!.hard) {
-				expect(authStatus.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+			if (authStatus.error?.hard) {
+				expect(authStatus.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 				continue;
 			}
@@ -347,8 +351,8 @@ describe('Authenticate spec', function suite() {
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
@@ -368,18 +372,19 @@ describe('Authenticate spec', function suite() {
 		/* AUTH FAILURES AGAIN */
 		// now retry again till hard error, counter needs to be 0 again
 		let maxAllowedFailedAuthAttempts = AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1; // on last it will disable account
-		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
-			expect(authStatus.error!.soft).to.not.be.eq(undefined);
-			expect(authStatus.error!.hard).to.be.eq(undefined);
+			expect(authStatus.error?.soft).toBeDefined();
+			expect(authStatus.error?.hard).toBeUndefined();
 		}
 
-		const failedAuthAttemptsSession = (await FailedAuthAttemptSessionMemoryRepository.read(account.username))!;
-		expect(failedAuthAttemptsSession.counter).to.be.eq(AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1);
+		const failedAuthAttemptsSession = await FailedAuthAttemptSessionMemoryRepository.read(account.username);
+		expect(failedAuthAttemptsSession?.counter).to.be.eq(AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1);
 	});
 
 	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth disabled)', async () => {
+		expect.hasAssertions();
+
 		/* REGISTER */
 		const account = buildAccountToBeRegistered() as AccountWithTotpSecret;
 		await AuthEngineInstance.register(account);
@@ -408,12 +413,12 @@ describe('Authenticate spec', function suite() {
 
 	it('authenticates after soft errors occurred in secret step and recaptcha was activated (multi factor auth enabled)', async () => {
 		/* REGISTER */
-		let account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		let account: AccountWithTotpSecret | null | undefined = buildAccountToBeRegistered() as AccountWithTotpSecret;
 		await AuthEngineInstance.register(account);
 
 		/* ENABLE 2FA */
 		await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
-		account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
+		account = await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id); // get totp secret from repository
 
 		/* TRIGGER RECAPTCHA */
 		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
@@ -429,7 +434,10 @@ describe('Authenticate spec', function suite() {
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 
 		/* CONTINUE 2FA */
-		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: generateTotp(account.totpSecret) });
+		authStatus = await AuthEngineInstance.authenticate({
+			...GlobalAuthenticationContext,
+			twoFactorAuthenticationToken: generateTotp(account?.totpSecret ?? '')
+		});
 		validateSuccessfulLogin(authStatus);
 	});
 
@@ -439,18 +447,18 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* TRIGGER ACCOUNT DISABLE */
-		let authStatus: AuthenticationStatus<AccountWithTotpSecret>;
+		let authStatus: AuthenticationStatus<AccountWithTotpSecret> | null = null;
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 		}
-		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus?.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		/* TRY AUTHENTICATE WITH DISABLED ACCOUNT */
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
@@ -475,26 +483,25 @@ describe('Authenticate spec', function suite() {
 		) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, recaptcha: 'invalid' });
 		}
-		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus?.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		/* TRY AUTHENTICATE WITH DISABLED ACCOUNT */
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
 
 	it('aborts authentication after hard error occurred in mfa step (recaptcha required)', async () => {
 		/* REGISTER */
-		let account = buildAccountToBeRegistered() as AccountWithTotpSecret;
+		const account: AccountWithTotpSecret | null | undefined = buildAccountToBeRegistered() as AccountWithTotpSecret;
 		await AuthEngineInstance.register(account);
 
 		/* ENABLE 2FA */
 		await AuthEngineInstance.setTwoFactorAuthEnabled(account.id, true);
-		account = (await AuthenticationEngineDefaultOptions.repositories.account.readById(account.id))!; // get totp secret from repository
 
 		/* TRIGGER RECAPTCHA */
 		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
@@ -514,14 +521,14 @@ describe('Authenticate spec', function suite() {
 		) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 		}
-		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus?.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		/* TRY AUTHENTICATE WITH DISABLED ACCOUNT */
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 	});
@@ -539,23 +546,23 @@ describe('Authenticate spec', function suite() {
 		}
 
 		/* TRIGGER ACCOUNT DISABLE */
-		let lastIp: string | undefined;
+		let lastIp: string | null = null;
 		let authStatus: AuthenticationStatus<AccountWithTotpSecret> = {};
-		let authenticationTime: UnixTimestamp = 0;
+		let authenticationTime = 0;
 		for (let i = 0; i < AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts; i++) {
-			lastIp = array.randomElement(ipPool);
-			authenticationTime = chrono.unixTime();
+			lastIp = randomItem(ipPool);
+			authenticationTime = chrono.unix();
 			authStatus = await AuthEngineInstance.authenticate({
 				...GlobalAuthenticationContext,
 				password: 'invalid',
 				ip: lastIp
 			});
 		}
-		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		expect(authStatus?.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		/* READ FAILED AUTHENTICATIONS */
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(account.id);
-		expect(failedAuthAttempts).to.be.ofSize(1);
+		expect(failedAuthAttempts).to.have.length(1);
 
 		expect(failedAuthAttempts[0]).to.be.deep.eq({
 			id: failedAuthAttempts[0].id,
@@ -581,8 +588,8 @@ describe('Authenticate spec', function suite() {
 				password: 'invalid'
 			});
 		}
-		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		expect(authStatus?.error?.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
@@ -591,13 +598,13 @@ describe('Authenticate spec', function suite() {
 		let err: Exception | null = null;
 		try {
 			await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
-		} catch (e) {
-			err = e;
+		} catch (error) {
+			err = error;
 		}
 		expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
 
 		/* AUTHENTICATE AFTER LOCKOUT EXPIRES */
-		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);
+		await sleep(convert(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout, 's').to('ms') + 50);
 
 		authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 		validateSuccessfulLogin(authStatus);
@@ -611,13 +618,13 @@ describe('Authenticate spec', function suite() {
 		/* REQUEST CHALLENGE */
 		let authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, generateChallenge: true });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
-		expect(authStatus.token).to.not.be.eq(undefined);
+		expect(authStatus.token).toBeDefined();
 
 		/* SEND CHALLENGE */
 		authStatus = await AuthEngineInstance.authenticate({
 			...GlobalAuthenticationContext,
 			responseForChallenge: {
-				signature: signChallengeNonce(authStatus.token!),
+				signature: signChallengeNonce(authStatus.token ?? ''),
 				signAlgorithm: 'RSA-SHA512',
 				signEncoding: 'base64'
 			}
@@ -625,14 +632,14 @@ describe('Authenticate spec', function suite() {
 		validateSuccessfulLogin(authStatus);
 
 		// session was deleted, prevent replay attacks with already emitted nonce
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
 	});
 
 	it('authenticates user having password hashed with algorithm different than current one', async () => {
-		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).to.be.equalTo([0, 1]);
+		expect([...AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys()]).toStrictEqual([0, 1]);
 		expect(AuthenticationEngineDefaultOptions.password.hashing.currentAlgorithmId).to.be.eq(0);
 
 		/* REGISTER */
@@ -641,8 +648,8 @@ describe('Authenticate spec', function suite() {
 		await AuthEngineInstance.register(account);
 
 		/* CHANGE PASSWORD WITH ALGORITHM */
-		const hash = await AuthenticationEngineDefaultOptions.password.hashing.algorithms.get(1)!.hash(password);
-		await AccountRepositoryMongo.changePassword(account.id, hash.passwordHash, hash.passwordSalt, 1);
+		const hash = await AuthenticationEngineDefaultOptions.password.hashing.algorithms.get(1)?.hash(password);
+		await AccountRepositoryMongo.changePassword(account.id, hash?.passwordHash ?? '', hash?.passwordSalt, 1);
 
 		/* AUTHENTICATE */
 		const authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);

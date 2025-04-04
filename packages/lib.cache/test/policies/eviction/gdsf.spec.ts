@@ -1,30 +1,37 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
-import { array, number, string } from '@thermopylae/lib.utils';
-import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { GDSFEvictionPolicy } from '../../../lib';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import cryptoRandomString from 'crypto-random-string';
+import shuffle from 'knuth-shuffle-seeded';
+import { randomInt } from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { GDSFEvictionPolicy } from '../../../lib/index.js';
+import type { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
 describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 	it('calculates priorities based on value size in bytes', () => {
+		expect.hasAssertions();
+
 		const ENTRIES = new Map<string, string>([
-			['a', string.random({ length: number.randomInt(0, 100) })],
-			['b', string.random({ length: number.randomInt(0, 100) })],
-			['c', string.random({ length: number.randomInt(101, 1000) })],
-			['d', string.random({ length: number.randomInt(0, 100) })],
-			['e', string.random({ length: number.randomInt(101, 1000) })],
-			['f', string.random({ length: number.randomInt(0, 100) })],
-			['g', string.random({ length: number.randomInt(1001, 5000) })]
+			['a', cryptoRandomString({ length: randomInt(0, 100) })],
+			['b', cryptoRandomString({ length: randomInt(0, 100) })],
+			['c', cryptoRandomString({ length: randomInt(101, 1000) })],
+			['d', cryptoRandomString({ length: randomInt(0, 100) })],
+			['e', cryptoRandomString({ length: randomInt(101, 1000) })],
+			['f', cryptoRandomString({ length: randomInt(0, 100) })],
+			['g', cryptoRandomString({ length: randomInt(1001, 5000) })]
 		]);
 
 		const CAPACITY = ENTRIES.size;
 		const FREQ = 100;
 
-		const GET_ORDER = array.shuffle([...ENTRIES.keys()].map((k) => array.filledWith(FREQ, k)).flat());
+		const GET_ORDER = shuffle(
+			ENTRIES.keys()
+				.flatMap((k) => new Array(FREQ).fill(k))
+				.toArray()
+		);
 
 		const ADDITIONAL_ENTRIES = new Map<string, string>([
 			['h', 'high priority'],
@@ -38,20 +45,28 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 		try {
 			let totalEntriesNo = 0;
 
-			const policy = new GDSFEvictionPolicy<string, number, any>(CAPACITY, {
+			const policy = new GDSFEvictionPolicy<string, number, unknown>(CAPACITY, {
 				get size() {
 					return totalEntriesNo;
 				}
 			});
 			const lfuEntries = new Map<string, EvictableCacheEntry<string, number>>();
+			const getEntry = (key: string) => {
+				const entry = lfuEntries.get(key);
+				if (!entry) {
+					throw new Error(`No entry for key '${key}'`);
+				}
+				return entry;
+			};
+
 			policy.setDeleter((evictedEntry) => {
 				EVICTED_KEYS.push(evictedEntry.key);
-				policy.onDelete(evictedEntry as any);
+				policy.onDelete(evictedEntry as EvictableCacheEntry<string, number>);
 			});
 
 			/* Add entries */
 			for (const [key, value] of ENTRIES) {
-				// @ts-ignore This is for testing purposes
+				// @ts-expect-error This is for testing purposesrposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
@@ -73,7 +88,7 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 
 			/* Add additional entries */
 			for (const [key, value] of ADDITIONAL_ENTRIES) {
-				// @ts-ignore This is for testing purposes
+				// @ts-expect-error This is for testing purposesrposes
 				const entry: EvictableCacheEntry<string, number> = { key, value };
 				policy.onSet(entry);
 				lfuEntries.set(key, entry);
@@ -84,14 +99,14 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(Array.from(ENTRIES.keys())).to.be.containingAllOf(EVICTED_KEYS);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect([...ENTRIES.keys()]).to.containSubset(EVICTED_KEYS);
 
-			expect(lfuEntries.get('k')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
-			expect(lfuEntries.get('i')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
-			expect(lfuEntries.get('h')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
-			expect(lfuEntries.get('h')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
-		} catch (e) {
+			expect(getEntry('k')[BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(getEntry('i')[BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(getEntry('h')[BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+			expect(getEntry('h')[BUCKET_HEADER_SYM].id).to.be.eq(2.1);
+		} catch (error) {
 			const message = [
 				'Test Context:',
 				`${'CAPACITY'.magenta}\t\t\t\t: ${CAPACITY}`,
@@ -101,26 +116,26 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 				`${'EVICTED_KEYS'.magenta}\t\t\t\t: ${JSON.stringify(EVICTED_KEYS)}`
 			];
 			logger.info(message.join('\n'));
-			throw e;
+			throw error;
 		}
 	});
 
 	it("recomputes priority when value changes in the 'onUpdate' hook", () => {
 		let totalEntriesNo = 0;
 
-		const policy = new GDSFEvictionPolicy<string, string, any>(1, {
+		const policy = new GDSFEvictionPolicy<string, string, unknown>(1, {
 			get size() {
 				return totalEntriesNo;
 			}
 		});
 
-		// @ts-ignore This is for testing purposes
+		// @ts-expect-error This is for testing purposesrposes
 		const entry: EvictableCacheEntry<string, string> = { key: 'key', value: 'value' };
 		policy.onSet(entry);
 		totalEntriesNo += 1;
 		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(0);
 
-		entry.value = string.random({ length: 100 });
+		entry.value = cryptoRandomString({ length: 100 });
 		policy.onUpdate(entry);
 		expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(1);
 		expect(policy.size).to.be.eq(1);

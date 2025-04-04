@@ -1,9 +1,10 @@
-import { ErrorRequestHandler } from 'express';
 import { HttpStatusCode } from '@thermopylae/core.declarations';
-import { logger } from '../../logger';
+import type { types } from '@thermopylae/lib.utils';
+import type { ErrorRequestHandler } from 'express';
+import { logger } from '../../logger.js';
 
 const serverError: ErrorRequestHandler = (error, req, res, _next) => {
-	logger.error(`Exception was thrown while handling request with id: ${(req as any).id} on path: ${req.path} .`, error);
+	logger.error(`Exception was thrown while handling request with id: ${(req as types.Any).id} on path: ${req.path} .`, error);
 	res.sendStatus(HttpStatusCode.InternalServerError);
 };
 

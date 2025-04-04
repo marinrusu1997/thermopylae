@@ -1,6 +1,6 @@
-import { RouterOptions } from 'express';
+import type { RouterOptions } from 'express';
 
-const enum ServiceMethod {
+enum ServiceMethod {
 	AUTHENTICATE = 'AUTHENTICATE',
 	REGISTER = 'REGISTER',
 	SET_TWO_FACTOR_AUTH_ENABLED = 'SET_TWO_FACTOR_AUTH_ENABLED',
@@ -11,11 +11,11 @@ const enum ServiceMethod {
 	LOGOUT_ONE = 'LOGOUT_ONE'
 }
 
-const enum EnvironmentVariables {
+enum EnvironmentVariables {
 	CONFIG_FILES_PATH = 'CONFIG_FILES_PATH'
 }
 
-const enum ApplicationServices {
+enum ApplicationServices {
 	AUTHENTICATION = 'AUTH_SERVICE',
 	KAFKA = 'KAFKA_CLIENT'
 }

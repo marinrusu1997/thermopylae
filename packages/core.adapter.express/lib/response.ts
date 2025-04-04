@@ -4,7 +4,7 @@ import type { Response } from 'express';
 /**
  * Adapter for express response instance.
  *
- * @template Payload	Type of the response payload.
+ * @template Payload Type of the response payload.
  */
 class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> {
 	private readonly res: Response;
@@ -13,47 +13,35 @@ class ExpressResponseAdapter<Payload = ObjMap> implements HttpResponse<Payload> 
 		this.res = res;
 	}
 
-	/**
-	 * Get raw express response instance.
-	 */
+	/** Get raw express response instance. */
 	public get raw(): Response {
 		return this.res;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public get sent(): boolean {
 		return this.res.headersSent;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public status(statusCode: HttpStatusCode): this {
 		this.res.status(statusCode);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public header(field: HttpResponseHeader | string, value: HttpHeaderValue): this {
 		this.res.append(field, value);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public type(mimeType: MimeType | string): this {
 		this.res.type(mimeType);
 		return this;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritdoc */
 	public send(payload?: Payload): void {
 		this.res.send(payload);
 	}

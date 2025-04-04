@@ -1,15 +1,11 @@
-import { UserSessionRedisStorage as BaseUserSessionRedisStorage } from '@thermopylae/core.user-session.commons';
-import { RedisClientInstance } from '@thermopylae/core.redis';
-import { UserSessionManager } from '@thermopylae/lib.user-session';
-import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
-import type { UserSessionsStorage, UserSessionMetaData } from '@thermopylae/lib.user-session';
-import type { Subject, SessionId } from '@thermopylae/lib.user-session.commons';
-import { logger } from './logger';
+import { RedisClientInstance } from '@thermopylae/core.redis';
+import { UserSessionRedisStorage as BaseUserSessionRedisStorage, type UserSessionDevice } from '@thermopylae/core.user-session.commons';
+import { UserSessionManager, type UserSessionMetaData, type UserSessionsStorage } from '@thermopylae/lib.user-session';
+import type { SessionId, Subject } from '@thermopylae/lib.user-session.commons';
+import { logger } from './logger.js';
 
-/**
- * @inheritDoc
- */
+/** @inheritdoc */
 class UserSessionRedisStorage
 	extends BaseUserSessionRedisStorage<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>>
 	implements UserSessionsStorage<UserSessionDevice, HTTPRequestLocation>

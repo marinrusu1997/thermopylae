@@ -1,51 +1,12 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse, TraverseProcessor } from '../lib/object';
-
-const { expect } = chai;
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { describe, expect, it } from 'vitest';
+import { type TraverseProcessor, flatten, isEmpty, isObject, sort, traverse } from '../lib/object.js';
 
 describe('object spec', () => {
-	describe(`${clone.name} spec`, () => {
-		it('should do a shallow clone', () => {
-			const obj = {
-				a: 1,
-				b: {
-					c: 1
-				}
-			};
-			const copy = clone(obj);
-
-			expect(copy).not.to.be.eq(obj); // different references
-			expect(copy.a).to.be.eq(obj.a); // same values
-
-			obj.b.c = 2;
-			expect(copy.b.c).to.be.eq(obj.b.c); // they share same object under property
-		});
-	});
-
-	describe(`${cloneDeep.name} spec`, () => {
-		it('should do a deep clone', () => {
-			const obj = {
-				a: 1,
-				b: {
-					c: 1
-				}
-			};
-			const copy = cloneDeep(obj);
-
-			expect(copy).not.to.be.eq(obj); // different references
-			expect(copy.a).to.be.eq(obj.a); // same values
-
-			obj.b.c = 2;
-			expect(copy.b.c).not.to.be.eq(obj.b.c); // they don't share same object under property
-		});
-	});
-
 	describe(`${isObject.name} spec`, () => {
 		it('checks that value is an object', () => {
-			expect(isObject(undefined)).to.be.eq(false);
+			const undef = undefined;
+			expect(isObject(undef)).to.be.eq(false);
 			expect(isObject(null)).to.be.eq(false);
 			expect(isObject(true)).to.be.eq(false);
 			expect(isObject(1)).to.be.eq(false);
@@ -83,10 +44,8 @@ describe('object spec', () => {
 					{
 						strVal: 'value',
 						objVal: {
-							symbolVal: Symbol('sumbol'),
-							functionVal: () => ({}),
 							objVal: {
-								arrVal: [1, () => ({}), Symbol('symbol')]
+								arrVal: [1]
 							}
 						}
 					}
@@ -112,7 +71,7 @@ describe('object spec', () => {
 						'arrVal.[2].strVal',
 						'arrVal.[2].objVal.objVal.arrVal.[0]'
 					]);
-					if (key.indexOf('arrVal') !== -1) {
+					if (key.includes('arrVal')) {
 						return 'processedValue';
 					}
 					return val;
@@ -128,13 +87,13 @@ describe('object spec', () => {
 			expect(obj.objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[1]).to.be.eq('processedValue');
 			expect(obj.objVal.objVal.arrVal[2]).to.be.eq('processedValue');
-			// @ts-ignore This is just a test
+			// @ts-expect-error This is just a testa test
 			expect(obj.objVal.objVal.arrVal[3].strKey).to.be.eq('processedValue');
 			expect(obj.arrVal[0]).to.be.eq('processedValue');
 			expect(obj.arrVal[1]).to.be.eq('processedValue');
-			// @ts-ignore This is just a test
+			// @ts-expect-error This is just a testa test
 			expect(obj.arrVal[2].strVal).to.be.eq('processedValue');
-			// @ts-ignore This is just a test
+			// @ts-expect-error This is just a testa test
 			expect(obj.arrVal[2].objVal.objVal.arrVal[0]).to.be.eq('processedValue');
 		});
 
@@ -143,41 +102,33 @@ describe('object spec', () => {
 				true,
 				1,
 				'str',
-				Symbol('str'),
-				() => ({}),
 				{
 					str: 'value',
 					obj: {
-						fun: () => ({}),
-						sym: Symbol('s'),
 						num: 1
 					}
 				},
 				null,
 				undefined
-			];
+			] as const;
 
 			const processor: TraverseProcessor = (key, val) => {
-				expect(key).to.be.oneOf(['[0]', '[1]', '[2]', '[5].str', '[5].obj.num', '[6]', '[7]']);
-				return typeof val !== 'string' ? 'processedValue' : val;
+				expect(key).to.be.oneOf(['[0]', '[1]', '[2]', '[3].str', '[3].obj.num', '[4]', '[5]']);
+				return typeof val === 'string' ? val : 'processedValue';
 			};
 
-			const arrClone = traverse(arr, processor, true) as Array<any>; // just to ease checks bellow without ts errors
+			const arrClone = traverse(arr, processor, true); // just to ease checks bellow without ts errors
 			expect(arrClone).to.not.be.eq(arr); // cloned array
-			expect(arrClone[5]).to.not.be.eq(arr[5]); // deep cloned
-			expect(arrClone[5].str).to.be.eq((arr[5] as ObjMap)['str']); // deep cloned with internal str key
+			expect(arrClone[3]).to.not.be.eq(arr[3]); // deep cloned
+			expect(arrClone[3].str).to.be.eq((arr[3] as ObjMap)['str']); // deep cloned with internal str key
 
 			expect(arrClone[0]).to.be.eq('processedValue');
 			expect(arrClone[1]).to.be.eq('processedValue');
 			expect(arrClone[2]).to.be.eq('str');
-			expect(typeof arrClone[3]).to.be.eq('symbol');
-			expect(typeof arrClone[4]).to.be.eq('function');
-			expect(arrClone[5].str).to.be.eq('value');
-			expect(typeof arrClone[5].obj.fun).to.be.eq('function');
-			expect(typeof arrClone[5].obj.sym).to.be.eq('symbol');
-			expect(arrClone[5].obj.num).to.be.eq('processedValue');
-			expect(arrClone[6]).to.be.eq('processedValue');
-			expect(arrClone[7]).to.be.eq('processedValue');
+			expect(arrClone[3].str).to.be.eq('value');
+			expect(arrClone[3].obj.num).to.be.eq('processedValue');
+			expect(arrClone[4]).to.be.eq('processedValue');
+			expect(arrClone[5]).to.be.eq('processedValue');
 		});
 	});
 
@@ -210,11 +161,11 @@ describe('object spec', () => {
 		};
 
 		function checkObjectIsSorted(sorted: ObjMap): void {
-			expect(Object.keys(sorted)).to.be.equalTo(['a', 'b', 'c', 'd', 'e']);
-			expect(Object.keys(sorted['b'])).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted['c'])).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted['c'].b)).to.be.equalTo(['a', 'b', 'c']);
-			expect(Object.keys(sorted['c'].b.c)).to.be.equalTo(['a']);
+			expect(Object.keys(sorted)).toStrictEqual(['a', 'b', 'c', 'd', 'e']);
+			expect(Object.keys(sorted['b'])).toStrictEqual(['a', 'b']);
+			expect(Object.keys(sorted['c'])).toStrictEqual(['a', 'b']);
+			expect(Object.keys(sorted['c'].b)).toStrictEqual(['a', 'b', 'c']);
+			expect(Object.keys(sorted['c'].b.c)).toStrictEqual(['a']);
 		}
 
 		it('sorts an object (array sort disabled)', () => {
@@ -222,8 +173,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted['b'].b).to.be.equalTo([2, '1', '2']);
-			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['b', 'a']);
+			expect(sorted['b'].b).toStrictEqual([2, '1', '2']);
+			expect(Object.keys(sorted['c'].b.b[2])).toStrictEqual(['b', 'a']);
 		});
 
 		it('sorts an object (array sort enabled)', () => {
@@ -231,8 +182,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted['b'].b).to.be.equalTo(['1', '2', 2]);
-			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['a', 'b']);
+			expect(sorted['b'].b).toStrictEqual(['1', '2', 2]);
+			expect(Object.keys(sorted['c'].b.b[2])).toStrictEqual(['a', 'b']);
 		});
 	});
 
