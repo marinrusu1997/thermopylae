@@ -6,7 +6,7 @@
         "core",
         "declarations"
     ],
-    "version": "1.0.3",
+    "version": "2.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
@@ -30,7 +30,7 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "devDependencies": {
-        "@thermopylae/dev.environment": "1"
+        "@thermopylae/dev.environment": "^2.0.0"
     },
     "lint-staged": {
         "*.ts": [

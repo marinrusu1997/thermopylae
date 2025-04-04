@@ -7,7 +7,7 @@
         "collection",
         "mongo"
     ],
-    "version": "1.0.1",
+    "version": "2.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
@@ -32,9 +32,9 @@
     },
     "dependencies": {
         "@b4dnewz/mongodb-operators": "0.0.2",
-        "@thermopylae/core.declarations": "1",
-        "@thermopylae/lib.exception": "1",
-        "@thermopylae/lib.indexed-store": "1",
+        "@thermopylae/core.declarations": "^2.0.0",
+        "@thermopylae/lib.exception": "^2.0.0",
+        "@thermopylae/lib.indexed-store": "^2.0.0",
         "ajv": "8.17.1",
         "ajv-i18n": "4.2.0",
         "common-query": "3.0.0",
@@ -45,9 +45,9 @@
         "rx-subject": "3.1.0"
     },
     "devDependencies": {
-        "@thermopylae/dev.unit-test": "1",
-        "@thermopylae/lib.utils": "1",
-        "@thermopylae/dev.environment": "1",
+        "@thermopylae/dev.environment": "^2.0.0",
+        "@thermopylae/dev.unit-test": "^2.0.0",
+        "@thermopylae/lib.utils": "^2.0.0",
         "@types/lodash.orderby": "4.6.9",
         "@types/lodash.uniqby": "4.7.9",
         "array-differ": "4.0.0",

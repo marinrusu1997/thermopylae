@@ -7,7 +7,7 @@
         "adapter",
         "fastify"
     ],
-    "version": "1.0.1",
+    "version": "2.0.0",
     "author": "Rusu Marin <dimarusu2000@gmail.com>",
     "repository": "https://github.com/marinrusu1997/thermopylae",
     "main": "dist/index.js",
@@ -34,9 +34,9 @@
         "device-detector-js": "3.0.3"
     },
     "devDependencies": {
-        "@thermopylae/core.declarations": "1",
-        "@thermopylae/dev.unit-test": "1",
-        "@thermopylae/dev.environment": "1",
+        "@thermopylae/core.declarations": "^2.0.0",
+        "@thermopylae/dev.environment": "^2.0.0",
+        "@thermopylae/dev.unit-test": "^2.0.0",
         "cookie": "1.0.2",
         "fastify": "5.2.2",
         "fastify-cookie": "5.7.0",
