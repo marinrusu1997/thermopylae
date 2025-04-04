@@ -1,44 +1,41 @@
-// eslint-disable-next-line max-classes-per-file
 import type {
-	HttpRequest,
-	HttpDeviceDetector,
+	HTTPRequestLocation,
 	HttpDevice,
-	HttpRequestHeader,
-	ObjMap,
+	HttpDeviceDetector,
 	HttpHeaderValue,
-	HTTPRequestLocation
+	HttpRequest,
+	HttpRequestHeader,
+	ObjMap
 } from '@thermopylae/core.declarations';
-import type { Request } from 'express';
 import type { DeviceDetectorResult } from 'device-detector-js';
-import type { ParamsDictionary, Query } from 'express-serve-static-core';
 import DeviceDetectorJs from 'device-detector-js';
+import type { Request } from 'express';
+import type { ParamsDictionary, Query } from 'express-serve-static-core';
 
 const DEVICE_SYM = Symbol('HTTP_DEVICE_SYM');
 const LOCATION_SYM = Symbol('HTTP_LOCATION_SYM');
 
-/**
- * Express request instance managed by {@link ExpressRequestAdapter}.
- */
+/** Express request instance managed by {@link ExpressRequestAdapter}. */
 interface AdaptedExpressRequest<P = ParamsDictionary, ResBody = any, ReqBody = any, ReqQuery = Query, Locals extends Record<string, any> = Record<string, any>>
 	extends Request<P, ResBody, ReqBody, ReqQuery, Locals> {
 	/**
-	 * Property under which *ExpressDeviceDetector* stores detected device. <br/>
-	 * Notice that if you pass an express request object to {@link ExpressRequestAdapter}
-	 * which already has this property with according device, *ExpressDeviceDetector* won't compute this property again.
+	 * Property under which _ExpressDeviceDetector_ stores detected device. <br/> Notice that if you
+	 * pass an express request object to {@link ExpressRequestAdapter} which already has this
+	 * property with according device, _ExpressDeviceDetector_ won't compute this property again.
 	 */
 	[DEVICE_SYM]?: DeviceDetectorResult | null;
 	/**
-	 * Property under which location of the request is stored. <br/>
-	 * *Important!* Clients of the {@link ExpressRequestAdapter} have to set this property accordingly
-	 * on express request object before passing it to adapter, as he won't compute it.
+	 * Property under which location of the request is stored. <br/> _Important!_ Clients of the
+	 * {@link ExpressRequestAdapter} have to set this property accordingly on express request object
+	 * before passing it to adapter, as he won't compute it.
 	 */
 	[LOCATION_SYM]?: HTTPRequestLocation | null;
 }
 
 /**
- * Device detector which extracts device from *User-Agent* header by using
- * [device-detector-js](https://www.npmjs.com/package/device-detector-js) dependency. <br/>
- * Device is stored in the Express request object under {@link DEVICE_SYM} symbol.
+ * Device detector which extracts device from _User-Agent_ header by using
+ * [device-detector-js](https://www.npmjs.com/package/device-detector-js) dependency. <br/> Device
+ * is stored in the Express request object under {@link DEVICE_SYM} symbol.
  */
 class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest> {
 	private readonly detector: DeviceDetectorJs;
@@ -62,13 +59,12 @@ class ExpressDeviceDetector implements HttpDeviceDetector<AdaptedExpressRequest>
 /**
  * Adapter for express request instance.
  *
- * @template Body	Type of the body.
+ * @template Body Type of the body.
  */
 class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 	/**
-	 * Device detector. <br/>
-	 * You can assign your own **HttpDeviceDetector** implementation. <br/>
-	 * Defaults to {@link ExpressDeviceDetector} which detects device based on *User-Agent* header.
+	 * Device detector. <br/> You can assign your own **HttpDeviceDetector** implementation. <br/>
+	 * Defaults to {@link ExpressDeviceDetector} which detects device based on _User-Agent_ header.
 	 */
 	public static deviceDetector: HttpDeviceDetector<AdaptedExpressRequest> = new ExpressDeviceDetector();
 
@@ -82,68 +78,51 @@ class ExpressRequestAdapter<Body = ObjMap> implements HttpRequest<Body> {
 		this.req = req;
 	}
 
-	/**
-	 * Get raw express request instance.
-	 */
+	/** Get raw express request instance. */
 	public get raw(): AdaptedExpressRequest {
 		return this.req;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get ip(): string {
-		return this.req.ip;
+		return this.req.ip ?? '';
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get body(): Body {
 		return this.req.body;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get device(): HttpDevice | undefined | null {
 		return ExpressRequestAdapter.deviceDetector.detect(this.req);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get location(): HTTPRequestLocation | undefined | null {
 		return this.req[LOCATION_SYM];
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public header(name: HttpRequestHeader | string): HttpHeaderValue | undefined {
 		return this.req.header(name);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public cookie(name: string): string | undefined {
 		return this.req.cookies[name];
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public param(name: string): string | undefined {
 		return this.req.params[name];
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public query(name: string): string | undefined {
 		return this.req.query[name] as string;
 	}
 }
 
-export { ExpressRequestAdapter, DEVICE_SYM, LOCATION_SYM, AdaptedExpressRequest, ExpressDeviceDetector };
+export { ExpressRequestAdapter, DEVICE_SYM, LOCATION_SYM, ExpressDeviceDetector };
+export type { AdaptedExpressRequest };

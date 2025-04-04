@@ -1,32 +1,28 @@
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { TwoFactorAuthStrategy } from './interface';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationContext } from '../../types/contexts';
-import { createException, ErrorCodes } from '../../error';
+import { ErrorCodes, createException } from '../../error.js';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import type { AccountModel } from '../../types/models.js';
+import type { TwoFactorAuthStrategy } from './interface.js';
 
 /**
  * Send email containing two factor authentication token to user.
  *
- * @param email		User email.
- * @param token		Two factor authentication token.
+ * @param email User email.
+ * @param token Two factor authentication token.
  */
 type SendEmailWithToken = (email: string, token: string) => Promise<void>;
 
 interface EmailTwoFactorAuthStrategyOptions {
-	/**
-	 * Two factor authentication token length.
-	 */
+	/** Two factor authentication token length. */
 	readonly tokenLength: number;
-	/**
-	 * Two factor authentication token email sender.
-	 */
+	/** Two factor authentication token email sender. */
 	readonly sendEmail: SendEmailWithToken;
 }
 
 /**
- * Two factor authentication strategy which sends token to user via email. <br/>
- * Generated token is stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property
- * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
+ * Two factor authentication strategy which sends token to user via email. <br/> Generated token is
+ * stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property and is valid
+ * until {@link AuthenticationSession} expires or token is send by client and validated.
  */
 class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	private readonly options: EmailTwoFactorAuthStrategyOptions;
@@ -35,16 +31,12 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		this.options = options;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async onTwoFactorAuthEnabled(): Promise<null> {
 		return null;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
@@ -64,9 +56,7 @@ class EmailTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> 
 		authenticationSession.twoFactorAuthenticationToken = token;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,

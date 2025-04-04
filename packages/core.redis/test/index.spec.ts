@@ -1,8 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
+import { describe, expect, it } from 'vitest';
 
 describe('dummy spec', () => {
 	it('should pass', () => {
-		return undefined;
+		expect(1).to.be.eq(1);
 	});
 });

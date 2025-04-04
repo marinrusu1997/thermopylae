@@ -1,2 +1,2 @@
-export { ArrayEqualsPredicate } from './utils';
-export { Heap } from './heap';
+export type { ArrayEqualsPredicate } from './utils.js';
+export { Heap } from './heap.js';

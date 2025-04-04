@@ -1,5 +1,5 @@
-import { Processor } from '@thermopylae/core.declarations';
-import { BucketList } from './interface';
+import type { Processor } from '@thermopylae/core.declarations';
+import type { BucketList } from './interface.js';
 
 /**
  * Data structures which keeps buckets identified by bucket key into EcmaScript 6 {@link Map}.

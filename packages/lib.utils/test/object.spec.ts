@@ -1,10 +1,6 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse, TraverseProcessor } from '../lib/object';
-
-const { expect } = chai;
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { describe, expect, it } from 'vitest';
+import { type TraverseProcessor, clone, cloneDeep, flatten, isEmpty, isObject, sort, traverse } from '../lib/object.js';
 
 describe('object spec', () => {
 	describe(`${clone.name} spec`, () => {
@@ -210,11 +206,11 @@ describe('object spec', () => {
 		};
 
 		function checkObjectIsSorted(sorted: ObjMap): void {
-			expect(Object.keys(sorted)).to.be.equalTo(['a', 'b', 'c', 'd', 'e']);
-			expect(Object.keys(sorted['b'])).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted['c'])).to.be.equalTo(['a', 'b']);
-			expect(Object.keys(sorted['c'].b)).to.be.equalTo(['a', 'b', 'c']);
-			expect(Object.keys(sorted['c'].b.c)).to.be.equalTo(['a']);
+			expect(Object.keys(sorted)).toStrictEqual(['a', 'b', 'c', 'd', 'e']);
+			expect(Object.keys(sorted['b'])).toStrictEqual(['a', 'b']);
+			expect(Object.keys(sorted['c'])).toStrictEqual(['a', 'b']);
+			expect(Object.keys(sorted['c'].b)).toStrictEqual(['a', 'b', 'c']);
+			expect(Object.keys(sorted['c'].b.c)).toStrictEqual(['a']);
 		}
 
 		it('sorts an object (array sort disabled)', () => {
@@ -222,8 +218,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted['b'].b).to.be.equalTo([2, '1', '2']);
-			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['b', 'a']);
+			expect(sorted['b'].b).toStrictEqual([2, '1', '2']);
+			expect(Object.keys(sorted['c'].b.b[2])).toStrictEqual(['b', 'a']);
 		});
 
 		it('sorts an object (array sort enabled)', () => {
@@ -231,8 +227,8 @@ describe('object spec', () => {
 
 			checkObjectIsSorted(sorted);
 
-			expect(sorted['b'].b).to.be.equalTo(['1', '2', 2]);
-			expect(Object.keys(sorted['c'].b.b[2])).to.be.equalTo(['a', 'b']);
+			expect(sorted['b'].b).toStrictEqual(['1', '2', 2]);
+			expect(Object.keys(sorted['c'].b.b[2])).toStrictEqual(['a', 'b']);
 		});
 	});
 

@@ -1,5 +1,4 @@
-// eslint-disable-next-line max-classes-per-file
-import { Undefinable } from '@thermopylae/core.declarations';
+import type { Undefinable } from '@thermopylae/core.declarations';
 import { string } from '@thermopylae/lib.utils';
 
 class ReverseMap<V, K> implements Iterable<[V, K[]]> {

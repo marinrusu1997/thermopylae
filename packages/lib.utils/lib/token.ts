@@ -1,22 +1,16 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { v1, v4 } from 'uuid';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { createException } from './exception';
+import { createException } from './exception.js';
 
 const enum ErrorCodes {
 	UNKNOWN_TOKEN_GENERATION_TYPE = 'UNKNOWN_TOKEN_GENERATION_TYPE'
 }
 
-/**
- * Specifies how token has to be generated.
- */
+/** Specifies how token has to be generated. */
 const enum TokenGenerationType {
-	/**
-	 * Create a cryptographic secure token.
-	 */
+	/** Create a cryptographic secure token. */
 	CRYPTOGRAPHIC = 'CRYPTOGRAPHIC',
-	/**
-	 * Create a normal token using RFC version 1 (timestamp).
-	 */
+	/** Create a normal token using RFC version 1 (timestamp). */
 	NORMAL = 'NORMAL'
 }
 
@@ -26,10 +20,10 @@ const UUID_BUFFER_OFFSET = 16;
 /**
  * Generate random token.
  *
- * @param generationType	Token generation type.
- * @param length			Length of the token.
+ * @param   generationType Token generation type.
+ * @param   length         Length of the token.
  *
- * @returns	Random token.
+ * @returns                Random token.
  */
 function generate(generationType = TokenGenerationType.CRYPTOGRAPHIC, length = UUID_DEFAULT_LENGTH): string {
 	let alg;
@@ -53,7 +47,7 @@ function generate(generationType = TokenGenerationType.CRYPTOGRAPHIC, length = U
 	const buffer = Buffer.alloc(iterations * UUID_BUFFER_OFFSET);
 
 	for (let i = 0; i < iterations; i++) {
-		alg(null, buffer, i * UUID_BUFFER_OFFSET);
+		alg(undefined, buffer, i * UUID_BUFFER_OFFSET);
 	}
 
 	return buffer.toString('hex').slice(0, length);
@@ -62,9 +56,9 @@ function generate(generationType = TokenGenerationType.CRYPTOGRAPHIC, length = U
 /**
  * Creates a hash of the object is a very fast manner, but its un-secure.
  *
- * @param obj	Object to be hashed.
+ * @param   obj Object to be hashed.
  *
- * @returns A number as hash-result.
+ * @returns     A number as hash-result.
  */
 function fastUnSecureHash(obj: string | ObjMap): number {
 	// see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
@@ -83,9 +77,7 @@ function fastUnSecureHash(obj: string | ObjMap): number {
 
 	for (i = 0, len = obj.length; i < len; i++) {
 		chr = obj.charCodeAt(i);
-		// eslint-disable-next-line no-bitwise
 		hashValue = (hashValue << 5) - hashValue + chr;
-		// eslint-disable-next-line no-bitwise
 		hashValue |= 0; // Convert to 32bit integer
 	}
 

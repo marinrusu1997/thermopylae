@@ -1,5 +1,5 @@
-import { RequestHandler } from 'express';
 import { HttpStatusCode } from '@thermopylae/core.declarations';
+import type { RequestHandler } from 'express';
 
 const userAgent: RequestHandler = (req, res, next) => {
 	if (req.header('user-agent') != null) {

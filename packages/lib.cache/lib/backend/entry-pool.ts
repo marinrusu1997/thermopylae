@@ -1,18 +1,18 @@
-import { Undefinable } from '@thermopylae/core.declarations';
-import { ArrayObjectPool, ObjectResource } from '@thermopylae/lib.pool';
-import { CacheBackend } from '../contracts/cache-backend';
-import { CacheEntry } from '../contracts/commons';
+import type { Undefinable } from '@thermopylae/core.declarations';
+import { ArrayObjectPool, type ObjectResource } from '@thermopylae/lib.pool';
+import type { CacheBackend } from '../contracts/cache-backend.js';
+import type { CacheEntry } from '../contracts/commons.js';
 
 /**
- * Backend which has a pool of reusable {@link CacheEntry}. Pool can have a fixed or dynamic size.
- * If pool has a fixed size, trying to insert keys above that size will result in an error. <br/>
- * Each time *key* is inserted, a free {@link CacheEntry} is taken from pool to hold the *value*.
- * When *key* is deleted/expires/cleared, it's according {@link CacheEntry} is returned to pool and can be used by another *key*.
+ * Backend which has a pool of reusable {@link CacheEntry}. Pool can have a fixed or dynamic size. If
+ * pool has a fixed size, trying to insert keys above that size will result in an error. <br/> Each
+ * time _key_ is inserted, a free {@link CacheEntry} is taken from pool to hold the _value_. When
+ * _key_ is deleted/expires/cleared, it's according {@link CacheEntry} is returned to pool and can be
+ * used by another _key_.
  *
- * @template Key	Type of the *key*.
- * @template Value	Type of the *value*.
- * @template Entry	Type of the cache entry. <br/>
- * 					Defaults to {@link CacheEntry}.
+ * @template Key Type of the _key_.
+ * @template Value Type of the _value_.
+ * @template Entry Type of the cache entry. <br/> Defaults to {@link CacheEntry}.
  */
 class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = CacheEntry<Key, Value>> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, ObjectResource<Entry>>;
@@ -20,9 +20,9 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 	private readonly entryPool: ArrayObjectPool<Entry>;
 
 	/**
-	 * @param capacity	Backend capacity. <br/>
-	 * 					When given, cache will not grow above *capacity* (i.e. will have a fixed size). <br/>
-	 * 					If you omit this argument, backend will have a dynamic size.
+	 * @param capacity Backend capacity. <br/> When given, cache will not grow above _capacity_
+	 *   (i.e. will have a fixed size). <br/> If you omit this argument, backend will have a dynamic
+	 *   size.
 	 */
 	public constructor(capacity?: number) {
 		this.store = new Map<Key, ObjectResource<Entry>>();
@@ -40,9 +40,7 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 		});
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get(key: Key): Undefinable<Entry> {
 		const objectResource = this.store.get(key);
 		if (objectResource == null) {
@@ -51,49 +49,37 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 		return objectResource.value;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public has(key: Key): boolean {
 		return this.store.has(key);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public set(key: Key, value: Value): Entry {
 		const objectResource = this.entryPool.acquire(key, value);
 		this.store.set(key, objectResource);
 		return objectResource.value;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public del(entry: Entry): void {
 		const objectResource = this.store.get(entry.key)!;
 		this.store.delete(entry.key);
 		this.entryPool.release(objectResource);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public clear(): void {
 		this.store.clear();
 		this.entryPool.releaseAll();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get size(): number {
 		return this.store.size;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public [Symbol.iterator](): IterableIterator<[Key, Entry]> {
 		return {
 			// @ts-ignore The typings are correct
@@ -113,16 +99,12 @@ class EntryPoolCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = C
 		};
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public keys(): IterableIterator<Key> {
 		return this.store.keys();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public values(): IterableIterator<Entry> {
 		let iter = this.store.values();
 		// @ts-ignore The typings are correct

@@ -1,13 +1,11 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/dev.unit-test';
-import { Nullable } from '@thermopylae/core.declarations';
+import type { Nullable } from '@thermopylae/core.declarations';
 import { array } from '@thermopylae/lib.utils';
-import arrayMove from 'array-move';
+import { arrayMoveMutable } from 'array-move';
 import colors from 'colors';
 // @ts-ignore This package has no typings
 import gc from 'js-gc';
-import { DoublyLinkedList, DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked';
+import { assert, describe, expect, it } from 'vitest';
+import { DoublyLinkedList, type DoublyLinkedListNode, NEXT_SYM, PREV_SYM } from '../../lib/data-structures/list/doubly-linked.js';
 
 class Node<T = number> implements DoublyLinkedListNode<Node<T>> {
 	public [NEXT_SYM]: Nullable<Node<T>>;
@@ -136,13 +134,12 @@ describe(`${colors.magenta(DoublyLinkedList.name)} spec`, () => {
 		for (let i = 0; i < 20; i++) {
 			const node = array.randomElement(nodes);
 			dll.toFront(node);
-			arrayMove.mutate(nodes, nodes.indexOf(node), 0);
+			arrayMoveMutable(nodes, nodes.indexOf(node), 0);
 
 			assertListContainsAllNodes(dll, nodes);
 		}
 	});
 
-	// eslint-disable-next-line mocha/no-skipped-tests
 	it.skip('should clear all nodes from list', () => {
 		const dll = new DoublyLinkedList<Node>();
 		const DELTA = 250_000;

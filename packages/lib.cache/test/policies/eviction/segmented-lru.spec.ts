@@ -1,20 +1,22 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
+import { buildPromiseHolder } from '@thermopylae/lib.async';
 import { array, number, string } from '@thermopylae/lib.utils';
 import colors from 'colors';
 import range from 'lodash.range';
-import { SegmentedLRUEvictionPolicy, EvictableCacheEntry, SEGMENT_SYM } from '../../../lib/policies/eviction/segmented-lru';
-import { MapUtils } from '../../utils';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
+import { describe, expect, it } from 'vitest';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked.js';
+import { type EvictableCacheEntry, SEGMENT_SYM, SegmentedLRUEvictionPolicy } from '../../../lib/policies/eviction/segmented-lru.js';
+import { MapUtils } from '../../utils.js';
 
 describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
-	it('should work under minimal cache capacity', (done) => {
+	it('should work under minimal cache capacity', async () => {
 		const CAPACITY = 2;
 		const PROTECTED_SEGMENT_RATIO = 0.5;
 
 		const ENTRIES_IN_CACHE = new Map<string, EvictableCacheEntry<string, number>>();
 		let HOPS = 50;
+
+		const deferred = buildPromiseHolder<void>();
 
 		try {
 			const policy = new SegmentedLRUEvictionPolicy<string, number, any>(CAPACITY, PROTECTED_SEGMENT_RATIO);
@@ -62,16 +64,17 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 						// this might happen when onHit has been called, it evicted entry, but next onSet hadn't chance to be called to insert a new one
 						expect(ENTRIES_IN_CACHE.size).to.be.within(CAPACITY - 1, CAPACITY);
 
-						done();
+						deferred.resolve();
 					} catch (e) {
-						done(e);
+						deferred.reject(e);
 					} finally {
-						// eslint-disable-next-line no-unsafe-finally
 						return true;
 					}
 				}
 				return false;
 			};
+
+			await deferred.promise;
 		} catch (e) {
 			const message = [
 				'Test Context:',
@@ -138,7 +141,7 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 				policy.onSet(entry);
 			}
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
 
 			const ENTRIES_AS_ARRAY = [...ENTRIES];
 			for (let i = 0; i < ADDITIONAL_ENTRIES.size; i++) {
@@ -229,28 +232,28 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			policy.onHit(probationTail);
 			expect(policy.mostRecent).to.be.eq(probationTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 4. onHit for probation head
 			const probationHead = leastRecentEntry;
 			policy.onHit(probationHead);
 			expect(policy.mostRecent).to.be.eq(probationHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 5. onHit for protected head
 			const protectedHead = leastRecentEntry;
 			policy.onHit(protectedHead);
 			expect(policy.mostRecent).to.be.eq(protectedHead);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 6. onHit for protected tail
 			const protectedTail = policy.leastRecent!;
 			policy.onHit(protectedTail);
 			expect(policy.mostRecent).to.be.eq(protectedTail);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			// 7. onSet
 			const protectedTailBeforeSet = policy.leastRecent;
@@ -263,14 +266,14 @@ describe(`${colors.magenta(SegmentedLRUEvictionPolicy.name)} spec`, () => {
 			};
 			policy.onSet(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(1);
+			expect(EVICTED_KEYS).to.have.length(1);
 			expect(policy.mostRecent).to.be.eq(protectedTail); // protected remained untouched
 			expect(policy.leastRecent).to.be.eq(protectedTailBeforeSet); // protected remained untouched
 
 			// 8. onHit for last inserted entry
 			policy.onHit(entry);
 			expect(policy.size).to.be.eq(CAPACITY); // full
-			expect(EVICTED_KEYS).to.be.ofSize(1);
+			expect(EVICTED_KEYS).to.have.length(1);
 			expect(policy.mostRecent).to.be.eq(entry);
 		} catch (e) {
 			const message = [

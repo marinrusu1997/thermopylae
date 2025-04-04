@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
-import colors from 'colors';
+import { logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
-import { LFUDAEvictionPolicy } from '../../../lib';
-import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { LFUDAEvictionPolicy } from '../../../lib/index.js';
+import type { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -88,8 +87,8 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				lfuEntries.set(key, entry);
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.containSubset(['a', 'b']);
 
 			/* Set additional entries frequency */
 			for (const key of ADDITIONAL_ENTRIES.keys()) {
@@ -105,14 +104,14 @@ describe(`${colors.magenta(LFUDAEvictionPolicy.name)} spec`, () => {
 				expect(entry[BUCKET_HEADER_SYM].id).to.be.eq(14); // 2 + freq(4) * (cache age(2) + 1)
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(EVICTED_KEYS).to.be.containingAllOf(['a', 'b']);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect(EVICTED_KEYS).to.containSubset(['a', 'b']);
 
 			// @ts-ignore This is for testing purposes
 			const entry: EvictableCacheEntry<string, number> = { key: 'x', value: number.randomInt(10, 20) };
 			policy.onSet(entry);
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size + 1);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size + 1);
 			expect(EVICTED_KEYS).to.satisfy((keys: string[]) => keys.includes('c') || keys.includes('d'));
 		} catch (e) {
 			const message = ['Test Context:', `${'GET_ORDER'.magenta}: ${GET_ORDER.map((v) => `'${v}'`)}`];

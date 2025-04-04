@@ -1,17 +1,21 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/dev.unit-test';
+import * as crypto from 'node:crypto';
 import { Exception } from '@thermopylae/lib.exception';
-import { chrono, string } from '@thermopylae/lib.utils';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes, OnTwoFactorEnabledHookResult, TotpTwoFactorAuthStrategy } from '../lib';
-import { buildAccountToBeRegistered } from './utils';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { OnAccountDisabledHookMock } from './fixtures/hooks';
+import { chrono } from '@thermopylae/lib.utils';
+import { assert, describe, expect, it } from 'vitest';
+import {
+	AccountStatus,
+	type AccountWithTotpSecret,
+	AuthenticationEngine,
+	ErrorCodes,
+	type OnTwoFactorEnabledHookResult,
+	TotpTwoFactorAuthStrategy
+} from '../lib/index.js';
+import { OnAccountDisabledHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { buildAccountToBeRegistered } from './utils.js';
 
-describe('Two Factor Auth Enable spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('Two Factor Auth Enable spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('enables two factor auth', async () => {
@@ -35,7 +39,7 @@ describe('Two Factor Auth Enable spec', function suite() {
 
 	it("doesn't enable 2fa for non existing accounts", async () => {
 		/* ENABLE 2FA */
-		const accountId = string.random({ length: 12 });
+		const accountId = crypto.randomBytes(12).toString('hex');
 
 		let err;
 		try {
@@ -123,7 +127,7 @@ describe('Two Factor Auth Enable spec', function suite() {
 			'message',
 			`Password verification for account with id ${account.id} failed too many times, therefore account was disabled.`
 		);
-		expect(OnAccountDisabledHookMock.calls).to.be.ofSize(1); // sessions were invalidated
+		expect(OnAccountDisabledHookMock.calls).to.have.length(1); // sessions were invalidated
 
 		/* WAIT ACCOUNT ENABLE */
 		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);

@@ -1,27 +1,30 @@
 import { Router } from 'express';
-import { API_SCHEMA } from './schema';
-import { userAgent } from '../../middleware/user-agent';
-import { jsonBody } from '../../middleware/json-body';
-import { ipLocation } from '../../middleware/ip-location';
-import { validateRequestBody as validateAuthenticateRequestBody, route as authenticateRoute } from './methods/authenticate';
-import { validateRequestBody as validateRegisterRequestBody, route as registerRoute } from './methods/register';
-import { validateRequestQueryParams as validateActivateAccountRequestQueryParams, route as activateAccountRoute } from './methods/activate-account';
-import { validateRequestBody as validateSetTwoFactorAuthEnabledRequestBody, route as setTwoFactorAuthEnabledRoute } from './methods/set-2fa-enabled';
+import { ROUTER_OPTIONS } from '../../../constants.js';
+import { ipLocation } from '../../middleware/ip-location.js';
+import { jsonBody } from '../../middleware/json-body.js';
+import { userAgent } from '../../middleware/user-agent.js';
+import { route as activateAccountRoute, validateRequestQueryParams as validateActivateAccountRequestQueryParams } from './methods/activate-account.js';
+import { route as authenticateRoute, validateRequestBody as validateAuthenticateRequestBody } from './methods/authenticate.js';
 import {
-	validateRequestQueryParams as validateGetFailedAuthenticationsRequestQueryParams,
-	route as getFailedAuthenticationsRoute
-} from './methods/get-failed-authentications';
+	route as changeForgottenPasswordRoute,
+	validateRequestBody as validateChangeForgottenPasswordRequestBody
+} from './methods/change-forgotten-password.js';
+import { route as changePasswordRoute, validateRequestBody as validateChangePasswordRequestBody } from './methods/change-password.js';
 import {
-	validateRequestQueryParams as validateGetSuccessfulAuthenticationsRequestQueryParams,
-	route as getSuccessfulAuthenticationsRoute
-} from './methods/get-sucessful-authentications';
-import { validateRequestBody as validateChangePasswordRequestBody, route as changePasswordRoute } from './methods/change-password';
+	route as createForgotPasswordSessionRoute,
+	validateRequestBody as validateCreateForgotPasswordSessionRequestBody
+} from './methods/create-forgot-password-session.js';
 import {
-	validateRequestBody as validateCreateForgotPasswordSessionRequestBody,
-	route as createForgotPasswordSessionRoute
-} from './methods/create-forgot-password-session';
-import { validateRequestBody as validateChangeForgottenPasswordRequestBody, route as changeForgottenPasswordRoute } from './methods/change-forgotten-password';
-import { ROUTER_OPTIONS } from '../../../constants';
+	route as getFailedAuthenticationsRoute,
+	validateRequestQueryParams as validateGetFailedAuthenticationsRequestQueryParams
+} from './methods/get-failed-authentications.js';
+import {
+	route as getSuccessfulAuthenticationsRoute,
+	validateRequestQueryParams as validateGetSuccessfulAuthenticationsRequestQueryParams
+} from './methods/get-sucessful-authentications.js';
+import { route as registerRoute, validateRequestBody as validateRegisterRequestBody } from './methods/register.js';
+import { route as setTwoFactorAuthEnabledRoute, validateRequestBody as validateSetTwoFactorAuthEnabledRequestBody } from './methods/set-2fa-enabled.js';
+import { API_SCHEMA } from './schema.js';
 
 const authenticationRouter = Router(ROUTER_OPTIONS);
 

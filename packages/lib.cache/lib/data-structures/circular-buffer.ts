@@ -1,6 +1,4 @@
-/**
- * @private
- */
+/** @private */
 class CircularBuffer<T> {
 	private readonly storage: Set<T>;
 
@@ -17,7 +15,7 @@ class CircularBuffer<T> {
 
 	public add(element: T): void {
 		if (this.storage.size === this.capacity) {
-			this.storage.delete(this.storage.values().next().value);
+			this.storage.delete(this.storage.values().next().value as T);
 		}
 		this.storage.add(element);
 	}

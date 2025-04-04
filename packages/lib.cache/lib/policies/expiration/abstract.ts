@@ -1,63 +1,43 @@
-import { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { CacheEntry } from '../../contracts/commons';
-import { EXPIRES_AT_SYM } from '../../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { createException, ErrorCodes } from '../../error';
+import { EXPIRES_AT_SYM } from '../../constants.js';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../contracts/cache-replacement-policy.js';
+import type { CacheEntry } from '../../contracts/commons.js';
+import { ErrorCodes, createException } from '../../error.js';
 
-/**
- * @private
- */
+/** @private */
 interface ExpirableCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[EXPIRES_AT_SYM]?: UnixTimestamp;
 }
 
-/**
- * @private
- */
+/** @private */
 abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
-	/**
-	 * Cache entry deleter.
-	 */
+	/** Cache entry deleter. */
 	protected deleteFromCache!: Deleter<Key, Value>;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	abstract onHit(entry: CacheEntry<Key, Value>): EntryValidity;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onMiss(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	abstract onSet(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	abstract onUpdate(entry: CacheEntry<Key, Value>, argsBundle?: ArgumentsBundle): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
 		entry[EXPIRES_AT_SYM] = undefined!; // detach metadata, as entry might be reused by cache backend, logical deletion
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	abstract onClear(): void;
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
@@ -92,4 +72,4 @@ abstract class AbstractExpirationPolicy<Key, Value, ArgumentsBundle> implements 
 	}
 }
 
-export { AbstractExpirationPolicy, ExpirableCacheEntry };
+export { AbstractExpirationPolicy, type ExpirableCacheEntry };

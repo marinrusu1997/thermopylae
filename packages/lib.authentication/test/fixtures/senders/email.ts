@@ -1,5 +1,5 @@
-import { AccountWithTotpSecret, AuthenticationContext, ChangePasswordContext, EmailSender } from '../../../lib';
-import { EmailClientMock } from '../mocks/email';
+import type { AccountWithTotpSecret, AuthenticationContext, ChangePasswordContext, EmailSender } from '../../../lib/index.js';
+import { EmailClientMock } from '../mocks/email.js';
 
 class EmailSenderMock implements EmailSender<AccountWithTotpSecret> {
 	public readonly client: EmailClientMock;

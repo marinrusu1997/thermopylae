@@ -1,10 +1,9 @@
-import { Consumer, Kafka, logLevel, Producer } from 'kafkajs';
-import { ObjMap } from '@thermopylae/core.declarations';
-// eslint-disable-next-line import/extensions, node/no-extraneous-import
-import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
-import { createException, ErrorCodes } from '../error';
-import { kafkaLogger, logger } from '../logger';
-import { APP_NODE_ID } from '../constants';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { type Consumer, Kafka, type Producer, logLevel } from 'kafkajs';
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config/index.js';
+import { APP_NODE_ID } from '../constants.js';
+import { ErrorCodes, createException } from '../error.js';
+import { kafkaLogger, logger } from '../logger.js';
 
 interface KafkaClientOptions {
 	clientId: string;
@@ -62,7 +61,7 @@ class KafkaClient {
 						kafkaLogger.debug(`Received message with key '${key}' and value '${value}'.`);
 
 						if (key !== APP_NODE_ID) {
-							this.onMessage!(JSON.parse(value));
+							this.onMessage!(JSON.parse(value) as any);
 						}
 					} catch (e) {
 						logger.error('Error occurred in Kafka eachMessage handler.', e);
@@ -109,4 +108,4 @@ class KafkaClient {
 	}
 }
 
-export { KafkaClient, KafkaMessage, KafkaClientOptions, OnKafkaMessageHandler };
+export { KafkaClient, type KafkaMessage, type KafkaClientOptions, type OnKafkaMessageHandler };

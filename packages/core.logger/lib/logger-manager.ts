@@ -1,32 +1,22 @@
-import winston, { createLogger, Logger as WinstonLogger } from 'winston';
-import { FormattingManager } from './formatting-manager';
-import { ConsoleLogsManager } from './transports/console';
-import { FileLogsManager } from './transports/file';
-import { GrayLogsManager } from './transports/graylog';
-import { TransportsManager } from './transports-manager';
+import winston, { Logger as WinstonLogger, createLogger } from 'winston';
+import { FormattingManager } from './formatting-manager.js';
+import { TransportsManager } from './transports-manager.js';
+import { ConsoleLogsManager } from './transports/console.js';
+import { FileLogsManager } from './transports/file.js';
+import { GrayLogsManager } from './transports/graylog.js';
 
-/**
- * Class responsible for providing loggers to app modules. <br>
- */
+/** Class responsible for providing loggers to app modules. <br> */
 class LoggerManager {
-	/**
-	 * Formatting manager which configures format of the logging output.
-	 */
+	/** Formatting manager which configures format of the logging output. */
 	public readonly formatting: FormattingManager;
 
-	/**
-	 * Console transport manager which configures console transport.
-	 */
+	/** Console transport manager which configures console transport. */
 	public readonly console: ConsoleLogsManager;
 
-	/**
-	 * File transport manager which configures file transport.
-	 */
+	/** File transport manager which configures file transport. */
 	public readonly file: FileLogsManager;
 
-	/**
-	 * Graylog2 transport manager which configures graylog2 transport.
-	 */
+	/** Graylog2 transport manager which configures graylog2 transport. */
 	public readonly graylog2: GrayLogsManager;
 
 	private readonly transports: TransportsManager;
@@ -41,11 +31,11 @@ class LoggerManager {
 	}
 
 	/**
-	 * Method used by modules to retrieve their loggers. <br>
-	 * Formatting and at least one of the transport managers needs to be configured before calling this method. <br/>
-	 * After obtaining logger, module should not call again this method (i.e. it needs to save obtained logger).
+	 * Method used by modules to retrieve their loggers. <br> Formatting and at least one of the
+	 * transport managers needs to be configured before calling this method. <br/> After obtaining
+	 * logger, module should not call again this method (i.e. it needs to save obtained logger).
 	 *
-	 * @param module    Module for which logger will be created.
+	 * @param module Module for which logger will be created.
 	 */
 	public for(module: string): WinstonLogger {
 		const transports = this.transports.for(module);

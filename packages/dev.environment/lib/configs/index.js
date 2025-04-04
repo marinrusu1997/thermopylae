@@ -5,9 +5,9 @@ const prettier = require('./prettier');
 const typedoc = require('./typedoc');
 
 module.exports = {
-    eslint,
-    mocha,
-    nyc,
-    prettier,
-    typedoc
+	eslint,
+	mocha,
+	nyc,
+	prettier,
+	typedoc
 };

@@ -1,55 +1,55 @@
 {
-    "name": "@thermopylae/lib.geoip",
-    "description": "Geolocation based on ip address.",
-    "keywords": [
-        "thermopylae",
-        "library",
-        "geoip"
-    ],
-    "version": "1.0.1",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae",
-    "main": "./dist/index.js",
-    "exports": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "files": [
-        "dist/**/*"
-    ],
-    "scripts": {
-        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-        "build": "gulp --gulpfile gulpfile.cjs build",
-        "doc": "gulp --gulpfile gulpfile.cjs doc",
-        "test": "gulp --gulpfile gulpfile.cjs test",
-        "report": "gulp --gulpfile gulpfile.cjs report",
-        "coverage": "gulp --gulpfile gulpfile.cjs coverage",
-        "coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
-        "debug": "gulp --gulpfile gulpfile.cjs debug",
-        "clean": "gulp --gulpfile gulpfile.cjs clean",
-        "purge": "gulp --gulpfile gulpfile.cjs purge",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build",
-        "unpublish": "npm unpublish --force $npm_package_name"
-    },
-    "dependencies": {
-        "@thermopylae/core.declarations": "1",
-        "@thermopylae/lib.exception": "1",
-        "@thermopylae/lib.utils": "1",
-        "geoip-lite": "1.4.10",
-        "node-fetch": "3.3.2"
-    },
-    "devDependencies": {
-        "@thermopylae/dev.unit-test": "1",
-        "@thermopylae/dev.environment": "1",
-        "@types/geoip-lite": "1.4.4",
-        "dotenv": "16.4.7"
-    },
-    "lint-staged": {
-        "*.ts": [
-            "eslint"
-        ]
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "license": "MIT",
-    "type": "module"
+	"name": "@thermopylae/lib.geoip",
+	"description": "Geolocation based on ip address.",
+	"keywords": [
+		"thermopylae",
+		"library",
+		"geoip"
+	],
+	"version": "2.0.0",
+	"author": "Rusu Marin <dimarusu2000@gmail.com>",
+	"repository": "https://github.com/marinrusu1997/thermopylae",
+	"main": "./dist/index.js",
+	"exports": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist/**/*"
+	],
+	"scripts": {
+		"lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+		"build": "tsc --pretty true",
+		"doc": "gulp --gulpfile gulpfile.cjs doc",
+		"test": "gulp --gulpfile gulpfile.cjs test",
+		"report": "gulp --gulpfile gulpfile.cjs report",
+		"coverage": "gulp --gulpfile gulpfile.cjs coverage",
+		"coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
+		"debug": "gulp --gulpfile gulpfile.cjs debug",
+		"clean": "gulp --gulpfile gulpfile.cjs clean",
+		"purge": "gulp --gulpfile gulpfile.cjs purge",
+		"prepublishOnly": "npm run lint && npm run clean && npm run build",
+		"unpublish": "npm unpublish --force $npm_package_name"
+	},
+	"dependencies": {
+		"@thermopylae/core.declarations": "2.0.0",
+		"@thermopylae/lib.exception": "2.0.0",
+		"@thermopylae/lib.utils": "2.0.0",
+		"geoip-lite": "1.4.10",
+		"node-fetch": "3.3.2"
+	},
+	"devDependencies": {
+		"@thermopylae/dev.environment": "2.0.0",
+		"@types/geoip-lite": "1.4.4",
+		"dotenv-extended": "2.9.0"
+	},
+	"lint-staged": {
+		"*.ts": [
+			"eslint"
+		]
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"license": "MIT",
+	"type": "module",
+	"gitHead": "5878be8db508d344254687c395b9a3e685de2c5f"
 }

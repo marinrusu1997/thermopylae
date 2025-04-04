@@ -1,23 +1,22 @@
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo } from './utils';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { describe, expect, it } from 'vitest';
+import { IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo } from './utils.js';
 
 describe(`${IndexedStore.name} spec`, () => {
 	describe('constructor', () => {
 		it('creates store with primary index', () => {
 			let storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 
 			storage = new IndexedStore<Person>({ indexes: [] });
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 		});
 
 		it('creates store with secondary indexes', () => {
 			const indexes: Array<string> = Object.values(PersonIndexes);
 			const storage = new IndexedStore<Person>({ indexes });
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
+			expect(storage.indexes).to.containSubset(indexes.concat([PK_INDEX_NAME]));
 		});
 	});
 
@@ -34,7 +33,7 @@ describe(`${IndexedStore.name} spec`, () => {
 
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 			expect(storage.values.length).to.be.eq(storage.size);
-			expect(storage.values).to.be.containingAllOf(PersonsRepo);
+			expect(storage.values).to.containSubset(PersonsRepo);
 		});
 	});
 

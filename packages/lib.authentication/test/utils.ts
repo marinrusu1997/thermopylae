@@ -1,12 +1,13 @@
-import { expect } from '@thermopylae/dev.unit-test';
 import { Authenticator } from '@otplib/core';
 import { createDigest, createRandomBytes } from '@otplib/plugin-crypto';
 import { keyDecoder, keyEncoder } from '@otplib/plugin-thirty-two';
-import keypair from 'keypair';
 import { createSign } from 'crypto';
-import { TotpDefaultOptions } from './fixtures';
-import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, AuthenticationContext, AuthenticationStatus } from '../lib';
-import { SecretEncryptor } from '../lib/helpers/secret-encryptor';
+import keypair from 'keypair';
+import { expect } from 'vitest';
+import { SecretEncryptor } from '../lib/helpers/secret-encryptor.js';
+import { AccountStatus } from '../lib/index.js';
+import type { AccountToBeRegistered, AccountWithTotpSecret, AuthenticationContext, AuthenticationStatus } from '../lib/index.js';
+import { TotpDefaultOptions } from './fixtures/index.js';
 
 /* TOTP */
 const TotpAuthenticator = new Authenticator({
@@ -24,6 +25,7 @@ function generateTotp(secret: string): string {
 }
 
 /* ACCOUNT REGISTER */
+// @ts-ignore
 const AccountKeyPair = keypair();
 Object.freeze(AccountKeyPair);
 

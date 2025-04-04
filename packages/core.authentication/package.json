@@ -1,61 +1,63 @@
 {
-    "name": "@thermopylae/core.authentication",
-    "description": "Implementations of repositories required by Authentication Library.",
-    "keywords": [
-        "thermopylae",
-        "core",
-        "authentication",
-        "user-authentication"
-    ],
-    "version": "1.0.1",
-    "author": "Rusu Marin <dimarusu2000@gmail.com>",
-    "repository": "https://github.com/marinrusu1997/thermopylae",
-    "main": "dist/index.js",
-    "exports": "./dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist/**/*"
-    ],
-    "scripts": {
-        "lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
-        "build": "gulp --gulpfile gulpfile.cjs build",
-        "doc": "gulp --gulpfile gulpfile.cjs doc",
-        "test": "gulp --gulpfile gulpfile.cjs test",
-        "report": "gulp --gulpfile gulpfile.cjs report",
-        "coverage": "gulp --gulpfile gulpfile.cjs coverage",
-        "coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
-        "debug": "gulp --gulpfile gulpfile.cjs debug",
-        "clean": "gulp --gulpfile gulpfile.cjs clean",
-        "purge": "gulp --gulpfile gulpfile.cjs purge",
-        "prepublishOnly": "npm run lint && npm run clean && npm run build",
-        "unpublish": "npm unpublish --force $npm_package_name"
-    },
-    "dependencies": {
-        "@thermopylae/core.declarations": "1",
-        "@thermopylae/core.mysql": "1",
-        "@thermopylae/core.redis": "1",
-        "@thermopylae/lib.exception": "1",
-        "farmhash": "4.0.1",
-        "fast-json-stable-stringify": "2.1.0"
-    },
-    "devDependencies": {
-        "@thermopylae/dev.unit-test": "1",
-        "@thermopylae/lib.utils": "1",
-        "@thermopylae/dev.environment": "1",
-        "@thermopylae/lib.authentication": "1",
-        "@thermopylae/core.logger": "1",
-        "@types/faker": "6.6.11",
-        "dotenv": "16.4.7",
-        "faker": "6.6.6"
-    },
-    "lint-staged": {
-        "*.ts": [
-            "eslint"
-        ]
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "license": "MIT",
-    "type": "module"
+	"name": "@thermopylae/core.authentication",
+	"description": "Implementations of repositories required by Authentication Library.",
+	"keywords": [
+		"thermopylae",
+		"core",
+		"authentication",
+		"user-authentication"
+	],
+	"version": "2.0.0",
+	"author": "Rusu Marin <dimarusu2000@gmail.com>",
+	"repository": "https://github.com/marinrusu1997/thermopylae",
+	"main": "dist/index.js",
+	"exports": "./dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"dist/**/*"
+	],
+	"scripts": {
+		"lint": "eslint \"lib/**/*.ts\" \"test/**/*.ts\" --fix",
+		"build": "tsc --pretty true",
+		"doc": "gulp --gulpfile gulpfile.cjs doc",
+		"test": "gulp --gulpfile gulpfile.cjs test",
+		"report": "gulp --gulpfile gulpfile.cjs report",
+		"coverage": "gulp --gulpfile gulpfile.cjs coverage",
+		"coverage:show": "gulp --gulpfile gulpfile.cjs coverageShow",
+		"debug": "gulp --gulpfile gulpfile.cjs debug",
+		"clean": "gulp --gulpfile gulpfile.cjs clean",
+		"purge": "gulp --gulpfile gulpfile.cjs purge",
+		"prepublishOnly": "npm run lint && npm run clean && npm run build",
+		"unpublish": "npm unpublish --force $npm_package_name"
+	},
+	"dependencies": {
+		"@thermopylae/core.declarations": "2.0.0",
+		"@thermopylae/core.mysql": "2.0.0",
+		"@thermopylae/core.redis": "2.0.0",
+		"@thermopylae/lib.exception": "2.0.0",
+		"farmhash": "4.0.2",
+		"fast-json-stable-stringify": "2.1.0"
+	},
+	"devDependencies": {
+		"@thermopylae/core.logger": "2.0.0",
+		"@thermopylae/dev.environment": "2.0.0",
+		"@thermopylae/dev.unit-test": "2.0.0",
+		"@thermopylae/lib.authentication": "2.0.0",
+		"@thermopylae/lib.utils": "2.0.0",
+		"@faker-js/faker": "9.9.0",
+		"@testcontainers/mysql": "11.2.1",
+		"@testcontainers/redis": "11.2.1",
+		"sql-query-identifier": "2.8.0"
+	},
+	"lint-staged": {
+		"*.ts": [
+			"eslint"
+		]
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"license": "MIT",
+	"type": "module",
+	"gitHead": "5878be8db508d344254687c395b9a3e685de2c5f"
 }

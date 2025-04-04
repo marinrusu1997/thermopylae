@@ -1,16 +1,14 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
+import type { FailedAuthenticationAttemptSession } from '@thermopylae/lib.authentication';
 import { chrono } from '@thermopylae/lib.utils';
-import { FailedAuthenticationAttemptSession } from '@thermopylae/lib.authentication';
-import { FailedAuthenticationAttemptsSessionRedisRepository } from '../../lib';
+import { describe, expect, it } from 'vitest';
+import { FailedAuthenticationAttemptsSessionRedisRepository } from '../../lib/index.js';
 
 describe(`${FailedAuthenticationAttemptsSessionRedisRepository.name} spec`, function suite() {
 	const failedAuthenticationAttemptsSessionRedisRepository = new FailedAuthenticationAttemptsSessionRedisRepository('fail-auth-sess');
 
 	it('reads inserted session', async () => {
-		const username = faker.internet.userName();
+		const username = faker.internet.username();
 		const session: FailedAuthenticationAttemptSession = {
 			detectedAt: chrono.unixTime(),
 			ip: faker.internet.ip(),
@@ -18,12 +16,12 @@ describe(`${FailedAuthenticationAttemptsSessionRedisRepository.name} spec`, func
 		};
 		await failedAuthenticationAttemptsSessionRedisRepository.upsert(username, session, 5);
 
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.deep.eq(session);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.deep.eq(session);
 	});
 
-	it('reads updated session', async () => {
+	it('reads updated session', { timeout: 2_500 }, async () => {
 		/* INSERT */
-		const username = faker.internet.userName();
+		const username = faker.internet.username();
 		const session: FailedAuthenticationAttemptSession = {
 			detectedAt: chrono.unixTime(),
 			ip: faker.internet.ip(),
@@ -45,14 +43,14 @@ describe(`${FailedAuthenticationAttemptsSessionRedisRepository.name} spec`, func
 
 		/* READ */
 		await chrono.sleep(1100);
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.deep.eq(session);
-	}).timeout(2_500);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.deep.eq(session);
+	});
 
 	it('returns null when session does not exist', async () => {
-		const username = faker.internet.userName();
+		const username = faker.internet.username();
 
 		/* READ NON EXISTING */
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.eq(null);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.eq(null);
 
 		/* READ EXPIRED */
 		const session: FailedAuthenticationAttemptSession = {
@@ -63,12 +61,12 @@ describe(`${FailedAuthenticationAttemptsSessionRedisRepository.name} spec`, func
 		await failedAuthenticationAttemptsSessionRedisRepository.upsert(username, session, 1);
 
 		await chrono.sleep(1100);
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.eq(null);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.eq(null);
 	});
 
 	it('deletes session', async () => {
 		/* INSERT */
-		const username = faker.internet.userName();
+		const username = faker.internet.username();
 		const session: FailedAuthenticationAttemptSession = {
 			detectedAt: chrono.unixTime(),
 			ip: faker.internet.ip(),
@@ -77,13 +75,13 @@ describe(`${FailedAuthenticationAttemptsSessionRedisRepository.name} spec`, func
 		await failedAuthenticationAttemptsSessionRedisRepository.upsert(username, session, 5);
 
 		/* ENSURE EXISTS */
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.deep.eq(session);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.deep.eq(session);
 
 		/* DELETE */
 		await failedAuthenticationAttemptsSessionRedisRepository.delete(username);
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.eq(null);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.eq(null);
 
 		await failedAuthenticationAttemptsSessionRedisRepository.delete(username); // delete non existing
-		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).to.eventually.be.eq(null);
+		await expect(failedAuthenticationAttemptsSessionRedisRepository.read(username)).resolves.to.be.eq(null);
 	});
 });

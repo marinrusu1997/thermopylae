@@ -1,12 +1,62 @@
 {
-    "extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
-    "compilerOptions": {
-        "rootDir": ".",
-        "tsBuildInfoFile": "build/tsbuildinfo",
-        "outDir": "dist"
-    },
-    "include": [
-        "lib/**/*.ts",
-        "test/**/*.ts"
-    ]
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "lib",
+		"tsBuildInfoFile": "build/tsbuildinfo",
+		"outDir": "dist"
+	},
+	"include": ["lib/**/*.ts"],
+	"references": [
+		{
+			"path": "../core.adapter.express"
+		},
+		{
+			"path": "../core.authentication"
+		},
+		{
+			"path": "../core.declarations"
+		},
+		{
+			"path": "../core.jwt-session"
+		},
+		{
+			"path": "../core.logger"
+		},
+		{
+			"path": "../core.mysql"
+		},
+		{
+			"path": "../core.redis"
+		},
+		{
+			"path": "../core.user-session.commons"
+		},
+		{
+			"path": "../lib.api-validator"
+		},
+		{
+			"path": "../lib.authentication"
+		},
+		{
+			"path": "../lib.email"
+		},
+		{
+			"path": "../lib.exception"
+		},
+		{
+			"path": "../lib.geoip"
+		},
+		{
+			"path": "../lib.jwt-user-session"
+		},
+		{
+			"path": "../lib.sms"
+		},
+		{
+			"path": "../dev.environment"
+		},
+		{
+			"path": "../dev.unit-test"
+		}
+	]
 }

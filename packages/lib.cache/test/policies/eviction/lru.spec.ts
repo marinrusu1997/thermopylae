@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import { logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
-import range from 'lodash.range';
 import colors from 'colors';
-import { EvictableCacheEntry, LRUEvictionPolicy } from '../../../lib/policies/eviction/lru';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
+import range from 'lodash.range';
+import { describe, expect, it } from 'vitest';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked.js';
+import { type EvictableCacheEntry, LRUEvictionPolicy } from '../../../lib/policies/eviction/lru.js';
 
 describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 	it('updates least recently used items on each get operation', () => {
@@ -68,10 +67,10 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			}
 
 			// check that it evicted least recently used entries, namely the ones that were never retrieved
-			expect(keysEvictedByPolicy).to.be.ofSize(numberOfSetsThatWillCauseEviction);
+			expect(keysEvictedByPolicy).to.have.length(numberOfSetsThatWillCauseEviction);
 			for (const evictedKey of keysEvictedByPolicy) {
 				const evictedKeyIndexInInitialEntries = initialEntries.findIndex((entry) => entry.key === evictedKey);
-				expect(retrievedEntriesIndexes).to.not.containing(evictedKeyIndexInInitialEntries);
+				expect(retrievedEntriesIndexes).to.not.contain(evictedKeyIndexInInitialEntries);
 			}
 
 			// now check that it will evict the entries that we retrieved before, and in the order they were retrieved
@@ -87,9 +86,9 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 				additionalEntriesIndex += 1;
 			}
 
-			expect(keysEvictedByPolicy).to.be.ofSize(retrievedEntriesIndexes.length);
+			expect(keysEvictedByPolicy).to.have.length(retrievedEntriesIndexes.length);
 			const evictedKeysThatWereRetrievedIndexes = keysEvictedByPolicy.map((key) => initialEntries.findIndex((entry) => entry.key === key));
-			expect(retrievedEntriesIndexes).to.be.equalTo(evictedKeysThatWereRetrievedIndexes); // they were removed in the same order they were retrieved
+			expect(retrievedEntriesIndexes).toStrictEqual(evictedKeysThatWereRetrievedIndexes); // they were removed in the same order they were retrieved
 		} catch (e) {
 			const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
 			logger.info(message.join('\n'));
@@ -138,7 +137,7 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 				const key = String(keysToRemove.pop());
 				policy.onDelete(entries.get(key)!);
 			}
-			expect(keysEvictedByPolicy).to.be.ofSize(0); // it just removed from internal structure, and not from cache
+			expect(keysEvictedByPolicy).to.have.length(0); // it just removed from internal structure, and not from cache
 
 			// setup back some keys, a double amount to check that it removed the new one, instead of the ones we manually removed
 			for (let i = 0; i <= CAPACITY * 2; i++) {
@@ -150,8 +149,8 @@ describe(`${colors.magenta(LRUEvictionPolicy.name)} spec`, () => {
 			}
 
 			// assert it evicted keys inserted above, and not the initial ones
-			expect(keysEvictedByPolicy).to.be.ofSize(CAPACITY);
-			expect(keysEvictedByPolicy).to.be.containingAllOf(range(CAPACITY, CAPACITY * 2).map(String));
+			expect(keysEvictedByPolicy).to.have.length(CAPACITY);
+			expect(keysEvictedByPolicy).to.containSubset(range(CAPACITY, CAPACITY * 2).map(String));
 		} catch (e) {
 			const message = ['Test Context:', `${'CAPACITY'.magenta}\t\t: ${CAPACITY}`];
 			logger.info(message.join('\n'));

@@ -1,30 +1,26 @@
-import { Nullable, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
+import type { Nullable, Undefinable, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { Heap, HeapNode } from '../data-structures/heap';
-import { EXPIRES_AT_SYM } from '../constants';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import { Heap, type HeapNode } from '../data-structures/heap.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 interface CleanUpInterval {
 	timeoutId: NodeJS.Timeout;
 	willCleanUpOn: UnixTimestamp;
 }
 
-/**
- * @private
- */
+/** @private */
 interface HeapExpirableEntry extends ExpirableEntry, HeapNode {}
 
 /**
- * {@link GarbageCollector} which uses a binary min heap to keep entries that needs to be evicted. <br/>
- * Each heap node is represent by cache entry which contains expiration time. <br/>
- * Eviction timer is always synchronized with heap root and fires at expiration time of root entry.
- * When it fires, will evict root and other nodes that have expiration time equal to root.
- * After that, timer will fire again at the expiration time of the newest root.
+ * {@link GarbageCollector} which uses a binary min heap to keep entries that needs to be evicted.
+ * <br/> Each heap node is represent by cache entry which contains expiration time. <br/> Eviction
+ * timer is always synchronized with heap root and fires at expiration time of root entry. When it
+ * fires, will evict root and other nodes that have expiration time equal to root. After that, timer
+ * will fire again at the expiration time of the newest root.
  *
- * @template T	Type of the cache entry.
+ * @template T Type of the cache entry.
  */
 class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageCollector<T> {
 	private readonly entries: Heap<T>;
@@ -85,8 +81,8 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	}
 
 	/**
-	 * This method synchronizes garbage collection. <br/>
-	 * It needs to be called every time expirable keys heap is altered.
+	 * This method synchronizes garbage collection. <br/> It needs to be called every time expirable
+	 * keys heap is altered.
 	 */
 	private synchronizeEvictionTimer(): void {
 		const rootEntry = this.entries.peek();
@@ -144,8 +140,6 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 				this.scheduleNextGc(rootEntry);
 				return;
 			}
-
-			// eslint-disable-next-line no-constant-condition
 		} while (true);
 	};
 
@@ -154,4 +148,4 @@ class HeapGarbageCollector<T extends HeapExpirableEntry> implements GarbageColle
 	}
 }
 
-export { HeapGarbageCollector, HeapExpirableEntry };
+export { HeapGarbageCollector, type HeapExpirableEntry };

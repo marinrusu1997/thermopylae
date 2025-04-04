@@ -1,13 +1,13 @@
-import lodashClone from 'lodash.clone';
+import type { Nullable, ObjMap } from '@thermopylae/core.declarations';
 import fastCopy from 'fast-copy';
-import { Nullable, ObjMap } from '@thermopylae/core.declarations';
+import lodashClone from 'lodash.clone';
 
 /**
  * Clone top level properties of the object.
  *
- * @param value		Object to be cloned.
+ * @param   value Object to be cloned.
  *
- * @returns	Shallow copy of the object.
+ * @returns       Shallow copy of the object.
  */
 function clone<T>(value: T): T {
 	return lodashClone(value);
@@ -16,9 +16,9 @@ function clone<T>(value: T): T {
 /**
  * Create a deep copy of the object.
  *
- * @param value		Object to be cloned.
+ * @param   value Object to be cloned.
  *
- * @returns Deep copy of the object.
+ * @returns       Deep copy of the object.
  */
 function cloneDeep<T>(value: T): T {
 	return fastCopy(value);
@@ -27,9 +27,9 @@ function cloneDeep<T>(value: T): T {
 /**
  * Verify if `value` is an object.
  *
- * @param value		Value to test for.
+ * @param   value Value to test for.
  *
- * @returns  Whether value is an object.
+ * @returns       Whether value is an object.
  */
 function isObject<T>(value: T): boolean {
 	return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -38,30 +38,27 @@ function isObject<T>(value: T): boolean {
 /**
  * Verify if object is empty and contains no keys.
  *
- * @template T	Object type.
+ * @template T Object type.
  *
- * @param obj	Object to test for.
+ * @param   obj Object to test for.
  *
- * @returns Whether object is empty.
+ * @returns     Whether object is empty.
  */
 function isEmpty<T extends ObjMap>(obj: T): boolean {
 	return Object.entries(obj).length === 0 && obj.constructor === Object;
 }
 
-/**
- * Traversable value in the object that can be processed.
- */
+/** Traversable value in the object that can be processed. */
 type TraversableValue = undefined | null | boolean | number | string;
 
 interface TraverseProcessor {
 	/**
-	 * Processor for object leaves.
-	 * After processing it must return new value or the old one.
+	 * Processor for object leaves. After processing it must return new value or the old one.
 	 *
-	 * @param currentPath	Path to current property in dot notation.
-	 * @param value			Value of current property.
+	 * @param   currentPath Path to current property in dot notation.
+	 * @param   value       Value of current property.
 	 *
-	 * @returns	Processed value.
+	 * @returns             Processed value.
 	 */
 	(currentPath: string, value: TraversableValue): TraversableValue;
 }
@@ -77,16 +74,16 @@ interface TraverseContext {
 }
 
 /**
- * Iterates over a provided object and processes it's leaves using provided processor.
- * After processing it must return new value or the old one.
+ * Iterates over a provided object and processes it's leaves using provided processor. After
+ * processing it must return new value or the old one.
  *
- * @template T		Type of the object or array.
+ * @template T Type of the object or array.
  *
- * @param objectOrArray			Object which needs to be iterated.
- * @param processor				Leaf processor
- * @param alterDeepClone		Alter a deep clone instead of the provided object.
+ * @param   objectOrArray  Object which needs to be iterated.
+ * @param   processor      Leaf processor.
+ * @param   alterDeepClone Alter a deep clone instead of the provided object.
  *
- * @returns	Traversed object which might be altered by `processor`.
+ * @returns                Traversed object which might be altered by `processor`.
  */
 function traverse<T extends ObjMap | Array<any>>(objectOrArray: T, processor: TraverseProcessor, alterDeepClone?: boolean): T {
 	if (alterDeepClone) {
@@ -123,7 +120,7 @@ function traverseObject(context: TraverseContext, obj: ObjMap, pathSeparator = '
 
 	let key: string;
 	for (let i = 0; i < keys.length; i++) {
-		key = keys[i];
+		key = keys[i]!;
 
 		context.currentPath += `${pathSeparator}${key}`;
 		continueTraversal(context, obj, key, obj[key]);
@@ -143,18 +140,19 @@ function traverseArray(context: TraverseContext, arr: Array<any>, pathSeparator 
 /**
  * Deep-sort an object so its attributes are in lexical order.
  *
- * @param obj			Object to sort.
- * @param sortArray		Whether to sort the arrays inside of the object.
+ * @param   obj       Object to sort.
+ * @param   sortArray Whether to sort the arrays inside of the object.
  *
- * @returns	Sorted object.
+ * @returns           Sorted object.
  */
 function sort(obj: ObjMap, sortArray = true): ObjMap {
 	return doSortObject(obj, sortArray) as ObjMap;
 }
 /**
+ * @private
+ *
  * @param obj
  * @param sortArray
- * @private
  */
 function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 	if (!obj) return obj; // do not sort null, false or undefined
@@ -171,7 +169,7 @@ function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 
 						return typeof a === 'object' ? 1 : -1;
 					})
-					.map((i) => sort(i, sortArray));
+					.map((item) => sort(item as ObjMap, sortArray));
 	}
 
 	// object
@@ -197,9 +195,9 @@ function doSortObject(obj: ObjMap, sortArray = true): ObjMap | Array<unknown> {
 /**
  * Flatten an object, by creating a new one, having all of the nested keys top level.
  *
- * @param obj	Object to be flattened.
+ * @param   obj Object to be flattened.
  *
- * @returns		Flattened object.
+ * @returns     Flattened object.
  */
 function flatten(obj: ObjMap): Nullable<ObjMap> {
 	// see https://gist.github.com/penguinboy/762197
@@ -233,4 +231,5 @@ function flatten(obj: ObjMap): Nullable<ObjMap> {
 	return toReturn;
 }
 
-export { clone, cloneDeep, isObject, isEmpty, traverse, TraverseProcessor, TraversableValue, sort, flatten };
+export { clone, cloneDeep, isObject, isEmpty, traverse, sort, flatten };
+export type { TraverseProcessor, TraversableValue };

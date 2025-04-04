@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { EsMapCacheBackend, EntryValidity, PolicyPerKeyCache, CacheEvent } from '../../lib';
-import { PolicyMock } from './mocks/policy';
-import { NOT_FOUND_VALUE } from '../../lib/constants';
+import { describe, expect, it } from 'vitest';
+import { NOT_FOUND_VALUE } from '../../lib/constants.js';
+import { CacheEvent, EntryValidity, EsMapCacheBackend, PolicyPerKeyCache } from '../../lib/index.js';
+import { PolicyMock } from './mocks/policy.js';
 
 const enum PolicyTag {
 	EXPIRATION,
@@ -130,11 +128,11 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 
 			const p1OnMiss = policy1.methodBehaviours.get('onMiss')!;
 			expect(p1OnMiss.calls).to.be.eq(1);
-			expect(p1OnMiss.arguments).to.be.equalTo(['key']);
+			expect(p1OnMiss.arguments).toStrictEqual(['key']);
 
 			const p2OnMiss = policy2.methodBehaviours.get('onMiss')!;
 			expect(p2OnMiss.calls).to.be.eq(1);
-			expect(p2OnMiss.arguments).to.be.equalTo(['key']);
+			expect(p2OnMiss.arguments).toStrictEqual(['key']);
 		});
 
 		it("calls 'onUpdate' hook for policies specified for that particular entry and emits events", () => {
@@ -273,11 +271,11 @@ describe(`${PolicyPerKeyCache.name.magenta} spec`, () => {
 			cache.set('c', 'c', { policies: [PolicyTag.EXPIRATION, PolicyTag.EVICTION, PolicyTag.DEPENDENCIES] });
 			cache.set('d', 'd');
 			expect(cache.size).to.be.eq(4);
-			expect(cache.keys()).to.be.equalTo(['a', 'b', 'c', 'd']);
+			expect(cache.keys()).toStrictEqual(['a', 'b', 'c', 'd']);
 
 			cache.clear();
 			expect(cache.size).to.be.eq(0);
-			expect(cache.keys()).to.be.ofSize(0);
+			expect(cache.keys()).to.have.length(0);
 			expect(backend.size).to.be.eq(0);
 
 			expect(policy1.methodBehaviours.get('onClear')!.calls).to.be.eq(1);

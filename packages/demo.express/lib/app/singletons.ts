@@ -1,35 +1,27 @@
-import type { Server } from 'http';
-import type { ApiValidator } from '@thermopylae/lib.api-validator';
-import type { GeoIpLocator } from '@thermopylae/lib.geoip';
-import type { AccountWithTotpSecret, AuthenticationEngine } from '@thermopylae/lib.authentication';
 import type { JwtUserSessionMiddleware } from '@thermopylae/core.jwt-session';
-import type { SmsClient } from '@thermopylae/lib.sms';
+import type { ApiValidator } from '@thermopylae/lib.api-validator';
+import type { AccountWithTotpSecret, AuthenticationEngine } from '@thermopylae/lib.authentication';
 import type { EmailClient } from '@thermopylae/lib.email';
-import type { KafkaClient } from '../clients/kafka';
-import { createException, ErrorCodes } from '../error';
+import type { GeoIpLocator } from '@thermopylae/lib.geoip';
+import type { SmsClient } from '@thermopylae/lib.sms';
+import type { Server } from 'http';
+import type { KafkaClient } from '../clients/kafka.js';
+import { ErrorCodes, createException } from '../error.js';
 
-// eslint-disable-next-line import/no-mutable-exports
 let API_VALIDATOR: ApiValidator;
 
-// eslint-disable-next-line import/no-mutable-exports
 let GEOIP_LOCATOR: GeoIpLocator;
 
-// eslint-disable-next-line import/no-mutable-exports
 let AUTHENTICATION_ENGINE: AuthenticationEngine<AccountWithTotpSecret>;
 
-// eslint-disable-next-line import/no-mutable-exports
 let JWT_USER_SESSION_MIDDLEWARE: JwtUserSessionMiddleware;
 
-// eslint-disable-next-line import/no-mutable-exports
 let SMS_CLIENT: SmsClient;
 
-// eslint-disable-next-line import/no-mutable-exports
 let EMAIL_CLIENT: EmailClient;
 
-// eslint-disable-next-line import/no-mutable-exports
 let KAFKA_CLIENT: KafkaClient;
 
-// eslint-disable-next-line import/no-mutable-exports
 let SERVER: Server;
 
 function initApiValidator(validator: ApiValidator): void {

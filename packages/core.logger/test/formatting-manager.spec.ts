@@ -1,11 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import type { TransformableInfo } from 'logform';
+import { describe, expect, it } from 'vitest';
 import { format } from 'winston';
-import { TransformableInfo } from 'logform';
-import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager';
+import { DefaultFormatters, FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
 
-// eslint-disable-next-line mocha/no-skipped-tests
 describe.skip(`${FormattingManager.name} spec`, () => {
 	describe(`${FormattingManager.prototype.setDefaultFormattingOrder.name} spec`, () => {
 		it('throws when invalid output specified', () => {
@@ -135,7 +132,6 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'${level}\',\n  message: \'\\t${message}\',\n  label: \'${SUBSYSTEM}\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
 			);
 		});
@@ -159,7 +155,6 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 			expect(loggedInfo['label']).to.equal(SUBSYSTEM);
 			// @ts-ignore  For testing purposes
 			expect(loggedInfo[Symbol.for(message)]).to.equal(
-				// eslint-disable-next-line no-useless-escape
 				`{\n  level: \'\\u001b[32m${level}\\u001b[39m\',\n  message: \'\\u001b[32m\\t${message}\\u001b[39m\',\n  label: \'SUBSYSTEM\',\n  timestamp: \'${loggedInfo['timestamp']}\'\n}`
 			);
 		});
@@ -231,7 +226,6 @@ describe.skip(`${FormattingManager.name} spec`, () => {
 		/* overwrite existing one */
 		formattingManager1.setFormatter(
 			DefaultFormatters.PRINTF,
-			// eslint-disable-next-line no-unused-vars
 			format.printf(({ level, label, timestamp }) => {
 				return `${timestamp} [${label}] ${level}`;
 			})

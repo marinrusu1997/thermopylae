@@ -1,5 +1,5 @@
 import {
-	AbsoluteExpirationPolicyArgumentsBundle,
+	type AbsoluteExpirationPolicyArgumentsBundle,
 	EntryPoolCacheBackend,
 	HeapGarbageCollector,
 	PolicyBasedCache,

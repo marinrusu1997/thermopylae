@@ -1,10 +1,9 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
-import colors from 'colors';
-import { Comparator } from '@thermopylae/core.declarations';
+import type { Comparator } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
-import { Heap, HEAP_NODE_IDX_SYM, HeapNode } from '../../lib/data-structures/heap';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { HEAP_NODE_IDX_SYM, Heap, type HeapNode } from '../../lib/data-structures/heap.js';
 
 interface HeapDataNode extends HeapNode {
 	data: number;
@@ -31,10 +30,10 @@ function assertHeapProperties(heap: Heap<HeapDataNode>, sortedArr?: Array<number
 	}
 
 	if (sortedArr) {
-		expect(heapNumbers).to.be.ofSize(sortedArr.length);
-		expect(heapNumbers).to.be.equalTo(sortedArr);
+		expect(heapNumbers).to.have.length(sortedArr.length);
+		expect(heapNumbers).toStrictEqual(sortedArr);
 	} else {
-		expect(heapNumbers).to.be.sorted();
+		expect(heapNumbers).toStrictEqual(heapNumbers.toSorted());
 	}
 }
 

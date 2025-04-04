@@ -1,16 +1,14 @@
-import { Undefinable } from '@thermopylae/core.declarations';
-import { CacheBackend } from '../contracts/cache-backend';
-import { CacheEntry } from '../contracts/commons';
+import type { Undefinable } from '@thermopylae/core.declarations';
+import type { CacheBackend } from '../contracts/cache-backend.js';
+import type { CacheEntry } from '../contracts/commons.js';
 
 /**
- * Backend which uses as underlying storage EcmaScript 6 Map.
- * It can be seen as a simple proxy over Map.
- * Each operation is forwarded to underlying Map instance.
+ * Backend which uses as underlying storage EcmaScript 6 Map. It can be seen as a simple proxy over
+ * Map. Each operation is forwarded to underlying Map instance.
  *
- * @template Key	Type of the *key*.
- * @template Value	Type of the *value*.
- * @template Entry	Type of the cache entry. <br/>
- * 					Defaults to {@link CacheEntry}.
+ * @template Key Type of the _key_.
+ * @template Value Type of the _value_.
+ * @template Entry Type of the cache entry. <br/> Defaults to {@link CacheEntry}.
  */
 class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = CacheEntry<Key, Value>> implements CacheBackend<Key, Value> {
 	private readonly store: Map<Key, Entry>;
@@ -19,69 +17,51 @@ class EsMapCacheBackend<Key, Value, Entry extends CacheEntry<Key, Value> = Cache
 		this.store = new Map<Key, Entry>();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get(key: Key): Undefinable<Entry> {
 		return this.store.get(key);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public has(key: Key): boolean {
 		return this.store.has(key);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public set(key: Key, value: Value): Entry {
 		const entry = { key, value } as Entry;
 		this.store.set(key, entry);
 		return entry;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public del(entry: Entry): void {
 		entry.value = undefined!; // let GC collect value
 		this.store.delete(entry.key);
 		entry.key = undefined!; // let GC collect value
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public clear(): void {
 		return this.store.clear();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get size(): number {
 		return this.store.size;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public [Symbol.iterator](): IterableIterator<[Key, Entry]> {
 		return this.store[Symbol.iterator]();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public keys(): IterableIterator<Key> {
 		return this.store.keys();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public values(): IterableIterator<Entry> {
 		return this.store.values();
 	}

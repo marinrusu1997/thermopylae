@@ -1,10 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-
 import { Exception } from '@thermopylae/lib.exception';
-import { ErrorCodes, convertFrom } from '../lib/boolean';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, convertFrom } from '../lib/boolean.js';
 
 describe('boolean spec', () => {
 	describe(`${convertFrom.name} spec`, () => {

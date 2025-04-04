@@ -15,9 +15,9 @@ export type {
 	PackageID,
 	Percentage,
 	Threshold
-} from './aliases';
-export { ClientModule, CoreModule, DevModule, Library, ComparisonResult, ConcurrencyType, SortDirection, StatusFlag } from './enums';
-export type { Same, Cloneable, Comparable, Identity } from './functional';
+} from './aliases.js';
+export { ClientModule, CoreModule, DevModule, Library, ComparisonResult, ConcurrencyType, SortDirection, StatusFlag } from './enums.js';
+export type { Same, Cloneable, Comparable, Identity } from './functional.js';
 export type {
 	Comparator,
 	PromiseReject,
@@ -33,19 +33,20 @@ export type {
 	Processor,
 	SyncFunction,
 	Runnable
-} from './functions';
+} from './functions.js';
 
-export type { ClientType, HttpDeviceClient, HttpDeviceOs, HttpDevice, DeviceType, HttpDeviceDetector } from './http/device';
-export type { HTTPRequestLocation } from './http/location';
-export { MimeType, MimeExt } from './http/mime';
-export type { HttpResponse } from './http/response';
-export type { HttpRequestHeader, NonStandardHttpRequestHeaders, StandardHttpRequestHeaders } from './http/request-headers';
-export { HttpRequestHeaderEnum } from './http/request-headers';
-export type { HttpRequest, HttpHeaderValue } from './http/request';
-export type { HttpResponseHeader, NonStandardHttpResponseHeaders, StandardHttpResponseHeaders } from './http/response-headers';
-export { HttpResponseHeaderEnum } from './http/response-headers';
-export { HttpStatusCode } from './http/status-codes';
-export { HttpVerb, HttpVerbEnum } from './http/verb';
+export type { ClientType, HttpDeviceClient, HttpDeviceOs, HttpDevice, DeviceType, HttpDeviceDetector } from './http/device.js';
+export type { HTTPRequestLocation } from './http/location.js';
+export { MimeType, MimeExt } from './http/mime.js';
+export type { HttpResponse } from './http/response.js';
+export type { HttpRequestHeader, NonStandardHttpRequestHeaders, StandardHttpRequestHeaders } from './http/request-headers.js';
+export { HttpRequestHeaderEnum } from './http/request-headers.js';
+export type { HttpRequest, HttpHeaderValue } from './http/request.js';
+export type { HttpResponseHeader, NonStandardHttpResponseHeaders, StandardHttpResponseHeaders } from './http/response-headers.js';
+export { HttpResponseHeaderEnum } from './http/response-headers.js';
+export { HttpStatusCode } from './http/status-codes.js';
+export { HttpVerbEnum } from './http/verb.js';
+export type { HttpVerb } from './http/verb.js';
 
 export type {
 	MutableSome,
@@ -69,5 +70,5 @@ export type {
 	Tuplize,
 	Values,
 	Voidable
-} from './mapped';
-export type { PromiseHolder, PublicPrivateKeys } from './utils';
+} from './mapped.js';
+export type { PromiseHolder, PublicPrivateKeys } from './utils.js';

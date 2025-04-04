@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	ACCOUNT_DISABLED = 'ACCOUNT_DISABLED',
@@ -31,9 +31,7 @@ const enum ErrorCodes {
 	UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL = 'UNKNOWN_CREATE_FORGOT_PASSWORD_SESSION_SIDE_CHANNEL'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: string, message: string, data?: any): Exception {
 	return new Exception(Library.AUTHENTICATION, code, message, data);
 }

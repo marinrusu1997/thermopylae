@@ -1,12 +1,12 @@
-import {
-	PolicyBasedCache,
-	AbsoluteExpirationPolicyArgumentsBundle,
-	BucketGarbageCollector,
-	EsMapCacheBackend,
-	ProactiveExpirationPolicy,
-	CacheEvent
-} from '@thermopylae/lib.cache';
 import type { Seconds } from '@thermopylae/core.declarations';
+import {
+	type AbsoluteExpirationPolicyArgumentsBundle,
+	BucketGarbageCollector,
+	CacheEvent,
+	EsMapCacheBackend,
+	PolicyBasedCache,
+	ProactiveExpirationPolicy
+} from '@thermopylae/lib.cache';
 import type { DeviceBase, UserSessionMetaData, UserSessionStorage } from '@thermopylae/lib.user-session.commons';
 
 class RefreshTokensStorageAdapter implements UserSessionStorage<DeviceBase, string> {
@@ -23,7 +23,6 @@ class RefreshTokensStorageAdapter implements UserSessionStorage<DeviceBase, stri
 
 		this.cache.on(CacheEvent.DELETE, (key) => {
 			const [user, token] = key.split('@');
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 			const sessions = this.userSessions.get(user)!;
 
 			sessions.delete(token);
@@ -49,7 +48,7 @@ class RefreshTokensStorageAdapter implements UserSessionStorage<DeviceBase, stri
 	}
 
 	public async readAll(subject: string): Promise<ReadonlyMap<string, UserSessionMetaData<DeviceBase, string>>> {
-		const refreshTokenToSession = new Map();
+		const refreshTokenToSession = new Map<string, UserSessionMetaData<DeviceBase, string>>();
 
 		const sessions = this.userSessions.get(subject);
 		if (sessions == null) {

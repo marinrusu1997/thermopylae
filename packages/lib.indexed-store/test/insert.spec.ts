@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { number, string } from '@thermopylae/lib.utils';
-import dotprop from 'dot-prop';
-import { ErrorCodes, IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo } from './utils';
+import { setProperty } from 'dot-prop';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo } from './utils.js';
 
 describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 	it('saves persons without indexing', () => {
@@ -45,12 +44,12 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 
 		let invalidPerson = {} as Person;
 
-		/** NO ID */
+		/** NO ID. */
 		expect(() => storage.insert([invalidPerson]))
 			.to.throw(Exception)
 			.haveOwnProperty('code', ErrorCodes.NULLABLE_PRIMARY_KEY_CANNOT_BE_INDEXED);
 
-		/** ARRAY INDEX */
+		/** ARRAY INDEX. */
 		storage.createIndexes([PersonIndexes.I_BIRTH_YEAR]);
 		invalidPerson = {
 			id: string.random(),
@@ -63,7 +62,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		/** OBJECT INDEX */
+		/** OBJECT INDEX. */
 		storage.createIndexes([PersonIndexes.II_COUNTRY_CODE]);
 		invalidPerson = {
 			id: string.random(),
@@ -79,7 +78,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			.haveOwnProperty('code', ErrorCodes.INDEX_PROPERTY_INVALID_TYPE);
 		expect(storage.size).to.be.eq(PersonsRepo.length);
 
-		/** BOOLEAN INDEX */
+		/** BOOLEAN INDEX. */
 		storage.createIndexes([PersonIndexes.III_BANK_NAME]);
 		invalidPerson = {
 			id: string.random(),
@@ -129,7 +128,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			const person: Person = { ...PersonsRepo[0] };
 			for (const indexName of indexNames) {
 				const value = indexName === nulledIndexName ? undefined : string.random();
-				dotprop.set(person, indexName, value);
+				setProperty(person, indexName, value);
 			}
 			return person;
 		}
@@ -175,7 +174,7 @@ describe(`${IndexedStore.prototype.insert.name} spec`, () => {
 			const person: Person = { ...PersonsRepo[0] };
 			for (const indexName of indexNames) {
 				const value = indexName === nulledIndexName ? null : string.random();
-				dotprop.set(person, indexName, value);
+				setProperty(person, indexName, value);
 			}
 			return person;
 		}

@@ -1,12 +1,12 @@
 /* c8 ignore start */
-import { ClientModule, CoreModule, DevModule, Nullable } from '@thermopylae/core.declarations';
+import { ClientModule, CoreModule, DevModule, type Nullable } from '@thermopylae/core.declarations';
+import chalk from 'chalk';
 import { Format } from 'logform';
 import { format } from 'winston';
-import type { SyslogConfigSetLevels } from 'winston/lib/winston/config';
-import chalk from 'chalk';
-import { createException, ErrorCodes } from './error';
+import type { SyslogConfigSetLevels } from 'winston/lib/winston/config/index.js';
+import { ErrorCodes, createException } from './error.js';
 
-const enum OutputFormat {
+enum OutputFormat {
 	PRINTF = 'PRINTF',
 	JSON = 'JSON',
 	PRETTY_PRINT = 'PRETTY_PRINT',
@@ -14,7 +14,7 @@ const enum OutputFormat {
 	SIMPLE = 'SIMPLE'
 }
 
-const enum DefaultFormatters {
+enum DefaultFormatters {
 	TIMESTAMP = 'timestamp',
 	ALIGN = 'align',
 	ERRORS = 'errors',
@@ -31,28 +31,22 @@ const enum DefaultFormatters {
 	SIMPLE = 'simple'
 }
 
-/**
- * Options used when configuring default formatting order for a given {@link OutputFormat}.
- */
+/** Options used when configuring default formatting order for a given {@link OutputFormat}. */
 interface DefaultFormattingOrderOptions {
 	/**
-	 * Whether output needs to be colored. <br/>
-	 * Passing `true` will colorize only {@link ClientModule}, {@link CoreModule} and {@link DevModule} labels.
-	 * If you need additional labels to be colorized, pass an object having label as key and color as value.
+	 * Whether output needs to be colored. <br/> Passing `true` will colorize only
+	 * {@link ClientModule}, {@link CoreModule} and {@link DevModule} labels. If you need additional
+	 * labels to be colorized, pass an object having label as key and color as value.
 	 */
 	readonly colorize?: boolean | Record<string, string>;
-	/**
-	 * Logs that contain these labels will be ignored and not printed.
-	 */
+	/** Logs that contain these labels will be ignored and not printed. */
 	readonly ignoredLabels?: ReadonlySet<string>;
 	/**
-	 * Specify log level for label. <br/>
-	 * When label has no specified level, it will default to transport log level.
+	 * Specify log level for label. <br/> When label has no specified level, it will default to
+	 * transport log level.
 	 */
 	readonly levelForLabel?: Readonly<Record<string, keyof SyslogConfigSetLevels>>;
-	/**
-	 * Formatters that don't need to be included in the pipeline.
-	 */
+	/** Formatters that don't need to be included in the pipeline. */
 	readonly skippedFormatters?: ReadonlySet<DefaultFormatters.TIMESTAMP | DefaultFormatters.ERRORS | DefaultFormatters.ALIGN | string>;
 }
 
@@ -62,8 +56,8 @@ type FormattedLabels = Record<string, string>;
 type FormattedLevels = Record<keyof SyslogConfigSetLevels, keyof SyslogConfigSetLevels | string>;
 
 /**
- * Class responsible for formatters managing. <br>
- * It is required that formatting is configured before getting a logger instance.
+ * Class responsible for formatters managing. <br> It is required that formatting is configured
+ * before getting a logger instance.
  */
 class FormattingManager {
 	private static readonly LOG_LEVEL_TO_NUMBER: Readonly<Record<keyof SyslogConfigSetLevels, number>> = {
@@ -91,9 +85,7 @@ class FormattingManager {
 
 	private formattingOrder!: Nullable<Array<Formatter>>;
 
-	/**
-	 * Defines default formatters.
-	 */
+	/** Defines default formatters. */
 	public constructor() {
 		this.formatters = new Map();
 		this.defineFormatters();
@@ -106,25 +98,22 @@ class FormattingManager {
 	}
 
 	/**
-	 * Set id of the node from cluster. <br/>
-	 * This id will be included in each logged message.
+	 * Set id of the node from cluster. <br/> This id will be included in each logged message.
 	 *
-	 * > **WARNING!**
-	 * > This is supported only for {@link OutputFormat.PRINTF}.
+	 * > **WARNING!** This is supported only for {@link OutputFormat.PRINTF}.
 	 *
-	 * @param id	Cluster node id.
+	 * @param id Cluster node id.
 	 */
 	public setClusterNodeId(id: string | number): void {
 		this.clusterNodeId = id;
 	}
 
 	/**
-	 * Set a formatter into known formatters list. <br>
-	 * If formatter exists already, it will be overwritten. <br>
-	 * Formatting order is discarded and needs to be reconfigured.
+	 * Set a formatter into known formatters list. <br> If formatter exists already, it will be
+	 * overwritten. <br> Formatting order is discarded and needs to be reconfigured.
 	 *
-	 * @param   name        Name of the formatter.
-	 * @param   formatter   Formatter instance, must be winston compliant.
+	 * @param name      Name of the formatter.
+	 * @param formatter Formatter instance, must be winston compliant.
 	 */
 	public setFormatter(name: Formatter, formatter: Format): void {
 		this.formatters.set(name, formatter);
@@ -132,10 +121,10 @@ class FormattingManager {
 	}
 
 	/**
-	 * Removes existing formatter from known formatters list. <br>
-	 * Formatting order is discarded, reconfiguration is needed later.
+	 * Removes existing formatter from known formatters list. <br> Formatting order is discarded,
+	 * reconfiguration is needed later.
 	 *
-	 * @param   name  Formatter name.
+	 * @param name Formatter name.
 	 */
 	public removeFormatter(name: Formatter): void {
 		this.formatters.delete(name);
@@ -143,9 +132,10 @@ class FormattingManager {
 	}
 
 	/**
-	 * Specifies a custom formatting order which instructs in which order formatters needs to be combined.
+	 * Specifies a custom formatting order which instructs in which order formatters needs to be
+	 * combined.
 	 *
-	 * @param order	List of formatter names.
+	 * @param order List of formatter names.
 	 */
 	public setCustomFormattingOrder(order: Array<Formatter>): void {
 		if (this.formattingOrder != null) {
@@ -155,11 +145,11 @@ class FormattingManager {
 	}
 
 	/**
-	 * Configures a formatting order from a predefined set of formatters. <br>
-	 * If a order exists, it will be rewritten.
+	 * Configures a formatting order from a predefined set of formatters. <br> If a order exists, it
+	 * will be rewritten.
 	 *
-	 * @param   outputFormat    Logs output format for which order needs to be constructed.
-	 * @param   options    		Default formatting options.
+	 * @param outputFormat Logs output format for which order needs to be constructed.
+	 * @param options      Default formatting options.
 	 */
 	public setDefaultFormattingOrder(outputFormat: OutputFormat, options: DefaultFormattingOrderOptions = {}): void {
 		const order = [];
@@ -203,9 +193,8 @@ class FormattingManager {
 			FormattingManager.defineFormattedLevels(this.formattedLevels);
 
 			if (typeof options.colorize === 'object') {
-				// eslint-disable-next-line guard-for-in
 				for (const label in options.colorize) {
-					FormattingManager.defineFormattedLabel(this.formattedLabels, label, options.colorize[label]);
+					FormattingManager.defineFormattedLabel(this.formattedLabels, label);
 				}
 			}
 
@@ -238,11 +227,13 @@ class FormattingManager {
 	}
 
 	/**
-	 * Returns a formatter object for winston, which combines all known formatters. <br>
-	 * Formatters order will follow the order specified by either {@link FormattingManager.setCustomFormattingOrder}, or {@link FormattingManager.setDefaultFormattingOrder}. <br>
-	 * Label formatter will be set based on module name. <br>
+	 * Returns a formatter object for winston, which combines all known formatters. <br> Formatters
+	 * order will follow the order specified by either
+	 * {@link FormattingManager.setCustomFormattingOrder}, or
+	 * {@link FormattingManager.setDefaultFormattingOrder}. <br> Label formatter will be set based on
+	 * module name. <br>
 	 *
-	 * @param   module   	Name of the module formatting will be applied for.
+	 * @param module Name of the module formatting will be applied for.
 	 */
 	public formatterFor(module: string): Format {
 		const { combine, label } = format;
@@ -265,9 +256,7 @@ class FormattingManager {
 		return combine(...stagedFormatters);
 	}
 
-	/**
-	 * Adds predefined formatters to formatters map.
-	 */
+	/** Adds predefined formatters to formatters map. */
 	private defineFormatters(): void {
 		const { align, errors, splat, colorize, printf, json, prettyPrint, logstash, simple } = format;
 		this.formatters.set(
@@ -298,20 +287,23 @@ class FormattingManager {
 		this.formatters.set(
 			DefaultFormatters.LABEL_STYLE,
 			format((info) => {
-				info['label'] = this.formattedLabels[info['label']];
+				info['label'] = this.formattedLabels[info['label'] as string];
 				return info;
 			})()
 		);
 		this.formatters.set(
 			DefaultFormatters.LABEL_FILTER,
 			format((info) => {
-				return this.ignoredLabels.has(info['label']) ? false : info;
+				return this.ignoredLabels.has(info['label'] as string) ? false : info;
 			})()
 		);
 		this.formatters.set(
 			DefaultFormatters.LABEL_LOG_LEVEL_FILTER,
 			format((info) =>
-				FormattingManager.LOG_LEVEL_TO_NUMBER[info.level] < FormattingManager.LOG_LEVEL_TO_NUMBER[this.levelForLabel[info['label']]] ? false : info
+				FormattingManager.LOG_LEVEL_TO_NUMBER[info.level as string]! <
+				FormattingManager.LOG_LEVEL_TO_NUMBER[this.levelForLabel[info['label'] as string]!]!
+					? false
+					: info
 			)()
 		);
 		this.formatters.set(
@@ -352,19 +344,19 @@ class FormattingManager {
 	}
 
 	private static defineFormattedLabels(formattedLabels: FormattedLabels): void {
-		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgKeyword('lime')(CoreModule.AUTHENTICATION));
-		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgKeyword('purple')(CoreModule.USER_SESSION_COMMONS));
-		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgKeyword('teal')(CoreModule.JWT_USER_SESSION));
-		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgKeyword('orange')(CoreModule.COOKIE_USER_SESSION));
+		formattedLabels[CoreModule.AUTHENTICATION] = chalk.italic(chalk.bgBlue(CoreModule.AUTHENTICATION));
+		formattedLabels[CoreModule.USER_SESSION_COMMONS] = chalk.italic(chalk.bgBlack(CoreModule.USER_SESSION_COMMONS));
+		formattedLabels[CoreModule.JWT_USER_SESSION] = chalk.italic(chalk.bgCyan(CoreModule.JWT_USER_SESSION));
+		formattedLabels[CoreModule.COOKIE_USER_SESSION] = chalk.italic(chalk.bgGray(CoreModule.COOKIE_USER_SESSION));
 
-		formattedLabels[ClientModule.MYSQL] = chalk.italic(chalk.bgKeyword('maroon')(ClientModule.MYSQL));
-		formattedLabels[ClientModule.REDIS] = chalk.italic(chalk.bgKeyword('gray')(ClientModule.REDIS));
+		formattedLabels[ClientModule.MYSQL] = chalk.italic(chalk.bgBlackBright(ClientModule.MYSQL));
+		formattedLabels[ClientModule.REDIS] = chalk.italic(chalk.bgBlueBright(ClientModule.REDIS));
 
-		formattedLabels[DevModule.UNIT_TESTING] = chalk.italic(chalk.bgKeyword('green')(DevModule.UNIT_TESTING));
+		formattedLabels[DevModule.UNIT_TESTING] = chalk.italic(chalk.bgCyanBright(DevModule.UNIT_TESTING));
 	}
 
-	private static defineFormattedLabel(formattedLabels: FormattedLabels, label: string, color: string): void {
-		formattedLabels[label] = chalk.italic(chalk.bgKeyword(color)(label));
+	private static defineFormattedLabel(formattedLabels: FormattedLabels, label: string): void {
+		formattedLabels[label] = chalk.italic(chalk.green(label));
 	}
 }
 

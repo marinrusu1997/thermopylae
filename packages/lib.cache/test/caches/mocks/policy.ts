@@ -1,6 +1,6 @@
-import { expect } from '@thermopylae/dev.unit-test';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy';
-import { CacheEntry } from '../../../lib/contracts/commons';
+import { expect } from 'vitest';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../../lib/contracts/cache-replacement-policy.js';
+import type { CacheEntry } from '../../../lib/contracts/commons.js';
 
 interface MethodBehaviour {
 	calls: number;

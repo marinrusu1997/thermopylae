@@ -1,11 +1,9 @@
 import { LoggerManagerInstance } from '@thermopylae/core.logger';
 import type { WinstonLogger } from '@thermopylae/core.logger';
-import { ApplicationServices } from './constants';
+import { ApplicationServices } from './constants.js';
 
-// eslint-disable-next-line import/no-mutable-exports
 let logger: WinstonLogger;
 
-// eslint-disable-next-line import/no-mutable-exports
 let kafkaLogger: WinstonLogger;
 
 function initLoggers(): void {

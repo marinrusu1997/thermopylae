@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { ROUTER_OPTIONS } from '../../../constants';
-import { API_SCHEMA } from './schema';
-import { userAgent } from '../../middleware/user-agent';
-import { jsonBody } from '../../middleware/json-body';
-import { ipLocation } from '../../middleware/ip-location';
-import { validateRequestBody as validateRefreshUserSessionRequestBody, route as refreshUserSessionRoute } from './methods/refresh';
-import { route as getActiveUserSessionsRoute } from './methods/get-active-sessions';
-import { route as logoutRoute } from './methods/logout';
-import { validateRequestBody as validateLogoutOneRequestBody, route as logoutOneRoute } from './methods/logout-one';
-import { route as logoutAllRoute } from './methods/logout-all';
+import { ROUTER_OPTIONS } from '../../../constants.js';
+import { ipLocation } from '../../middleware/ip-location.js';
+import { jsonBody } from '../../middleware/json-body.js';
+import { userAgent } from '../../middleware/user-agent.js';
+import { route as getActiveUserSessionsRoute } from './methods/get-active-sessions.js';
+import { route as logoutAllRoute } from './methods/logout-all.js';
+import { route as logoutOneRoute, validateRequestBody as validateLogoutOneRequestBody } from './methods/logout-one.js';
+import { route as logoutRoute } from './methods/logout.js';
+import { route as refreshUserSessionRoute, validateRequestBody as validateRefreshUserSessionRequestBody } from './methods/refresh.js';
+import { API_SCHEMA } from './schema.js';
 
 const userSessionRouter = Router(ROUTER_OPTIONS);
 

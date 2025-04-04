@@ -1,12 +1,10 @@
-import { createException, ErrorCodes } from '../../error';
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationContext } from '../../types/contexts';
+import { ErrorCodes, createException } from '../../error.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class DispatchStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	public async process(_account: Account, authenticationContext: AuthenticationContext): Promise<AuthenticationStepOutput<Account>> {
 		// generate challenge has the highest priority, needs to be used before checking response

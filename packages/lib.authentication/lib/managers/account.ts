@@ -1,15 +1,13 @@
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../error';
-import { getCurrentTimestamp } from '../utils';
-import { AccountStatus } from '../types/enums';
-import type { AccountModel } from '../types/models';
-import type { EmailSender } from '../types/side-channels';
-import type { AccountRepository } from '../types/repositories';
-import type { OnAccountDisabledHook } from '../types/hooks';
+import { ErrorCodes, createException } from '../error.js';
+import { AccountStatus } from '../types/enums.js';
+import type { OnAccountDisabledHook } from '../types/hooks.js';
+import type { AccountModel } from '../types/models.js';
+import type { AccountRepository } from '../types/repositories.js';
+import type { EmailSender } from '../types/side-channels.js';
+import { getCurrentTimestamp } from '../utils.js';
 
-/**
- * @private
- */
+/** @private */
 class AccountManager<Account extends AccountModel> {
 	private readonly adminEmail: string;
 

@@ -1,14 +1,14 @@
 import type { Seconds } from '@thermopylae/core.declarations';
 import {
-	PolicyBasedCache,
-	AbsoluteExpirationPolicyArgumentsBundle,
+	type AbsoluteExpirationPolicyArgumentsBundle,
 	BucketGarbageCollector,
+	CacheEvent,
 	EsMapCacheBackend,
-	ProactiveExpirationPolicy,
-	CacheEvent
+	PolicyBasedCache,
+	ProactiveExpirationPolicy
 } from '@thermopylae/lib.cache';
-import type { SessionId, DeviceBase } from '@thermopylae/lib.user-session.commons';
-import type { UserSessionMetaData, UserSessionsStorage } from '../lib';
+import type { DeviceBase, SessionId } from '@thermopylae/lib.user-session.commons';
+import type { UserSessionMetaData, UserSessionsStorage } from '../lib/index.js';
 
 class StorageMock implements UserSessionsStorage<DeviceBase, string> {
 	private readonly cache: PolicyBasedCache<string, UserSessionMetaData<DeviceBase, string>, AbsoluteExpirationPolicyArgumentsBundle>;

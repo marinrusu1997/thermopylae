@@ -1,38 +1,37 @@
-import { string } from '@thermopylae/lib.utils';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import dotprop from 'dot-prop';
-import { ErrorCodes, IndexedStore, IndexName, IndexValue, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo } from './utils';
+import { string } from '@thermopylae/lib.utils';
+import { getProperty } from 'dot-prop';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, type IndexName, type IndexValue, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo } from './utils.js';
 
 describe('index spec', () => {
 	describe(`${IndexedStore.prototype.createIndexes.name} spec`, () => {
 		it('creates no indexes when are passed empty array', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 
 			storage.createIndexes([]);
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 		});
 
 		it('creates indexes when array with index names is passed', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 
 			const indexes: Array<string> = Object.values(PersonIndexes);
 			storage.createIndexes(indexes);
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
+			expect(storage.indexes).to.containSubset(indexes.concat([PK_INDEX_NAME]));
 		});
 
 		it('does not create duplicate indexes', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 
 			const indexes: Array<string> = Object.values(PersonIndexes);
 			storage.createIndexes(indexes);
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
+			expect(storage.indexes).to.containSubset(indexes.concat([PK_INDEX_NAME]));
 
 			expect(() => storage.createIndexes(indexes))
 				.to.throw(Exception)
@@ -41,13 +40,13 @@ describe('index spec', () => {
 
 		it('does not allow primary index redefinition', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 
 			expect(() => storage.createIndexes([PK_INDEX_NAME]))
 				.to.throw(Exception)
 				.haveOwnProperty('code', ErrorCodes.INDEX_EXISTS);
 
-			expect(storage.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(storage.indexes).toStrictEqual([PK_INDEX_NAME]);
 		});
 
 		it('indexes records by primary key', () => {
@@ -57,7 +56,7 @@ describe('index spec', () => {
 
 			const primaryIndex = storage.readIndex(PK_INDEX_NAME);
 			for (const [indexValue, records] of primaryIndex) {
-				expect(records).to.be.ofSize(1);
+				expect(records).to.have.length(1);
 				expect(records[0].id).to.be.eq(indexValue);
 			}
 		});
@@ -139,7 +138,7 @@ describe('index spec', () => {
 			for (const indexName of indexes) {
 				const personsPerIndex = new Map<string | number, number>();
 				for (const person of PersonsRepo) {
-					const indexValue = dotprop.get(person, indexName) as NonNullable<IndexValue>;
+					const indexValue: NonNullable<IndexValue> = getProperty(person, indexName)!;
 					const no = personsPerIndex.get(indexValue);
 					personsPerIndex.set(indexValue, no == null ? 1 : no + 1);
 				}
@@ -148,7 +147,7 @@ describe('index spec', () => {
 				for (const [indexValue, records] of storageIndex) {
 					expect(records.length).to.be.eq(personsPerIndex.get(indexValue as NonNullable<IndexValue>));
 					for (const record of records) {
-						expect(dotprop.get(record, indexName)).to.be.eq(indexValue);
+						expect(getProperty(record, indexName)).to.be.eq(indexValue);
 					}
 				}
 			}
@@ -173,10 +172,10 @@ describe('index spec', () => {
 			store.insert(PersonsRepo);
 			expect(store.size).to.be.eq(PersonsRepo.length);
 
-			expect(store.indexes).to.be.containingAllOf([PK_INDEX_NAME, PersonIndexes.I_BIRTH_YEAR]);
+			expect(store.indexes).to.containSubset([PK_INDEX_NAME, PersonIndexes.I_BIRTH_YEAR]);
 
 			expect(store.dropIndex(PersonIndexes.I_BIRTH_YEAR)).to.be.eq(true);
-			expect(store.indexes).to.be.equalTo([PK_INDEX_NAME]);
+			expect(store.indexes).toStrictEqual([PK_INDEX_NAME]);
 			expect(store.size).to.be.eq(PersonsRepo.length);
 		});
 
@@ -189,16 +188,16 @@ describe('index spec', () => {
 			const originalIndexes = indexes.concat([PK_INDEX_NAME]);
 			const originalIndexNo = originalIndexes.length;
 
-			expect(store.indexes).to.be.ofSize(originalIndexNo);
-			expect(store.indexes).to.be.containingAllOf(originalIndexes);
+			expect(store.indexes).to.have.length(originalIndexNo);
+			expect(store.indexes).to.containSubset(originalIndexes);
 
 			const removals = new Set<string>();
 			for (const indexName of indexes) {
 				expect(store.dropIndex(indexName)).to.be.eq(true);
 				removals.add(indexName);
 
-				expect(store.indexes).to.be.ofSize(originalIndexNo - removals.size);
-				expect(store.indexes).to.be.containingAllOf(originalIndexes.filter((i) => !removals.has(i)));
+				expect(store.indexes).to.have.length(originalIndexNo - removals.size);
+				expect(store.indexes).to.containSubset(originalIndexes.filter((i) => !removals.has(i)));
 
 				expect(store.size).to.be.eq(PersonsRepo.length);
 			}
@@ -208,22 +207,22 @@ describe('index spec', () => {
 	describe(`${IndexedStore.prototype.dropIndexes.name} spec`, () => {
 		it('drops nothing when there are no secondary indexes', () => {
 			const storage = new IndexedStore<Person>();
-			expect(storage.indexes).to.be.ofSize(1);
+			expect(storage.indexes).to.have.length(1);
 
 			storage.dropIndexes();
-			expect(storage.indexes).to.be.ofSize(1);
+			expect(storage.indexes).to.have.length(1);
 		});
 
 		it('drops all indexes except the primary one when there is no records', () => {
 			const indexes = Object.values(PersonIndexes) as Array<string>;
 			const storage = new IndexedStore<Person>({ indexes });
 
-			expect(storage.indexes).to.be.ofSize(indexes.length + 1);
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
+			expect(storage.indexes).to.have.length(indexes.length + 1);
+			expect(storage.indexes).to.containSubset(indexes.concat([PK_INDEX_NAME]));
 
 			storage.dropIndexes();
-			expect(storage.indexes).to.be.ofSize(1);
-			expect(storage.indexes).to.be.containingAllOf([PK_INDEX_NAME]);
+			expect(storage.indexes).to.have.length(1);
+			expect(storage.indexes).to.containSubset([PK_INDEX_NAME]);
 		});
 
 		it('drops all indexes except the primary one when there are records', () => {
@@ -232,13 +231,13 @@ describe('index spec', () => {
 			storage.insert(PersonsRepo);
 
 			expect(storage.size).to.be.eq(PersonsRepo.length);
-			expect(storage.indexes).to.be.ofSize(indexes.length + 1);
-			expect(storage.indexes).to.be.containingAllOf(indexes.concat([PK_INDEX_NAME]));
+			expect(storage.indexes).to.have.length(indexes.length + 1);
+			expect(storage.indexes).to.containSubset(indexes.concat([PK_INDEX_NAME]));
 
 			storage.dropIndexes();
 			expect(storage.size).to.be.eq(PersonsRepo.length);
-			expect(storage.indexes).to.be.ofSize(1);
-			expect(storage.indexes).to.be.containingAllOf([PK_INDEX_NAME]);
+			expect(storage.indexes).to.have.length(1);
+			expect(storage.indexes).to.containSubset([PK_INDEX_NAME]);
 		});
 	});
 

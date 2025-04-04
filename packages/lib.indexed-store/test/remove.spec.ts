@@ -1,12 +1,11 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { IndexValueGenerators, Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-import dotprop from 'dot-prop';
+import type { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
+import { IndexValueGenerators, type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { Optional, UnaryPredicate } from '@thermopylae/core.declarations';
 import { object, string } from '@thermopylae/lib.utils';
-import { ErrorCodes, IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
-import { expect, NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils';
+import { getProperty, setProperty } from 'dot-prop';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, type IndexValue, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { NOT_FOUND_IDX, PersonsRepo, randomPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 	it('should not delete record if index is empty', () => {
@@ -14,7 +13,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		const originalSize = store.size;
 
 		const candidate = randomPerson();
-		const indexValue = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const indexValue = getProperty(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		expect(store.remove(PersonIndexes.I_BIRTH_YEAR, indexValue, predicate)).to.be.eq(undefined);
@@ -30,13 +29,13 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		let candidate: Person;
 		while ((candidate = randomPerson()) === indexed);
 
-		dotprop.set(candidate, PersonIndexes.I_BIRTH_YEAR, null);
+		setProperty(candidate, PersonIndexes.I_BIRTH_YEAR, null);
 		store.insert([candidate]);
 
 		const originalSize = store.size;
 		expect(originalSize).to.be.eq(2);
 
-		const unIndexedVal = dotprop.get(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const unIndexedVal = getProperty(candidate, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
 
 		expect(() => store.remove(PersonIndexes.I_BIRTH_YEAR, unIndexedVal, predicate))
@@ -66,7 +65,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		store.insert([indexed]);
 		const originalSize = store.size;
 
-		const indexedVal = dotprop.get(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
+		const indexedVal = getProperty(indexed, PersonIndexes.I_BIRTH_YEAR) as IndexValue;
 		const predicate = () => false;
 
 		expect(store.remove(PersonIndexes.I_BIRTH_YEAR, indexedVal, predicate)).to.be.eq(undefined);
@@ -87,7 +86,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		expect(removed).to.be.deep.eq(candidate);
 
 		for (const indexName of indexes) {
-			const match = store.read(indexName, dotprop.get(candidate, indexName) as IndexValue)!.find(predicate);
+			const match = store.read(indexName, getProperty(candidate, indexName) as IndexValue)!.find(predicate);
 			expect(match).to.be.eq(undefined);
 		}
 	});
@@ -115,7 +114,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 
 		function assertNotFoundOnAllIndexes(candidate: Person, predicate: UnaryPredicate<Person>): void {
 			for (const indexName of indexes) {
-				const match = store.read(indexName, dotprop.get(candidate, indexName) as IndexValue)!.find(predicate);
+				const match = store.read(indexName, getProperty(candidate, indexName) as IndexValue)!.find(predicate);
 				expect(match).to.be.eq(undefined);
 			}
 		}
@@ -123,7 +122,7 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		for (let i = 0; i < indexes.length; i++) {
 			const candidate = candidateForRemoval();
 			const predicate = (person: Person) => person[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
-			const removed = store.remove(indexes[i], dotprop.get(candidate, indexes[i]) as IndexValue, predicate);
+			const removed = store.remove(indexes[i], getProperty(candidate, indexes[i]) as IndexValue, predicate);
 
 			expect(store.size).to.be.eq(PersonsRepo.length - i - 1);
 			expect(removed).to.be.deep.eq(candidate);
@@ -169,22 +168,22 @@ describe(`${IndexedStore.prototype.remove.name} spec`, () => {
 		store.insert(PersonsRepo);
 
 		const candidate = object.cloneDeep(randomPerson());
-		dotprop.set(candidate, PK_INDEX_NAME, string.random());
+		setProperty(candidate, PK_INDEX_NAME, string.random());
 		for (const index of indexes) {
-			dotprop.set(candidate, index, null);
+			setProperty(candidate, index, null);
 		}
 
 		const indexWithVal = PersonIndexes.II_COUNTRY_CODE;
-		dotprop.set(candidate, indexWithVal, string.random({ length: 2 }));
+		setProperty(candidate, indexWithVal, string.random({ length: 2 }));
 		store.insert([candidate]);
 
 		const removed = store.remove(PK_INDEX_NAME, candidate[PK_INDEX_NAME]);
 
 		expect(removed).to.be.deep.eq(candidate);
-		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])).to.be.ofSize(0);
+		expect(store.read(PK_INDEX_NAME, candidate[PK_INDEX_NAME])).to.have.length(0);
 
 		const predicate = (rec: Person) => rec[PK_INDEX_NAME] === candidate[PK_INDEX_NAME];
-		const indexVal = dotprop.get(candidate, indexWithVal) as IndexValue;
+		const indexVal = getProperty(candidate, indexWithVal) as IndexValue;
 		expect(store.read(indexWithVal, indexVal).findIndex(predicate)).to.be.eq(NOT_FOUND_IDX);
 	});
 });

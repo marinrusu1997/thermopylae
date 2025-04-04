@@ -1,21 +1,16 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono, string } from '@thermopylae/lib.utils';
-import { AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthenticationEngineDefaultOptions, ForgotPasswordTokenEncryption, PasswordLengthValidatorOptions } from './fixtures';
-import { AccountKeyPair, buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
-import { AuthenticationStepName } from '../lib/types/enums';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { OnForgottenPasswordChangedHookMock } from './fixtures/hooks';
-import { SmsSenderInstance } from './fixtures/senders/sms';
-import { MemoryCache } from './fixtures/memory-cache';
+import { describe, expect, it } from 'vitest';
+import { type AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { AuthenticationStepName } from '../lib/types/enums.js';
+import { OnForgottenPasswordChangedHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions, ForgotPasswordTokenEncryption, PasswordLengthValidatorOptions } from './fixtures/index.js';
+import { MemoryCache } from './fixtures/memory-cache.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { SmsSenderInstance } from './fixtures/senders/sms.js';
+import { AccountKeyPair, GlobalAuthenticationContext, buildAccountToBeRegistered, validateSuccessfulLogin } from './utils.js';
 
-describe('forgot password spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('forgot password spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('recovers forgotten password via email (token is not encrypted)', async () => {
@@ -26,7 +21,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.have.length(1);
 		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
 
 		/* CHANGE FORGOTTEN PASSWORD */
@@ -34,7 +29,7 @@ describe('forgot password spec', function suite() {
 		await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 
 		// sessions were logged out
-		expect(OnForgottenPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
+		expect(OnForgottenPasswordChangedHookMock.calls).toStrictEqual([account.id]);
 
 		// check old password is no longer valid
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
@@ -66,7 +61,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByUsername', account.username, 'email');
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.have.length(1);
 		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
 
 		/* CHANGE FORGOTTEN PASSWORD */
@@ -86,7 +81,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByTelephone', account.telephone!, 'sms');
 
-		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.have.length(1);
 		const forgotPasswordToken = SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')[0];
 
 		/* CHANGE FORGOTTEN PASSWORD */
@@ -94,7 +89,7 @@ describe('forgot password spec', function suite() {
 		await AuthEngineInstance.changeForgottenPassword(forgotPasswordToken, newPassword);
 
 		// sessions were logged out
-		expect(OnForgottenPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
+		expect(OnForgottenPasswordChangedHookMock.calls).toStrictEqual([account.id]);
 
 		// check old password is no longer valid
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
@@ -126,7 +121,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByUsername', account.username, 'sms');
 
-		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')).to.have.length(1);
 		const forgotPasswordToken = SmsSenderInstance.client.outboxFor(account.telephone!, 'sendForgotPasswordToken')[0];
 
 		/* CHANGE FORGOTTEN PASSWORD */
@@ -157,7 +152,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.have.length(1);
 		let forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
 
 		/* DISABLE ACCOUNT */
@@ -189,7 +184,7 @@ describe('forgot password spec', function suite() {
 		EmailSenderInstance.client.clearOutboxFor(account.email);
 
 		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.have.length(1);
 		[forgotPasswordToken] = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken');
 
 		const newPassword = 'asdD!45][#ddg85j';
@@ -208,7 +203,7 @@ describe('forgot password spec', function suite() {
 		/* CREATE FORGOT PASSWORD SESSION */
 		await AuthEngineInstance.createForgotPasswordSession('readByEmail', account.email, 'email');
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')).to.have.length(1);
 		const forgotPasswordToken = EmailSenderInstance.client.outboxFor(account.email, 'sendForgotPasswordToken')[0];
 
 		/* CHANGE FORGOTTEN PASSWORD (WEAK PASSWORD) */

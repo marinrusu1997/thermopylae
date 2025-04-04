@@ -1,7 +1,7 @@
-import type { HttpRequest, HTTPRequestLocation, Undefinable } from '@thermopylae/core.declarations';
+import type { HTTPRequestLocation, HttpRequest, Undefinable } from '@thermopylae/core.declarations';
 import type { UserSessionOperationContext } from '@thermopylae/lib.user-session.commons';
-import type { ExceptionFactory, UserSessionDevice } from './typings';
-import { ErrorCodes } from './error';
+import { ErrorCodes } from './error.js';
+import type { ExceptionFactory, UserSessionDevice } from './typings.js';
 
 class UserSessionUtils {
 	public static buildUserSessionContext(req: HttpRequest): UserSessionOperationContext<UserSessionDevice, HTTPRequestLocation> {
@@ -14,7 +14,7 @@ class UserSessionUtils {
 							type: req.device.device.type,
 							client: req.device.client,
 							os: req.device.os
-					  }
+						}
 					: null,
 			location: req.location || null
 		};

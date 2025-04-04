@@ -1,10 +1,8 @@
-import { createException, ErrorCodes } from '../../../error';
-import type { PasswordStrengthPolicyValidator } from './policy';
-import type { AccountModel } from '../../../types/models';
+import { ErrorCodes, createException } from '../../../error.js';
+import type { AccountModel } from '../../../types/models.js';
+import type { PasswordStrengthPolicyValidator } from './policy.js';
 
-/**
- * Validator which ensures that password length is in the valid range.
- */
+/** Validator which ensures that password length is in the valid range. */
 class PasswordLengthValidator<Account extends AccountModel> implements PasswordStrengthPolicyValidator<Account> {
 	private readonly minLength: number;
 

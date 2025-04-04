@@ -1,13 +1,12 @@
-import { chai } from '@thermopylae/dev.unit-test';
 import { chrono } from '@thermopylae/lib.utils';
-import moment from 'moment';
-import winston from 'winston';
-import { Format } from 'logform';
 import fs from 'fs';
+import { Format } from 'logform';
+import moment from 'moment';
 import util from 'util';
+import { expect } from 'vitest';
+import winston from 'winston';
 import TransportStream from 'winston-transport';
 
-const { expect } = chai;
 const readFileAsync = util.promisify(fs.readFile);
 const unlinkAsync = util.promisify(fs.unlink);
 
@@ -29,9 +28,9 @@ function formatCurrentDate(): string {
 /**
  * Logs a message using transport. Awaits logs to be delivered to destination.
  *
- * @param format		Logs format.
- * @param transport   	Used transport.
- * @param info        	Logged info.
+ * @param format    Logs format.
+ * @param transport Used transport.
+ * @param info      Logged info.
  */
 async function log(format: Format, transport: TransportStream, info: LoggedInfo): Promise<void> {
 	winston
@@ -46,10 +45,10 @@ async function log(format: Format, transport: TransportStream, info: LoggedInfo)
 /**
  * Logs a error using transport. Await log to be delivered to destination.
  *
- * @param format      Logs format
- * @param transport   Used transport
- * @param message     Short description of the error.
- * @param meta        Meta information about error.
+ * @param format    Logs format.
+ * @param transport Used transport.
+ * @param message   Short description of the error.
+ * @param meta      Meta information about error.
  */
 async function logError(format: Format, transport: TransportStream, message: string, ...meta: Array<any>): Promise<void> {
 	winston
@@ -64,9 +63,9 @@ async function logError(format: Format, transport: TransportStream, message: str
 /**
  * Reads file content, and checks if logging was made correctly.
  *
- * @param path      Path to file
- * @param info      Expected info to be logged in specified order from array
- * @param notToLog  Array of terms which should not be logged
+ * @param path     Path to file.
+ * @param info     Expected info to be logged in specified order from array.
+ * @param notToLog Array of terms which should not be logged.
  */
 async function expectToLogIntoFile(path: string, info: Array<ExpectedLoggedInfo>, notToLog: Array<string>): Promise<void> {
 	const regex = /^([^|]*) \[([^|]*)\] ([^|]*):(.*)$/;

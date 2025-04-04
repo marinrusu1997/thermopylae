@@ -1,17 +1,16 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
+import type { Nullable } from '@thermopylae/core.declarations';
+import { logger } from '@thermopylae/dev.unit-test';
 import { array, number } from '@thermopylae/lib.utils';
-import { Nullable } from '@thermopylae/core.declarations';
 import colors from 'colors';
-import range from 'lodash.range';
 // @ts-ignore This package has no typings
 import gc from 'js-gc';
-import { LFUEvictionPolicy, GDSFEvictionPolicy, LFUDAEvictionPolicy } from '../../../lib';
-import { ReverseMap } from '../../utils';
-import { BaseLFUEvictionPolicy, EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import range from 'lodash.range';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { NEXT_SYM, PREV_SYM } from '../../../lib/data-structures/list/doubly-linked.js';
+import { GDSFEvictionPolicy, LFUDAEvictionPolicy, LFUEvictionPolicy } from '../../../lib/index.js';
+import { BaseLFUEvictionPolicy, type EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
+import { ReverseMap } from '../../utils.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 const LFU_IMPLS = [LFUEvictionPolicy, LFUDAEvictionPolicy, GDSFEvictionPolicy];
@@ -162,9 +161,9 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 								expect(ENTRIES.has(evictedKey)).to.be.eq(true);
 							}
 						} else {
-							expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
+							expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
 							for (let i = 0; i < EVICTED_KEYS.length; i++) {
-								expect(ENTRIES_SORTED_BY_FREQ.bucket).to.be.containing(EVICTED_KEYS[i]);
+								expect(ENTRIES_SORTED_BY_FREQ.bucket).to.contain(EVICTED_KEYS[i]);
 							}
 						}
 					} catch (e) {
@@ -233,7 +232,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						const entriesIter = ENTRIES.keys();
 
-						expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES_NO);
+						expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES_NO);
 						for (const key of EVICTED_KEYS) {
 							expect(key).to.be.eq(entriesIter.next().value);
 						}
@@ -318,7 +317,7 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 
 						// assertions
 						expect(policy.size).to.be.eq(CAPACITY - KEYS_TO_DELETE_NO);
-						expect(EVICTED_KEYS).to.be.ofSize(0);
+						expect(EVICTED_KEYS).to.have.length(0);
 					} catch (e) {
 						const message = [
 							'Test Context:',
@@ -337,7 +336,6 @@ describe(`${colors.magenta(BaseLFUEvictionPolicy.name)} spec`, () => {
 					}
 				});
 
-				// eslint-disable-next-line mocha/no-skipped-tests
 				it.skip('clears the freq list', () => {
 					const CAPACITY = 1_00_000;
 					const HEAP_USED_DELTA = 150_000;

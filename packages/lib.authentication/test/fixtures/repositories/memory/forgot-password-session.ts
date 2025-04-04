@@ -1,5 +1,5 @@
-import { ForgotPasswordSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+import type { ForgotPasswordSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const ForgotPasswordSessionMemoryRepository: ForgotPasswordSessionRepository = {
 	insert: async (token, ttl) => {

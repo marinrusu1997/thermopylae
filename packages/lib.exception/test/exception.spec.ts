@@ -1,8 +1,5 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-import { Exception } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { Exception } from '../lib/index.js';
 
 describe('exception spec', () => {
 	it('creates exception', () => {

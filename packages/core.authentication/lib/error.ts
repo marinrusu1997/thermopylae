@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { CoreModule } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	ACCOUNT_NOT_FOUND = 'ACCOUNT_NOT_FOUND',
@@ -9,9 +9,7 @@ const enum ErrorCodes {
 	FORGOT_PASSWORD_SESSION_NOT_CREATED = 'FORGOT_PASSWORD_SESSION_NOT_CREATED'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: string, message: string): Exception {
 	return new Exception(CoreModule.AUTHENTICATION, code, message);
 }

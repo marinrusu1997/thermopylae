@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import type { FailedAuthenticationAttemptsRepository, FailedAuthenticationModel } from '../../../../lib';
-import { getMongoModel } from '../../mongodb';
+import type { FailedAuthenticationAttemptsRepository, FailedAuthenticationModel } from '../../../../lib/index.js';
+import { getMongoModel } from '../../mongodb.js';
 
 const FailedAuthAttemptSchema = new mongoose.Schema({
 	accountId: { type: String, required: true },
@@ -14,7 +14,7 @@ FailedAuthAttemptSchema.virtual('id').get(function getter() {
 	return String(this._id);
 });
 
-function model(): mongoose.Model<mongoose.Document> {
+function model() {
 	return getMongoModel('failed-authentication', FailedAuthAttemptSchema);
 }
 
@@ -39,7 +39,7 @@ const FailedAuthenticationAttemptsRepositoryMongo: FailedAuthenticationAttemptsR
 		const docs = await documentQuery.exec();
 
 		return docs.map((doc) => {
-			const failedAuthentication = doc.toObject({ virtuals: true }) as FailedAuthenticationModel;
+			const failedAuthentication = doc.toObject({ virtuals: true }) as unknown as FailedAuthenticationModel;
 			delete (failedAuthentication as any)._id;
 			delete (failedAuthentication as any).__v;
 

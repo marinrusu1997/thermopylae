@@ -1,13 +1,13 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { HttpStatusCode, Library, ObjMap, PartialSome } from '@thermopylae/core.declarations';
+import { HttpStatusCode, Library, type ObjMap, type PartialSome } from '@thermopylae/core.declarations';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { AccountStatus, AccountToBeRegistered, AccountWithTotpSecret, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import { AccountStatus, type AccountToBeRegistered, type AccountWithTotpSecret, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
 import { publicEncrypt } from 'crypto';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
+import { logger } from '../../../../logger.js';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -35,6 +35,7 @@ const validateRequestBody: RequestHandler = handler(
 		try {
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.REGISTER, req.body);
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {

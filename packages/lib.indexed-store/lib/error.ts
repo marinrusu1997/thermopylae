@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	RECORD_EXISTS = 'RECORD_EXISTS',
@@ -21,10 +21,10 @@ const enum ErrorCodes {
  *
  * @private
  *
- * @param code		Error code.
- * @param message	Error message.
+ * @param   code    Error code.
+ * @param   message Error message.
  *
- * @returns		Exception to be thrown.
+ * @returns         Exception to be thrown.
  */
 function createException(code: ErrorCodes, message: string): Exception {
 	return new Exception(Library.INDEXED_STORE, code, message);

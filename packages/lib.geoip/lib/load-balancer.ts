@@ -1,8 +1,6 @@
-import type { IpLocationsRepository } from './repository';
+import type { IpLocationsRepository } from './repository/index.js';
 
-/**
- * @private
- */
+/** @private */
 class LoadBalancer {
 	public readonly repositories: ReadonlyArray<IpLocationsRepository>;
 

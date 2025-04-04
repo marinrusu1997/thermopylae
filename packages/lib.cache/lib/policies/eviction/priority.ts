@@ -1,93 +1,77 @@
-import { Nullable, Percentage, Seconds } from '@thermopylae/core.declarations';
+import type { Nullable, Percentage, Seconds } from '@thermopylae/core.declarations';
 import { chrono, number } from '@thermopylae/lib.utils';
 import { memoryUsage } from 'process';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry } from '../../contracts/commons';
-import { IterableCacheBackend } from '../../contracts/cache-backend';
+import type { IterableCacheBackend } from '../../contracts/cache-backend.js';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../contracts/cache-replacement-policy.js';
+import type { CacheEntry } from '../../contracts/commons.js';
 
 // @fixme take into account gc: https://www.npmjs.com/package/gc-stats
 
-/**
- * @private
- */
+/** @private */
 const PRIORITY_SYM = Symbol('PRIORITY_SYM');
 
-/**
- * Describes {@link CacheEntry} priority against eviction caused by lack of system memory.
- */
-const enum CacheEntryPriority {
-	/**
-	 * Cache items with this priority level are the most likely to be deleted from the cache.
-	 */
+/** Describes {@link CacheEntry} priority against eviction caused by lack of system memory. */
+enum CacheEntryPriority {
+	/** Cache items with this priority level are the most likely to be deleted from the cache. */
 	LOW,
 	/**
-	 * Cache items with this priority level are more likely to be deleted from the cache than {@link CacheEntryPriority.NORMAL} priority.
+	 * Cache items with this priority level are more likely to be deleted from the cache than
+	 * {@link CacheEntryPriority.NORMAL} priority.
 	 */
 	BELOW_NORMAL,
 	/**
-	 * Cache items with this priority level are likely to be deleted from the cache
-	 * after those items with {@link CacheEntryPriority.LOW} or {@link CacheEntryPriority.BELOW_NORMAL} priority. <br/>
-	 * This is the default.
+	 * Cache items with this priority level are likely to be deleted from the cache after those
+	 * items with {@link CacheEntryPriority.LOW} or {@link CacheEntryPriority.BELOW_NORMAL} priority.
+	 * <br/> This is the default.
 	 */
 	NORMAL,
 	/**
-	 * Cache items with this priority level are less likely to be deleted from cache
-	 * than those assigned with {@link CacheEntryPriority.NORMAL} priority.
+	 * Cache items with this priority level are less likely to be deleted from cache than those
+	 * assigned with {@link CacheEntryPriority.NORMAL} priority.
 	 */
 	ABOVE_NORMAL,
-	/**
-	 * Cache items with this priority level are the least likely to be deleted from the cache.
-	 */
+	/** Cache items with this priority level are the least likely to be deleted from the cache. */
 	HIGH,
-	/**
-	 * The cache items with this priority level will not be automatically deleted from the cache.
-	 */
+	/** The cache items with this priority level will not be automatically deleted from the cache. */
 	NOT_REMOVABLE
 }
 
-/**
- * @private
- */
+/** @private */
 interface PrioritizedCacheEntry<Key, Value> extends CacheEntry<Key, Value> {
 	[PRIORITY_SYM]: CacheEntryPriority;
 }
 
 interface PriorityEvictionPolicyArgumentsBundle {
-	/**
-	 * Priority of the key when memory is low and eviction needs to be performed.
-	 */
+	/** Priority of the key when memory is low and eviction needs to be performed. */
 	priority?: CacheEntryPriority;
 }
 
 interface PriorityEvictionPolicyOptions<Key, Value> {
-	/**
-	 * Iterable cache backend.
-	 */
+	/** Iterable cache backend. */
 	iterableCacheBackend: IterableCacheBackend<Key, Value>;
 
-	/**
-	 * Interval for checking whether process is low on memory. <br/>
-	 * Defaults to **3600 seconds**.
-	 */
+	/** Interval for checking whether process is low on memory. <br/> Defaults to **3600 seconds**. */
 	checkInterval?: Seconds;
 
 	/**
-	 * Percentage of the available memory which is considered to be critical. <br/>
-	 * When process reaches it or goes bellow, cache entries eviction kicks in on next {@link PriorityEvictionPolicyOptions.checkInterval}. <br/>
-	 * Percentage is calculated by the following formula: **((heapTotal - heapUsed) * 100) / heapTotal**.
-	 * > ⚠️ WARNING ⚠
-	 * > Computation of the available memory doesn't take into account garbage collection and is subject to false positive results.
-	 * GC is performed in a **stop the world** fashion, hence it's delayed by V8 as much as possible and performed when it's
-	 * really needed, i.e. when process is low on memory. <br/>
-	 * > Therefore, there is always a small chance that we will run our eviction handler and detect high memory usage
-	 * before GC will occur.
+	 * Percentage of the available memory which is considered to be critical. <br/> When process
+	 * reaches it or goes bellow, cache entries eviction kicks in on next
+	 * {@link PriorityEvictionPolicyOptions.checkInterval}. <br/> Percentage is calculated by the
+	 * following formula: **((heapTotal - heapUsed) * 100) / heapTotal**.
+	 *
+	 * > ⚠️ WARNING ⚠ Computation of the available memory doesn't take into account garbage collection
+	 * > and is subject to false positive results. GC is performed in a **stop the world** fashion,
+	 * > hence it's delayed by V8 as much as possible and performed when it's really needed, i.e. when
+	 * > process is low on memory. <br/> Therefore, there is always a small chance that we will run
+	 * > our eviction handler and detect high memory usage before GC will occur.
 	 *
 	 * Defaults to **20%**.
 	 */
 	criticalAvailableMemoryPercentage?: Percentage;
 
 	/**
-	 * Percentage of cache entries that needs to be evicted when {@link PriorityEvictionPolicyOptions.criticalAvailableMemoryPercentage} is reached. <br/>
+	 * Percentage of cache entries that needs to be evicted when
+	 * {@link PriorityEvictionPolicyOptions.criticalAvailableMemoryPercentage} is reached. <br/>
 	 * Defaults to **20%**.
 	 */
 	cacheEvictionPercentage?: Percentage;
@@ -95,19 +79,18 @@ interface PriorityEvictionPolicyOptions<Key, Value> {
 
 /**
  * {@link CacheReplacementPolicy} which evicts entries when NodeJS process is low on memory. <br/>
- * Eviction is based on {@link CacheEntryPriority} and is performed in a **stop the world** way,
- * as it will iterate over cache entries to determine which ones needs to ne evicted based on their priority.
+ * Eviction is based on {@link CacheEntryPriority} and is performed in a **stop the world** way, as
+ * it will iterate over cache entries to determine which ones needs to ne evicted based on their
+ * priority.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictionPolicyArgumentsBundle = PriorityEvictionPolicyArgumentsBundle>
 	implements CacheReplacementPolicy<Key, Value, ArgumentsBundle>
 {
-	/**
-	 * @private
-	 */
+	/** @private */
 	private readonly options: Required<Readonly<PriorityEvictionPolicyOptions<Key, Value>>>;
 
 	private readonly numberOfCacheEntriesByPriority: Map<CacheEntryPriority, number>;
@@ -123,30 +106,22 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		this.checkMemoryConsumptionIntervalId = null;
 	}
 
-	/**
-	 * Whether eviction timer has been started.
-	 */
+	/** Whether eviction timer has been started. */
 	public get idle(): boolean {
 		return this.checkMemoryConsumptionIntervalId == null;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onHit(): EntryValidity {
 		return EntryValidity.VALID;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onMiss(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onSet(entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		entry[PRIORITY_SYM] = options && options.priority != null ? options.priority : CacheEntryPriority.NORMAL;
 
@@ -158,9 +133,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		}
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onUpdate(entry: PrioritizedCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.priority == null) {
 			return;
@@ -175,9 +148,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		this.increaseNumberOfEntries(entry[PRIORITY_SYM]);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onDelete(entry: PrioritizedCacheEntry<Key, Value>): void {
 		this.decreaseNumberOfEntries(entry[PRIORITY_SYM]);
 		entry[PRIORITY_SYM] = undefined!; // logical deletion
@@ -188,9 +159,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		}
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onClear(): void {
 		PriorityEvictionPolicy.fillNumberOfCacheEntriesByPriorityWithStartingValues(this.numberOfCacheEntriesByPriority);
 		if (this.checkMemoryConsumptionIntervalId) {
@@ -198,9 +167,7 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 		}
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
@@ -294,4 +261,4 @@ class PriorityEvictionPolicy<Key, Value, ArgumentsBundle extends PriorityEvictio
 	}
 }
 
-export { PriorityEvictionPolicy, PriorityEvictionPolicyOptions, CacheEntryPriority, PrioritizedCacheEntry, PRIORITY_SYM };
+export { PriorityEvictionPolicy, type PriorityEvictionPolicyOptions, CacheEntryPriority, type PrioritizedCacheEntry, PRIORITY_SYM };

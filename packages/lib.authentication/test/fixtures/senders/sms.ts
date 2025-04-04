@@ -1,5 +1,5 @@
-import { AccountWithTotpSecret, SmsSender } from '../../../lib';
-import { SmsClientMock } from '../mocks/sms';
+import type { AccountWithTotpSecret, SmsSender } from '../../../lib/index.js';
+import { SmsClientMock } from '../mocks/sms.js';
 
 class SmsSenderMock implements SmsSender<AccountWithTotpSecret> {
 	public readonly client: SmsClientMock;

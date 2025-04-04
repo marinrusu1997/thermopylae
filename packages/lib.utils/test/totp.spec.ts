@@ -1,10 +1,6 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Totp } from '../lib/totp';
-
-const { expect } = chai;
-const assert = chai.assert as (expr: boolean, msg?: string) => void;
+import { setTimeout } from 'node:timers/promises';
+import { assert, describe, expect, it } from 'vitest';
+import { Totp } from '../lib/totp.js';
 
 describe(`${Totp.name} spec`, () => {
 	describe(`${Totp.prototype.generate.name} spec`, () => {
@@ -22,15 +18,13 @@ describe(`${Totp.name} spec`, () => {
 			assert(!new Totp({ secret: 'secret', ttl: 1 }).check('invalid', 'stored'));
 		});
 
-		it('returns false on expired token', (done) => {
+		it('returns false on expired token', async () => {
 			const instance = new Totp({ secret: 'secret', ttl: 1 });
 			const token = instance.generate();
 			assert(instance.check(token)); // it is valid right after generation]
 
-			setTimeout(() => {
-				assert(!instance.check(token)); // but invalid after ttl expires
-				done();
-			}, 1000);
+			await setTimeout(1000);
+			assert(!instance.check(token)); // but invalid after ttl expires
 		});
 
 		it('returns true on valid token (no stored token provided)', () => {

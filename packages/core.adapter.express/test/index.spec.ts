@@ -1,15 +1,13 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, before, describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, HTTPRequestLocation, ObjMap } from '@thermopylae/core.declarations';
+import type { HTTPRequestLocation, HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap } from '@thermopylae/core.declarations';
 import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
-import type { Server } from 'http';
-import express from 'express';
 import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
-import fetch from 'node-fetch';
 import { serialize } from 'cookie';
-import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '../lib';
+import cookieParser from 'cookie-parser';
+import express from 'express';
+import type { Server } from 'http';
+import fetch from 'node-fetch';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '../lib/index.js';
 
 const app = express();
 app.set('trust proxy', true);
@@ -69,12 +67,14 @@ app.post('/:pp1/:pp2', (req, res) => {
 });
 
 describe('Express http adapters spec', () => {
-	before((done) => {
-		server = app.listen(port, done);
+	beforeAll(() => {
+		return new Promise<void>((resolve, reject) => {
+			server = app.listen(port, (err) => (err ? reject(err) : resolve()));
+		});
 	});
 
-	after((done) => {
-		server.close(done);
+	afterAll(() => {
+		return new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
 	});
 
 	it('should send a request and receive a response', async () => {
@@ -99,7 +99,7 @@ describe('Express http adapters spec', () => {
 						secure: true,
 						path: '/',
 						sameSite: 'strict',
-						domain: `localhost:${port}`
+						domain: 'localhost'
 					}),
 					serialize('pref', 'bike,car', {
 						expires: new Date('01 Aug 2021 00:00:00 GMT'),
@@ -152,7 +152,7 @@ describe('Express http adapters spec', () => {
 		});
 
 		expect(response.status).to.be.eq(HttpStatusCode.Ok);
-		expect(response.headers.raw()['set-cookie']).to.be.equalTo(['pref=programming,workout', 'sid=456']);
-		await expect(response.json()).to.eventually.be.deep.eq({ wave: 'to-you' });
+		expect(response.headers.raw()['set-cookie']).toStrictEqual(['pref=programming,workout', 'sid=456']);
+		await expect(response.json()).resolves.to.be.deep.eq({ wave: 'to-you' });
 	});
 });

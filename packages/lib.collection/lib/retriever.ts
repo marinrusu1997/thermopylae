@@ -1,16 +1,15 @@
-import { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
+import type { Nullable, ObjMap, UnaryPredicate } from '@thermopylae/core.declarations';
 import { IndexedStore } from '@thermopylae/lib.indexed-store';
-import isObject from 'isobject';
 // @ts-ignore This package has no typings
 import { createQuery } from 'common-query';
-import dotProp from 'dot-prop';
-import { DocumentContract, FindOptions, IndexedProperty, Query, QueryOperators, PK_INDEX_NAME } from './typings';
-import { Processor } from './processor';
-import { createException, ErrorCodes } from './error';
+import { getProperty } from 'dot-prop';
+import isObject from 'isobject';
+import { ErrorCodes, createException } from './error.js';
+import { Processor } from './processor.js';
+import { PK_INDEX_NAME, QueryOperators } from './typings.js';
+import type { DocumentContract, FindOptions, IndexedProperty, Query } from './typings.js';
 
-/**
- * @private
- */
+/** @private */
 class Retriever<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
 
@@ -77,20 +76,22 @@ class Retriever<Document extends DocumentContract<Document>> {
 		return (doc) => (query as ObjMap)['matches'](doc);
 	}
 
-	private static inferIndexedProperty<DocumentType>(
+	private static inferIndexedProperty<DocumentType extends DocumentContract<DocumentType>>(
 		query?: Nullable<Query<DocumentType>>,
 		options?: Partial<FindOptions<DocumentType>>
 	): Partial<IndexedProperty<DocumentType>> {
 		if (options == null) {
+			// @ts-ignore
 			if (isObject(query)) {
-				const primaryKeyCondition = dotProp.get(query as ObjMap, PK_INDEX_NAME);
+				const primaryKeyCondition = getProperty(query as ObjMap, PK_INDEX_NAME);
 
 				if (typeof primaryKeyCondition === 'string' || typeof primaryKeyCondition === 'number') {
 					return { name: PK_INDEX_NAME, value: primaryKeyCondition };
 				}
 
+				// @ts-ignore
 				if (isObject(primaryKeyCondition)) {
-					const operators = Object.entries(primaryKeyCondition as ObjMap);
+					const operators = Object.entries(primaryKeyCondition as unknown as ObjMap);
 
 					if (operators.length === 1) {
 						if (operators[0][0] === '$eq') {
@@ -98,7 +99,7 @@ class Retriever<Document extends DocumentContract<Document>> {
 						}
 
 						if (operators[0][0] === QueryOperators.IN && Array.isArray(operators[0][1]) && operators[0][1].length === 1) {
-							return { name: PK_INDEX_NAME, value: operators[0][1][0] };
+							return { name: PK_INDEX_NAME, value: operators[0][1][0] as string };
 						}
 					}
 				}

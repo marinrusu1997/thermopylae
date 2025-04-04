@@ -1,58 +1,46 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CONFIG-APP",
-  "type": "object",
-  "title": "The app config validation schema.",
-  "properties": {
-    "listen": {
-      "type": "object",
-      "properties": {
-        "host": {
-          "$ref": "../core/core.json#/definitions/ip"
-        },
-        "port": {
-          "$ref": "../core/core.json#/definitions/port"
-        }
-      },
-      "required": [
-        "host",
-        "port"
-      ],
-      "additionalProperties": false
-    },
-    "api": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "object",
-          "properties": {
-            "base": {
-              "type": "string"
-            },
-            "authentication": {
-              "type": "string"
-            },
-            "session": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "base",
-            "authentication",
-            "session"
-          ],
-          "additionalProperties": false
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false
-    }
-  },
-  "required": [
-    "listen",
-    "api"
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CONFIG-APP",
+	"type": "object",
+	"title": "The app config validation schema.",
+	"properties": {
+		"listen": {
+			"type": "object",
+			"properties": {
+				"host": {
+					"$ref": "../core/core.json#/definitions/ip"
+				},
+				"port": {
+					"$ref": "../core/core.json#/definitions/port"
+				}
+			},
+			"required": ["host", "port"],
+			"additionalProperties": false
+		},
+		"api": {
+			"type": "object",
+			"properties": {
+				"path": {
+					"type": "object",
+					"properties": {
+						"base": {
+							"type": "string"
+						},
+						"authentication": {
+							"type": "string"
+						},
+						"session": {
+							"type": "string"
+						}
+					},
+					"required": ["base", "authentication", "session"],
+					"additionalProperties": false
+				}
+			},
+			"required": ["path"],
+			"additionalProperties": false
+		}
+	},
+	"required": ["listen", "api"],
+	"additionalProperties": false
 }

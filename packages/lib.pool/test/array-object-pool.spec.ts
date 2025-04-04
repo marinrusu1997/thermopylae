@@ -1,8 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { ArrayObjectPool, ObjectResource } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { ArrayObjectPool, type ObjectResource } from '../lib/index.js';
 
 describe(`${ArrayObjectPool.name} spec`, () => {
 	it('acquires & releases objects from pool with capacity 1', () => {

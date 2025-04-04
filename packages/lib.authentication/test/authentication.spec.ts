@@ -1,32 +1,28 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 import { array, chrono } from '@thermopylae/lib.utils';
-import type { UnixTimestamp } from '@thermopylae/core.declarations';
 import keypair from 'keypair';
+import { describe, expect, it } from 'vitest';
 import {
 	AccountStatus,
-	AccountWithTotpSecret,
-	AuthenticationContext,
+	type AccountWithTotpSecret,
+	type AuthenticationContext,
 	AuthenticationEngine,
-	AuthenticationStatus,
+	type AuthenticationStatus,
 	ErrorCodes,
-	FailedAuthenticationModel,
-	SuccessfulAuthenticationModel
-} from '../lib';
-import { AuthenticationStepName } from '../lib/types/enums';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { buildAccountToBeRegistered, generateTotp, GlobalAuthenticationContext, signChallengeNonce, validateSuccessfulLogin } from './utils';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { FailedAuthAttemptSessionMemoryRepository } from './fixtures/repositories/memory/failed-auth-session';
-import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { OnAuthFromDifferentContextHookMock } from './fixtures/hooks';
+	type FailedAuthenticationModel,
+	type SuccessfulAuthenticationModel
+} from '../lib/index.js';
+import { AuthenticationStepName } from '../lib/types/enums.js';
+import { OnAuthFromDifferentContextHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session.js';
+import { FailedAuthAttemptSessionMemoryRepository } from './fixtures/repositories/memory/failed-auth-session.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, generateTotp, signChallengeNonce, validateSuccessfulLogin } from './utils.js';
 
-describe('Authenticate spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('Authenticate spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('fails to authenticate non existing accounts', async () => {
@@ -150,6 +146,7 @@ describe('Authenticate spec', function suite() {
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.CHALLENGE_RESPONSE);
 		expect(authStatus.token).to.not.be.eq(undefined);
 
+		// @ts-ignore
 		const signature = signChallengeNonce(authStatus.token!, keypair().private);
 		authStatus = await AuthEngineInstance.authenticate({
 			...GlobalAuthenticationContext,
@@ -193,23 +190,23 @@ describe('Authenticate spec', function suite() {
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: 'invalid' });
 		expect(authStatus.nextStep).to.be.eq(AuthenticationStepName.TWO_FACTOR_AUTH_CHECK);
 		expect(authStatus.error).to.not.be.eq(undefined);
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyMultiFactorAuthenticationFailed')).to.be.ofSize(1);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyMultiFactorAuthenticationFailed')).to.have.length(1);
 
 		/* ENSURE SESSIONS EXIST */
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.not.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.not.to.be.oneOf([
 			null,
 			undefined
 		]);
-		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).to.eventually.not.be.oneOf([null, undefined]);
+		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).resolves.not.to.be.oneOf([null, undefined]);
 
 		/* AUTHENTICATE SUCCESSFULLY */
 		authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, twoFactorAuthenticationToken: generateTotp(account.totpSecret) });
 		validateSuccessfulLogin(authStatus);
 
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar, trust me
+		expect(OnAuthFromDifferentContextHookMock.calls).to.have.length(0); // first auth evar, trust me
 
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);
-		expect(successfulAuthentications).to.be.ofSize(1);
+		expect(successfulAuthentications).to.have.length(1);
 
 		expect(successfulAuthentications[0]).to.be.deep.eq({
 			id: successfulAuthentications[0].id,
@@ -221,11 +218,11 @@ describe('Authenticate spec', function suite() {
 		} as SuccessfulAuthenticationModel);
 		expect(successfulAuthentications[0].authenticatedAt).to.be.within(authenticationTime - 2, authenticationTime + 2);
 
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
-		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).to.eventually.be.oneOf([null, undefined]);
+		await expect(FailedAuthAttemptSessionMemoryRepository.read(account.username)).resolves.to.be.oneOf([null, undefined]);
 	});
 
 	it('detects authentication from different device', async () => {
@@ -236,7 +233,7 @@ describe('Authenticate spec', function suite() {
 		/* AUTHENTICATE FROM ONE DEVICE */
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
 		validateSuccessfulLogin(authStatus);
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.ofSize(0); // first auth evar
+		expect(OnAuthFromDifferentContextHookMock.calls).to.have.length(0); // first auth evar
 
 		/* AUTHENTICATE FROM ANOTHER DEVICE */
 		const authContext: AuthenticationContext = {
@@ -254,11 +251,11 @@ describe('Authenticate spec', function suite() {
 		};
 		authStatus = await AuthEngineInstance.authenticate(authContext);
 		validateSuccessfulLogin(authStatus);
-		expect(OnAuthFromDifferentContextHookMock.calls).to.be.equalTo([account.id]);
+		expect(OnAuthFromDifferentContextHookMock.calls).toStrictEqual([account.id]);
 
 		/* GET SUCCESSFUL AUTHENTICATIONS */
 		const successfulAuthentications = await AuthEngineInstance.getSuccessfulAuthentications(account.id);
-		expect(successfulAuthentications).to.be.ofSize(2);
+		expect(successfulAuthentications).to.have.length(2);
 	});
 
 	it("doesn't allow authentication when recaptcha is required, but not provided, furthermore it can disable account on threshold", async () => {
@@ -368,7 +365,6 @@ describe('Authenticate spec', function suite() {
 		/* AUTH FAILURES AGAIN */
 		// now retry again till hard error, counter needs to be 0 again
 		let maxAllowedFailedAuthAttempts = AuthenticationEngineDefaultOptions.thresholds.maxFailedAuthAttempts - 1; // on last it will disable account
-		// eslint-disable-next-line no-plusplus
 		while (maxAllowedFailedAuthAttempts--) {
 			authStatus = await AuthEngineInstance.authenticate({ ...GlobalAuthenticationContext, password: 'invalid' });
 			expect(authStatus.error!.soft).to.not.be.eq(undefined);
@@ -555,7 +551,7 @@ describe('Authenticate spec', function suite() {
 
 		/* READ FAILED AUTHENTICATIONS */
 		const failedAuthAttempts = await AuthEngineInstance.getFailedAuthentications(account.id);
-		expect(failedAuthAttempts).to.be.ofSize(1);
+		expect(failedAuthAttempts).to.have.length(1);
 
 		expect(failedAuthAttempts[0]).to.be.deep.eq({
 			id: failedAuthAttempts[0].id,
@@ -582,7 +578,7 @@ describe('Authenticate spec', function suite() {
 			});
 		}
 		expect(authStatus!.error!.hard).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.ACCOUNT_DISABLED);
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
@@ -625,14 +621,14 @@ describe('Authenticate spec', function suite() {
 		validateSuccessfulLogin(authStatus);
 
 		// session was deleted, prevent replay attacks with already emitted nonce
-		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).to.eventually.be.oneOf([
+		await expect(AuthenticationSessionMemoryRepository.read(account.username, GlobalAuthenticationContext.deviceId)).resolves.to.be.oneOf([
 			null,
 			undefined
 		]);
 	});
 
 	it('authenticates user having password hashed with algorithm different than current one', async () => {
-		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).to.be.equalTo([0, 1]);
+		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).toStrictEqual([0, 1]);
 		expect(AuthenticationEngineDefaultOptions.password.hashing.currentAlgorithmId).to.be.eq(0);
 
 		/* REGISTER */

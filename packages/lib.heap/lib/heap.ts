@@ -1,36 +1,30 @@
-import { Comparator } from '@thermopylae/core.declarations';
+import type { Comparator } from '@thermopylae/core.declarations';
 import isFunction from 'lodash.isfunction';
-import { defaultCompare, ArrayEqualsPredicate } from './utils';
+import { type ArrayEqualsPredicate, defaultCompare } from './utils.js';
 
 // Original implementation can be found here: https://github.com/qiao/heap.js/blob/master/lib/heap.js
 
-/**
- * Binary heap.
- */
+/** Binary heap. */
 class Heap<T = number> {
 	private readonly compare: Comparator<T>;
 
 	private readonly nodes: Array<T>;
 
 	/**
-	 * @param comparator	Elements comparator. <br/>
-	 * 						Defaults to comparator which compares elements with the **>** and **===** operators.
+	 * @param comparator Elements comparator. <br/> Defaults to comparator which compares elements
+	 *   with the **>** and **===** operators.
 	 */
 	public constructor(comparator?: Comparator<T>) {
 		this.compare = comparator || defaultCompare;
 		this.nodes = [];
 	}
 
-	/**
-	 * Check if heap is empty.
-	 */
+	/** Check if heap is empty. */
 	public get empty(): boolean {
 		return this.nodes.length === 0;
 	}
 
-	/**
-	 * Get heap size
-	 */
+	/** Get heap size. */
 	public get size(): number {
 		return this.nodes.length;
 	}
@@ -38,7 +32,7 @@ class Heap<T = number> {
 	/**
 	 * Push item into heap.
 	 *
-	 * @param item		Item to be pushed.
+	 * @param item Item to be pushed.
 	 */
 	public push(item: T): void {
 		this.nodes.push(item);
@@ -48,7 +42,7 @@ class Heap<T = number> {
 	/**
 	 * Peek element from heap root (does not remove it).
 	 *
-	 * @returns		Heap root.
+	 * @returns Heap root.
 	 */
 	public peek(): T | undefined {
 		return this.nodes[0];
@@ -57,7 +51,7 @@ class Heap<T = number> {
 	/**
 	 * Pop element from heap root (does remove it).
 	 *
-	 * @returns		Heap root.
+	 * @returns Heap root.
 	 */
 	public pop(): T | undefined {
 		const lastEl = this.nodes.pop();
@@ -77,9 +71,9 @@ class Heap<T = number> {
 	/**
 	 * Replace heap root with another item.
 	 *
-	 * @param item		Item that needs to replace the root.
+	 * @param   item Item that needs to replace the root.
 	 *
-	 * @returns			Previous value of the heap root.
+	 * @returns      Previous value of the heap root.
 	 */
 	public replaceRootWith(item: T): T | undefined {
 		const returnItem = this.nodes[0];
@@ -92,9 +86,9 @@ class Heap<T = number> {
 	/**
 	 * Find index of item in the heap.
 	 *
-	 * @param equalsFunction	Function which tests for equality with needed item.
+	 * @param   equalsFunction Function which tests for equality with needed item.
 	 *
-	 * @returns					Index of the item.
+	 * @returns                Index of the item.
 	 */
 	public findIndex(equalsFunction: ArrayEqualsPredicate<T>): number {
 		return this.nodes.findIndex(equalsFunction);
@@ -103,8 +97,8 @@ class Heap<T = number> {
 	/**
 	 * Update item located at `index` with `newItem`.
 	 *
-	 * @param index			Index of the element that needs to be updated.
-	 * @param newItem		Value that needs to be put at that index.
+	 * @param index   Index of the element that needs to be updated.
+	 * @param newItem Value that needs to be put at that index.
 	 */
 	public update(index: number, newItem: T): void {
 		Heap.assertIndex(index, this.nodes.length);
@@ -118,7 +112,7 @@ class Heap<T = number> {
 	/**
 	 * Remove item located at `index`.
 	 *
-	 * @param index		Value of the item index.
+	 * @param index Value of the item index.
 	 */
 	public remove(index: number): void {
 		Heap.assertIndex(index, this.nodes.length);
@@ -139,7 +133,7 @@ class Heap<T = number> {
 	/**
 	 * Check if heap contains item.
 	 *
-	 * @param itemOrPredicate		Item or function which checks for equality with that item.
+	 * @param itemOrPredicate Item or function which checks for equality with that item.
 	 */
 	public contains(itemOrPredicate: ArrayEqualsPredicate<T> | T): boolean {
 		// @ts-ignore `isFunction` does not have typings
@@ -147,24 +141,17 @@ class Heap<T = number> {
 		return pos !== -1;
 	}
 
-	/**
-	 * Clear heap.
-	 */
+	/** Clear heap. */
 	public clear(): void {
 		this.nodes.length = 0;
 	}
 
-	/**
-	 * Get array representation of the heap.
-	 */
+	/** Get array representation of the heap. */
 	public toArray(): Array<T> {
 		return this.nodes.slice(0);
 	}
 
-	/**
-	 * Clone heap. <br/>
-	 * Notice that items are not cloned, only heap internal structure is cloned.
-	 */
+	/** Clone heap. <br/> Notice that items are not cloned, only heap internal structure is cloned. */
 	public clone(): Heap<T> {
 		const heap = new Heap<T>(this.compare);
 		for (const item of this.nodes) {
@@ -251,7 +238,6 @@ class Heap<T = number> {
 		let parentPos: number;
 
 		while (pos > startPos) {
-			// eslint-disable-next-line no-bitwise
 			parentPos = (pos - 1) >> 1;
 			parent = this.nodes[parentPos];
 

@@ -1,12 +1,11 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
 import { object, string } from '@thermopylae/lib.utils';
-import dotprop from 'dot-prop';
+import { getProperty, setProperty } from 'dot-prop';
 // @ts-ignore This package has no typings
 import range from 'range-generator';
-import { IndexedStore, IndexValue, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo, randomPerson } from './utils';
+import { describe, expect, it } from 'vitest';
+import { type IndexValue, IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo, randomPerson } from './utils.js';
 
 describe('stream operations spec', () => {
 	describe(`${IndexedStore.prototype.map.name} spec`, () => {
@@ -106,9 +105,9 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const nonIndexed = object.cloneDeep(randomPerson());
-			dotprop.set(nonIndexed, PK_INDEX_NAME, string.random());
+			setProperty(nonIndexed, PK_INDEX_NAME, string.random());
 			for (const indexName of indexes) {
-				dotprop.set(nonIndexed, indexName, null);
+				setProperty(nonIndexed, indexName, null);
 			}
 			storage.insert([nonIndexed]);
 			expect(storage.size).to.be.eq(PersonsRepo.length + 1);
@@ -136,12 +135,12 @@ describe('stream operations spec', () => {
 				return desiredBirthYearRange.includes(person.birthYear);
 			}
 
-			const indexVal = dotprop.get(randomPerson(), PersonIndexes.II_COUNTRY_CODE) as IndexValue;
+			const indexVal = getProperty(randomPerson(), PersonIndexes.II_COUNTRY_CODE) as IndexValue;
 			const filtered = storage.filter(predicate, PersonIndexes.II_COUNTRY_CODE, indexVal);
-			const crossCheckFiltered = PersonsRepo.filter((person) => dotprop.get(person, PersonIndexes.II_COUNTRY_CODE) === indexVal && predicate(person));
+			const crossCheckFiltered = PersonsRepo.filter((person) => getProperty(person, PersonIndexes.II_COUNTRY_CODE) === indexVal && predicate(person));
 
 			expect(filtered.length).to.be.eq(crossCheckFiltered.length);
-			expect(filtered).to.be.containingAllOf(crossCheckFiltered);
+			expect(filtered).to.containSubset(crossCheckFiltered);
 		});
 	});
 
@@ -207,11 +206,11 @@ describe('stream operations spec', () => {
 			expect(storage.size).to.be.eq(PersonsRepo.length);
 
 			const record = object.cloneDeep(randomPerson());
-			dotprop.set(record, PK_INDEX_NAME, string.random());
+			setProperty(record, PK_INDEX_NAME, string.random());
 
 			const countryCode = string.random({ length: 6 });
-			dotprop.set(record, PersonIndexes.I_BIRTH_YEAR, 1990);
-			dotprop.set(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
+			setProperty(record, PersonIndexes.I_BIRTH_YEAR, 1990);
+			setProperty(record, PersonIndexes.II_COUNTRY_CODE, countryCode);
 			storage.insert([record]);
 
 			const desiredBirthYearRange = Array.from(range(1990, 1995));

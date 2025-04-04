@@ -1,5 +1,5 @@
-import { FailedAuthAttemptSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+import type { FailedAuthAttemptSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const FailedAuthAttemptSessionMemoryRepository: FailedAuthAttemptSessionRepository = {
 	upsert: async (username, session, ttl) => {

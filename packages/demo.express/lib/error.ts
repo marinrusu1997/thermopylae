@@ -1,5 +1,5 @@
 import { Exception } from '@thermopylae/lib.exception';
-import { ApplicationServices } from './constants';
+import { ApplicationServices } from './constants.js';
 
 const enum ErrorCodes {
 	MISCONFIGURATION = 'MISCONFIGURATION',
@@ -9,9 +9,7 @@ const enum ErrorCodes {
 	UNKNOWN = 'UNKNOWN'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: ErrorCodes, message: string, data?: any): Exception {
 	return new Exception(ApplicationServices.AUTHENTICATION, code, message, data);
 }

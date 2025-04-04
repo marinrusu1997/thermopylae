@@ -1,18 +1,15 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono, string } from '@thermopylae/lib.utils';
-import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures';
-import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { buildAccountToBeRegistered, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
-import { EmailSenderInstance } from './fixtures/senders/email';
-import { OnAccountDisabledHookMock, OnPasswordChangedHookMock } from './fixtures/hooks';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
+import crypto from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { OnAccountDisabledHookMock, OnPasswordChangedHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions, PasswordLengthValidatorOptions } from './fixtures/index.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, validateSuccessfulLogin } from './utils.js';
 
-describe('Change password spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('Change password spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('changes password and then logs in with updated one', async () => {
@@ -30,8 +27,8 @@ describe('Change password spec', function suite() {
 			ip: '127.0.0.1'
 		});
 
-		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyPasswordChanged')).to.be.ofSize(1);
-		expect(OnPasswordChangedHookMock.calls).to.be.equalTo([account.id]);
+		expect(EmailSenderInstance.client.outboxFor(account.email, 'notifyPasswordChanged')).to.have.length(1);
+		expect(OnPasswordChangedHookMock.calls).toStrictEqual([account.id]);
 
 		/* AUTHENTICATE WITH OLD PASSWORD (FAILURE) */
 		let authStatus = await AuthEngineInstance.authenticate(GlobalAuthenticationContext);
@@ -43,7 +40,7 @@ describe('Change password spec', function suite() {
 	});
 
 	it('changes password that was hashed with an algorithm that differs from the current one', async () => {
-		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).to.be.equalTo([0, 1]);
+		expect(Array.from(AuthenticationEngineDefaultOptions.password.hashing.algorithms.keys())).toStrictEqual([0, 1]);
 		expect(AuthenticationEngineDefaultOptions.password.hashing.currentAlgorithmId).to.be.eq(0);
 
 		/* REGISTER */
@@ -71,7 +68,7 @@ describe('Change password spec', function suite() {
 
 	it('fails to change password if provided account id is not valid', async () => {
 		let err;
-		const accountId = string.random({ length: 12 });
+		const accountId = crypto.randomBytes(12).toString('hex');
 		try {
 			await AuthEngineInstance.changePassword({
 				accountId,
@@ -163,7 +160,7 @@ describe('Change password spec', function suite() {
 			'message',
 			`Password verification for account with id ${account.id} failed too many times, therefore account was disabled.`
 		);
-		expect(OnAccountDisabledHookMock.calls).to.be.ofSize(1); // sessions were invalidated
+		expect(OnAccountDisabledHookMock.calls).to.have.length(1); // sessions were invalidated
 
 		/* WAIT ACCOUNT ENABLE */
 		await chrono.sleep(chrono.secondsToMilliseconds(AuthenticationEngineDefaultOptions.ttl.accountDisableTimeout) + 50);

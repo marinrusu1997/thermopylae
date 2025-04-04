@@ -1,25 +1,19 @@
-import avsc from 'avsc';
-import cloneDeep from 'lodash.clonedeep';
-import type { Schema } from 'avsc';
 import type { HTTPRequestLocation } from '@thermopylae/core.declarations';
 import type { UserSessionMetaData } from '@thermopylae/lib.user-session';
-import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../../../typings';
-import { AVRO_SCHEMA } from '../common/avro-schema';
+import avsc from 'avsc';
+import type { Schema } from 'avsc';
+import cloneDeep from 'lodash.clonedeep';
+import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../../../typings.js';
+import { AVRO_SCHEMA } from '../common/avro-schema.js';
 
-/**
- * @private
- */
+/** @private */
 const SCHEMA: Schema = cloneDeep(AVRO_SCHEMA);
 (SCHEMA as any).fields.push({ name: 'accessedAt', type: 'long' });
 
-/**
- * @private
- */
+/** @private */
 const AVRO_TYPE = avsc.Type.forSchema(SCHEMA, { omitRecordMethods: true });
 
-/**
- * @private
- */
+/** @private */
 const AVRO_SERIALIZER: Readonly<UserSessionMetaDataSerializer<UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>>> = Object.freeze({
 	serialize(session: UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>): Buffer {
 		return AVRO_TYPE.toBuffer(session);

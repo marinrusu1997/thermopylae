@@ -1,16 +1,12 @@
+import type { RequireSome } from '@thermopylae/core.declarations';
 import { hash, verify } from 'argon2';
 import type { Options } from 'argon2';
-import type { RequireSome } from '@thermopylae/core.declarations';
-import type { PasswordHash, PasswordHashingAlgorithm } from './index';
+import type { PasswordHash, PasswordHashingAlgorithm } from './types.js';
 
-/**
- * [Documentation](https://github.com/ranisalt/node-argon2/wiki/Options).
- */
+/** [Documentation](https://github.com/ranisalt/node-argon2/wiki/Options). */
 type Argon2PasswordHashingOptions = Readonly<Omit<RequireSome<Options, 'hashLength' | 'memoryCost' | 'parallelism' | 'type'>, 'raw' | 'version' | 'salt'>>;
 
-/**
- * Password hashing algorithm using [argon2](https://en.wikipedia.org/wiki/Argon2).
- */
+/** Password hashing algorithm using [argon2](https://en.wikipedia.org/wiki/Argon2). */
 class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 	private readonly hashingOptions: Argon2PasswordHashingOptions;
 
@@ -29,4 +25,5 @@ class Argon2PasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 	}
 }
 
-export { Argon2PasswordHashingAlgorithm, Argon2PasswordHashingOptions };
+export { Argon2PasswordHashingAlgorithm };
+export type { Argon2PasswordHashingOptions };

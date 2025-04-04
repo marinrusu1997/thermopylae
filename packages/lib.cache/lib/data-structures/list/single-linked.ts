@@ -1,22 +1,17 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-import { Nullable } from '@thermopylae/core.declarations';
-import { LinkedList } from './interface';
+/* eslint max-classes-per-file: 0 */
+// --> OFF
+import type { Nullable } from '@thermopylae/core.declarations';
+import type { LinkedList } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 const NEXT_SYM = Symbol('NEXT_SYM_SLL');
 
-/**
- * @private
- */
+/** @private */
 interface SingleLinkedListNode<Node> {
 	[NEXT_SYM]: Nullable<Node>;
 }
 
-/**
- * @private
- */
+/** @private */
 class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
 
@@ -36,9 +31,7 @@ class SingleLinkedListIterator<Node extends SingleLinkedListNode<Node>> implemen
 	}
 }
 
-/**
- * @private
- */
+/** @private */
 class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements LinkedList<SingleLinkedListNode<Node>> {
 	public head: Nullable<Node>;
 
@@ -143,4 +136,4 @@ class SingleLinkedList<Node extends SingleLinkedListNode<Node>> implements Linke
 	}
 }
 
-export { SingleLinkedList, SingleLinkedListNode, SingleLinkedListIterator, NEXT_SYM };
+export { SingleLinkedList, type SingleLinkedListNode, SingleLinkedListIterator, NEXT_SYM };

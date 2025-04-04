@@ -1,5 +1,5 @@
-import { hash, compare } from 'bcrypt';
-import { PasswordHash, PasswordHashingAlgorithm } from '../../../lib';
+import { compare, hash } from 'bcrypt';
+import type { PasswordHash, PasswordHashingAlgorithm } from '../../../lib/index.js';
 
 class BcryptPasswordHashingAlgorithm implements PasswordHashingAlgorithm {
 	public async hash(password: string): Promise<PasswordHash> {

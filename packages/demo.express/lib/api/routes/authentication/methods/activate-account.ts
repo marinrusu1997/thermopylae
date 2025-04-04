@@ -1,10 +1,10 @@
-import { HttpStatusCode, Library, ObjMap } from '@thermopylae/core.declarations';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { Exception } from '@thermopylae/lib.exception';
+import { HttpStatusCode, Library, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
-import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { logger } from '../../../../logger';
+import { Exception } from '@thermopylae/lib.exception';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { logger } from '../../../../logger.js';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT',

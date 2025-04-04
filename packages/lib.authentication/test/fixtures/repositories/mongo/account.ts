@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import type { AccountRepository, AccountWithTotpSecret } from '../../../../lib';
-import { getMongoModel } from '../../mongodb';
+import type { AccountRepository, AccountWithTotpSecret } from '../../../../lib/index.js';
+import { getMongoModel } from '../../mongodb.js';
 
 const AccountSchema = new mongoose.Schema({
 	username: { type: String, required: true, unique: true },
@@ -18,7 +18,7 @@ AccountSchema.virtual('id').get(function getter() {
 	return String(this._id);
 });
 
-function model(): mongoose.Model<mongoose.Document> {
+function model() {
 	return getMongoModel('account', AccountSchema);
 }
 
@@ -76,7 +76,7 @@ const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 			throw new Error(`Expected 1 account to be found for username ${username}`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as unknown as AccountWithTotpSecret;
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
 		delete (accountModel as any)._id;
 		delete (accountModel as any).__v;
@@ -93,7 +93,7 @@ const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 			throw new Error(`Expected 1 account to be found for email ${email}.`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as unknown as AccountWithTotpSecret;
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
 		delete (accountModel as any)._id;
 		delete (accountModel as any).__v;
@@ -110,7 +110,7 @@ const AccountRepositoryMongo: AccountRepository<AccountWithTotpSecret> = {
 			throw new Error(`Expected 1 account to be found for telephone ${telephone}.`);
 		}
 
-		const accountModel = documents[0].toObject({ virtuals: true }) as AccountWithTotpSecret;
+		const accountModel = documents[0].toObject({ virtuals: true }) as unknown as AccountWithTotpSecret;
 		accountModel.passwordSalt = undefined; // required for deep compare, because AuthEngine sets this field to undefined when using Argon2
 		delete (accountModel as any)._id;
 		delete (accountModel as any).__v;

@@ -1,32 +1,28 @@
-import { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { TwoFactorAuthStrategy } from './interface';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationContext } from '../../types/contexts';
-import { createException, ErrorCodes } from '../../error';
+import { ErrorCodes, createException } from '../../error.js';
+import { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import type { AccountModel } from '../../types/models.js';
+import type { TwoFactorAuthStrategy } from './interface.js';
 
 /**
  * Send sms containing two factor authentication token to user.
  *
- * @param telephone		User telephone.
- * @param token			Two factor authentication token.
+ * @param telephone User telephone.
+ * @param token     Two factor authentication token.
  */
 type SendSmsWithToken = (telephone: string, token: string) => Promise<void>;
 
 interface SmsTwoFactorAuthStrategyOptions {
-	/**
-	 * Two factor authentication token length.
-	 */
+	/** Two factor authentication token length. */
 	readonly tokenLength: number;
-	/**
-	 * Two factor authentication token sms sender.
-	 */
+	/** Two factor authentication token sms sender. */
 	readonly sendSms: SendSmsWithToken;
 }
 
 /**
- * Two factor authentication strategy which sends token to user via sms. <br/>
- * Generated token is stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property
- * and is valid until {@link AuthenticationSession} expires or token is send by client and validated.
+ * Two factor authentication strategy which sends token to user via sms. <br/> Generated token is
+ * stored in the {@link AuthenticationSession.twoFactorAuthenticationToken} property and is valid
+ * until {@link AuthenticationSession} expires or token is send by client and validated.
  */
 class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 	private readonly options: SmsTwoFactorAuthStrategyOptions;
@@ -35,16 +31,12 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		this.options = options;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async onTwoFactorAuthEnabled(): Promise<null> {
 		return null;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async sendAuthenticationToken(
 		account: AccountModel,
 		_authenticationContext: AuthenticationContext,
@@ -64,9 +56,7 @@ class SmsTwoFactorAuthStrategy implements TwoFactorAuthStrategy<AccountModel> {
 		authenticationSession.twoFactorAuthenticationToken = token;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async isAuthenticationTokenValid(
 		_account: AccountModel,
 		authenticationContext: AuthenticationContext,

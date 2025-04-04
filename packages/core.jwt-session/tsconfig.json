@@ -1,18 +1,47 @@
 {
-    "extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
-    "compilerOptions": {
-        "rootDir": ".",
-        "tsBuildInfoFile": "build/tsbuildinfo",
-        "outDir": "dist",
-        "baseUrl": "../../node_modules",
-        "paths": {
-            "@thermopylae/core.user-session.commons/*": [
-                "./@thermopylae/core.user-session.commons/dist/*"
-            ]
-        }
-    },
-    "include": [
-        "lib/**/*.ts",
-        "test/**/*.ts"
-    ]
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "lib",
+		"tsBuildInfoFile": "build/tsbuildinfo",
+		"outDir": "dist"
+	},
+	"include": ["lib/**/*.ts"],
+	"references": [
+		{
+			"path": "../core.declarations"
+		},
+		{
+			"path": "../core.logger"
+		},
+		{
+			"path": "../core.user-session.commons"
+		},
+		{
+			"path": "../lib.cache"
+		},
+		{
+			"path": "../lib.exception"
+		},
+		{
+			"path": "../lib.jwt-user-session"
+		},
+		{
+			"path": "../core.adapter.fastify"
+		},
+		{
+			"path": "../core.redis"
+		},
+		{
+			"path": "../dev.environment"
+		},
+		{
+			"path": "../dev.unit-test"
+		},
+		{
+			"path": "../lib.user-session.commons"
+		},
+		{
+			"path": "../lib.async"
+		}
+	]
 }

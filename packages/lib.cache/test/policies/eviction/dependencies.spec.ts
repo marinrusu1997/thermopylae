@@ -1,10 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it, afterEach } from 'mocha';
 import colors from 'colors';
-import { expect } from '@thermopylae/dev.unit-test';
-import { CacheEntryWithDependencies, KeysDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies';
-import { EsMapCacheBackend } from '../../../lib';
-import { DEPENDENCIES_SYM, DEPENDENTS_SYM } from '../../../lib/data-structures/dependency-graph';
+import { afterEach, describe, expect, it } from 'vitest';
+import { DEPENDENCIES_SYM, DEPENDENTS_SYM } from '../../../lib/data-structures/dependency-graph.js';
+import { EsMapCacheBackend } from '../../../lib/index.js';
+import { type CacheEntryWithDependencies, KeysDependenciesEvictionPolicy } from '../../../lib/policies/eviction/dependencies.js';
 
 describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 	const BACKEND = new EsMapCacheBackend<string, string, CacheEntryWithDependencies<string, string>>();
@@ -64,7 +62,7 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 
 				expect(EVICTED_KEYS.length).to.be.eq(evictedDependencies.length); // 'deletedKey' was deleted already by us
 				for (const evictedDepKey of evictedDependencies) {
-					expect(EVICTED_KEYS).to.be.containing(evictedDepKey);
+					expect(EVICTED_KEYS).to.contain(evictedDepKey);
 
 					const evictedDepEntry = BACKEND.get(evictedDepKey)!;
 					expect(evictedDepEntry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -80,17 +78,17 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			const policy = policyFactory();
 
 			policy.onDelete(BACKEND.get('b')!);
-			expect(EVICTED_KEYS).to.be.containing('d');
-			expect(EVICTED_KEYS).to.be.containing('e');
+			expect(EVICTED_KEYS).to.contain('d');
+			expect(EVICTED_KEYS).to.contain('e');
 
 			policy.onDelete(BACKEND.get('c')!);
-			expect(EVICTED_KEYS).to.be.ofSize(2);
+			expect(EVICTED_KEYS).to.have.length(2);
 
 			policy.onDelete(BACKEND.get('a')!);
-			expect(EVICTED_KEYS).to.be.ofSize(2);
+			expect(EVICTED_KEYS).to.have.length(2);
 
 			policy.onDelete(BACKEND.get('f')!);
-			expect(EVICTED_KEYS).to.be.ofSize(2);
+			expect(EVICTED_KEYS).to.have.length(2);
 
 			for (const entry of BACKEND.values()) {
 				expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -102,14 +100,14 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			const policy = policyFactory();
 
 			policy.onDelete(BACKEND.get('c')!);
-			expect(EVICTED_KEYS).to.be.containing('d');
-			expect(EVICTED_KEYS).to.be.containing('e');
+			expect(EVICTED_KEYS).to.contain('d');
+			expect(EVICTED_KEYS).to.contain('e');
 
 			policy.onDelete(BACKEND.get('a')!);
-			expect(EVICTED_KEYS).to.be.containing('b');
+			expect(EVICTED_KEYS).to.contain('b');
 
 			policy.onDelete(BACKEND.get('f')!);
-			expect(EVICTED_KEYS).to.be.ofSize(3);
+			expect(EVICTED_KEYS).to.have.length(3);
 
 			for (const entry of BACKEND.values()) {
 				expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -121,16 +119,16 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			const policy = policyFactory();
 
 			policy.onDelete(BACKEND.get('d')!);
-			expect(EVICTED_KEYS).to.be.containing('e');
+			expect(EVICTED_KEYS).to.contain('e');
 
 			policy.onDelete(BACKEND.get('c')!);
-			expect(EVICTED_KEYS).to.be.ofSize(1);
+			expect(EVICTED_KEYS).to.have.length(1);
 
 			policy.onDelete(BACKEND.get('a')!);
-			expect(EVICTED_KEYS).to.be.containing('b');
+			expect(EVICTED_KEYS).to.contain('b');
 
 			policy.onDelete(BACKEND.get('f')!);
-			expect(EVICTED_KEYS).to.be.ofSize(2);
+			expect(EVICTED_KEYS).to.have.length(2);
 
 			for (const entry of BACKEND.values()) {
 				expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -142,15 +140,15 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			const policy = policyFactory();
 
 			policy.onDelete(BACKEND.get('e')!);
-			expect(EVICTED_KEYS).to.be.ofSize(0);
+			expect(EVICTED_KEYS).to.have.length(0);
 
 			policy.onDelete(BACKEND.get('a')!);
-			expect(EVICTED_KEYS).to.be.containing('b');
-			expect(EVICTED_KEYS).to.be.containing('c');
-			expect(EVICTED_KEYS).to.be.containing('d');
+			expect(EVICTED_KEYS).to.contain('b');
+			expect(EVICTED_KEYS).to.contain('c');
+			expect(EVICTED_KEYS).to.contain('d');
 
 			policy.onDelete(BACKEND.get('f')!);
-			expect(EVICTED_KEYS).to.be.ofSize(3);
+			expect(EVICTED_KEYS).to.have.length(3);
 
 			for (const entry of BACKEND.values()) {
 				expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -190,11 +188,11 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 
 				policy.onDelete(BACKEND.get(key)!);
 
-				expect(EVICTED_KEYS).to.be.ofSize(3);
+				expect(EVICTED_KEYS).to.have.length(3);
 
 				for (let j = 0; j <= 3; j++) {
 					if (j !== i) {
-						expect(EVICTED_KEYS).to.be.containing(String(j));
+						expect(EVICTED_KEYS).to.contain(String(j));
 					}
 				}
 
@@ -212,12 +210,12 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 			const policy = policyFactory();
 
 			policy.onDelete(BACKEND.get('3')!);
-			expect(EVICTED_KEYS).to.be.ofSize(0); // it had no deps
+			expect(EVICTED_KEYS).to.have.length(0); // it had no deps
 
 			policy.onDelete(BACKEND.get('0')!);
-			expect(EVICTED_KEYS).to.be.ofSize(2); // it had 2 deps
-			expect(EVICTED_KEYS).to.be.containing('1');
-			expect(EVICTED_KEYS).to.be.containing('2');
+			expect(EVICTED_KEYS).to.have.length(2); // it had 2 deps
+			expect(EVICTED_KEYS).to.contain('1');
+			expect(EVICTED_KEYS).to.contain('2');
 
 			for (const entry of BACKEND.values()) {
 				expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);
@@ -243,8 +241,8 @@ describe(`${colors.magenta(KeysDependenciesEvictionPolicy.name)} spec`, () => {
 		});
 
 		policy.onDelete(BACKEND.get('a')!);
-		expect(EVICTED_KEYS).to.be.ofSize(1); // it had 1 dep
-		expect(EVICTED_KEYS).to.be.containing('b');
+		expect(EVICTED_KEYS).to.have.length(1); // it had 1 dep
+		expect(EVICTED_KEYS).to.contain('b');
 
 		for (const entry of BACKEND.values()) {
 			expect(entry[DEPENDENCIES_SYM]).to.be.eq(undefined);

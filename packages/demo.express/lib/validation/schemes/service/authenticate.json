@@ -1,70 +1,66 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#AUTH_SERVICE-AUTHENTICATE",
-  "type": "object",
-  "title": "The authenticate method schema.",
-  "description": "Schema for validating user input when invoking authenticate method of AuthService.",
-  "properties": {
-    "username": {
-      "$ref": "../core/credentials.json#/properties/username"
-    },
-    "password": {
-      "$ref": "../core/credentials.json#/properties/password"
-    },
-    "twoFactorAuthenticationToken": {
-      "type": "string",
-      "pattern": "^[0-9]{6,8}$"
-    },
-    "recaptcha": {
-      "type": "string",
-      "maxLength": 600
-    }
-  },
-  "required": [
-    "username"
-  ],
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "twoFactorAuthenticationToken": true
-        },
-        "required": ["twoFactorAuthenticationToken"]
-      },
-      "then": {
-        "properties": {
-          "password": false,
-          "recaptcha": false
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "recaptcha": true
-        },
-        "required": ["recaptcha"]
-      },
-      "then": {
-        "properties": {
-          "password": true,
-          "twoFactorAuthenticationToken": false
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "twoFactorAuthenticationToken": false,
-          "recaptcha": false
-        }
-      },
-      "then": {
-        "required": [
-          "password"
-        ]
-      }
-    }
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#AUTH_SERVICE-AUTHENTICATE",
+	"type": "object",
+	"title": "The authenticate method schema.",
+	"description": "Schema for validating user input when invoking authenticate method of AuthService.",
+	"properties": {
+		"username": {
+			"$ref": "../core/credentials.json#/properties/username"
+		},
+		"password": {
+			"$ref": "../core/credentials.json#/properties/password"
+		},
+		"twoFactorAuthenticationToken": {
+			"type": "string",
+			"pattern": "^[0-9]{6,8}$"
+		},
+		"recaptcha": {
+			"type": "string",
+			"maxLength": 600
+		}
+	},
+	"required": ["username"],
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"twoFactorAuthenticationToken": true
+				},
+				"required": ["twoFactorAuthenticationToken"]
+			},
+			"then": {
+				"properties": {
+					"password": false,
+					"recaptcha": false
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"recaptcha": true
+				},
+				"required": ["recaptcha"]
+			},
+			"then": {
+				"properties": {
+					"password": true,
+					"twoFactorAuthenticationToken": false
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"twoFactorAuthenticationToken": false,
+					"recaptcha": false
+				}
+			},
+			"then": {
+				"required": ["password"]
+			}
+		}
+	],
+	"additionalProperties": false
 }

@@ -1,8 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Person, PersonIndexes } from '@thermopylae/dev.unit-test';
-import { IndexedStore, PK_INDEX_NAME } from '../lib';
-import { expect, PersonsRepo, randomPerson } from './utils';
+import { type Person, PersonIndexes } from '@thermopylae/dev.unit-test';
+import { describe, expect, it } from 'vitest';
+import { IndexedStore, PK_INDEX_NAME } from '../lib/index.js';
+import { PersonsRepo, randomPerson } from './utils.js';
 
 describe(`${IndexedStore.prototype.clear.name} spec`, () => {
 	it('clears no entries when storage is empty', () => {

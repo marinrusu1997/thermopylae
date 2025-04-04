@@ -1,19 +1,20 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-
-import { Nullable, Runnable, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
+/* eslint max-classes-per-file: 0 */
+// --> OFF
+import type { Nullable, Runnable, Seconds, UnixTimestamp } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { HashMapBucketList } from '../data-structures/bucket-list/hash-map-bucket-list';
-import { EXPIRES_AT_SYM } from '../constants';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import { HashMapBucketList } from '../data-structures/bucket-list/hash-map-bucket-list.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
 // reference: https://groups.google.com/g/memcached/c/MdNPv0oxhO8
 
 /**
- * {@link GarbageCollector} implementation which uses a map of buckets to keep entries that needs to be evicted. <br/>
- * Each timestamp has an according bucket with entries that need to be evicted at that time. <br/>
- * A timer is set to tick on each second and evicts all entries from the bucket corresponding to timestamp when timer fired.
+ * {@link GarbageCollector} implementation which uses a map of buckets to keep entries that needs to
+ * be evicted. <br/> Each timestamp has an according bucket with entries that need to be evicted at
+ * that time. <br/> A timer is set to tick on each second and evicts all entries from the bucket
+ * corresponding to timestamp when timer fired.
  *
- * @template T	Type of the cache entry.
+ * @template T Type of the cache entry.
  */
 class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollector<T> {
 	private static readonly EVICTION_TIMEOUT: Seconds = 1;
@@ -69,7 +70,6 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 		// in this case we need to also drop nearest bucket, to no skip him when we schedule timer for next second
 		let now = chrono.unixTime();
 		let evictedBucketId: UnixTimestamp;
-		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			evictedBucketId = now;
 			this.buckets.dropBucket(now, this.entryExpiredCb);
@@ -91,17 +91,13 @@ class BucketGarbageCollector<T extends ExpirableEntry> implements GarbageCollect
 	}
 }
 
-/**
- * @private
- */
+/** @private */
 interface EvictionInterval {
 	timeoutId: Nullable<NodeJS.Timeout>;
 	willTickOn: UnixTimestamp;
 }
 
-/**
- * @private
- */
+/** @private */
 class EvictionTimer {
 	private readonly evictionInterval: EvictionInterval;
 

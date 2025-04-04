@@ -1,283 +1,235 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CONFIG-LOGGER",
-  "type": "object",
-  "title": "The logging config validation schema.",
-  "definitions": {
-    "LogLevel": {
-      "enum": [
-        "emerg",
-        "alert",
-        "crit",
-        "error",
-        "warning",
-        "notice",
-        "info",
-        "debug"
-      ]
-    },
-    "TransportStreamOptions": {
-      "type": "object",
-      "properties": {
-        "level": {
-          "$ref": "#/definitions/LogLevel"
-        },
-        "silent": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "level"
-      ]
-    }
-  },
-  "properties": {
-    "transports": {
-      "type": "object",
-      "properties": {
-        "CONSOLE": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/TransportStreamOptions"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "consoleWarnLevels": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/LogLevel"
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
-                },
-                "stderrLevels": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/LogLevel"
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
-                },
-                "debugStdout": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "consoleWarnLevels",
-                "stderrLevels"
-              ]
-            }
-          ]
-        },
-        "FILE": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/TransportStreamOptions"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "datePattern": {
-                  "type": "string"
-                },
-                "zippedArchive": {
-                  "type": "boolean"
-                },
-                "filename": {
-                  "type": "string"
-                },
-                "dirname": {
-                  "type": "string"
-                },
-                "maxSize": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "integer"
-                    }
-                  ]
-                },
-                "maxFiles": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "integer"
-                    }
-                  ]
-                },
-                "auditFile": {
-                  "type": "string"
-                },
-                "frequency": {
-                  "type": "string",
-                  "pattern": "^\\d{1,3}[m|h]$"
-                },
-                "utc": {
-                  "type": "boolean"
-                },
-                "extension": {
-                  "type": "string"
-                },
-                "createSymlink": {
-                  "type": "boolean"
-                },
-                "symlinkName": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "datePattern",
-                "zippedArchive",
-                "filename",
-                "dirname",
-                "maxSize",
-                "maxFiles",
-                "auditFile",
-                "frequency",
-                "extension"
-              ]
-            }
-          ]
-        },
-        "GRAYLOG2": {
-          "type": "object",
-          "properties": {
-            "endpoints": {
-              "type": "object",
-              "patternProperties": {
-                "^[a-z0-9]+$": {
-                  "type": "object",
-                  "properties": {
-                    "host": {
-                      "$ref": "../core/core.json#/definitions/ip"
-                    },
-                    "port": {
-                      "$ref": "../core/core.json#/definitions/port"
-                    }
-                  },
-                  "required": [
-                    "host",
-                    "port"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "minProperties": 1
-            },
-            "channels": {
-              "type": "object",
-              "patternProperties": {
-                "^(?:@all|[A-Z_]+)$": {
-                  "type": "object",
-                  "properties": {
-                    "level": {
-                      "$ref": "#/definitions/LogLevel"
-                    },
-                    "input": {
-                      "type": "string",
-                      "pattern": "^[a-z0-9]+$"
-                    }
-                  },
-                  "required": [
-                    "level",
-                    "input"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "minProperties": 1
-            }
-          },
-          "required": [
-            "endpoints",
-            "channels"
-          ],
-          "additionalProperties": false
-        }
-      },
-      "minProperties": 1,
-      "additionalProperties": false
-    },
-    "formatting": {
-      "type": "object",
-      "properties": {
-        "format": {
-          "enum": [
-            "PRINTF",
-            "JSON",
-            "PRETTY_PRINT",
-            "LOGSTASH",
-            "SIMPLE"
-          ]
-        },
-        "colorize": {
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "object",
-              "patternProperties": {
-                "^[A-Z_]+$": {
-                  "type": "string",
-                  "minLength": 2
-                }
-              },
-              "minProperties": 1
-            }
-          ]
-        },
-        "ignoredLabels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "levelForLabel": {
-          "type": "object",
-          "patternProperties": {
-            "^[A-Z_]+$": {
-              "$ref": "#/definitions/LogLevel"
-            }
-          },
-          "minProperties": 1
-        },
-        "skippedFormatters": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "timestamp",
-                  "errors",
-                  "align"
-                ]
-              }
-            ]
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        }
-      },
-      "required": [
-        "format"
-      ],
-      "additionalProperties": false
-    }
-  },
-  "required": [
-    "transports",
-    "formatting"
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CONFIG-LOGGER",
+	"type": "object",
+	"title": "The logging config validation schema.",
+	"definitions": {
+		"LogLevel": {
+			"enum": ["emerg", "alert", "crit", "error", "warning", "notice", "info", "debug"]
+		},
+		"TransportStreamOptions": {
+			"type": "object",
+			"properties": {
+				"level": {
+					"$ref": "#/definitions/LogLevel"
+				},
+				"silent": {
+					"type": "boolean"
+				}
+			},
+			"required": ["level"]
+		}
+	},
+	"properties": {
+		"transports": {
+			"type": "object",
+			"properties": {
+				"CONSOLE": {
+					"allOf": [
+						{
+							"$ref": "#/definitions/TransportStreamOptions"
+						},
+						{
+							"type": "object",
+							"properties": {
+								"consoleWarnLevels": {
+									"type": "array",
+									"items": {
+										"$ref": "#/definitions/LogLevel"
+									},
+									"minItems": 1,
+									"uniqueItems": true
+								},
+								"stderrLevels": {
+									"type": "array",
+									"items": {
+										"$ref": "#/definitions/LogLevel"
+									},
+									"minItems": 1,
+									"uniqueItems": true
+								},
+								"debugStdout": {
+									"type": "boolean"
+								}
+							},
+							"required": ["consoleWarnLevels", "stderrLevels"]
+						}
+					]
+				},
+				"FILE": {
+					"allOf": [
+						{
+							"$ref": "#/definitions/TransportStreamOptions"
+						},
+						{
+							"type": "object",
+							"properties": {
+								"datePattern": {
+									"type": "string"
+								},
+								"zippedArchive": {
+									"type": "boolean"
+								},
+								"filename": {
+									"type": "string"
+								},
+								"dirname": {
+									"type": "string"
+								},
+								"maxSize": {
+									"oneOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "integer"
+										}
+									]
+								},
+								"maxFiles": {
+									"oneOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "integer"
+										}
+									]
+								},
+								"auditFile": {
+									"type": "string"
+								},
+								"frequency": {
+									"type": "string",
+									"pattern": "^\\d{1,3}[m|h]$"
+								},
+								"utc": {
+									"type": "boolean"
+								},
+								"extension": {
+									"type": "string"
+								},
+								"createSymlink": {
+									"type": "boolean"
+								},
+								"symlinkName": {
+									"type": "string"
+								}
+							},
+							"required": ["datePattern", "zippedArchive", "filename", "dirname", "maxSize", "maxFiles", "auditFile", "frequency", "extension"]
+						}
+					]
+				},
+				"GRAYLOG2": {
+					"type": "object",
+					"properties": {
+						"endpoints": {
+							"type": "object",
+							"patternProperties": {
+								"^[a-z0-9]+$": {
+									"type": "object",
+									"properties": {
+										"host": {
+											"$ref": "../core/core.json#/definitions/ip"
+										},
+										"port": {
+											"$ref": "../core/core.json#/definitions/port"
+										}
+									},
+									"required": ["host", "port"],
+									"additionalProperties": false
+								}
+							},
+							"minProperties": 1
+						},
+						"channels": {
+							"type": "object",
+							"patternProperties": {
+								"^(?:@all|[A-Z_]+)$": {
+									"type": "object",
+									"properties": {
+										"level": {
+											"$ref": "#/definitions/LogLevel"
+										},
+										"input": {
+											"type": "string",
+											"pattern": "^[a-z0-9]+$"
+										}
+									},
+									"required": ["level", "input"],
+									"additionalProperties": false
+								}
+							},
+							"minProperties": 1
+						}
+					},
+					"required": ["endpoints", "channels"],
+					"additionalProperties": false
+				}
+			},
+			"minProperties": 1,
+			"additionalProperties": false
+		},
+		"formatting": {
+			"type": "object",
+			"properties": {
+				"format": {
+					"enum": ["PRINTF", "JSON", "PRETTY_PRINT", "LOGSTASH", "SIMPLE"]
+				},
+				"colorize": {
+					"oneOf": [
+						{
+							"type": "boolean"
+						},
+						{
+							"type": "object",
+							"patternProperties": {
+								"^[A-Z_]+$": {
+									"type": "string",
+									"minLength": 2
+								}
+							},
+							"minProperties": 1
+						}
+					]
+				},
+				"ignoredLabels": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+				"levelForLabel": {
+					"type": "object",
+					"patternProperties": {
+						"^[A-Z_]+$": {
+							"$ref": "#/definitions/LogLevel"
+						}
+					},
+					"minProperties": 1
+				},
+				"skippedFormatters": {
+					"type": "array",
+					"items": {
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"enum": ["timestamp", "errors", "align"]
+							}
+						]
+					},
+					"minItems": 1,
+					"uniqueItems": true
+				}
+			},
+			"required": ["format"],
+			"additionalProperties": false
+		}
+	},
+	"required": ["transports", "formatting"],
+	"additionalProperties": false
 }

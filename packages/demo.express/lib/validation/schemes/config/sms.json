@@ -1,23 +1,19 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CONFIG-SMS",
-  "type": "object",
-  "title": "The sms config validation schema.",
-  "properties": {
-    "accountSid": {
-      "type": "string"
-    },
-    "authToken": {
-      "type": "string"
-    },
-    "fromNumber": {
-      "type": "string"
-    }
-  },
-  "required": [
-    "accountSid",
-    "authToken",
-    "fromNumber"
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CONFIG-SMS",
+	"type": "object",
+	"title": "The sms config validation schema.",
+	"properties": {
+		"accountSid": {
+			"type": "string"
+		},
+		"authToken": {
+			"type": "string"
+		},
+		"fromNumber": {
+			"type": "string"
+		}
+	},
+	"required": ["accountSid", "authToken", "fromNumber"],
+	"additionalProperties": false
 }

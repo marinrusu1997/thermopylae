@@ -1,47 +1,41 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import faker from 'faker';
-import { AccountStatus, AccountWithTotpSecret, SuccessfulAuthenticationModel } from '@thermopylae/lib.authentication';
-import { array, chrono, number } from '@thermopylae/lib.utils';
+import { faker } from '@faker-js/faker';
 import type { HttpDevice } from '@thermopylae/core.declarations';
-import { AccountMySqlRepository, SuccessfulAuthenticationsMysqlRepository } from '../../lib';
+import { AccountStatus, type AccountWithTotpSecret, type SuccessfulAuthenticationModel } from '@thermopylae/lib.authentication';
+import { array, chrono, number } from '@thermopylae/lib.utils';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { AccountMySqlRepository, SuccessfulAuthenticationsMysqlRepository } from '../../lib/index.js';
 
-describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite() {
-	this.timeout(2_500);
-
+describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, { timeout: 2_500 }, function suite() {
 	const successfulAuthenticationRepository = new SuccessfulAuthenticationsMysqlRepository();
 	const accountRepository = new AccountMySqlRepository();
 
 	let firstAccount: AccountWithTotpSecret;
 	let secondAccount: AccountWithTotpSecret;
 
-	beforeEach(async function () {
-		this.timeout(2_500);
-
+	beforeEach(async () => {
 		firstAccount = {
 			id: undefined!,
-			username: faker.internet.userName(),
+			username: faker.internet.username(),
 			passwordHash: faker.internet.password(),
-			passwordAlg: faker.datatype.number(9),
+			passwordAlg: faker.number.int({ min: 0, max: 9 }),
 			email: faker.internet.email(),
 			disabledUntil: AccountStatus.DISABLED_UNTIL_ACTIVATION,
 			mfa: faker.datatype.boolean(),
-			totpSecret: faker.datatype.string()
+			totpSecret: faker.string.alphanumeric({ length: 30 })
 		};
 		secondAccount = {
 			id: undefined!,
-			username: faker.internet.userName(),
+			username: faker.internet.username(),
 			passwordHash: faker.internet.password(),
-			passwordAlg: faker.datatype.number(9),
+			passwordAlg: faker.number.int({ min: 0, max: 9 }),
 			email: faker.internet.email(),
 			disabledUntil: AccountStatus.DISABLED_UNTIL_ACTIVATION,
 			mfa: faker.datatype.boolean(),
-			totpSecret: faker.datatype.string()
+			totpSecret: faker.string.alphanumeric({ length: 30 })
 		};
 
 		await Promise.all([accountRepository.insert(firstAccount), accountRepository.insert(secondAccount)]);
-	});
+	}, 2_500);
 
 	describe(`${SuccessfulAuthenticationsMysqlRepository.prototype.insert.name} spec`, () => {
 		it('inserts authentication without device and location', async () => {
@@ -69,7 +63,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 				os: null,
 				client: null
 			};
-			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).to.eventually.be.eq(false);
+			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).resolves.to.be.eq(false);
 		});
 
 		it('returns false when there is authentication without device', async () => {
@@ -92,7 +86,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 				os: null,
 				client: null
 			};
-			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).to.eventually.be.eq(false);
+			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).resolves.to.be.eq(false);
 		});
 
 		it('returns false when there is authentication from different device', async () => {
@@ -125,7 +119,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 				os: null,
 				client: null
 			};
-			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).to.eventually.be.eq(false);
+			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).resolves.to.be.eq(false);
 		});
 
 		it('returns true when there is authentication from same device', async () => {
@@ -158,7 +152,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 				os: null,
 				client: null
 			};
-			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).to.eventually.be.eq(true);
+			await expect(successfulAuthenticationRepository.authBeforeFromThisDevice(firstAccount.id, device)).resolves.to.be.eq(true);
 		});
 	});
 
@@ -175,7 +169,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			expect(typeof successfulAuth.id).to.be.eq('string');
 
 			const authentications = await successfulAuthenticationRepository.readRange(firstAccount.id); // FIRST
-			expect(authentications).to.be.equalTo([]);
+			expect(authentications).toStrictEqual([]);
 		});
 
 		it('returns all authentications for account', async () => {
@@ -195,7 +189,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								bot: null,
 								os: null,
 								client: null
-						  }
+							}
 						: null,
 				location:
 					Math.random() < 0.5
@@ -206,7 +200,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								timezone: 'Bucharest +2',
 								longitude: 45.5,
 								latitude: 46.6
-						  }
+							}
 						: null,
 				authenticatedAt: chrono.unixTime()
 			})) as SuccessfulAuthenticationModel[];
@@ -221,7 +215,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -247,7 +241,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								bot: null,
 								os: null,
 								client: null
-						  }
+							}
 						: null,
 				location:
 					Math.random() < 0.5
@@ -258,7 +252,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								timezone: 'Bucharest +2',
 								longitude: 45.5,
 								latitude: 46.6
-						  }
+							}
 						: null,
 				authenticatedAt: now - number.randomInt(1, 100)
 			})) as SuccessfulAuthenticationModel[];
@@ -267,7 +261,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			await Promise.all(authentications.map((authentication) => successfulAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, now)).to.be.equalTo([]);
+			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, now)).toStrictEqual([]);
 
 			const startingFrom = now - number.randomInt(1, 100);
 			const accountId = Math.random() > 0.5 ? secondAccount.id : firstAccount.id;
@@ -280,7 +274,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -306,7 +300,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								bot: null,
 								os: null,
 								client: null
-						  }
+							}
 						: null,
 				location:
 					Math.random() < 0.5
@@ -317,7 +311,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								timezone: 'Bucharest +2',
 								longitude: 45.5,
 								latitude: 46.6
-						  }
+							}
 						: null,
 				authenticatedAt: now - number.randomInt(1, 100)
 			})) as SuccessfulAuthenticationModel[];
@@ -326,7 +320,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			await Promise.all(authentications.map((authentication) => successfulAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, undefined, now - 101)).to.be.equalTo([]);
+			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, undefined, now - 101)).toStrictEqual([]);
 
 			const endingTo = now - number.randomInt(1, 100);
 			const accountId = Math.random() > 0.5 ? secondAccount.id : firstAccount.id;
@@ -339,7 +333,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);
@@ -365,7 +359,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								bot: null,
 								os: null,
 								client: null
-						  }
+							}
 						: null,
 				location:
 					Math.random() < 0.5
@@ -376,7 +370,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 								timezone: 'Bucharest +2',
 								longitude: 45.5,
 								latitude: 46.6
-						  }
+							}
 						: null,
 				authenticatedAt: now - number.randomInt(1, 100)
 			})) as SuccessfulAuthenticationModel[];
@@ -385,7 +379,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			await Promise.all(authentications.map((authentication) => successfulAuthenticationRepository.insert(authentication)));
 
 			/* READ THEM */
-			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, now - 102, now - 101)).to.be.equalTo([]);
+			expect(await successfulAuthenticationRepository.readRange(firstAccount.id, now - 102, now - 101)).toStrictEqual([]);
 
 			const startingFrom = now - number.randomInt(50, 100);
 			const endingTo = now - number.randomInt(1, 49);
@@ -400,7 +394,7 @@ describe(`${SuccessfulAuthenticationsMysqlRepository.name} spec`, function suite
 			readAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 			expectedAuthentications.sort((first, second) => first.id.localeCompare(second.id));
 
-			expect(readAuthentications).to.be.ofSize(expectedAuthentications.length);
+			expect(readAuthentications).to.have.length(expectedAuthentications.length);
 
 			for (let i = 0; i < expectedAuthentications.length; i++) {
 				expect(readAuthentications[i]).to.be.deep.eq(expectedAuthentications[i]);

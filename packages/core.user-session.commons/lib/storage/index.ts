@@ -1,51 +1,43 @@
+import type { HTTPRequestLocation, Seconds } from '@thermopylae/core.declarations';
 import { ConnectionType, RedisClientInstance } from '@thermopylae/core.redis';
-import type { Seconds, HTTPRequestLocation } from '@thermopylae/core.declarations';
-import type { Subject, SessionId, UserSessionMetaData, UserSessionStorage } from '@thermopylae/lib.user-session.commons';
-import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../typings';
-import { logger } from '../logger';
-import { createException, ErrorCodes } from '../error';
+import type { SessionId, Subject, UserSessionMetaData, UserSessionStorage } from '@thermopylae/lib.user-session.commons';
+import { ErrorCodes, createException } from '../error.js';
+import { logger } from '../logger.js';
+import type { UserSessionDevice, UserSessionMetaDataSerializer } from '../typings.js';
 
 interface UserSessionRedisStorageOptions<
 	MetaData extends UserSessionMetaData<UserSessionDevice, HTTPRequestLocation> = UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
 > {
-	/**
-	 * Prefixes used for keys stored in Redis.
-	 */
+	/** Prefixes used for keys stored in Redis. */
 	readonly keyPrefix: {
-		/**
-		 * Key prefix used for storing a list of session id's belonging to a concrete subject.
-		 */
+		/** Key prefix used for storing a list of session id's belonging to a concrete subject. */
 		readonly sessions: string;
-		/**
-		 * Key prefix used for storing session id as key and metadata as value.
-		 */
+		/** Key prefix used for storing session id as key and metadata as value. */
 		readonly sessionId: string;
 	};
 	/**
-	 * Maximum number of concurrent sessions that a user can have. <br/>
-	 * Creating a new session above this threshold will result in an error. <br/>
-	 * When left *undefined*, user can have an unlimited number of sessions.
+	 * Maximum number of concurrent sessions that a user can have. <br/> Creating a new session
+	 * above this threshold will result in an error. <br/> When left _undefined_, user can have an
+	 * unlimited number of sessions.
 	 */
 	readonly concurrentSessions?: number;
-	/**
-	 * Serializer used for session metadata serialization.
-	 */
+	/** Serializer used for session metadata serialization. */
 	readonly serializer: UserSessionMetaDataSerializer<MetaData>;
 }
 
 /**
- * User session storage backed by [Redis](https://redis.io/). <br/>
- * This implementation uses *core.redis* as client and imposes the following requirements to him: <br/>
- * 	- {@link ConnectionType.SUBSCRIBER} connection needs to be established and available.
- * 		**Key space notification events needs to be enabled on Redis Server side.**
- * 		This is needed for receiving of key space notification events about refresh token keys deletion, expiration or eviction,
- * 		in order to remove them from list of active user sessions. <br/>
- * 	- {@link ConnectionType.REGULAR} connection needs to have **detect_buffers** option enabled, because it stores and reads
- * 		serialized user session metadata as {@link Buffer} instances. <br/>
- * 	- {@link RedisClientInstance.db} property should always return a valid db index.
- * 		It is recommended to not change db after {@link ConnectionType.REGULAR} connection was established.
+ * User session storage backed by [Redis](https://redis.io/). <br/> This implementation uses
+ * _core.redis_ as client and imposes the following requirements to him: <br/> -
+ * {@link ConnectionType.SUBSCRIBER} connection needs to be established and available. **Key space
+ * notification events needs to be enabled on Redis Server side.** This is needed for receiving of
+ * key space notification events about refresh token keys deletion, expiration or eviction, in order
+ * to remove them from list of active user sessions. <br/> - {@link ConnectionType.REGULAR}
+ * connection needs to have **detect_buffers** option enabled, because it stores and reads
+ * serialized user session metadata as {@link Buffer} instances. <br/> -
+ * {@link RedisClientInstance.db} property should always return a valid db index. It is recommended
+ * to not change db after {@link ConnectionType.REGULAR} connection was established.
  *
- * @template MetaData	Type of the user session metadata.
+ * @template MetaData Type of the user session metadata.
  */
 class UserSessionRedisStorage<
 	MetaData extends UserSessionMetaData<UserSessionDevice, HTTPRequestLocation> = UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>
@@ -201,4 +193,4 @@ class UserSessionRedisStorage<
 	}
 }
 
-export { UserSessionRedisStorage, UserSessionRedisStorageOptions };
+export { UserSessionRedisStorage, type UserSessionRedisStorageOptions };

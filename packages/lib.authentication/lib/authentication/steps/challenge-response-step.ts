@@ -1,20 +1,21 @@
 import type { BinaryToTextEncoding } from 'crypto';
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../../types/contexts';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
 /**
- * Validates challenge-response *nonce*.
+ * Validates challenge-response _nonce_.
  *
- * @param pubKey			Public key from {@link AccountModel.pubKey}.
- * @param nonce				Plaintext *nonce* sent to client.
- * @param signature			Encrypted *nonce* sent by client.
- * @param signAlgorithm		*nonce* signing algorithm used by client.
- * @param encoding			*nonce* signing encoding used by client.
+ * @param   pubKey        Public key from {@link AccountModel.pubKey}.
+ * @param   nonce         Plaintext _nonce_ sent to client.
+ * @param   signature     Encrypted _nonce_ sent by client.
+ * @param   signAlgorithm _nonce_ signing algorithm used by client.
+ * @param   encoding      _nonce_ signing encoding used by client.
  *
- * @returns					Whether nonce sent by client matches the one that was sent by server to him.
+ * @returns               Whether nonce sent by client matches the one that was sent by server to
+ *   him.
  */
 type ChallengeResponseValidator = (
 	pubKey: string | Buffer,
@@ -24,9 +25,7 @@ type ChallengeResponseValidator = (
 	encoding: BinaryToTextEncoding
 ) => Promise<boolean>;
 
-/**
- * @private
- */
+/** @private */
 class ChallengeResponseStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly validator: ChallengeResponseValidator;
 
@@ -61,4 +60,5 @@ class ChallengeResponseStep<Account extends AccountModel> implements Authenticat
 	}
 }
 
-export { ChallengeResponseStep, ChallengeResponseValidator };
+export { ChallengeResponseStep };
+export type { ChallengeResponseValidator };

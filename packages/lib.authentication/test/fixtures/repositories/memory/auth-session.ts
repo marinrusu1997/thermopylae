@@ -1,5 +1,5 @@
-import type { AuthenticationSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+import type { AuthenticationSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const AuthenticationSessionMemoryRepository: AuthenticationSessionRepository = {
 	upsert: async (username, deviceId, session, ttl) => {

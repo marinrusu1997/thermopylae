@@ -1,18 +1,13 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/dev.unit-test';
-import { chrono, array } from '@thermopylae/lib.utils';
-import { PromiseExecutor } from '../../lib';
+import { array, chrono } from '@thermopylae/lib.utils';
+import { describe, expect, it } from 'vitest';
+import { PromiseExecutor } from '../../lib/index.js';
 
-const { expect } = chai;
-
-// eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${PromiseExecutor.name} spec`, () => {
 	it('processes data in sequential order', async () => {
 		const items = 10;
-		const duration = 100;
+		const sleepDuration = 100;
 		async function longRunningProcessor(): Promise<null> {
-			await chrono.sleep(duration);
+			await chrono.sleep(sleepDuration);
 			return null;
 		}
 
@@ -20,17 +15,18 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), PromiseExecutor.SEQUENTIAL);
 		const end = Date.now();
 
-		const expectedDuration = items * duration;
-		// @ts-ignore This is for test purposes
-		expect(end - start).to.be.in.range(expectedDuration - duration, expectedDuration + duration);
+		const expectedDuration = items * sleepDuration;
+		const duration = end - start;
+		expect(duration).toBeGreaterThanOrEqual(expectedDuration - duration);
+		expect(duration).toBeLessThanOrEqual(expectedDuration + duration);
 	});
 
 	it('processes data in parallel order', async () => {
 		const items = 10;
-		const duration = 100;
+		const sleepDuration = 100;
 		const epsilon = 20;
 		async function longRunningProcessor(): Promise<null> {
-			await chrono.sleep(duration);
+			await chrono.sleep(sleepDuration);
 			return null;
 		}
 
@@ -38,35 +34,37 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), PromiseExecutor.PARALLEL);
 		const end = Date.now();
 
-		const expectedDuration = duration;
-		// @ts-ignore This is for test purposes
-		expect(end - start).to.be.in.range(expectedDuration - epsilon, expectedDuration + epsilon);
+		const expectedDuration = sleepDuration;
+		const duration = end - start;
+		expect(duration).toBeGreaterThanOrEqual(expectedDuration - epsilon);
+		expect(duration).toBeLessThanOrEqual(expectedDuration + epsilon);
 	});
 
 	it('processes data in batches', async () => {
-		const items = 10;
-		const duration = 100;
-		const epsilon = 50;
-		const concurrency = 2;
+		const ITEMS_NO = 10;
+		const SLEEP_DURATION = 100;
+		const EPSILON = 50;
+		const CONCURRENCY = 2;
 		async function longRunningProcessor(): Promise<null> {
-			await chrono.sleep(duration);
+			await chrono.sleep(SLEEP_DURATION);
 			return null;
 		}
 
 		const start = Date.now();
-		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(items, null), concurrency);
+		await PromiseExecutor.run<null, null>(longRunningProcessor, array.filledWith(ITEMS_NO, null), CONCURRENCY);
 		const end = Date.now();
 
-		const expectedDuration = (items * duration) / concurrency;
-		// @ts-ignore This is for test purposes
-		expect(end - start).to.be.in.range(expectedDuration - epsilon, expectedDuration + epsilon);
+		const expectedDuration = (ITEMS_NO * SLEEP_DURATION) / CONCURRENCY;
+		const duration = end - start;
+		expect(duration).toBeGreaterThanOrEqual(expectedDuration - EPSILON);
+		expect(duration).toBeLessThanOrEqual(expectedDuration + EPSILON);
 	});
 
 	it('creates a runnable command', async () => {
 		const items = 10;
-		const duration = 100;
+		const sleepDuration = 100;
 		async function longRunningProcessor(): Promise<null> {
-			await chrono.sleep(duration);
+			await chrono.sleep(sleepDuration);
 			return null;
 		}
 
@@ -76,9 +74,10 @@ describe(`${PromiseExecutor.name} spec`, () => {
 		await command.execute();
 		const end = Date.now();
 
-		const expectedDuration = items * duration;
-		// @ts-ignore This is for test purposes
-		expect(end - start).to.be.in.range(expectedDuration - duration, expectedDuration + duration);
+		const expectedDuration = items * sleepDuration;
+		const duration = end - start;
+		expect(duration).toBeGreaterThanOrEqual(expectedDuration - duration);
+		expect(duration).toBeLessThanOrEqual(expectedDuration + duration);
 	});
 
 	it('fails to create command if concurrency is negative', () => {
@@ -99,7 +98,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 			return null;
 		}
 
-		await expect(PromiseExecutor.run(processor, [], 1)).to.be.rejectedWith(
+		await expect(PromiseExecutor.run(processor, [], 1)).rejects.toThrow(
 			`Concurrency needs to have a min value of 2. Provided concurrency: 1. ` +
 				`For sequential concurrency please provide ${PromiseExecutor.SEQUENTIAL} value.`
 		);
@@ -110,7 +109,7 @@ describe(`${PromiseExecutor.name} spec`, () => {
 			return null;
 		}
 
-		await expect(PromiseExecutor.run(processor, [], -1)).to.be.rejectedWith(`Concurrency needs to have a min value of 2. Provided concurrency: -1. `);
+		await expect(PromiseExecutor.run(processor, [], -1)).rejects.toThrow(`Concurrency needs to have a min value of 2. Provided concurrency: -1. `);
 	});
 
 	it('formats concurrency', () => {

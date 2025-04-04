@@ -1,17 +1,17 @@
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, Mutable, Library, CoreModule } from '@thermopylae/core.declarations';
+import { CoreModule, HttpStatusCode, Library, type Mutable, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as CoreUserSessionCommonsErrorCodes } from '@thermopylae/core.user-session.commons';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { AccountWithTotpSecret, AuthenticationContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import { type AccountWithTotpSecret, type AuthenticationContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
 import farmhash from 'farmhash';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
-import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { stringifyOperationContext } from '../../../../utils';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import { logger } from '../../../../logger.js';
+import { stringifyOperationContext } from '../../../../utils.js';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT',
@@ -41,6 +41,7 @@ const validateRequestBody: RequestHandler = handler(
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.AUTHENTICATE, req.body);
 			next();
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {
@@ -63,7 +64,7 @@ const route = handler(async (req: Request<ObjMap, ResponseBody, RequestBody>, re
 	authContext.ip = request.ip;
 	authContext.location = request.location;
 	authContext.device = request.device;
-	authContext.deviceId = farmhash.hash64(request.header('user-agent') as string);
+	authContext.deviceId = farmhash.hash64(request.header('user-agent') as string).toString();
 
 	try {
 		const authenticationStatus = await AUTHENTICATION_ENGINE.authenticate(authContext);

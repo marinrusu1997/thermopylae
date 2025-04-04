@@ -1,59 +1,55 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "#CONFIG-GEOIP",
-  "type": "object",
-  "title": "The geoip config validation schema.",
-  "properties": {
-    "GEOIP_LITE": {
-      "type": "object",
-      "properties": {
-        "weight": {
-          "type": "integer",
-          "minimum": 1
-        }
-      },
-      "required": ["weight"],
-      "additionalProperties": false
-    },
-    "IPLOCATE": {
-      "type": "object",
-      "properties": {
-        "apiKey": {
-          "type": "string"
-        },
-        "weight": {
-          "type": "integer",
-          "minimum": 1
-        }
-      },
-      "required": ["weight"],
-      "additionalProperties": false
-    },
-    "IPSTACK": {
-      "type": "object",
-      "properties": {
-        "apiKey": {
-          "type": "string"
-        },
-        "plan": {
-          "enum": ["FREE", "BASIC", "PROFESSIONAL", "PROFESSIONAL_PLUS"]
-        },
-        "lang": {
-          "enum": ["en", "de", "es", "fr", "ja", "pt-br", "ru", "zh"]
-        },
-        "weight": {
-          "type": "integer",
-          "minimum": 1
-        }
-      },
-      "required": ["apiKey", "plan", "lang", "weight"],
-      "additionalProperties": false
-    }
-  },
-  "required": [
-    "GEOIP_LITE",
-    "IPLOCATE",
-    "IPSTACK"
-  ],
-  "additionalProperties": false
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "#CONFIG-GEOIP",
+	"type": "object",
+	"title": "The geoip config validation schema.",
+	"properties": {
+		"GEOIP_LITE": {
+			"type": "object",
+			"properties": {
+				"weight": {
+					"type": "integer",
+					"minimum": 1
+				}
+			},
+			"required": ["weight"],
+			"additionalProperties": false
+		},
+		"IPLOCATE": {
+			"type": "object",
+			"properties": {
+				"apiKey": {
+					"type": "string"
+				},
+				"weight": {
+					"type": "integer",
+					"minimum": 1
+				}
+			},
+			"required": ["weight"],
+			"additionalProperties": false
+		},
+		"IPSTACK": {
+			"type": "object",
+			"properties": {
+				"apiKey": {
+					"type": "string"
+				},
+				"plan": {
+					"enum": ["FREE", "BASIC", "PROFESSIONAL", "PROFESSIONAL_PLUS"]
+				},
+				"lang": {
+					"enum": ["en", "de", "es", "fr", "ja", "pt-br", "ru", "zh"]
+				},
+				"weight": {
+					"type": "integer",
+					"minimum": 1
+				}
+			},
+			"required": ["apiKey", "plan", "lang", "weight"],
+			"additionalProperties": false
+		}
+	},
+	"required": ["GEOIP_LITE", "IPLOCATE", "IPSTACK"],
+	"additionalProperties": false
 }

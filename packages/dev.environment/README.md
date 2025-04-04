@@ -16,38 +16,42 @@ npm install @thermopylae/dev.environment --dev
 ```
 
 ## Description
+
 This package contains a collection of tools used in the development process of Thermopylae packages, such as:
 
-* gulp tasks (e.g. build, lint, test, doc)
-* dependencies to dev tools (e.g. eslint, mocha, typedoc)
-* configs for dev tools
+- gulp tasks (e.g. build, lint, test, doc)
+- dependencies to dev tools (e.g. eslint, mocha, typedoc)
+- configs for dev tools
 
 # Usage
+
 Bellow are simple examples of how this module can be used:
 
-* **gulpfile.cjs**
+- **gulpfile.cjs**
+
 ```javascript
-"use strict";
+'use strict';
 module.exports = require('@thermopylae/dev.environment').gulpfile;
 ```
-* **.eslintrc.cjs**
+
+- **.eslintrc.cjs**
+
 ```javascript
 module.exports = require('@thermopylae/dev.environment').configs.eslint;
 ```
-* **tsconfig.json**
+
+- **tsconfig.json**
+
 ```json
 {
-    "extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
-    "compilerOptions": {
-        "rootDir": ".",
-        "tsBuildInfoFile": "build/tsbuildinfo",
-        "outDir": "dist",
-        "module": "commonjs"
-    },
-    "include": [
-        "lib/**/*.ts",
-        "test/**/*.ts"
-    ]
+	"extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"tsBuildInfoFile": "build/tsbuildinfo",
+		"outDir": "dist",
+		"module": "commonjs"
+	},
+	"include": ["lib/**/*.ts", "test/**/*.ts"]
 }
 ```
 
@@ -55,9 +59,9 @@ module.exports = require('@thermopylae/dev.environment').configs.eslint;
 
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+- GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+- Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+- LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
 
 ## 📝 License
 

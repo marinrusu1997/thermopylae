@@ -1,5 +1,5 @@
-import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '../../../../lib';
-import { MemoryCache } from '../../memory-cache';
+import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '../../../../lib/index.js';
+import { MemoryCache } from '../../memory-cache.js';
 
 const ActivateAccountSessionMemoryRepository: ActivateAccountSessionRepository<AccountWithTotpSecret> = {
 	insert: async (token, account, ttl) => {

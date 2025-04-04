@@ -1,30 +1,26 @@
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry } from '../../contracts/commons';
-import { DependencyGraph, GraphEntry } from '../../data-structures/dependency-graph';
-import { ReadonlyCacheBackend } from '../../contracts/cache-backend';
-import { createException, ErrorCodes } from '../../error';
+import type { ReadonlyCacheBackend } from '../../contracts/cache-backend.js';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../contracts/cache-replacement-policy.js';
+import type { CacheEntry } from '../../contracts/commons.js';
+import { DependencyGraph, type GraphEntry } from '../../data-structures/dependency-graph.js';
+import { ErrorCodes, createException } from '../../error.js';
 
-/**
- * @private
- */
+/** @private */
 interface CacheEntryWithDependencies<Key, Value> extends CacheEntry<Key, Value>, GraphEntry {}
 
 interface KeysDependenciesEvictionPolicyArgumentsBundle<Key> {
-	/**
-	 * Dependencies of the entry.
-	 */
+	/** Dependencies of the entry. */
 	dependencies?: Array<Key>;
-	/**
-	 * Dependents of the entry.
-	 */
+	/** Dependents of the entry. */
 	dependents?: Array<Key>;
 	/**
 	 * Behaviour to take when dependency not present in the {@link ReadonlyCacheBackend}:
 	 *
-	 * Throw on dependency not found  | Behaviour
-	 * ------------------------------ | ------------------------------
-	 * true  						  | An exception will be thrown, and entry insertion will fail. There aren't any exception guarantees, meaning that after exception is thrown, state of the this and other policies might be corrupted. You can use *throwOnDependencyNotFound* mode for debugging or testing, in production is not recommended to use it.
-	 * false  						  | Dependency will be ignored and relationship with entry won't be established.
+	 * Throw on dependency not found | Behaviour ------------------------------ |
+	 * ------------------------------ true | An exception will be thrown, and entry insertion will
+	 * fail. There aren't any exception guarantees, meaning that after exception is thrown, state of
+	 * the this and other policies might be corrupted. You can use _throwOnDependencyNotFound_ mode
+	 * for debugging or testing, in production is not recommended to use it. false | Dependency will
+	 * be ignored and relationship with entry won't be established.
 	 *
 	 * Defaults to **false**.
 	 */
@@ -32,19 +28,21 @@ interface KeysDependenciesEvictionPolicyArgumentsBundle<Key> {
 }
 
 /**
- * Eviction policy, purpose of which is to offer ***cascade delete*** functionality. <br/>
+ * Eviction policy, purpose of which is to offer _**cascade delete**_ functionality. <br/>
  *
- * When one of the keys is deleted/eviction, all of it's direct and transitive dependencies will also be deleted/evicted. <br/>
+ * When one of the keys is deleted/eviction, all of it's direct and transitive dependencies will
+ * also be deleted/evicted. <br/>
  *
  * This is achieved by using an internal dependency graph. Graph is able to handle cycles. <br/>
  *
- * When `key` is inserted in the cache, clients should also specify a list of dependencies and/or dependents (if `key` has them).
- * **The only limitation is that dependencies/dependents must be already present in the cache when they are specified,
- * otherwise relationships of the `key` with them will be ignored.**
+ * When `key` is inserted in the cache, clients should also specify a list of dependencies and/or
+ * dependents (if `key` has them). **The only limitation is that dependencies/dependents must be
+ * already present in the cache when they are specified, otherwise relationships of the `key` with
+ * them will be ignored.**
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class KeysDependenciesEvictionPolicy<
 	Key,
@@ -52,9 +50,7 @@ class KeysDependenciesEvictionPolicy<
 	ArgumentsBundle extends KeysDependenciesEvictionPolicyArgumentsBundle<Key> = KeysDependenciesEvictionPolicyArgumentsBundle<Key>
 > implements CacheReplacementPolicy<Key, Value, ArgumentsBundle>
 {
-	/**
-	 * @private
-	 */
+	/** @private */
 	private readonly dependencyGraph: DependencyGraph<CacheEntryWithDependencies<Key, Value>>;
 
 	private readonly readonlyCacheBackend: ReadonlyCacheBackend<Key, Value>;
@@ -63,32 +59,24 @@ class KeysDependenciesEvictionPolicy<
 
 	private deleteFromCache!: Deleter<Key, Value>;
 
-	/**
-	 * @param readonlyCacheBackend	Cache backend instance.
-	 */
+	/** @param readonlyCacheBackend Cache backend instance. */
 	public constructor(readonlyCacheBackend: ReadonlyCacheBackend<Key, Value>) {
 		this.dependencyGraph = new DependencyGraph<CacheEntryWithDependencies<Key, Value>>();
 		this.readonlyCacheBackend = readonlyCacheBackend;
 		this.visitedEntriesOnDeletion = new Set<CacheEntryWithDependencies<Key, Value>>();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onHit(): EntryValidity {
 		return EntryValidity.VALID;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onMiss(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onSet(entry: CacheEntryWithDependencies<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null) {
 			return;
@@ -127,15 +115,14 @@ class KeysDependenciesEvictionPolicy<
 
 	/**
 	 * This method doesn't manipulate cache dependencies.
+	 *
 	 * @inheritDoc
 	 */
 	public onUpdate(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onDelete(entry: CacheEntryWithDependencies<Key, Value>): void {
 		this.visitedEntriesOnDeletion.add(entry);
 
@@ -153,20 +140,16 @@ class KeysDependenciesEvictionPolicy<
 		this.dependencyGraph.removeNode(entry); // remove from graph & detach metadata
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onClear(): void {
 		// do nothing, gc should be able to free entries, even if they have references to each other
 		// same happens with linked lists
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
 }
 
-export { KeysDependenciesEvictionPolicy, KeysDependenciesEvictionPolicyArgumentsBundle, CacheEntryWithDependencies };
+export { KeysDependenciesEvictionPolicy, type KeysDependenciesEvictionPolicyArgumentsBundle, type CacheEntryWithDependencies };

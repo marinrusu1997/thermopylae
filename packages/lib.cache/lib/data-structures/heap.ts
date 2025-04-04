@@ -1,20 +1,14 @@
-import { Comparator, Undefinable } from '@thermopylae/core.declarations';
+import type { Comparator, Undefinable } from '@thermopylae/core.declarations';
 
-/**
- * @private
- */
+/** @private */
 const HEAP_NODE_IDX_SYM = Symbol('HEAP_NODE_INDEX_SYMBOL');
 
-/**
- * @private
- */
+/** @private */
 interface HeapNode {
 	[HEAP_NODE_IDX_SYM]: number;
 }
 
-/**
- * @private
- */
+/** @private */
 class Heap<T extends HeapNode> {
 	private readonly comparator: Comparator<T>;
 
@@ -122,10 +116,10 @@ class Heap<T extends HeapNode> {
 	 *
 	 * @private
 	 *
-	 * @param node	Node to propagate down.
+	 * @param   node Node to propagate down.
 	 *
-	 * @returns		The node where propagation stopped. <br/>
-	 * 				Might return the same `node` from argument if no propagation occurred.
+	 * @returns      The node where propagation stopped. <br/> Might return the same `node` from
+	 *   argument if no propagation occurred.
 	 */
 	private propagateDown(node: T): T {
 		let leftChild = this.leftChild(node);
@@ -181,7 +175,6 @@ class Heap<T extends HeapNode> {
 	}
 
 	private parent(childNode: T): T {
-		// eslint-disable-next-line no-bitwise
 		return this.nodes[(childNode[HEAP_NODE_IDX_SYM] - 1) >> 1];
 	}
 
@@ -194,4 +187,4 @@ class Heap<T extends HeapNode> {
 	}
 }
 
-export { Heap, HeapNode, HEAP_NODE_IDX_SYM };
+export { Heap, type HeapNode, HEAP_NODE_IDX_SYM };

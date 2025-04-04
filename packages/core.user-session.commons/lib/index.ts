@@ -1,7 +1,7 @@
-export { UserSessionRedisStorage } from './storage/index';
-export { UserSessionUtils } from './utils';
-export { initLogger } from './logger';
-export { ErrorCodes } from './error';
+export { UserSessionRedisStorage } from './storage/index.js';
+export { UserSessionUtils } from './utils.js';
+export { initLogger } from './logger.js';
+export { ErrorCodes } from './error.js';
 
-export type { UserSessionRedisStorageOptions } from './storage/index';
-export type { UserSessionDevice, UserSessionMetaDataSerializer, ExceptionFactory, AuthorizationTokenExtractor } from './typings';
+export type { UserSessionRedisStorageOptions } from './storage/index.js';
+export type { UserSessionDevice, UserSessionMetaDataSerializer, ExceptionFactory, AuthorizationTokenExtractor } from './typings.js';

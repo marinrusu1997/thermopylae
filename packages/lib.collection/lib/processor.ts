@@ -1,15 +1,14 @@
-import { ObjMap, Optional } from '@thermopylae/core.declarations';
-import { IndexedStore, IndexValue } from '@thermopylae/lib.indexed-store';
-import orderBy from 'lodash.orderby';
-import dotprop from 'dot-prop';
+import type { ObjMap, Optional } from '@thermopylae/core.declarations';
+import { type IndexValue, IndexedStore } from '@thermopylae/lib.indexed-store';
 // @ts-ignore This package has no typings
 import { createUpdate } from 'common-query';
-import { createException, ErrorCodes } from './error';
-import { DocumentContract, IndexedKey, Projection, ProjectionType, SortFields, PK_INDEX_NAME } from './typings';
+import { deleteProperty, getProperty, setProperty } from 'dot-prop';
+import orderBy from 'lodash.orderby';
+import { ErrorCodes, createException } from './error.js';
+import { PK_INDEX_NAME, ProjectionType } from './typings.js';
+import type { DocumentContract, IndexedKey, Projection, SortFields } from './typings.js';
 
-/**
- * @private
- */
+/** @private */
 class Processor<Document extends DocumentContract<Document>> {
 	private readonly storage: IndexedStore<Document>;
 
@@ -34,7 +33,7 @@ class Processor<Document extends DocumentContract<Document>> {
 				update['apply'](match);
 
 				for (const updatedIndex of updatedIndexes) {
-					const newValue = dotprop.get(match, updatedIndex) as IndexValue;
+					const newValue = getProperty(match, updatedIndex) as IndexValue;
 					this.storage.reindex(updatedIndex, snapshot[updatedIndex], newValue, match[PK_INDEX_NAME]);
 				}
 			}
@@ -74,18 +73,21 @@ class Processor<Document extends DocumentContract<Document>> {
 		return orderBy(matches, Object.keys(sortFields), Object.values(sortFields));
 	}
 
-	private static applyProjection<DocumentType>(documentClone: DocumentType, projection: Projection<DocumentType>): DocumentType {
+	private static applyProjection<DocumentType extends DocumentContract<DocumentType>>(
+		documentClone: DocumentType,
+		projection: Projection<DocumentType>
+	): DocumentType {
 		switch (projection.type) {
 			case ProjectionType.EXCLUDE:
 				for (const field of projection.fields) {
-					dotprop.delete(documentClone, field);
+					deleteProperty(documentClone, field);
 				}
 				break;
 			case ProjectionType.INCLUDE:
 				{
 					const replacement = Object.create(Object.getPrototypeOf(documentClone));
 					for (const field of projection.fields) {
-						dotprop.set(replacement, field, dotprop.get(documentClone, field));
+						setProperty(replacement, field, getProperty(documentClone, field));
 					}
 					documentClone = replacement;
 				}
@@ -96,14 +98,14 @@ class Processor<Document extends DocumentContract<Document>> {
 		return documentClone;
 	}
 
-	private static snapshotIndexableProperties<DocumentType>(
+	private static snapshotIndexableProperties<DocumentType extends DocumentContract<DocumentType>>(
 		document: DocumentType,
 		indexes: Array<IndexedKey<DocumentType>>
 	): Record<IndexedKey<DocumentType>, Optional<IndexValue>> {
 		const snapshot = {} as Record<IndexedKey<DocumentType>, Optional<IndexValue>>;
 
 		for (const index of indexes) {
-			snapshot[index] = dotprop.get(document, index);
+			snapshot[index] = getProperty(document, index);
 		}
 
 		return snapshot;

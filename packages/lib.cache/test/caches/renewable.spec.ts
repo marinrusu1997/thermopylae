@@ -1,23 +1,21 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import colors from 'colors';
+import type { MaybePromise, PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { MaybePromise, PromiseHolder, Undefinable } from '@thermopylae/core.declarations';
+import colors from 'colors';
 import { setTimeout as asyncSetTimeout } from 'timers/promises';
+import { describe, expect, it } from 'vitest';
 import {
-	KeyRetriever,
-	RenewableCache,
-	EntryPoolCacheBackend,
-	PolicyBasedCache,
+	type AbsoluteExpirationPolicyArgumentsBundle,
+	type Cache,
 	CacheEvent,
-	Cache,
-	AbsoluteExpirationPolicyArgumentsBundle,
-	ProactiveExpirationPolicy,
+	EntryPoolCacheBackend,
 	HeapGarbageCollector,
-	KeyConfigProvider,
-	INFINITE_EXPIRATION
-} from '../../lib';
+	INFINITE_EXPIRATION,
+	type KeyConfigProvider,
+	type KeyRetriever,
+	PolicyBasedCache,
+	ProactiveExpirationPolicy,
+	RenewableCache
+} from '../../lib/index.js';
 
 describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 	describe(`${RenewableCache.prototype.get.name.magenta} spec`, () => {
@@ -44,13 +42,13 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				renewableCache.get('b'),
 				renewableCache.get('b')
 			]);
-			expect(results).to.be.equalTo(['a', 'a', 'a', 'b', 'b']);
+			expect(results).toStrictEqual(['a', 'a', 'a', 'b', 'b']);
 
 			expect(retrieverCalls).to.be.eq(2);
 			expect(renewableCache.size).to.be.eq(2);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			await expect(renewableCache.get('b')).to.eventually.be.eq('b');
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			await expect(renewableCache.get('b')).resolves.to.be.eq('b');
 			expect(retrieverCalls).to.be.eq(2); // retriever not called cuz we have it in cache
 
 			expect(renewableCache.has('a')).to.be.eq(true);
@@ -81,8 +79,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(2); // retriever called 2 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(2); // retriever called 2 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 3; i++) {
 				expect(results[i].status).to.be.eq('rejected');
 				// @ts-ignore For testing purposes
@@ -94,8 +92,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				expect(results[i].reason).to.be.deep.eq(errors[1]);
 			}
 
-			await expect(renewableCache.get('a')).to.eventually.be.rejectedWith('a');
-			expect(errors).to.be.ofSize(3);
+			await expect(renewableCache.get('a')).rejects.toThrow('a');
+			expect(errors).to.have.length(3);
 			expect(errors[2].message).to.be.eq('a');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -132,16 +130,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(5); // config provider called 5 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(5); // config provider called 5 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
 				// @ts-ignore For testing purposes
 				expect(results[i].reason).to.be.deep.eq(errors[i]);
 			}
 
-			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
-			expect(errors).to.be.ofSize(6);
+			await expect(renewableCache.get('c')).rejects.toThrow('c');
+			expect(errors).to.have.length(6);
 			expect(errors[5].message).to.be.eq('c');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -202,16 +200,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			]);
 
 			expect(renewableCache.size).to.be.eq(0);
-			expect(errors).to.be.ofSize(5); // Cache.set called 5 times
-			expect(results).to.be.ofSize(5);
+			expect(errors).to.have.length(5); // Cache.set called 5 times
+			expect(results).to.have.length(5);
 			for (let i = 0; i < 5; i++) {
 				expect(results[i].status).to.be.eq('rejected');
 				// @ts-ignore For testing purposes
 				expect(results[i].reason).to.be.deep.eq(errors[i]);
 			}
 
-			await expect(renewableCache.get('c')).to.eventually.be.rejectedWith('c');
-			expect(errors).to.be.ofSize(6);
+			await expect(renewableCache.get('c')).rejects.toThrow('c');
+			expect(errors).to.have.length(6);
 			expect(errors[5].message).to.be.eq('c');
 			expect(renewableCache.size).to.be.eq(0);
 
@@ -248,8 +246,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			expect(renewableCache.size).to.be.eq(0);
 
 			const results = await requests;
-			expect(results).to.be.equalTo(['a', 'a', 'a', 'b', 'b']);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(results).toStrictEqual(['a', 'a', 'a', 'b', 'b']);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 			expect(renewableCache.size).to.be.eq(0);
 
 			expect(renewableCache.has('a')).to.be.eq(false);
@@ -257,12 +255,12 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			const firstReq = await chrono.executionTimeAsync(renewableCache.get, renewableCache, 'a');
 			expect(firstReq.result).to.be.eq('a');
 			expect(firstReq.time.milliseconds).to.be.gte(100); // retriever run
-			expect(requestedKeys).to.be.equalTo(['a', 'b', 'a']);
+			expect(requestedKeys).toStrictEqual(['a', 'b', 'a']);
 
 			const secondReq = await chrono.executionTimeAsync(renewableCache.get, renewableCache, 'a');
 			expect(secondReq.result).to.be.eq('a');
 			expect(secondReq.time.milliseconds).to.be.lessThan(50); // no retriever run
-			expect(requestedKeys).to.be.equalTo(['a', 'b', 'a']);
+			expect(requestedKeys).toStrictEqual(['a', 'b', 'a']);
 		});
 
 		it('removes promise holder from cache if retriever found nothing', async () => {
@@ -287,8 +285,8 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 				renewableCache.get('b'),
 				renewableCache.get('b')
 			]);
-			expect(results).to.be.equalTo([undefined, undefined, undefined, undefined, undefined]);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(results).toStrictEqual([undefined, undefined, undefined, undefined, undefined]);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 			expect(renewableCache.size).to.be.eq(0);
 
 			expect(renewableCache.has('a')).to.be.eq(false);
@@ -317,7 +315,7 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
 		});
 
-		it('arguments bundle returned by keyRetriever have precedence over the one returned by keyConfigProvider', async () => {
+		it('arguments bundle returned by keyRetriever have precedence over the one returned by keyConfigProvider', { timeout: 2500 }, async () => {
 			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
 				return new Promise((resolve) => {
 					setTimeout(() => {
@@ -343,7 +341,7 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 
 			await asyncSetTimeout(900);
 			expect(cache.get(result)).to.be.eq(undefined); // it applied `expiresAfter` from arguments bundle
-		}).timeout(2500);
+		});
 
 		it('arguments bundle returned by keyRetriever have precedence over the one that were passed explicitly', async () => {
 			const keyRetriever: KeyRetriever<string, string, AbsoluteExpirationPolicyArgumentsBundle> = (key) => {
@@ -385,10 +383,10 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
-			expect(Array.from(renewableCache.keys())).to.be.equalTo(['a']);
+			expect(Array.from(renewableCache.keys())).toStrictEqual(['a']);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			expect(requestedKeys).to.have.length(0);
 			expect(renewableCache.size).to.be.eq(1);
 		});
 
@@ -408,12 +406,12 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			const renewableCache = new RenewableCache<string, string>({ cache, keyRetriever });
 
 			renewableCache.set('a', 'a');
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a');
+			expect(requestedKeys).to.have.length(0);
 
 			renewableCache.set('a', 'a1');
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a1');
-			expect(requestedKeys).to.be.ofSize(0);
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a1');
+			expect(requestedKeys).to.have.length(0);
 
 			renewableCache.clear();
 			expect(renewableCache.size).to.be.eq(0);
@@ -423,11 +421,11 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			renewableCache.set('b', 'b1');
 
 			const responses = await requests;
-			expect(responses).to.be.equalTo(['a', 'a', 'b', 'b']);
-			expect(requestedKeys).to.be.equalTo(['a', 'b']);
+			expect(responses).toStrictEqual(['a', 'a', 'b', 'b']);
+			expect(requestedKeys).toStrictEqual(['a', 'b']);
 
-			await expect(renewableCache.get('a')).to.eventually.be.eq('a1');
-			await expect(renewableCache.get('b')).to.eventually.be.eq('b1');
+			await expect(renewableCache.get('a')).resolves.to.be.eq('a1');
+			await expect(renewableCache.get('b')).resolves.to.be.eq('b1');
 		});
 	});
 
@@ -459,16 +457,16 @@ describe(`${colors.magenta(RenewableCache.name)} spec`, () => {
 			});
 
 			await renewableCache.get('a');
-			expect(events.get(CacheEvent.INSERT)).to.be.equalTo(['a', 'a']);
+			expect(events.get(CacheEvent.INSERT)).toStrictEqual(['a', 'a']);
 
 			renewableCache.set('a', 'a1');
-			expect(events.get(CacheEvent.UPDATE)).to.be.equalTo(['a']);
+			expect(events.get(CacheEvent.UPDATE)).toStrictEqual(['a']);
 
 			renewableCache.del('a');
-			expect(events.get(CacheEvent.DELETE)).to.be.equalTo(['a']);
+			expect(events.get(CacheEvent.DELETE)).toStrictEqual(['a']);
 
 			renewableCache.clear();
-			expect(events.get(CacheEvent.FLUSH)).to.be.ofSize(0);
+			expect(events.get(CacheEvent.FLUSH)).to.have.length(0);
 		});
 	});
 });

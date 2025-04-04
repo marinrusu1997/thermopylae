@@ -1,4 +1,4 @@
-import { IpLocation, IpLocationsRepository } from '../../lib';
+import type { IpLocation, IpLocationsRepository } from '../../lib/index.js';
 
 class IpRepositoryMock implements IpLocationsRepository {
 	public availability: boolean;

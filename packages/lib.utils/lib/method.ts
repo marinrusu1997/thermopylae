@@ -1,4 +1,4 @@
-import { AsyncFunction, SyncFunction, Undefinable } from '@thermopylae/core.declarations';
+import type { AsyncFunction, SyncFunction, Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
 
 type ErrorHandler = (error: Error | Exception) => void;
@@ -35,7 +35,7 @@ class MethodInvoker<I, O> {
 		} catch (error) {
 			/* istanbul ignore else */
 			if (this.errorHandler) {
-				this.errorHandler(error);
+				this.errorHandler(error as Error);
 			}
 		}
 		return res;
@@ -48,11 +48,12 @@ class MethodInvoker<I, O> {
 		} catch (error) {
 			/* istanbul ignore else */
 			if (this.errorHandler) {
-				this.errorHandler(error);
+				this.errorHandler(error as Error);
 			}
 		}
 		return res;
 	}
 }
 
-export { MethodInvoker, ErrorHandler };
+export { MethodInvoker };
+export type { ErrorHandler };

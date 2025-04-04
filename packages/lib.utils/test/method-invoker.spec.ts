@@ -1,9 +1,5 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { MethodInvoker } from '../lib/method';
-
-const { expect } = chai;
+import { describe, expect, it } from 'vitest';
+import { MethodInvoker } from '../lib/method.js';
 
 describe('method invoker spec', () => {
 	it('invokes function whith provided this argument', () => {
@@ -22,15 +18,10 @@ describe('method invoker spec', () => {
 		expect(sum).to.be.equal(2);
 	});
 
-	it("invokes async func which doesn't throw and returns her result", (done) => {
+	it("invokes async func which doesn't throw and returns her result", async () => {
 		const func = (a: number, b: number): Promise<number> => Promise.resolve(a + b);
-		new MethodInvoker(func, 1, 1)
-			.safeInvokeAsync()
-			.then((sum) => {
-				expect(sum).to.be.equal(2);
-				done();
-			})
-			.catch((error) => done(error));
+		const sum = await new MethodInvoker(func, 1, 1).safeInvokeAsync();
+		expect(sum).to.be.equal(2);
 	});
 
 	it('invokes sync function which throws (error handler not specified)', () => {
@@ -45,7 +36,9 @@ describe('method invoker spec', () => {
 		expect(sum).to.be.equal(undefined);
 	});
 
-	it('invokes sync function which throws (error handler is specified)', (done) => {
+	it('invokes sync function which throws (error handler is specified)', async () => {
+		expect.hasAssertions();
+
 		const func = (a: number, b: number): number => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -55,13 +48,11 @@ describe('method invoker spec', () => {
 		};
 		const errorHandler = (error: Error): void => {
 			expect(error).to.be.instanceOf(Error);
-			done();
 		};
-		const sum = new MethodInvoker(func, 1, 1).errHandler(errorHandler).safeInvokeSync();
-		expect(sum).to.be.equal(undefined);
+		new MethodInvoker(func, 1, 1).errHandler(errorHandler).safeInvokeSync();
 	});
 
-	it('invokes async function which throws (error handler not specified)', (done) => {
+	it('invokes async function which throws (error handler not specified)', async () => {
 		const func = (a: number, b: number): Promise<number> => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -69,16 +60,13 @@ describe('method invoker spec', () => {
 			}
 			return Promise.resolve(sum);
 		};
-		new MethodInvoker(func, 1, 1)
-			.safeInvokeAsync()
-			.then((sum) => {
-				expect(sum).to.be.equal(undefined);
-				done();
-			})
-			.catch((error) => done(error));
+		const sum = await new MethodInvoker(func, 1, 1).safeInvokeAsync();
+		expect(sum).to.be.equal(undefined);
 	});
 
-	it('invokes async function which throws (error handler is specified)', (done) => {
+	it('invokes async function which throws (error handler is specified)', async () => {
+		expect.hasAssertions();
+
 		const func = (a: number, b: number): Promise<number> => {
 			const sum = a + b;
 			if (sum === 2) {
@@ -88,14 +76,7 @@ describe('method invoker spec', () => {
 		};
 		const errorHandler = (error: Error): void => {
 			expect(error).to.be.instanceOf(Error);
-			done();
 		};
-		new MethodInvoker(func, 1, 1)
-			.errHandler(errorHandler)
-			.safeInvokeAsync()
-			.then((sum) => {
-				expect(sum).to.be.equal(undefined);
-			})
-			.catch((error) => done(error));
+		await new MethodInvoker(func, 1, 1).errHandler(errorHandler).safeInvokeAsync();
 	});
 });

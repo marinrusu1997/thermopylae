@@ -1,3 +1,3 @@
-export type { ReadUserSessionHook } from './hooks';
-export type { SessionId, Subject, DeviceBase, UserSessionOperationContext, UserSessionMetaData } from './session';
-export type { UserSessionStorage } from './storage';
+export type { ReadUserSessionHook } from './hooks.js';
+export type { SessionId, Subject, DeviceBase, UserSessionOperationContext, UserSessionMetaData } from './session.js';
+export type { UserSessionStorage } from './storage.js';

@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { log, logError } from './utils';
-import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
-import { GrayLogsManager } from '../lib/transports/graylog';
+import { describe, expect, it } from 'vitest';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
+import { GrayLogsManager } from '../lib/transports/graylog.js';
+import { log, logError } from './utils.js';
 
 const inputsEndpoints = [
 	{ host: '127.0.0.1', port: 12201 },

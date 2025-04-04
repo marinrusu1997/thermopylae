@@ -1,13 +1,11 @@
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { TwoFactorAuthStrategy } from '../2fa/interface';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../../types/contexts';
+import type { TwoFactorAuthStrategy } from '../2fa/interface.js';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class GenerateTwoFactorAuthTokenStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly twoFactorAuthStrategy: TwoFactorAuthStrategy<Account>;
 

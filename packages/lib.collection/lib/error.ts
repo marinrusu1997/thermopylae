@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	DOCUMENT_NOT_VALID_AGAINST_JSON_SCHEMA = 'DOCUMENT_NOT_VALID_AGAINST_JSON_SCHEMA',
@@ -8,9 +8,7 @@ const enum ErrorCodes {
 	OPERATOR_NOT_SUPPORTED = 'OPERATOR_NOT_SUPPORTED'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: ErrorCodes, message: string, data?: any): Exception {
 	return new Exception(Library.COLLECTION, code as unknown as string, message, data);
 }

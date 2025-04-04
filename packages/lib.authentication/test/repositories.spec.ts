@@ -1,12 +1,14 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
+import type { HTTPRequestLocation, HttpDevice } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import type { HttpDevice, HTTPRequestLocation } from '@thermopylae/core.declarations';
-import { AccountStatus, AccountWithTotpSecret, FailedAuthenticationModel } from '../lib';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { FailedAuthenticationAttemptsRepositoryMongo } from './fixtures/repositories/mongo/failed-auth';
-import { SuccessfulAuthenticationsRepositoryMongo } from './fixtures/repositories/mongo/successful-auth';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, type FailedAuthenticationModel } from '../lib/index.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+
+const {
+	account: AccountRepositoryMongo,
+	failedAuthenticationAttempts: FailedAuthenticationAttemptsRepositoryMongo,
+	successfulAuthentications: SuccessfulAuthenticationsRepositoryMongo
+} = AuthenticationEngineDefaultOptions.repositories;
 
 describe('Repositories spec', () => {
 	const location: HTTPRequestLocation = {
@@ -99,7 +101,7 @@ describe('Repositories spec', () => {
 
 		const attempts = await FailedAuthenticationAttemptsRepositoryMongo.readRange('1', attempt3.detectedAt, attempt2.detectedAt);
 
-		expect(attempts).to.be.ofSize(2);
+		expect(attempts).to.have.length(2);
 		expect(attempts[0]).to.be.deep.equal(attempt3);
 		expect(attempts[1]).to.be.deep.equal(attempt2);
 	});

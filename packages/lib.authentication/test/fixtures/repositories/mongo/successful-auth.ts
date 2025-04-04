@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import objectHash from 'object-hash';
-import type { SuccessfulAuthenticationModel, SuccessfulAuthenticationsRepository } from '../../../../lib';
-import { getMongoModel } from '../../mongodb';
+import type { SuccessfulAuthenticationModel, SuccessfulAuthenticationsRepository } from '../../../../lib/index.js';
+import { getMongoModel } from '../../mongodb.js';
 
 const SuccessfulAuthenticationSchema = new mongoose.Schema({
 	accountId: { type: String, required: true },
@@ -10,7 +10,7 @@ const SuccessfulAuthenticationSchema = new mongoose.Schema({
 	location: Object,
 	authenticatedAt: { type: Number, required: true }
 });
-function model(): mongoose.Model<mongoose.Document> {
+function model() {
 	return getMongoModel('successful-authentication', SuccessfulAuthenticationSchema);
 }
 
@@ -35,7 +35,7 @@ const SuccessfulAuthenticationsRepositoryMongo: SuccessfulAuthenticationsReposit
 		const docs = await documentQuery.exec();
 
 		return docs.map((doc) => {
-			const failedAuthentication = doc.toObject({ virtuals: true }) as SuccessfulAuthenticationModel;
+			const failedAuthentication = doc.toObject({ virtuals: true }) as unknown as SuccessfulAuthenticationModel;
 			delete (failedAuthentication as any)._id;
 			delete (failedAuthentication as any).__v;
 

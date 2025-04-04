@@ -1,14 +1,17 @@
-import { HttpStatusCode } from '@thermopylae/core.declarations';
-import { logger } from '@thermopylae/dev.unit-test';
 import { ExpressRequestAdapter, ExpressResponseAdapter, LOCATION_SYM } from '@thermopylae/core.adapter.express';
-import express from 'express';
+import { type HTTPRequestLocation, HttpStatusCode } from '@thermopylae/core.declarations';
+import type { UserSessionDevice } from '@thermopylae/core.user-session.commons';
+import { logger } from '@thermopylae/dev.unit-test';
+import type { UserSessionMetaData } from '@thermopylae/lib.user-session.commons';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
-import morgan, { FormatFn } from 'morgan';
-import addRequestId from 'express-request-id';
+import express from 'express';
 import handler from 'express-async-handler';
-import { routes } from './routes';
-import { middleware } from './middleware';
+// @ts-ignore
+import addRequestId from 'express-request-id';
+import morgan, { type FormatFn } from 'morgan';
+import { middleware } from './middleware.js';
+import { routes } from './routes.js';
 
 morgan.token('id', (req) => {
 	return (req as any).id as string;
@@ -22,19 +25,18 @@ const morganFormat: FormatFn = (tokens, req, res): string => {
 		status! >= 500
 			? 31 // red
 			: status! >= 400
-			? 33 // yellow
-			: status! >= 300
-			? 36 // cyan
-			: status! >= 200
-			? 32 // green
-			: 0; // no color
+				? 33 // yellow
+				: status! >= 300
+					? 36 // cyan
+					: status! >= 200
+						? 32 // green
+						: 0; // no color
 
 	// @ts-ignore Typings are not correct, we are hacking here
 	let fn = morganFormat[color];
 
 	if (!fn) {
 		// @ts-ignore Typings are not correct, we are hacking here
-		// eslint-disable-next-line no-multi-assign
 		fn = morganFormat[color] = morgan.compile(`:id \x1b[0m:method :url \x1b[${color}m:status\x1b[0m :response-time ms - :res[content-length]\x1b[0m`);
 	}
 
@@ -81,6 +83,7 @@ app[routes.login.method](
 			await middleware.create(request, response, 'uid1');
 			response.status(HttpStatusCode.Created).send();
 		} catch (e) {
+			logger.error(`ERROR ${routes.login.method} ${routes.login.path}`, e);
 			response.status(HttpStatusCode.BadRequest).send({ message: e.message });
 		}
 	})
@@ -96,10 +99,13 @@ app[routes.get_resource.method](
 			const userSessionMetaData = await middleware.verify(request, response, request.query('uid') as string);
 			response.status(HttpStatusCode.Ok).send(userSessionMetaData);
 		} catch (e) {
+			logger.error(`ERROR ${routes.get_resource.method} ${routes.get_resource.path}`, e);
 			response.status(HttpStatusCode.Forbidden).send({ message: e.message });
 		}
 	})
 );
+
+type GetActiveSessionsBody = Record<string, UserSessionMetaData<UserSessionDevice, HTTPRequestLocation>>;
 
 app[routes.get_active_sessions.method](
 	routes.get_active_sessions.path,
@@ -125,6 +131,7 @@ app[routes.renew_session.method](
 			await middleware.renew(request, response, subject, userSessionMetaData);
 			response.status(HttpStatusCode.Ok).send();
 		} catch (e) {
+			logger.error(`ERROR ${routes.renew_session.method} ${routes.renew_session.path}`, e);
 			response.status(HttpStatusCode.NotFound).send({ message: e.message });
 		}
 	})
@@ -140,9 +147,11 @@ app[routes.logout.method](
 			await middleware.delete(request, response, request.query('uid')!, null, true);
 			response.status(HttpStatusCode.Ok).send();
 		} catch (e) {
+			logger.error(`ERROR ${routes.logout.method} ${routes.logout.path}`, e);
 			response.status(HttpStatusCode.NotFound).send({ message: e.message });
 		}
 	})
 );
 
 export { app };
+export type { GetActiveSessionsBody };

@@ -1,16 +1,16 @@
-import { HttpStatusCode, Library, Mutable, ObjMap } from '@thermopylae/core.declarations';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import handler from 'express-async-handler';
-import { ValidationError } from '@thermopylae/lib.api-validator';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { ChangePasswordContext, ErrorCodes as AuthenticationErrorCodes } from '@thermopylae/lib.authentication';
+import { HttpStatusCode, Library, type Mutable, type ObjMap } from '@thermopylae/core.declarations';
+import { ValidationError } from '@thermopylae/lib.api-validator';
+import { ErrorCodes as AuthenticationErrorCodes, type ChangePasswordContext } from '@thermopylae/lib.authentication';
 import { Exception } from '@thermopylae/lib.exception';
-import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { REQUEST_USER_SESSION_SYM, ApplicationServices, ServiceMethod } from '../../../../constants';
-import { logger } from '../../../../logger';
-import { createException, ErrorCodes as AppErrorCodes } from '../../../../error';
-import { RequestWithUserSession } from '../../../../typings';
-import { stringifyOperationContext } from '../../../../utils';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, AUTHENTICATION_ENGINE, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons.js';
+import { ApplicationServices, REQUEST_USER_SESSION_SYM, ServiceMethod } from '../../../../constants.js';
+import { ErrorCodes as AppErrorCodes, createException } from '../../../../error.js';
+import { logger } from '../../../../logger.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
+import { stringifyOperationContext } from '../../../../utils.js';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'
@@ -34,6 +34,7 @@ const validateRequestBody: RequestHandler = handler(
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.CHANGE_PASSWORD, req.body);
 			next();
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {

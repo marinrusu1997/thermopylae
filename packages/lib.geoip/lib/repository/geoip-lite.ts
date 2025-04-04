@@ -1,22 +1,19 @@
-import type { IpLocation, IpLocationsRepository } from './index';
+import type { IpLocation, IpLocationsRepository } from './index.js';
 
-/**
- * @private
- */
+/** @private */
 type GeoIPLite = typeof import('geoip-lite');
 
 /**
- * Repository which fetches ip locations from [geoip-lite](https://www.npmjs.com/package/geoip-lite) local database. <br/>
- * When using this repository, please take care to [update your local geoip database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
+ * Repository which fetches ip locations from [geoip-lite](https://www.npmjs.com/package/geoip-lite)
+ * local database. <br/> When using this repository, please take care to [update your local geoip
+ * database](https://www.npmjs.com/package/geoip-lite#built-in-updater).
  */
 class GeoIpLiteRepository implements IpLocationsRepository {
 	private static geoipLite: GeoIPLite;
 
 	private readonly w: number;
 
-	/**
-	 * @param weight	Repository weight.
-	 */
+	/** @param weight Repository weight. */
 	public constructor(weight: number) {
 		if (weight <= 0) {
 			throw new Error(`Weight can't be lower or equal to 0. Given: ${weight}.`);
@@ -25,30 +22,22 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 		this.w = weight;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get id(): string {
 		return 'geoip-lite';
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get weight(): number {
 		return this.w;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get available(): boolean {
 		return true;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async lookup(ip: string): Promise<IpLocation | null> {
 		const geoipLite = await GeoIpLiteRepository.geoipLiteInstance();
 
@@ -69,9 +58,10 @@ class GeoIpLiteRepository implements IpLocationsRepository {
 	}
 
 	/**
-	 * Refresh in-memory database which contains [geoip-lite](https://www.npmjs.com/package/geoip-lite) locations.
-	 * > **CAUTION!** <br/>
-	 * > This needs to be called after updating local *geoip-lite* db.
+	 * Refresh in-memory database which contains
+	 * [geoip-lite](https://www.npmjs.com/package/geoip-lite) locations.
+	 *
+	 * > **CAUTION!** <br/> This needs to be called after updating local _geoip-lite_ db.
 	 */
 	public static async refresh(): Promise<void> {
 		const geoipLite = await GeoIpLiteRepository.geoipLiteInstance();

@@ -1,12 +1,12 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import { HttpStatusCode, ObjMap } from '@thermopylae/core.declarations';
+import { HttpStatusCode, type ObjMap } from '@thermopylae/core.declarations';
+import type { FailedAuthenticationModel } from '@thermopylae/lib.authentication';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
 // @ts-ignore This module has no typings
 import isStringInt from 'is-string-int';
-import handler from 'express-async-handler';
-import { FailedAuthenticationModel } from '@thermopylae/lib.authentication';
-import { AUTHENTICATION_ENGINE } from '../../../../app/singletons';
-import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
+import { AUTHENTICATION_ENGINE } from '../../../../app/singletons.js';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
 
 const enum ErrorCodes {
 	INVALID_INPUT = 'INVALID_INPUT'

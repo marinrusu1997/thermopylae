@@ -17,7 +17,7 @@ interface Finance {
 }
 
 interface Person {
-	id: string | number;
+	id: string;
 	firstName: string;
 	birthYear: number;
 	address: Address;
@@ -25,4 +25,4 @@ interface Person {
 	visitedCountries: Array<string>;
 }
 
-export { Transaction, Address, Finance, Person };
+export type { Transaction, Address, Finance, Person };

@@ -9,9 +9,9 @@ import type {
 	UserSessionStorage
 } from '@thermopylae/lib.user-session.commons';
 import safeUid from 'uid-safe';
-import { createException, ErrorCodes } from './error';
-import type { IssuedJwtPayload } from './declarations';
-import type { InvalidAccessTokensCache } from './cache';
+import type { InvalidAccessTokensCache } from './cache.js';
+import type { IssuedJwtPayload } from './declarations.js';
+import { ErrorCodes, createException } from './error.js';
 
 // Reference Links:
 //	https://medium.com/@benjamin.botto/secure-access-token-storage-with-single-page-applications-part-1-9536b0021321
@@ -22,45 +22,33 @@ import type { InvalidAccessTokensCache } from './cache';
 //	https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
 //	https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#logout_token_invalidation
 
-/**
- * Refresh token that will be anchored to **access token**.
- */
+/** Refresh token that will be anchored to **access token**. */
 declare interface AnchorableRefreshToken {
-	/**
-	 * The actual refresh token.
-	 */
+	/** The actual refresh token. */
 	readonly token: SessionId;
-	/**
-	 * Anchor to refresh token.
-	 */
+	/** Anchor to refresh token. */
 	readonly anchor: string;
 }
 
 interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 	/**
-	 * Length of the refresh token. <br/>
-	 * Because base64 encoding is used underneath, this is not the string length.
-	 * For example, to create a token of length 24, you want a byte length of 18. <br/>
-	 * Value of this option should not be lower than 15. <br/>
-	 * > **Important!** To prevent brute forcing [create long enough session id's](https://security.stackexchange.com/questions/81519/session-hijacking-through-sessionid-brute-forcing-possible).
+	 * Length of the refresh token. <br/> Because base64 encoding is used underneath, this is not
+	 * the string length. For example, to create a token of length 24, you want a byte length of 18.
+	 * <br/> Value of this option should not be lower than 15. <br/>
+	 *
+	 * > **Important!** To prevent brute forcing [create long enough session
+	 * > id's](https://security.stackexchange.com/questions/81519/session-hijacking-through-sessionid-brute-forcing-possible).
 	 */
 	readonly refreshTokenLength: number;
-	/**
-	 * TTL if the refresh token.
-	 */
+	/** TTL if the refresh token. */
 	readonly refreshTokenTtl: Seconds;
-	/**
-	 * Cache where invalid access tokens will be stored.
-	 */
+	/** Cache where invalid access tokens will be stored. */
 	readonly invalidAccessTokensCache: InvalidAccessTokensCache;
-	/**
-	 * Storage where refresh tokens will be placed.
-	 */
+	/** Storage where refresh tokens will be placed. */
 	readonly refreshTokensStorage: UserSessionStorage<Device, Location>;
 	/**
-	 * Refresh access token hook. <br/>
-	 * Defaults to hook which ensures that in case device is present in both context and session metadata,
-	 * their *name* and *type* needs to be equal.
+	 * Refresh access token hook. <br/> Defaults to hook which ensures that in case device is
+	 * present in both context and session metadata, their _name_ and _type_ needs to be equal.
 	 */
 	readonly refreshAccessTokenHook?: ReadUserSessionHook<Device, Location>;
 }
@@ -68,8 +56,8 @@ interface InvalidationStrategyOptions<Device extends DeviceBase, Location> {
 /**
  * Invalidation strategy for JWT Access Tokens.
  *
- * @template Device		Type of the device.
- * @template Location	Type of the location.
+ * @template Device Type of the device.
+ * @template Location Type of the location.
  */
 class InvalidationStrategy<Device extends DeviceBase, Location> {
 	private static readonly ANCHOR_TO_REFRESH_TOKEN_LENGTH = 5;
@@ -79,8 +67,8 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	private readonly options: Required<InvalidationStrategyOptions<Device, Location>>;
 
 	/**
-	 * @param options		Options object. <br/>
-	 * 						It should not be modified after, as it will be used by strategy without being cloned.
+	 * @param options Options object. <br/> It should not be modified after, as it will be used by
+	 *   strategy without being cloned.
 	 */
 	public constructor(options: InvalidationStrategyOptions<Device, Location>) {
 		if (options.refreshTokenLength < 15) {
@@ -101,12 +89,13 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	/**
 	 * Generates anchorable refresh token.
 	 *
-	 * @param subject			Subject of the access token. <br/>
-	 * 							Usually this is the user/account id.
-	 * @param context			User session creation context.
-	 * @param refreshTokenTtl	TTL of the refresh token. When given, has precedence over default one.
+	 * @param   subject         Subject of the access token. <br/> Usually this is the user/account
+	 *   id.
+	 * @param   context         User session creation context.
+	 * @param   refreshTokenTtl TTL of the refresh token. When given, has precedence over default
+	 *   one.
 	 *
-	 * @returns		Anchorable refresh token.
+	 * @returns                 Anchorable refresh token.
 	 */
 	public async generateRefreshToken(
 		subject: Subject,
@@ -128,10 +117,10 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	}
 
 	/**
-	 * Check whether JWT Access Token is still valid. <br/>
-	 * Do not confuse it with expiration, as the token might not be expired, but it was forcibly invalidated.
+	 * Check whether JWT Access Token is still valid. <br/> Do not confuse it with expiration, as
+	 * the token might not be expired, but it was forcibly invalidated.
 	 *
-	 * @param jwtAccessToken	Access token.
+	 * @param jwtAccessToken Access token.
 	 */
 	public isAccessTokenStillValid(jwtAccessToken: IssuedJwtPayload): boolean {
 		if (this.options.invalidAccessTokensCache.has(`${jwtAccessToken.sub}@${jwtAccessToken.anc}`)) {
@@ -145,16 +134,15 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	/**
 	 * Refreshes access token to user session.
 	 *
-	 * @param subject			Subject whose session needs to be refreshed.
-	 * @param refreshToken		Refresh token of the subject.
-	 * @param context			Refresh context.
+	 * @param   subject                Subject whose session needs to be refreshed.
+	 * @param   refreshToken           Refresh token of the subject.
+	 * @param   context                Refresh context.
 	 *
-	 * @throws {Exception}		When:
-	 * 								- refresh token doesn't exist.
-	 * 								- device from refresh context differs from user session metadata device
-	 * 								  (in case default {@link InvalidationStrategyOptions.refreshAccessTokenHook} is used).
+	 * @returns              Anchor to refresh token.
 	 *
-	 * @returns					Anchor to refresh token.
+	 * @throws  {Exception}              When: - refresh token doesn't exist. - device from refresh
+	 *   context differs from user session metadata device (in case default
+	 *   {@link InvalidationStrategyOptions.refreshAccessTokenHook} is used).
 	 */
 	public async refreshSessionAccessToken(subject: Subject, refreshToken: SessionId, context: UserSessionOperationContext<Device, Location>): Promise<string> {
 		const userSessionMetadata = await this.options.refreshTokensStorage.read(subject, refreshToken);
@@ -170,9 +158,9 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	/**
 	 * Get all of the active user sessions.
 	 *
-	 * @param subject		Subject sessions of which need to be retrieved.
+	 * @param   subject Subject sessions of which need to be retrieved.
 	 *
-	 * @returns				Active user sessions with their refresh tokens.
+	 * @returns         Active user sessions with their refresh tokens.
 	 */
 	public getActiveUserSessions(subject: Subject): Promise<ReadonlyMap<SessionId, UserSessionMetaData<Device, Location>>> {
 		return this.options.refreshTokensStorage.readAll(subject);
@@ -181,8 +169,8 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	/**
 	 * Invalidate user session associated with refresh token.
 	 *
-	 * @param subject			Subject of the session.
-	 * @param refreshToken		Refresh token.
+	 * @param subject      Subject of the session.
+	 * @param refreshToken Refresh token.
 	 */
 	public invalidateSession(subject: Subject, refreshToken: SessionId): Promise<void> {
 		return this.options.refreshTokensStorage.delete(subject, refreshToken);
@@ -191,20 +179,20 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	/**
 	 * Invalidate all user sessions.
 	 *
-	 * @param subject	Subject.
+	 * @param   subject Subject.
 	 *
-	 * @returns		Number of invalidated sessions.
+	 * @returns         Number of invalidated sessions.
 	 */
 	public invalidateAllSessions(subject: Subject): Promise<number> {
 		return this.options.refreshTokensStorage.deleteAll(subject);
 	}
 
 	/**
-	 * Invalidates JWT Access Token, so that it can't be longer used, despite it's not expired yet. <br/>
-	 * **Notice** that session associated with `jwtAccessToken` won't be invalidated,
-	 * meaning that user can obtain another access token with the help of refresh token.
+	 * Invalidates JWT Access Token, so that it can't be longer used, despite it's not expired yet.
+	 * <br/> **Notice** that session associated with `jwtAccessToken` won't be invalidated, meaning
+	 * that user can obtain another access token with the help of refresh token.
 	 *
-	 * @param jwtAccessToken	Access token that needs to be invalidated.
+	 * @param jwtAccessToken Access token that needs to be invalidated.
 	 */
 	public invalidateAccessToken(jwtAccessToken: IssuedJwtPayload): void {
 		const invalidationKey = `${jwtAccessToken.sub}@${jwtAccessToken.anc}`;
@@ -214,12 +202,12 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	}
 
 	/**
-	 * Invalidates all JWT Access Tokens that were issued up to current timestamp from all existing user sessions. <br/>
-	 * **Notice** that associated user sessions won't be invalidated,
-	 * meaning that the user can obtain another access tokens from them by using their refresh tokens.
+	 * Invalidates all JWT Access Tokens that were issued up to current timestamp from all existing
+	 * user sessions. <br/> **Notice** that associated user sessions won't be invalidated, meaning
+	 * that the user can obtain another access tokens from them by using their refresh tokens.
 	 *
-	 * @param subject				Subject.
-	 * @param jwtAccessTokenTtl		Ttl of the issued before access tokens to `subject`;
+	 * @param subject           Subject.
+	 * @param jwtAccessTokenTtl Ttl of the issued before access tokens to `subject`;
 	 */
 	public invalidateAccessTokensFromAllSessions(subject: Subject, jwtAccessTokenTtl: Seconds): void {
 		const invalidationKey = `${subject}@${InvalidationStrategy.ALL_SESSIONS_WILDCARD}`;
@@ -255,4 +243,4 @@ class InvalidationStrategy<Device extends DeviceBase, Location> {
 	}
 }
 
-export { InvalidationStrategy, InvalidationStrategyOptions, AnchorableRefreshToken };
+export { InvalidationStrategy, type InvalidationStrategyOptions, type AnchorableRefreshToken };

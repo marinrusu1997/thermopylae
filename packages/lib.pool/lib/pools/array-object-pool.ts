@@ -1,58 +1,49 @@
 import type { ObjMap } from '@thermopylae/core.declarations';
-import { createException, ErrorCodes } from '../error';
+import { ErrorCodes, createException } from '../error.js';
 
 /**
- * Function called in order to initialize *resource* with *values* provided on it's acquisition. <br/>
- * > **Notice** that when resource is firstly created, you will receive an empty object which needs to be initialized.
+ * Function called in order to initialize _resource_ with _values_ provided on it's acquisition.
+ * <br/>
+ *
+ * > **Notice** that when resource is firstly created, you will receive an empty object which needs to
+ * > be initialized.
  */
 type ObjectInitializer<Value> = (resource: Value, values: Array<any>) => void;
 
-/**
- * Function called in order to de-initialize *resource* when it is released.
- */
+/** Function called in order to de-initialize _resource_ when it is released. */
 type ObjectDeInitializer<Value> = (resource: Value) => void;
 
-/**
- * Internal structure managed by {@link ArrayObjectPool} which represents the object resource.
- */
+/** Internal structure managed by {@link ArrayObjectPool} which represents the object resource. */
 interface ObjectResource<Value> {
 	/**
-	 * Position of the resource in the pool. <br/>
-	 * Managed by {@link ArrayObjectPool}, do not change it on your own.
+	 * Position of the resource in the pool. <br/> Managed by {@link ArrayObjectPool}, do not change
+	 * it on your own.
 	 */
 	index: number;
-	/**
-	 * Value of the resource.
-	 */
+	/** Value of the resource. */
 	readonly value: Value;
 }
 
 interface ArrayObjectPoolOptions<Value> {
 	/**
-	 * Capacity of the poll. <br/>
-	 * When *capacity* is given, pool will behave as a static one, namely when it's size will
-	 * exceed it's capacity, acquire operation will fail with an exception. <br/>
-	 * When *capacity* is not given, pool resources will grow dynamically with the clients needs,
-	 * unless there is no available memory.
+	 * Capacity of the poll. <br/> When _capacity_ is given, pool will behave as a static one,
+	 * namely when it's size will exceed it's capacity, acquire operation will fail with an
+	 * exception. <br/> When _capacity_ is not given, pool resources will grow dynamically with the
+	 * clients needs, unless there is no available memory.
 	 */
 	readonly capacity?: number;
-	/**
-	 * Function called in order to initialize *resource*.
-	 */
+	/** Function called in order to initialize _resource_. */
 	readonly initializer: ObjectInitializer<Value>;
-	/**
-	 * Function called when an object resource is released.
-	 */
+	/** Function called when an object resource is released. */
 	readonly deInitializer: ObjectDeInitializer<Value>;
 }
 
 /**
- * Pool of object resources. <br/>
- * The internal implementation keeps resources into a single {@link Array}. <br/>
- * This implementation has advantage over {@link DLLObjectPool}, as it consumes less memory,
- * while keeping operations complexity constant.
+ * Pool of object resources. <br/> The internal implementation keeps resources into a single
+ * {@link Array}. <br/> This implementation has advantage over {@link DLLObjectPool}, as it consumes
+ * less memory, while keeping operations complexity constant.
  *
- * @template T	Type of the object.
+ * @template T Type of the object.
  */
 class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	private readonly options: ArrayObjectPoolOptions<T>;
@@ -78,29 +69,25 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 		}
 	}
 
-	/**
-	 * Get number of free resources.
-	 */
+	/** Get number of free resources. */
 	public get free(): number {
 		return this.resources.length - this.freeResourcesRegionBeginIndex;
 	}
 
-	/**
-	 * Get number of used resources.
-	 */
+	/** Get number of used resources. */
 	public get used(): number {
 		return this.freeResourcesRegionBeginIndex;
 	}
 
 	/**
-	 * Acquire a new object resource from pool. <br/>
-	 * **This operation has O(1) complexity.**
+	 * Acquire a new object resource from pool. <br/> **This operation has O(1) complexity.**
 	 *
-	 * @param args			Arguments forwarded to object initializer.
+	 * @param   args           Arguments forwarded to object initializer.
 	 *
-	 * @throws {Exception}	When number of used resources goes beyond {@link ArrayObjectPoolOptions.capacity}.
+	 * @returns      Object resource.
 	 *
-	 * @returns				Object resource.
+	 * @throws  {Exception}      When number of used resources goes beyond
+	 *   {@link ArrayObjectPoolOptions.capacity}.
 	 */
 	public acquire(...args: Array<any>): Readonly<ObjectResource<T>> {
 		if (this.freeResourcesRegionBeginIndex === this.resources.length) {
@@ -119,10 +106,9 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	}
 
 	/**
-	 * Release object resource. <br/>
-	 * **This operation has O(1) complexity.**
+	 * Release object resource. <br/> **This operation has O(1) complexity.**
 	 *
-	 * @param objectResource	Object resource.
+	 * @param objectResource Object resource.
 	 */
 	public release(objectResource: Readonly<ObjectResource<T>>): void {
 		if (this.freeResourcesRegionBeginIndex - objectResource.index > 1) {
@@ -134,9 +120,8 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	}
 
 	/**
-	 * Release all object resources. <br/>
-	 * Notice that objects won't be de-allocated, only their destructors will be called. <br/>
-	 * **This operation has O(n) complexity.**
+	 * Release all object resources. <br/> Notice that objects won't be de-allocated, only their
+	 * destructors will be called. <br/> **This operation has O(n) complexity.**
 	 */
 	public releaseAll(): void {
 		for (let i = 0; i < this.freeResourcesRegionBeginIndex; i++) {
@@ -146,11 +131,11 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	}
 
 	/**
-	 * Clears the object resources pool. <br/>
-	 * After this operation, pool should no longer be used. <br/>
-	 * **This operation has O(1) complexity.** <br/>
+	 * Clears the object resources pool. <br/> After this operation, pool should no longer be used.
+	 * <br/> **This operation has O(1) complexity.** <br/>
 	 *
-	 * > **IMPORTANT! This method won't call destructors of the resources, it will only reset internal storage of resources**
+	 * > **IMPORTANT! This method won't call destructors of the resources, it will only reset internal
+	 * > storage of resources**
 	 */
 	public clear(): void {
 		this.resources.length = 0;
@@ -180,4 +165,4 @@ class ArrayObjectPool<T extends ObjMap = ObjMap> {
 	}
 }
 
-export { ArrayObjectPool, ArrayObjectPoolOptions, ObjectResource, ObjectInitializer, ObjectDeInitializer };
+export { ArrayObjectPool, type ArrayObjectPoolOptions, type ObjectResource, type ObjectInitializer, type ObjectDeInitializer };

@@ -1,7 +1,5 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { LoggerManager, OutputFormat } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { LoggerManager, OutputFormat } from '../lib/index.js';
 
 describe('Logger spec', () => {
 	it('returns logging managers', () => {

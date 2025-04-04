@@ -1,14 +1,12 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import colors from 'colors';
-import { expect } from '@thermopylae/dev.unit-test';
 import { chrono } from '@thermopylae/lib.utils';
-import { ExpirableSlidingCacheEntry, SlidingReactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding-reactive';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
-import { EntryValidity } from '../../../lib';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants.js';
+import { EntryValidity } from '../../../lib/index.js';
+import { type ExpirableSlidingCacheEntry, SlidingReactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding-reactive.js';
 
 describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
-	it('should work', async () => {
+	it('should work', { timeout: 4500 }, async () => {
 		const policy = new SlidingReactiveExpirationPolicy<string, string>();
 		const EVICTED_KEYS = new Array<string>();
 		policy.setDeleter((entry) => {
@@ -34,13 +32,13 @@ describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
 		policy.onSet(entry, { timeSpan: INFINITE_EXPIRATION }); // has no effect
 
 		await chrono.sleep(1000);
-		expect(EVICTED_KEYS).to.be.ofSize(0);
+		expect(EVICTED_KEYS).to.have.length(0);
 		expect(policy.onHit(entry)).to.be.eq(EntryValidity.VALID); // increase with another 2 sec
 
 		await chrono.sleep(2010);
-		expect(EVICTED_KEYS).to.be.ofSize(0);
+		expect(EVICTED_KEYS).to.have.length(0);
 		expect(policy.onHit(entry)).to.be.eq(EntryValidity.NOT_VALID);
-		expect(EVICTED_KEYS).to.be.ofSize(1);
+		expect(EVICTED_KEYS).to.have.length(1);
 
 		expect(policy.onHit(entry)).to.be.eq(EntryValidity.VALID); // it has no metadata
 
@@ -65,8 +63,8 @@ describe(`${colors.magenta(SlidingReactiveExpirationPolicy.name)} spec`, () => {
 
 		await chrono.sleep(510);
 		expect(policy.onHit(entry)).to.be.eq(EntryValidity.NOT_VALID);
-		expect(EVICTED_KEYS).to.be.equalTo(['key', 'key']);
+		expect(EVICTED_KEYS).toStrictEqual(['key', 'key']);
 
 		policy.onClear(); // has no effect
-	}).timeout(4500);
+	});
 });

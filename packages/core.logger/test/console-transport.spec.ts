@@ -1,9 +1,5 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { ConsoleLogsManager } from '../lib/transports/console';
-
-const { expect } = chai;
+import { describe, expect, it } from 'vitest';
+import { ConsoleLogsManager } from '../lib/transports/console.js';
 
 describe(`${ConsoleLogsManager.name} spec`, () => {
 	it('does not create default transport when created', () => {

@@ -1,12 +1,12 @@
-import handler from 'express-async-handler';
-import { Response } from 'express';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, CoreModule } from '@thermopylae/core.declarations';
+import { CoreModule, HttpStatusCode, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as CoreJwtUserSessionErrorCodes } from '@thermopylae/core.jwt-session';
 import { Exception } from '@thermopylae/lib.exception';
-import { JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { RequestWithUserSession } from '../../../../typings';
-import { REQUEST_USER_SESSION_SYM } from '../../../../constants';
+import type { Response } from 'express';
+import handler from 'express-async-handler';
+import { JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons.js';
+import { REQUEST_USER_SESSION_SYM } from '../../../../constants.js';
+import type { RequestWithUserSession } from '../../../../typings.js';
 
 const enum ErrorCodes {
 	REFRESH_TOKEN_REQUIRED = 'REFRESH_TOKEN_REQUIRED',

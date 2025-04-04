@@ -1,57 +1,44 @@
-import {
-	Connection,
-	Pool,
-	PoolConnection,
-	PoolOptions,
-	QueryError
-	// eslint-disable-next-line import/extensions
-} from 'mysql2/promise';
 import { escape } from 'mysql2';
-import { logger } from './logger';
-import { createException, ErrorCodes } from './error';
-import { PoolClusterConfig, PoolClusterConnectionsManager } from './connections/cluster';
-import { ConnectionsManager, QueryType } from './connections/interface';
-import { PoolConnectionsManager } from './connections/pool';
-import { formatConnectionDetails, formatMySqlError, mysqlErrorHandler } from './utils';
+import type { Connection, Pool, PoolConnection, PoolOptions, QueryError } from 'mysql2/promise.js';
+import { type PoolClusterConfig, PoolClusterConnectionsManager } from './connections/cluster.js';
+import { type ConnectionsManager, QueryType } from './connections/interface.js';
+import { PoolConnectionsManager } from './connections/pool.js';
+import { ErrorCodes, createException } from './error.js';
+import { logger } from './logger.js';
+import { formatConnectionDetails, formatMySqlError, mysqlErrorHandler } from './utils.js';
 
 /**
- * Type of the [events](https://www.npmjs.com/package/mysql#pool-events) on which debug listener can be attached. <br/>
- * Whenever the event is emitted, listener will log this event along with it's arguments.
+ * Type of the [events](https://www.npmjs.com/package/mysql#pool-events) on which debug listener can
+ * be attached. <br/> Whenever the event is emitted, listener will log this event along with it's
+ * arguments.
  */
 type DebuggableEventType = 'acquire' | 'release' | 'enqueue' | 'connection';
 
 /**
- * Options needed for MySQL client initialization. <br/>
- * {@link MySQLClientOptions.pool} and {@link MySQLClientOptions.poolCluster} are mutually exclusive options.
+ * Options needed for MySQL client initialization. <br/> {@link MySQLClientOptions.pool} and
+ * {@link MySQLClientOptions.poolCluster} are mutually exclusive options.
  */
 interface MySQLClientOptions {
-	/**
-	 * Configure client with pooled connections.
-	 */
+	/** Configure client with pooled connections. */
 	readonly pool?: PoolOptions;
-	/**
-	 * Configure client with pool cluster connections.
-	 */
+	/** Configure client with pool cluster connections. */
 	readonly poolCluster?: PoolClusterConfig;
-	/**
-	 * Queries to be executed after connection establishment in order to set session variables.
-	 */
+	/** Queries to be executed after connection establishment in order to set session variables. */
 	readonly sessionVariablesQueries?: Array<string>;
 	/**
-	 * Whether debug listeners need to be attached on pool. <br/>
-	 * Depending on value of this param, following actions will be taken: <br/>
-	 * 	* undefined | false - debug listeners won't be attached <br/>
-	 * 	* true - debug listeners will be attached for all {@link DebuggableEventType} <br/>
-	 *  * Set<DebuggableEventType> - debug listeners will be attached only to specified events
+	 * Whether debug listeners need to be attached on pool. <br/> Depending on value of this param,
+	 * following actions will be taken: <br/> * undefined | false - debug listeners won't be
+	 * attached <br/> * true - debug listeners will be attached for all {@link DebuggableEventType}
+	 * <br/>
+	 *
+	 * - Set<DebuggableEventType> - debug listeners will be attached only to specified events.
 	 */
 	readonly attachDebugListeners?: boolean | Set<DebuggableEventType>;
 }
 
 /**
- * MySQL client which: <br/>
- * 		- handles pooled connections in cluster/non-cluster modes <br/>
- * 		- abstracts write & read pools for cluster/non-cluster modes <br/>
- * 		- logs mysql related events
+ * MySQL client which: <br/> - handles pooled connections in cluster/non-cluster modes <br/> -
+ * abstracts write & read pools for cluster/non-cluster modes <br/> - logs mysql related events.
  */
 class MySQLClient {
 	private connections!: ConnectionsManager;
@@ -59,7 +46,7 @@ class MySQLClient {
 	/**
 	 * Init client.
 	 *
-	 * @param options	Init options.
+	 * @param options Init options.
 	 */
 	public init(options: MySQLClientOptions): void {
 		if (this.connections == null) {
@@ -75,9 +62,7 @@ class MySQLClient {
 		}
 	}
 
-	/**
-	 * Shutdown client.
-	 */
+	/** Shutdown client. */
 	public async shutdown(): Promise<void> {
 		logger.notice('Shutting down gracefully...');
 		await this.connections!.shutdown();
@@ -86,7 +71,7 @@ class MySQLClient {
 	/**
 	 * Get MySQL connection.
 	 *
-	 * @param type	Type of the connection.
+	 * @param type Type of the connection.
 	 */
 	public getConnection(type: QueryType): Promise<PoolConnection> {
 		return this.connections!.getConnection(type);
@@ -95,9 +80,9 @@ class MySQLClient {
 	/**
 	 * Escapes value before being part of SQL query.
 	 *
-	 * @param value		Value to be escaped.
+	 * @param   value Value to be escaped.
 	 *
-	 * @returns			String escaped value.
+	 * @returns       String escaped value.
 	 */
 	public escape(value: any): string {
 		return escape(value);
@@ -152,4 +137,4 @@ class MySQLClient {
 	}
 }
 
-export { MySQLClient, MySQLClientOptions, DebuggableEventType };
+export { MySQLClient, type MySQLClientOptions, type DebuggableEventType };

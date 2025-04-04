@@ -1,4 +1,4 @@
-import { AccountWithTotpSecret, EmailSender } from '../../../lib';
+import type { AccountWithTotpSecret, EmailSender } from '../../../lib/index.js';
 
 class EmailClientMock {
 	private readonly outbox: Map<string, Map<keyof EmailSender<AccountWithTotpSecret>, Array<string>>> = new Map();

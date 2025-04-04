@@ -1,11 +1,8 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { token as tokenModule } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { token as tokenModule } from '../lib/index.js';
 
-const { expect } = chai;
 const { ErrorCodes, fastUnSecureHash, generate } = tokenModule;
 
 describe('token spec', () => {
@@ -24,15 +21,11 @@ describe('token spec', () => {
 			});
 		}
 
-		// eslint-disable-next-line mocha/no-setup-in-describe
 		describe(`${tokenModule.TokenGenerationType.CRYPTOGRAPHIC} generation type`, () => {
-			// eslint-disable-next-line mocha/no-setup-in-describe
 			generateTokenSpec(tokenModule.TokenGenerationType.CRYPTOGRAPHIC);
 		});
 
-		// eslint-disable-next-line mocha/no-setup-in-describe
 		describe(`${tokenModule.TokenGenerationType.NORMAL} generation type`, () => {
-			// eslint-disable-next-line mocha/no-setup-in-describe
 			generateTokenSpec(tokenModule.TokenGenerationType.NORMAL);
 		});
 

@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect, logger } from '@thermopylae/dev.unit-test';
-import colors from 'colors';
+import { logger } from '@thermopylae/dev.unit-test';
 import { array, number, string } from '@thermopylae/lib.utils';
-import { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base';
-import { GDSFEvictionPolicy } from '../../../lib';
-import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { BUCKET_HEADER_SYM } from '../../../lib/data-structures/bucket-list/ordered-bucket-list.js';
+import { GDSFEvictionPolicy } from '../../../lib/index.js';
+import type { EvictableCacheEntry } from '../../../lib/policies/eviction/lfu-base.js';
 
 // const BUCKET_FORMATTERS = [colors.magenta, colors.green, colors.blue, colors.red];
 
@@ -84,8 +83,8 @@ describe(`${colors.magenta(GDSFEvictionPolicy.name)} spec`, () => {
 			}
 			expect(policy.size).to.be.eq(CAPACITY);
 
-			expect(EVICTED_KEYS).to.be.ofSize(ADDITIONAL_ENTRIES.size);
-			expect(Array.from(ENTRIES.keys())).to.be.containingAllOf(EVICTED_KEYS);
+			expect(EVICTED_KEYS).to.have.length(ADDITIONAL_ENTRIES.size);
+			expect(Array.from(ENTRIES.keys())).to.containSubset(EVICTED_KEYS);
 
 			expect(lfuEntries.get('k')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);
 			expect(lfuEntries.get('i')![BUCKET_HEADER_SYM].id).to.be.eq(2.1);

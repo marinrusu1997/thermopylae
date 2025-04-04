@@ -1,15 +1,12 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import fetch from 'node-fetch';
-import type { IpLocation, IpLocationsRepository } from './index';
+import type { IpLocation, IpLocationsRepository } from './index.js';
 
-/**
- * @private
- */
+/** @private */
 const AVAILABLE_NOW = -1;
 
-/**
- * Ipstack [subscription plan](https://ipstack.com/plan).
- */
+/** Ipstack [subscription plan](https://ipstack.com/plan). */
 const enum IpstackSubscriptionPlan {
 	FREE = 'FREE',
 	BASIC = 'BASIC',
@@ -17,53 +14,33 @@ const enum IpstackSubscriptionPlan {
 	PROFESSIONAL_PLUS = 'PROFESSIONAL_PLUS'
 }
 
-/**
- * [API Guide](https://ipstack.com/documentation)
- */
+/** [API Guide](https://ipstack.com/documentation) */
 interface IpstackRepositoryOptions {
-	/**
-	 * Service api key.
-	 */
+	/** Service api key. */
 	readonly apiKey: string;
-	/**
-	 * Subscription plan.
-	 */
+	/** Subscription plan. */
 	readonly plan: IpstackSubscriptionPlan;
 	/**
 	 * Language of the location details.
 	 *
-	 * Code     | Language
-	 * -------- | -------------
-	 * en       | English/US
-	 * de       | German
-	 * es       | Spanish
-	 * fr       | French
-	 * ja       | Japanese
-	 * pt-br    | Portuguese (Brazil)
-	 * ru       | Russian
-	 * zh       | Chinese
+	 * Code | Language -------- | ------------- en | English/US de | German es | Spanish fr | French
+	 * ja | Japanese pt-br | Portuguese (Brazil) ru | Russian zh | Chinese.
 	 */
 	readonly lang: 'en' | 'de' | 'es' | 'fr' | 'ja' | 'pt-br' | 'ru' | 'zh';
-	/**
-	 * Weight of the repo.
-	 */
+	/** Weight of the repo. */
 	readonly weight: number;
-	/**
-	 * Hooks.
-	 */
+	/** Hooks. */
 	readonly hooks: {
 		/**
 		 * Hook called when ip retrieval fails with an error.
 		 *
-		 * @param err	Error that was thrown.
+		 * @param err Error that was thrown.
 		 */
 		onIpRetrievalError: (err: Error) => void;
 	};
 }
 
-/**
- * Repository which fetches ip locations from [ipstack](https://ipstack.com/documentation).
- */
+/** Repository which fetches ip locations from [ipstack](https://ipstack.com/documentation). */
 class IpstackRepository implements IpLocationsRepository {
 	private readonly options: IpstackRepositoryOptions;
 
@@ -79,30 +56,22 @@ class IpstackRepository implements IpLocationsRepository {
 		this.availableAt = AVAILABLE_NOW;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get id(): string {
 		return 'ipstack';
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get weight(): number {
 		return this.options.weight;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get available(): boolean {
 		return this.availableAt === AVAILABLE_NOW || this.availableAt < chrono.unixTime();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async lookup(ip: string): Promise<IpLocation | null> {
 		let location = null;
 
@@ -137,7 +106,7 @@ class IpstackRepository implements IpLocationsRepository {
 
 	private async retrieve(ip: string): Promise<IpLocation> {
 		const response = await fetch(this.buildUrl(ip), { method: 'get' });
-		const location = await response.json();
+		const location = (await response.json()) as ObjMap;
 
 		/* c8 ignore next 3 */
 		if (location.success === false) {
@@ -164,4 +133,4 @@ class IpstackRepository implements IpLocationsRepository {
 	}
 }
 
-export { IpstackRepository, IpstackRepositoryOptions, IpstackSubscriptionPlan };
+export { IpstackRepository, type IpstackRepositoryOptions, IpstackSubscriptionPlan };

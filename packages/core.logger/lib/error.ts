@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { CoreModule } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	TRANSPORT_EXISTS = 'TRANSPORT_EXISTS',
@@ -23,10 +23,10 @@ const enum ErrorCodes {
  *
  * @private
  *
- * @param code		Error code.
- * @param message	Error message.
+ * @param   code    Error code.
+ * @param   message Error message.
  *
- * @returns		Exception to be thrown.
+ * @returns         Exception to be thrown.
  */
 function createException(code: ErrorCodes, message: string): Exception {
 	return new Exception(CoreModule.LOGGER, code, message);

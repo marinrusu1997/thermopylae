@@ -1,8 +1,9 @@
-import { URL } from 'url';
 import * as http from 'http';
 import * as https from 'https';
-import { Nullable, ObjMap } from '@thermopylae/core.declarations';
-import { createException } from './exception';
+import type { Nullable, ObjMap } from '@thermopylae/core.declarations';
+import { URL } from 'url';
+import { createException } from './exception.js';
+import { TypedJson } from './json.js';
 
 interface HTTPPostData {
 	'content-type': string;
@@ -31,7 +32,7 @@ type HTTPSRequest = (url: string | URL, options: HTTPSRequestOpts, callback?: (r
 type BodyParser = (body: string) => string | ObjMap;
 
 const parsersRepo = new Map<string, BodyParser>();
-parsersRepo.set('application/json', (body) => JSON.parse(body));
+parsersRepo.set('application/json', (body) => TypedJson.parse(body));
 parsersRepo.set('text/plain', (body) => body);
 parsersRepo.set('text/html', (body) => body);
 
@@ -40,13 +41,13 @@ parsersRepo.set('text/html', (body) => body);
  *
  * @private
  *
- * @param contentTypeHeaderValue	Value of the `Content-Type` header.
+ * @param   contentTypeHeaderValue Value of the `Content-Type` header.
  *
- * @returns	Content type.
+ * @returns                        Content type.
  */
 function extractContentType(contentTypeHeaderValue: string): string {
 	const contentTypeParts = contentTypeHeaderValue.split(';');
-	return contentTypeParts[0];
+	return contentTypeParts[0]!;
 }
 
 /**
@@ -54,10 +55,10 @@ function extractContentType(contentTypeHeaderValue: string): string {
  *
  * @private
  *
- * @param body			HTTP response body.
- * @param contentType	Value of the `Content-Type` header.
+ * @param   body        HTTP response body.
+ * @param   contentType Value of the `Content-Type` header.
  *
- * @returns	Parsed body.
+ * @returns             Parsed body.
  */
 function parseBody(body: string, contentType?: string): string | ObjMap {
 	if (!contentType) {
@@ -77,12 +78,12 @@ function parseBody(body: string, contentType?: string): string | ObjMap {
  *
  * @private
  *
- * @param url			URL where request should be made.
- * @param requestImpl       NodeJs request object.
- * @param params        Request options.
- * @param [postData]    Data which needs to be sent in the request body.
+ * @param   url         URL where request should be made.
+ * @param   requestImpl NodeJs request object.
+ * @param   params      Request options.
+ * @param   [postData]  Data which needs to be sent in the request body.
  *
- * @returns HTTP response.
+ * @returns             HTTP response.
  */
 function makeRequest(
 	url: string | URL,
@@ -93,7 +94,6 @@ function makeRequest(
 	// fixme careful, the actual lib.geoip highly depends on this API, i.e. positive => HTTPResponse with resolve, negative 400- => HTTPResponse with reject, other errors => Exception with reject
 
 	return new Promise((resolve, reject) => {
-		// eslint-disable-next-line consistent-return
 		const req = requestImpl(url, params, (res: http.IncomingMessage): void => {
 			// reject if no status code, WTF no status code
 			if (!res.statusCode) {
@@ -138,11 +138,11 @@ function makeRequest(
 /**
  * Makes a HTTP request.
  *
- * @param url			URL where request should be made.
- * @param params        Request options.
- * @param [postData]    Data which needs to be sent in the request body.
+ * @param   url        URL where request should be made.
+ * @param   params     Request options.
+ * @param   [postData] Data which needs to be sent in the request body.
  *
- * @returns HTTP response.
+ * @returns            HTTP response.
  */
 function request(url: string | URL, params: HTTPRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
 	return makeRequest(url, http.request, params, postData);
@@ -151,15 +151,15 @@ function request(url: string | URL, params: HTTPRequestOpts, postData?: HTTPPost
 /**
  * Makes a HTTPS request.
  *
- * @param url			URL where request should be made.
- * @param params        Request options.
- * @param [postData]    Data which needs to be sent in the request body.
+ * @param   url        URL where request should be made.
+ * @param   params     Request options.
+ * @param   [postData] Data which needs to be sent in the request body.
  *
- * @returns HTTP response.
+ * @returns            HTTP response.
  */
 function requestSecure(url: string | URL, params: HTTPSRequestOpts, postData?: HTTPPostData): Promise<HTTPResponse> {
 	return makeRequest(url, https.request, params, postData);
 }
 
-// eslint-disable-next-line no-undef
-export { request, requestSecure, HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse, ErrorCodes };
+export { request, requestSecure, ErrorCodes };
+export type { HTTPRequestOpts, HTTPSRequestOpts, HTTPPostData, HTTPResponse };

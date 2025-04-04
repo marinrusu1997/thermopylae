@@ -1,21 +1,22 @@
-import { randomElement } from './array';
+import { randomElement } from './array.js';
 
 /**
  * Replaces the string at a given position with another one.
  *
- * @param replacement	The replacement.
- * @param index			Starting index from where replacement needs to be done.
- * @param string		Initial string.
+ * @param   replacement The replacement.
+ * @param   index       Starting index from where replacement needs to be done.
+ * @param   string      Initial string.
  *
- * @returns	String with replaced characters.
+ * @returns             String with replaced characters.
  */
 function replaceAt(replacement: string, index: number, string: string): string {
 	return string.substr(0, index) + replacement + string.substr(index + replacement.length);
 }
 
 /**
- * @link random
  * @private
+ *
+ * @link random
  */
 const CHARSETS = [
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // Alpha Capitalized
@@ -25,21 +26,16 @@ const CHARSETS = [
 ];
 
 interface RandomStringOptions {
-	/**
-	 * Length of the generated string. <br/>
-	 * Default is 10.
-	 */
+	/** Length of the generated string. <br/> Default is 10. */
 	length: number;
-	/**
-	 * Allowed chars that will be included in generated string. <br/>
-	 * Default is all characters.
-	 */
+	/** Allowed chars that will be included in generated string. <br/> Default is all characters. */
 	allowedCharRegex: RegExp;
 }
 
 /**
- * @link random
  * @private
+ *
+ * @link random
  */
 const DEFAULT_STR_GEN_OPTS = {
 	length: 10,
@@ -47,12 +43,12 @@ const DEFAULT_STR_GEN_OPTS = {
 };
 
 /**
- * Generates non-cryptographically strong random string.
- * Generation can be controlled via regular expressions.
+ * Generates non-cryptographically strong random string. Generation can be controlled via regular
+ * expressions.
  *
- * @param [options]		String generation options.
+ * @param   [options] String generation options.
  *
- * @returns Generated string.
+ * @returns           Generated string.
  */
 function random(options?: Partial<RandomStringOptions>): string {
 	if (options == null) {
@@ -89,10 +85,10 @@ function random(options?: Partial<RandomStringOptions>): string {
 /**
  * Removes specified `char` from beginning and ending of the string.
  *
- * @param str	Input string.
- * @param char	Trimmed char.
+ * @param   str  Input string.
+ * @param   char Trimmed char.
  *
- * @returns 	Trimmed string.
+ * @returns      Trimmed string.
  */
 function trimChar(str: string, char: string): string {
 	// start
@@ -108,4 +104,5 @@ function trimChar(str: string, char: string): string {
 	return str;
 }
 
-export { replaceAt, random, trimChar, RandomStringOptions };
+export { replaceAt, random, trimChar };
+export type { RandomStringOptions };

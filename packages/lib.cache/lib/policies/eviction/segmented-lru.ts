@@ -1,34 +1,26 @@
-import { Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
+import type { Nullable, Percentage, Threshold } from '@thermopylae/core.declarations';
 import { number } from '@thermopylae/lib.utils';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../../contracts/cache-replacement-policy';
-import { CacheEntry } from '../../contracts/commons';
-import { DoublyLinkedList, DoublyLinkedListNode } from '../../data-structures/list/doubly-linked';
-import { LinkedList } from '../../data-structures/list/interface';
-import { createException, ErrorCodes } from '../../error';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../../contracts/cache-replacement-policy.js';
+import type { CacheEntry } from '../../contracts/commons.js';
+import { DoublyLinkedList, type DoublyLinkedListNode } from '../../data-structures/list/doubly-linked.js';
+import type { LinkedList } from '../../data-structures/list/interface.js';
+import { ErrorCodes, createException } from '../../error.js';
 
-/**
- * @private
- */
+/** @private */
 const SEGMENT_SYM = Symbol('SEGMENT_SYM');
 
-/**
- * @private
- */
+/** @private */
 const enum SegmentType {
 	PROBATION,
 	PROTECTED
 }
 
-/**
- * @private
- */
+/** @private */
 interface EvictableCacheEntry<Key, Value> extends CacheEntry<Key, Value>, DoublyLinkedListNode<EvictableCacheEntry<Key, Value>> {
 	[SEGMENT_SYM]: SegmentType;
 }
 
-/**
- * @private
- */
+/** @private */
 type Segments<Key, Value> = {
 	[Segment in SegmentType]: {
 		capacity: number;
@@ -37,11 +29,12 @@ type Segments<Key, Value> = {
 };
 
 /**
- * [Segmented LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Segmented_LRU_(SLRU) "Segmented LRU (SLRU)") eviction policy.
+ * [Segmented LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Segmented_LRU_(SLRU))
+ * eviction policy.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheReplacementPolicy<Key, Value, ArgumentsBundle> {
 	private readonly segments: Segments<Key, Value>;
@@ -49,9 +42,9 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	private deleteFromCache!: Deleter<Key, Value>;
 
 	/**
-	 * @param cacheMaxCapacity              {@link Cache} maximum capacity.
-	 * @param protectedOverProbationRatio   Size of protected segment expressed in % from `cacheMaxCapacity`.<br/>
-	 * 										Defaults to 70%.
+	 * @param cacheMaxCapacity            {@link Cache} maximum capacity.
+	 * @param protectedOverProbationRatio Size of protected segment expressed in % from
+	 *   `cacheMaxCapacity`.<br/> Defaults to 70%.
 	 */
 	public constructor(cacheMaxCapacity: Threshold, protectedOverProbationRatio: Percentage = 0.7) {
 		if (cacheMaxCapacity < 2) {
@@ -94,9 +87,7 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		}
 	}
 
-	/**
-	 * Get the number of the elements stored in internal structures of this policy.
-	 */
+	/** Get the number of the elements stored in internal structures of this policy. */
 	public get size(): number {
 		let size = 0;
 		for (const segment of Object.keys(this.segments) as unknown as Array<SegmentType>) {
@@ -105,69 +96,51 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 		return size;
 	}
 
-	/**
-	 * Get most recently used key.
-	 */
+	/** Get most recently used key. */
 	public get mostRecent(): Nullable<EvictableCacheEntry<Key, Value>> {
 		return this.getEntryFrom('head');
 	}
 
-	/**
-	 * Get least recently used key.
-	 */
+	/** Get least recently used key. */
 	public get leastRecent(): Nullable<EvictableCacheEntry<Key, Value>> {
 		return this.getEntryFrom('tail');
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onHit(entry: EvictableCacheEntry<Key, Value>): EntryValidity {
 		this.promote(entry);
 		return EntryValidity.VALID;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onMiss(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onSet(entry: EvictableCacheEntry<Key, Value>): void {
 		this.demote(entry);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onUpdate(): void {
 		return undefined;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onDelete(entry: EvictableCacheEntry<Key, Value>): void {
 		this.segments[entry[SEGMENT_SYM]].items.remove(entry);
 		entry[SEGMENT_SYM] = undefined!; // logical delete
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public onClear(): void {
 		for (const segment of Object.keys(this.segments) as unknown as Array<SegmentType>) {
 			this.segments[segment].items.clear();
 		}
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public setDeleter(deleter: Deleter<Key, Value>): void {
 		this.deleteFromCache = deleter;
 	}
@@ -226,4 +199,4 @@ class SegmentedLRUEvictionPolicy<Key, Value, ArgumentsBundle> implements CacheRe
 	}
 }
 
-export { SegmentedLRUEvictionPolicy, EvictableCacheEntry, SegmentType, SEGMENT_SYM };
+export { SegmentedLRUEvictionPolicy, type EvictableCacheEntry, SegmentType, SEGMENT_SYM };

@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { ErrorObject } from 'ajv';
-import { ApiValidator } from '../lib';
-import { apiValidator } from './bootstrap';
+import type { ErrorObject } from 'ajv';
+import { describe, expect, it } from 'vitest';
+import { ApiValidator } from '../lib/index.js';
+import { apiValidator } from './bootstrap.js';
 
 describe(`${ApiValidator.prototype.joinErrors.name} spec`, () => {
 	it('joins errors into string', () => {

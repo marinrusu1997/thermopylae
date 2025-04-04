@@ -1,30 +1,33 @@
-import { MaybePromise, Undefinable } from '@thermopylae/core.declarations';
+import type { MaybePromise, Undefinable } from '@thermopylae/core.declarations';
 import { EventEmitter } from 'events';
-import { CacheBackend } from '../contracts/cache-backend';
-import { NOT_FOUND_VALUE } from '../constants';
-import { CacheReplacementPolicy, Deleter, EntryValidity } from '../contracts/cache-replacement-policy';
-import { Cache, CacheEvent, CacheEventListener } from '../contracts/cache';
+import { NOT_FOUND_VALUE } from '../constants.js';
+import type { CacheBackend } from '../contracts/cache-backend.js';
+import { type CacheReplacementPolicy, type Deleter, EntryValidity } from '../contracts/cache-replacement-policy.js';
+import { type Cache, CacheEvent, type CacheEventListener } from '../contracts/cache.js';
 
 // @fixme maybe arguments bundle should use symbols
 
 /**
  * {@link Cache} implementation which uses {@link CacheReplacementPolicy} for keys eviction. <br/>
- * Although any predefined policy can be used, there are some restrictions for multiple policies combination. <br/>
- * You can combine only 1 policy from each category:
+ * Although any predefined policy can be used, there are some restrictions for multiple policies
+ * combination. <br/> You can combine only 1 policy from each category:
  *
- * Category			|	Policies
- * ---------------- | -----------------------------
- * Expiration		| - {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>- {@link SlidingProactiveExpirationPolicy}<br/>- {@link SlidingReactiveExpirationPolicy}
- * Eviction			| - {@link ArcEvictionPolicy}<br/>- {@link LRUEvictionPolicy}<br/>- {@link SegmentedLRUEvictionPolicy}<br/>- {@link LFUEvictionPolicy}<br/>- {@link LFUDAEvictionPolicy}<br/>- {@link GDSFEvictionPolicy}
- * Priority			| - {@link PriorityEvictionPolicy}
- * Dependencies		| - {@link KeysDependenciesEvictionPolicy}
+ * Category | Policies ---------------- | ----------------------------- Expiration | -
+ * {@link ProactiveExpirationPolicy}<br/>- {@link ReactiveExpirationPolicy}<br/>-
+ * {@link SlidingProactiveExpirationPolicy}<br/>- {@link SlidingReactiveExpirationPolicy} Eviction | -
+ * {@link ArcEvictionPolicy}<br/>- {@link LRUEvictionPolicy}<br/>-
+ * {@link SegmentedLRUEvictionPolicy}<br/>- {@link LFUEvictionPolicy}<br/>-
+ * {@link LFUDAEvictionPolicy}<br/>- {@link GDSFEvictionPolicy} Priority | -
+ * {@link PriorityEvictionPolicy} Dependencies | - {@link KeysDependenciesEvictionPolicy}
  *
- * For example, the following combination is a valid one: [{@link ProactiveExpirationPolicy}, {@link LRUEvictionPolicy}, {@link KeysDependenciesEvictionPolicy}].<br/>
- * While the following: [{@link ProactiveExpirationPolicy}, {@link SlidingProactiveExpirationPolicy}] isn't, because it contains 2 policies from same category.
+ * For example, the following combination is a valid one: [{@link ProactiveExpirationPolicy},
+ * {@link LRUEvictionPolicy}, {@link KeysDependenciesEvictionPolicy}].<br/> While the following:
+ * [{@link ProactiveExpirationPolicy}, {@link SlidingProactiveExpirationPolicy}] isn't, because it
+ * contains 2 policies from same category.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitter implements Cache<Key, Value, ArgumentsBundle> {
 	private readonly backend: CacheBackend<Key, Value>;
@@ -32,9 +35,9 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	private readonly policies: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>;
 
 	/**
-	 * @param backend		Cache backend.
-	 * @param policies		Array of policies. <br/>
-	 * 						If you pass nothing or an empty array, cache will act as a simple wrapper over backend.
+	 * @param backend  Cache backend.
+	 * @param policies Array of policies. <br/> If you pass nothing or an empty array, cache will
+	 *   act as a simple wrapper over backend.
 	 */
 	public constructor(backend: CacheBackend<Key, Value>, policies?: Array<CacheReplacementPolicy<Key, Value, ArgumentsBundle>>) {
 		super();
@@ -47,16 +50,12 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		}
 	}
 
-	/**
-	 * Get number of cache entries.
-	 */
+	/** Get number of cache entries. */
 	public get size(): number {
 		return this.backend.size;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get(key: Key): Undefinable<Value> {
 		const entry = this.backend.get(key);
 
@@ -79,19 +78,18 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 	}
 
 	/**
-	 * Check whether **key** is present in the cache, without calling policies *onHit* hook. <br/>
-	 * Notice, that some policies might evict item when *onHit* hook is called (e.g. item expired),
-	 * therefore even if method returns **true**, trying to *get* item might evict him and you will get `undefined` as result.
+	 * Check whether **key** is present in the cache, without calling policies _onHit_ hook. <br/>
+	 * Notice, that some policies might evict item when _onHit_ hook is called (e.g. item expired),
+	 * therefore even if method returns **true**, trying to _get_ item might evict him and you will
+	 * get `undefined` as result.
 	 *
-	 * @param key	Name of the key.
+	 * @param key Name of the key.
 	 */
 	public has(key: Key): boolean {
 		return this.backend.has(key);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public set(key: Key, value: Value, argsBundle?: ArgumentsBundle): void {
 		// we use raw get, so that we don't call `onHit` and also even if they will remove it within `onHit`,
 		// we will add it back anyway, so better use `onUpdate` which will update policies meta-data while keeping entry in the cache
@@ -128,9 +126,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		this.emit(CacheEvent.UPDATE, key, value);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public del(key: Key): boolean {
 		const entry = this.backend.get(key);
 		if (!entry) {
@@ -141,16 +137,12 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		return true;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public keys(): Array<Key> {
 		return Array.from(this.backend.keys());
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public clear(): void {
 		for (const policy of this.policies) {
 			policy.onClear();
@@ -160,9 +152,7 @@ class PolicyBasedCache<Key, Value, ArgumentsBundle = unknown> extends EventEmitt
 		this.emit(CacheEvent.FLUSH);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override on(event: CacheEvent, listener: CacheEventListener<Key, MaybePromise<Value, 'plain'>>): this {
 		return super.on(event, listener);
 	}

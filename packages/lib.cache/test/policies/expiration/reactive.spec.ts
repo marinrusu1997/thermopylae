@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import colors from 'colors';
+import { buildPromiseHolder } from '@thermopylae/lib.async';
 import { array, chrono } from '@thermopylae/lib.utils';
-import { expect } from '@thermopylae/dev.unit-test';
-import { ReactiveExpirationPolicy, EntryValidity } from '../../../lib';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
-import { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants.js';
+import { EntryValidity, ReactiveExpirationPolicy } from '../../../lib/index.js';
+import type { ExpirableCacheEntry } from '../../../lib/policies/expiration/abstract.js';
 
 function generateEntry(key: string): ExpirableCacheEntry<string, any> {
 	return {
@@ -17,7 +16,7 @@ generateEntry.VALUES = [undefined, null, false, 0, '', {}, []];
 
 describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 	describe(`${ReactiveExpirationPolicy.prototype.onSet.name.magenta} spec`, () => {
-		it('should set entry entry expiration and evict it if expired on hit', (done) => {
+		it('should set entry entry expiration and evict it if expired on hit', { timeout: 2500 }, async () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -33,32 +32,41 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onSet(ENTRY, { expiresAfter: TTL });
 
 			expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.VALID);
-			expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
+			expect(EVICTED_KEYS).to.have.length(0); // entry is still valid
 
-			setTimeout(() => {
-				try {
-					expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.VALID, `Expected ${KEY} to be valid.`);
-					expect(EVICTED_KEYS).to.be.ofSize(0);
-				} catch (e) {
-					clearTimeout(timeoutExpired);
-					done(e);
-				}
-			}, chrono.secondsToMilliseconds(TTL / 2) + 120);
+			const deferred = buildPromiseHolder<void>();
+			setTimeout(
+				() => {
+					try {
+						expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.VALID, `Expected ${KEY} to be valid.`);
+						expect(EVICTED_KEYS).to.have.length(0);
+					} catch (e) {
+						clearTimeout(timeoutExpired);
+						deferred.reject(e);
+					}
+				},
+				chrono.secondsToMilliseconds(TTL / 2) + 120
+			);
 
-			const timeoutExpired = setTimeout(() => {
-				try {
-					expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
-					expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID, `Expected ${KEY} to not be valid.`);
-					expect(EVICTED_KEYS).to.be.ofSize(1); // entry was evicted
-					expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
-					done();
-				} catch (e) {
-					done(e);
-				}
-			}, chrono.secondsToMilliseconds(TTL) + 120);
-		}).timeout(2500);
+			const timeoutExpired = setTimeout(
+				() => {
+					try {
+						expect(EVICTED_KEYS).to.have.length(0); // entry is still valid
+						expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID, `Expected ${KEY} to not be valid.`);
+						expect(EVICTED_KEYS).to.have.length(1); // entry was evicted
+						expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
+						deferred.resolve();
+					} catch (e) {
+						deferred.reject(e);
+					}
+				},
+				chrono.secondsToMilliseconds(TTL) + 120
+			);
 
-		it('should evict items even when have negative ttl, but increased expires from', (done) => {
+			await deferred.promise;
+		});
+
+		it('should evict items even when have negative ttl, but increased expires from', async () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -74,22 +82,28 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onSet(ENTRY, { expiresAfter: TTL, expiresFrom: EXPIRES_FROM });
 
 			expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.VALID);
-			expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
+			expect(EVICTED_KEYS).to.have.length(0); // entry is still valid
 
-			setTimeout(() => {
-				try {
-					expect(EVICTED_KEYS).to.be.ofSize(0); // entry is still valid
-					expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
-					expect(EVICTED_KEYS).to.be.equalTo(['key']); // entry was evicted
-					expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
-					done();
-				} catch (e) {
-					done(e);
-				}
-			}, chrono.secondsToMilliseconds(Math.abs(TTL)) + 20);
+			const deferred = buildPromiseHolder<void>();
+			setTimeout(
+				() => {
+					try {
+						expect(EVICTED_KEYS).to.have.length(0); // entry is still valid
+						expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
+						expect(EVICTED_KEYS).toStrictEqual(['key']); // entry was evicted
+						expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined); // and metadata was removed
+						deferred.resolve();
+					} catch (e) {
+						deferred.reject(e);
+					}
+				},
+				chrono.secondsToMilliseconds(Math.abs(TTL)) + 20
+			);
+
+			await deferred.promise;
 		});
 
-		it("should not set entry expiration and don't evict it if has infinite or no ttl", (done) => {
+		it("should not set entry expiration and don't evict it if has infinite or no ttl", async () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -111,26 +125,29 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			for (const [entry] of ENTRIES.values()) {
 				expect(policy.onHit(entry)).to.be.eq(EntryValidity.VALID);
-				expect(EVICTED_KEYS).to.be.ofSize(0);
+				expect(EVICTED_KEYS).to.have.length(0);
 			}
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					for (const [entry] of ENTRIES.values()) {
 						expect(policy.onHit(entry)).to.be.eq(EntryValidity.VALID);
-						expect(EVICTED_KEYS).to.be.ofSize(0);
+						expect(EVICTED_KEYS).to.have.length(0);
 					}
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 100);
+
+			await deferred.promise;
 		});
 	});
 
 	describe(`${ReactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
-		it('should update timeout when it increases/decreases', (done) => {
+		it('should update timeout when it increases/decreases', async () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -147,15 +164,18 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.VALID);
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
-					expect(EVICTED_KEYS).to.be.equalTo(['a']);
-					done();
+					expect(EVICTED_KEYS).toStrictEqual(['a']);
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1050);
+
+			await deferred.promise;
 		});
 
 		it('should update timeout when it is set/unset', () => {
@@ -181,10 +201,10 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 
 			expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
-			expect(EVICTED_KEYS).to.be.equalTo(['a']);
+			expect(EVICTED_KEYS).toStrictEqual(['a']);
 		});
 
-		it('should do nothing when options or ttl is not given', (done) => {
+		it('should do nothing when options or ttl is not given', async () => {
 			const policy = new ReactiveExpirationPolicy<string, any>();
 			const EVICTED_KEYS = new Array<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -200,15 +220,18 @@ describe(`${colors.magenta(ReactiveExpirationPolicy.name)} spec`, () => {
 			policy.onUpdate(ENTRY, { expiresAfter: undefined }); // has no effect
 			policy.onUpdate(ENTRY, { expiresAfter: null! }); // has no effect
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(policy.onHit(ENTRY)).to.be.eq(EntryValidity.NOT_VALID);
-					expect(EVICTED_KEYS).to.be.equalTo(['a']);
-					done();
+					expect(EVICTED_KEYS).toStrictEqual(['a']);
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1100);
+
+			await deferred.promise;
 		});
 	});
 

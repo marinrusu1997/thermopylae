@@ -1,12 +1,8 @@
-import { ObjMap } from '@thermopylae/core.declarations';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, before, after, it } from 'mocha';
-import http, { IncomingMessage, ServerResponse } from 'http';
-import { request, requestSecure, HTTPResponse, ErrorCodes } from '../lib/http';
-import { generateToken } from './utils';
-
-const { expect } = chai;
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { IncomingMessage, Server, ServerResponse, createServer } from 'http';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { ErrorCodes, request, requestSecure } from '../lib/http.js';
+import { generateToken } from './utils.js';
 
 describe('http spec', () => {
 	let statusCodeForGETRequest = 200;
@@ -18,51 +14,57 @@ describe('http spec', () => {
 
 	const port = 7481;
 	const baseURL = `http://127.0.0.1:${port}/`;
-	let server: http.Server;
+	let server: Server;
 
-	before((done) => {
-		server = http.createServer((req: IncomingMessage, res: ServerResponse): void => {
-			if (req.method === 'GET') {
-				res.writeHead(statusCodeForGETRequest, {
-					'Content-Type': contentTypeForGETRequest
-				});
-				res.end(typeof responseForGETRequest === 'string' ? responseForGETRequest : JSON.stringify(responseForGETRequest));
-			} else if (req.method === 'POST') {
-				let body: Uint8Array[] | string = [];
-				req.on('readable', () => {
-					const chunk = req.read();
-					if (chunk) {
-						(body as Uint8Array[]).push(chunk);
-					}
-				});
-				req.on('end', () => {
-					body = Buffer.concat(body as Uint8Array[]).toString();
-					expect(body).to.be.equal(dataWhichWasSentInPOSTReq);
-					res.writeHead(statusCodeForPOSTRequest);
-					res.end();
-				});
-			} else {
-				throw new Error('Unknown method');
-			}
-		});
-
-		server.listen(port, done);
-	});
-
-	after((done) => {
-		server.close(done);
-	});
-
-	it('throws when unsupported status code is received (redirects)', (done) => {
-		statusCodeForGETRequest = 300;
-		request(baseURL, { method: 'GET' })
-			.then(() => done(new Error('should not resolve')))
-			.catch((error) => {
-				expect(error).to.be.instanceOf(Error);
-				expect(error).to.have.property('code', ErrorCodes.REDIRECT_NOT_SUPPORTED);
-				expect(error).to.have.property('message', statusCodeForGETRequest.toString());
-				done();
+	beforeAll(async () => {
+		server = await new Promise<Server>((resolve) => {
+			const spawnServer = createServer((req: IncomingMessage, res: ServerResponse): void => {
+				if (req.method === 'GET') {
+					res.writeHead(statusCodeForGETRequest, {
+						'Content-Type': contentTypeForGETRequest
+					});
+					res.end(typeof responseForGETRequest === 'string' ? responseForGETRequest : JSON.stringify(responseForGETRequest));
+				} else if (req.method === 'POST') {
+					let body: Uint8Array[] | string = [];
+					req.on('readable', () => {
+						const chunk = req.read();
+						if (chunk) {
+							(body as Uint8Array[]).push(chunk);
+						}
+					});
+					req.on('end', () => {
+						body = Buffer.concat(body as Uint8Array[]).toString();
+						expect(body).to.be.equal(dataWhichWasSentInPOSTReq);
+						res.writeHead(statusCodeForPOSTRequest);
+						res.end();
+					});
+				} else {
+					throw new Error('Unknown method');
+				}
 			});
+
+			spawnServer.listen(port, undefined, undefined, () => resolve(spawnServer));
+		});
+	});
+
+	afterAll(async () => {
+		await new Promise((resolve) => {
+			server.close(resolve);
+		});
+	});
+
+	it('throws when unsupported status code is received (redirects)', async () => {
+		statusCodeForGETRequest = 300;
+
+		let error: Error | null = null;
+		try {
+			await request(baseURL, { method: 'GET' });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).to.be.instanceOf(Error);
+		expect(error).to.have.property('code', ErrorCodes.REDIRECT_NOT_SUPPORTED);
+		expect(error).to.have.property('message', statusCodeForGETRequest.toString());
 	});
 
 	it('makes GET request for text content', async () => {
@@ -95,42 +97,44 @@ describe('http spec', () => {
 		expect(resp.data).to.be.deep.equal(responseForGETRequest);
 	});
 
-	it('makes GET request and handles error code in response (400 code)', (done) => {
+	it('makes GET request and handles error code in response (400 code)', async () => {
 		statusCodeForGETRequest = 400;
 		contentTypeForGETRequest = 'application/json';
 		responseForGETRequest = { error: { message: 'failure' } };
-		request(baseURL, { method: 'GET' })
-			.then(() => done(new Error('should not resolve')))
-			.catch((error: HTTPResponse) => {
-				expect(error).to.not.be.instanceOf(Error);
-				expect(error).to.have.property('status', 400);
-				expect(error.headers['content-type']).to.be.eq(contentTypeForGETRequest);
-				expect(error.data).to.be.deep.equal(responseForGETRequest);
-				done();
-			});
+
+		let error: Error & ObjMap = new Error();
+		try {
+			await request(baseURL, { method: 'GET' });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).to.not.be.instanceOf(Error);
+		expect(error).to.have.property('status', 400);
+		expect(error!.headers['content-type']).to.be.eq(contentTypeForGETRequest);
+		expect(error!.data).to.be.deep.equal(responseForGETRequest);
 	});
 
-	it('makes GET request and handles network errors', (done) => {
+	it('makes GET request and handles network errors', { timeout: 10_000 }, async () => {
 		statusCodeForGETRequest = 100;
-		request(baseURL, { method: 'GET' })
-			.then(() => done(new Error('should not resolve')))
-			.catch((error) => {
-				expect(error).to.be.instanceOf(Error).and.to.have.property('message', 'socket hang up');
-				done();
-			});
+
+		let error: Error & ObjMap = new Error();
+		try {
+			await request(baseURL, { method: 'GET' });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).to.be.instanceOf(Error).and.to.have.property('message', 'socket hang up');
 	});
 
-	it('makes POST request and handles no body response', (done) => {
+	it('makes POST request and handles no body response', async () => {
 		statusCodeForPOSTRequest = 200;
 		dataWhichWasSentInPOSTReq = generateToken(100000);
-		request(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq })
-			.then((res: HTTPResponse) => {
-				expect(res.status).to.be.eq(statusCodeForPOSTRequest);
-				expect(res.headers['content-type']).to.be.eq(undefined);
-				expect(res.data).to.be.equal(null);
-				done();
-			})
-			.catch((error) => done(error));
+
+		const res = await request(baseURL, { method: 'POST' }, { 'content-type': 'application/json', data: dataWhichWasSentInPOSTReq });
+
+		expect(res.status).to.be.eq(statusCodeForPOSTRequest);
+		expect(res.headers['content-type']).to.be.eq(undefined);
+		expect(res.data).to.be.equal(null);
 	});
 
 	it('makes GET secure request', async () => {

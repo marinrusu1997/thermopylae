@@ -1,9 +1,9 @@
-import { lookpath } from 'lookpath';
-import { exec, spawn } from 'child_process';
 import { onExit, streamEnd, streamWrite } from '@rauschma/stringio';
+import { exec, spawn } from 'child_process';
+import { lookpath } from 'lookpath';
 import os from 'os';
-import { logger } from '../logger';
-import { ConnectionDetails } from '../docker';
+import type { ConnectionDetails } from '../docker/index.js';
+import { logger } from '../logger.js';
 
 const enum Command {
 	MYSQL = 'mysql',
@@ -174,7 +174,7 @@ class MySQLCommandLineClient {
 				return candidate;
 			}
 		}
-		throw new Error(`No mysql command found on this operating system. Tried to find one of:  ${candidates.join(', ')}.`);
+		return Command.MYSQL;
 	}
 
 	private static async getCommandOutput(cmd: string): Promise<string> {

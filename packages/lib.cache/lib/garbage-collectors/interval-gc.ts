@@ -1,46 +1,38 @@
-import { Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
+import type { Nullable, Seconds, Threshold } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
-import { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface';
-import { EXPIRES_AT_SYM } from '../constants';
-import { IterableCacheBackend } from '../contracts/cache-backend';
-import { CacheEntry } from '../contracts/commons';
+import { EXPIRES_AT_SYM } from '../constants.js';
+import type { IterableCacheBackend } from '../contracts/cache-backend.js';
+import type { CacheEntry } from '../contracts/commons.js';
+import type { EntryExpiredCallback, ExpirableEntry, GarbageCollector } from './interface.js';
 
 /**
- * Circular iterator over {@link CacheBackend} entries. <br/>
- * It should always return an entry by cycling over cache entries,
- * unless there are no more, in which case it should return `null`.
+ * Circular iterator over {@link CacheBackend} entries. <br/> It should always return an entry by
+ * cycling over cache entries, unless there are no more, in which case it should return `null`.
  */
 type CacheEntriesCircularIterator<T> = () => T | null;
 
 interface IntervalGarbageCollectorOptions<Key, Value> {
-	/**
-	 * Cache backend instance.
-	 */
+	/** Cache backend instance. */
 	iterableBackend: IterableCacheBackend<Key, Value>;
 
-	/**
-	 * Interval for running GC that checks for expired entries. <br/>
-	 * Defaults to 15 seconds.
-	 */
+	/** Interval for running GC that checks for expired entries. <br/> Defaults to 15 seconds. */
 	checkInterval?: Seconds;
 
-	/**
-	 * How many entries GC needs to check for expiration. <br/>
-	 * Defaults to 100.
-	 */
+	/** How many entries GC needs to check for expiration. <br/> Defaults to 100. */
 	iterateCount?: Threshold;
 }
 
 /**
- * {@link GarbageCollector} implementation which evicts expired entries at regular interval (has no internal data structures). <br/>
- * Eviction timer will fire periodically at the interval specified by {@link IntervalGarbageCollectorOptions.checkInterval}.
- * When it fires, it will iterate over {@link IntervalGarbageCollectorOptions.iterateCount} backend entries, check
- * if any of them is expired and evict if so. After that, it will schedule running for next interval.
- * On next run, it will continue iteration from the entry it will stopped on previous run.
+ * {@link GarbageCollector} implementation which evicts expired entries at regular interval (has no
+ * internal data structures). <br/> Eviction timer will fire periodically at the interval specified
+ * by {@link IntervalGarbageCollectorOptions.checkInterval}. When it fires, it will iterate over
+ * {@link IntervalGarbageCollectorOptions.iterateCount} backend entries, check if any of them is
+ * expired and evict if so. After that, it will schedule running for next interval. On next run, it
+ * will continue iteration from the entry it will stopped on previous run.
  *
- * @template Key	Key type.
- * @template Value	Value type.
- * @template Entry	Cache entry type.
+ * @template Key Key type.
+ * @template Value Value type.
+ * @template Entry Cache entry type.
  */
 class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> implements GarbageCollector<Entry> {
 	private readonly options: Required<IntervalGarbageCollectorOptions<Key, Value>>;
@@ -114,8 +106,6 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 			}
 
 			break; // early exit from loop, because iterate threshold has been met
-
-			// eslint-disable-next-line eqeqeq
 		} while (currentEntry != startingEntry && this.options.iterableBackend.size); // while we iterate we might evict all entries, so check for cache emptiness
 
 		if (this.options.iterableBackend.size) {
@@ -154,4 +144,4 @@ class IntervalGarbageCollector<Key, Value, Entry extends ExpirableEntry> impleme
 	}
 }
 
-export { IntervalGarbageCollector, IntervalGarbageCollectorOptions };
+export { IntervalGarbageCollector, type IntervalGarbageCollectorOptions };

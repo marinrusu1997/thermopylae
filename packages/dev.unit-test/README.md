@@ -16,20 +16,21 @@ npm install @thermopylae/dev.unit-test --dev
 ```
 
 ## Description
+
 This package contains a collection of utils used in the unit testing of Thermopylae packages, such as:
 
-* test fixtures
-* logger for unit tests
-* chai plugins
-* mysql and redis docker containers
+- test fixtures
+- logger for unit tests
+- chai plugins
+- mysql and redis docker containers
 
 ## Author
 
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
-* Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
-* LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
+- GitHub: [@marinrusu1997](https://github.com/marinrusu1997)
+- Email: [dimarusu2000@gmail.com](mailto:dimarusu2000@gmail.com)
+- LinkedIn: [@marinrusu1997](https://linkedin.com/in/marinrusu1997)
 
 ## 📝 License
 

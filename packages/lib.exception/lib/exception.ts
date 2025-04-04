@@ -1,30 +1,24 @@
 /**
- * This class represents the logical errors detected by programmer
- * and is thrown when one of them occurs.
+ * This class represents the logical errors detected by programmer and is thrown when one of them
+ * occurs.
  */
 class Exception extends Error {
-	/**
-	 * Module that emitted the {@link Exception}.
-	 */
+	/** Module that emitted the {@link Exception}. */
 	public readonly emitter: string;
 
-	/**
-	 * General error code that briefly explains error condition.
-	 */
+	/** General error code that briefly explains error condition. */
 	public readonly code: string;
 
-	/**
-	 * Error origin. Might contain a nested {@link Error} or additional data that caused this error.
-	 */
+	/** Error origin. Might contain a nested {@link Error} or additional data that caused this error. */
 	public readonly origin?: any;
 
 	/**
-	 * @constructor
+	 * @class
 	 *
-	 * @param emitter	Exception emitter.
-	 * @param code		Error code.
-	 * @param message	Error message.
-	 * @param origin	Error origin.
+	 * @param emitter Exception emitter.
+	 * @param code    Error code.
+	 * @param message Error message.
+	 * @param origin  Error origin.
 	 */
 	public constructor(emitter: string, code: string, message?: string, origin?: any) {
 		super(message);
@@ -36,9 +30,7 @@ class Exception extends Error {
 		this.origin = origin;
 	}
 
-	/**
-	 * Format {@link Exception} into string.
-	 */
+	/** Format {@link Exception} into string. */
 	public override toString(): string {
 		return `[${this.emitter}] ${this.code}: ${this.message}${this.origin ? ` :${JSON.stringify(this.origin)}` : ''}`;
 	}

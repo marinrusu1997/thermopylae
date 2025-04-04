@@ -1,25 +1,21 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { assert, expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { chrono } from '@thermopylae/lib.utils';
+import { assert, describe, expect, it } from 'vitest';
 import {
-	AccountWithTotpSecret,
+	type AccountWithTotpSecret,
 	AuthenticationEngine,
 	EmailTwoFactorAuthStrategy,
 	ErrorCodes,
 	SmsTwoFactorAuthStrategy,
 	TotpTwoFactorAuthStrategy,
-	TwoFactorAuthStrategy
-} from '../lib';
-import { AuthenticationStepName } from '../lib/types/enums';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { buildAccountToBeRegistered, generateTotp, GlobalAuthenticationContext, validateSuccessfulLogin } from './utils';
-import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session';
+	type TwoFactorAuthStrategy
+} from '../lib/index.js';
+import { AuthenticationStepName } from '../lib/types/enums.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AuthenticationSessionMemoryRepository } from './fixtures/repositories/memory/auth-session.js';
+import { GlobalAuthenticationContext, buildAccountToBeRegistered, generateTotp, validateSuccessfulLogin } from './utils.js';
 
-describe('Two Factor Authentication spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('Two Factor Authentication spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	describe(`${TotpTwoFactorAuthStrategy.name} spec`, () => {

@@ -1,7 +1,7 @@
 /**
  * Function signature for checking equality of array elements.
  *
- * @template T	Element type.
+ * @template T Element type.
  */
 interface ArrayEqualsPredicate<T> {
 	(value: T, index: number, obj: T[]): boolean;
@@ -24,4 +24,4 @@ function defaultCompare<T>(a: T, b: T): number {
 	return 1;
 }
 
-export { ArrayEqualsPredicate, defaultCompare };
+export { type ArrayEqualsPredicate, defaultCompare };

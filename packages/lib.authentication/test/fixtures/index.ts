@@ -1,40 +1,38 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, afterEach, before } from 'mocha';
 import argon2 from 'argon2';
 import { createHash, privateDecrypt, publicEncrypt, randomBytes } from 'crypto';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import {
-	AccountWithTotpSecret,
+	type AccountWithTotpSecret,
 	Argon2PasswordHashingAlgorithm,
-	AuthenticationEngineOptions,
+	type AuthenticationEngineOptions,
 	PasswordLengthValidator,
 	PasswordStrengthValidator,
 	PwnedPasswordValidator,
 	TotpTwoFactorAuthStrategy,
-	TotpTwoFactorAuthStrategyOptions,
-	UserInputsProvider
-} from '../../lib';
-import { AccountRepositoryMongo } from './repositories/mongo/account';
-import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth';
-import { FailedAuthenticationAttemptsRepositoryMongo } from './repositories/mongo/failed-auth';
-import { ActivateAccountSessionMemoryRepository } from './repositories/memory/activate-account-session';
-import { AuthenticationSessionMemoryRepository } from './repositories/memory/auth-session';
-import { FailedAuthAttemptSessionMemoryRepository } from './repositories/memory/failed-auth-session';
-import { ForgotPasswordSessionMemoryRepository } from './repositories/memory/forgot-password-session';
-import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from './mongodb';
-import { MemoryCache } from './memory-cache';
-import { EmailSenderInstance } from './senders/email';
-import { SmsSenderInstance } from './senders/sms';
-import { OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks';
-import { challengeResponseValidator, recaptchaValidator } from './validators';
-import { BcryptPasswordHashingAlgorithm } from './password/bcrypt';
+	type TotpTwoFactorAuthStrategyOptions,
+	type UserInputsProvider
+} from '../../lib/index.js';
+import { OnAccountDisabledHookMock, OnAuthFromDifferentContextHookMock, OnForgottenPasswordChangedHookMock, OnPasswordChangedHookMock } from './hooks.js';
+import { MemoryCache } from './memory-cache.js';
+import { clearMongoDatabase, connectToMongoDatabase, dropMongoDatabase } from './mongodb.js';
+import { BcryptPasswordHashingAlgorithm } from './password/bcrypt.js';
+import { ActivateAccountSessionMemoryRepository } from './repositories/memory/activate-account-session.js';
+import { AuthenticationSessionMemoryRepository } from './repositories/memory/auth-session.js';
+import { FailedAuthAttemptSessionMemoryRepository } from './repositories/memory/failed-auth-session.js';
+import { ForgotPasswordSessionMemoryRepository } from './repositories/memory/forgot-password-session.js';
+import { AccountRepositoryMongo } from './repositories/mongo/account.js';
+import { FailedAuthenticationAttemptsRepositoryMongo } from './repositories/mongo/failed-auth.js';
+import { SuccessfulAuthenticationsRepositoryMongo } from './repositories/mongo/successful-auth.js';
+import { EmailSenderInstance } from './senders/email.js';
+import { SmsSenderInstance } from './senders/sms.js';
+import { challengeResponseValidator, recaptchaValidator } from './validators.js';
 
 const argon2PasswordHashingAlgorithm = new Argon2PasswordHashingAlgorithm({
 	type: argon2.argon2id,
 	hashLength: 5,
 	memoryCost: 8192,
 	parallelism: 4,
-	timeCost: 2,
-	saltLength: 8
+	timeCost: 2
 });
 
 const TotpDefaultOptions: TotpTwoFactorAuthStrategyOptions = {
@@ -153,7 +151,7 @@ afterEach(async () => {
 });
 
 // trigger global hooks at the first import in test suite files
-before(connectToMongoDatabase);
-after(dropMongoDatabase);
+beforeAll(connectToMongoDatabase);
+afterAll(dropMongoDatabase);
 
 export { AuthenticationEngineDefaultOptions, TotpDefaultOptions, PasswordLengthValidatorOptions, ForgotPasswordTokenEncryption };

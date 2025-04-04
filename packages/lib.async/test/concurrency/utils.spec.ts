@@ -1,14 +1,9 @@
-import { Milliseconds } from '@thermopylae/core.declarations';
-import { chrono, array } from '@thermopylae/lib.utils';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { runInSeries, synchronize, toPromise } from '../../lib';
-
-const { expect } = chai;
+import type { Milliseconds } from '@thermopylae/core.declarations';
+import { array, chrono } from '@thermopylae/lib.utils';
+import { describe, expect, it } from 'vitest';
+import { runInSeries, synchronize, toPromise } from '../../lib/index.js';
 
 describe('concurrency utils spec', () => {
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${runInSeries.name} spec`, () => {
 		it('runs async functions in series (no start value)', async () => {
 			const fun1 = async () => 1;
@@ -20,7 +15,7 @@ describe('concurrency utils spec', () => {
 				expect(prevVal).to.be.eq(2);
 				return 3;
 			};
-			expect(await runInSeries([fun1, fun2, fun3])).to.be.equalTo([1, 2, 3]);
+			expect(await runInSeries([fun1, fun2, fun3])).toStrictEqual([1, 2, 3]);
 		});
 
 		it('runs async functions in series (with start value)', async () => {
@@ -36,11 +31,10 @@ describe('concurrency utils spec', () => {
 				expect(prevVal).to.be.eq(2);
 				return 3;
 			};
-			expect(await runInSeries([fun1, fun2, fun3], 0)).to.be.equalTo([1, 2, 3]);
+			expect(await runInSeries([fun1, fun2, fun3], 0)).toStrictEqual([1, 2, 3]);
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${toPromise.name} spec`, () => {
 		it('returns same promise if passing a promise', async () => {
 			expect(await toPromise(Promise.resolve(1))).to.be.eq(1);
@@ -51,7 +45,6 @@ describe('concurrency utils spec', () => {
 		});
 	});
 
-	// eslint-disable-next-line mocha/no-setup-in-describe
 	describe(`${synchronize.name} spec`, () => {
 		it('returned function returns same result as provided one', async () => {
 			async function fn(): Promise<number> {
@@ -83,10 +76,12 @@ describe('concurrency utils spec', () => {
 			const endTime = Date.now();
 
 			expect(longOpCalls).to.be.eq(1);
-			// @ts-ignore This is for test purposes
-			expect(endTime - startTime).to.be.in.range(longOpDuration - epsilon, longOpDuration + epsilon);
+			const duration = endTime - startTime;
+			expect(duration).toBeGreaterThanOrEqual(longOpDuration - epsilon);
+			expect(duration).toBeLessThanOrEqual(longOpDuration + epsilon);
+
 			expect(results.length).to.be.eq(synchronizedCalls);
-			expect(results).to.be.equalTo(array.filledWith(synchronizedCalls, longOpResult));
+			expect(results).toStrictEqual(array.filledWith(synchronizedCalls, longOpResult));
 		});
 
 		it('synchronized function can be called multiple times after it has been resolved', async () => {
@@ -103,7 +98,7 @@ describe('concurrency utils spec', () => {
 
 			const multipleRes = await Promise.all(array.filledWith(synchronizedCalls, synchronizedFn()));
 			expect(longOpCalls).to.be.eq(1);
-			expect(multipleRes).to.be.equalTo(array.filledWith(synchronizedCalls, longOpRes));
+			expect(multipleRes).toStrictEqual(array.filledWith(synchronizedCalls, longOpRes));
 
 			const singleRes = await synchronizedFn();
 			expect(longOpCalls).to.be.eq(2);
@@ -111,7 +106,7 @@ describe('concurrency utils spec', () => {
 
 			const res = await Promise.all(array.filledWith(synchronizedCalls, synchronizedFn()));
 			expect(longOpCalls).to.be.eq(3);
-			expect(res).to.be.equalTo(array.filledWith(synchronizedCalls, longOpRes));
+			expect(res).toStrictEqual(array.filledWith(synchronizedCalls, longOpRes));
 		});
 	});
 });

@@ -1,10 +1,10 @@
-import { chrono } from '@thermopylae/lib.utils';
 import Dockerode from 'dockerode';
 import type { Container, ContainerInfo, Image, Port } from 'dockerode';
+import { IncomingMessage } from 'http';
 // @ts-ignore This package has no typings
 import { Host } from 'netmap';
-import { IncomingMessage } from 'http';
-import { logger } from '../logger';
+import { setTimeout } from 'node:timers/promises';
+import { logger } from '../logger.js';
 
 type ServicePortExtractor = (port: Port) => boolean;
 
@@ -30,20 +30,26 @@ async function retrievePreviouslyCreatedContainer(
 	extractServicePort: ServicePortExtractor
 ): Promise<Container | null> {
 	for (let i = containerInfos.length - 1; i >= 0; i--) {
-		if (containerInfos[i].Names.includes(`/${containerName}`)) {
-			logger.debug(`Found container ${containerName} created in previous run in ${containerInfos[i].State} state.`);
-			// eslint-disable-next-line no-await-in-loop
-			const container = await getDockerodeInstance().getContainer(containerInfos[i].Id);
+		const containerInfo = containerInfos[i];
+		if (!containerInfo) {
+			continue;
+		}
 
-			if (containerInfos[i].State !== 'running') {
+		if (containerInfo.Names.includes(`/${containerName}`)) {
+			logger.debug(`Found container ${containerName} created in previous run in ${containerInfo.State} state.`);
+			const container = await getDockerodeInstance().getContainer(containerInfo.Id);
+
+			if (containerInfo.State !== 'running') {
 				logger.debug(`Starting container ${containerName}.`);
-				// eslint-disable-next-line no-await-in-loop
 				await container.start();
 			}
 
 			let containerListeningInterface;
-			for (let j = containerInfos[i].Ports.length - 1; j >= 0; j--) {
-				containerListeningInterface = containerInfos[i].Ports[j];
+			for (let j = containerInfo.Ports.length - 1; j >= 0; j--) {
+				containerListeningInterface = containerInfo.Ports[j];
+				if (!containerListeningInterface) {
+					continue;
+				}
 
 				if (extractServicePort(containerListeningInterface)) {
 					logger.debug(
@@ -77,7 +83,7 @@ async function pullMissingImage(imageName: string): Promise<void> {
 		}
 
 		logger.debug(`Image ${imageName} created. Waiting 200 ms for availability.`);
-		await chrono.sleep(200);
+		await setTimeout(200);
 	}
 }
 
@@ -98,7 +104,7 @@ function readIncomingMessage(stream: IncomingMessage): Promise<void> {
 async function serviceAvailability(host: string, port: number, attempts: number): Promise<void> {
 	while ((await serviceAvailability.getStatus(host, port)) !== 'open' && attempts--) {
 		logger.debug(`Service availability on ${host}:${port} remaining attempts ${attempts}.`);
-		await chrono.sleep(1000);
+		await setTimeout(1000);
 	}
 	if (attempts <= 0) {
 		throw new Error(`Service at ${host}:${port} is not available.`);

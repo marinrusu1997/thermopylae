@@ -1,9 +1,5 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { random, replaceAt, trimChar } from '../lib/string';
-
-const { expect } = chai;
+import { describe, expect, it } from 'vitest';
+import { random, replaceAt, trimChar } from '../lib/string.js';
 
 describe('string spec', () => {
 	describe(`${replaceAt.name} spec`, () => {
@@ -56,7 +52,6 @@ describe('string spec', () => {
 		});
 
 		it('can generate custom random string using invocations with different regexes', () => {
-			// eslint-disable-next-line prettier/prettier
 			const generatedString = [
 				random({ length: 1, allowedCharRegex: /^[0-9]$/ }),
 				random({ length: 3, allowedCharRegex: /^[a-zA-Z]$/ }),

@@ -1,11 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { expect } from 'chai';
-
+import type { Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
-import { Undefinable } from '@thermopylae/core.declarations';
-import { randomInt, random, convertFrom, ErrorCodes, toLetter, percentage } from '../lib/number';
+import { describe, expect, it } from 'vitest';
+import { ErrorCodes, convertFrom, percentage, random, randomInt, toLetter } from '../lib/number.js';
 
 describe('number spec', () => {
 	describe(`${random.name} spec`, () => {
@@ -76,7 +72,7 @@ describe('number spec', () => {
 				try {
 					convertFrom(value, true);
 				} catch (e) {
-					err = e;
+					err = e as Error;
 				}
 				expect(err).to.be.instanceOf(Exception).and.to.haveOwnProperty('code', ErrorCodes.NUMBER_TYPE_CASTING_FAILED);
 			}

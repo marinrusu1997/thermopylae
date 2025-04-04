@@ -1,8 +1,8 @@
-import type { Nullable } from '@thermopylae/core.declarations';
 import * as TransportStream from 'winston-transport';
+import type { Nullable } from '@thermopylae/core.declarations';
 import WinstonGraylog2 from 'winston-graylog2';
-import type { AbstractTransportManager } from '../typings';
-import { createException, ErrorCodes } from '../error';
+import { ErrorCodes, createException } from '../error.js';
+import type { AbstractTransportManager } from '../typings.js';
 
 interface GraylogEndpoint {
 	host: string;
@@ -15,8 +15,8 @@ interface GraylogLoggingChannel {
 }
 
 /**
- * Class responsible for holding graylog2 transport. <br/>
- * Uses [winston-graylog2](https://www.npmjs.com/package/winston-graylog2) npm package.
+ * Class responsible for holding graylog2 transport. <br/> Uses
+ * [winston-graylog2](https://www.npmjs.com/package/winston-graylog2) npm package.
  */
 class GrayLogsManager implements AbstractTransportManager {
 	private inputs: Nullable<Map<string, GraylogEndpoint>>;
@@ -31,8 +31,8 @@ class GrayLogsManager implements AbstractTransportManager {
 	/**
 	 * Registers a new graylog2 input.
 	 *
-	 * @param   input       Input name, acting as an identifier.
-	 * @param   endpoint    Options based on which transport will be created.
+	 * @param input    Input name, acting as an identifier.
+	 * @param endpoint Options based on which transport will be created.
 	 */
 	public register(input: string, endpoint: GraylogEndpoint): void {
 		if (this.inputs == null) {
@@ -47,12 +47,11 @@ class GrayLogsManager implements AbstractTransportManager {
 	}
 
 	/**
-	 * Defines a logging channel for module, which instructs the manager
-	 * which log level and input to use for him. <br>
-	 * '@all' module can be specified as default channel.
+	 * Defines a logging channel for module, which instructs the manager which log level and input
+	 * to use for him. <br> '@all' module can be specified as default channel.
 	 *
-	 * @param module     Module name.
-	 * @param channel    Module channel.
+	 * @param module  Module name.
+	 * @param channel Module channel.
 	 */
 	public setChannel(module: string, channel: GraylogLoggingChannel): void {
 		if (this.channels == null) {
@@ -70,9 +69,8 @@ class GrayLogsManager implements AbstractTransportManager {
 	}
 
 	/**
-	 * Create transport for module.
-	 * When no inputs configured, it means graylog transport is not used. <br>
-	 * Do not pass @all module name, as it will be removed.
+	 * Create transport for module. When no inputs configured, it means graylog transport is not
+	 * used. <br> Do not pass @all module name, as it will be removed.
 	 *
 	 * @private
 	 */
@@ -108,4 +106,5 @@ class GrayLogsManager implements AbstractTransportManager {
 	}
 }
 
-export { GrayLogsManager, GraylogEndpoint, GraylogLoggingChannel };
+export { GrayLogsManager };
+export type { GraylogEndpoint, GraylogLoggingChannel };

@@ -1,19 +1,19 @@
-import { AbsoluteExpirationPolicy, AbsoluteExpirationPolicyArgumentsBundle } from './absolute';
-import { EntryValidity } from '../../contracts/cache-replacement-policy';
-import { GarbageCollector } from '../../garbage-collectors/interface';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants';
-import { HeapGarbageCollector } from '../../garbage-collectors/heap-gc';
-import { ExpirableCacheEntry } from './abstract';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../constants.js';
+import { EntryValidity } from '../../contracts/cache-replacement-policy.js';
+import { HeapGarbageCollector } from '../../garbage-collectors/heap-gc.js';
+import type { GarbageCollector } from '../../garbage-collectors/interface.js';
+import { AbsoluteExpirationPolicy, type AbsoluteExpirationPolicyArgumentsBundle } from './absolute.js';
+import type { ExpirableCacheEntry } from './abstract.js';
 
 /**
- * Expiration policy which evicts keys on it's behalf in the background. <br/>
- * Expired keys are tracked with the help of {@link GarbageCollector}, which evicts them asynchronously when they expire. <br/>
- * This kind of policy can be used if you have keys that won't be often queried
- * and you need a background timer which evicts keys as soon as they expire.
+ * Expiration policy which evicts keys on it's behalf in the background. <br/> Expired keys are
+ * tracked with the help of {@link GarbageCollector}, which evicts them asynchronously when they
+ * expire. <br/> This kind of policy can be used if you have keys that won't be often queried and
+ * you need a background timer which evicts keys as soon as they expire.
  *
- * @template Key				Type of the key.
- * @template Value				Type of the value.
- * @template ArgumentsBundle	Type of the arguments bundle.
+ * @template Key Type of the key.
+ * @template Value Type of the value.
+ * @template ArgumentsBundle Type of the arguments bundle.
  */
 class ProactiveExpirationPolicy<
 	Key,
@@ -23,8 +23,8 @@ class ProactiveExpirationPolicy<
 	private readonly gc: GarbageCollector<any>;
 
 	/**
-	 * @param gc	{@link GarbageCollector} which notifies about expired entries. <br/>
-	 * 				Defaults to {@link HeapGarbageCollector}.
+	 * @param gc {@link GarbageCollector} which notifies about expired entries. <br/> Defaults to
+	 *   {@link HeapGarbageCollector}.
 	 */
 	public constructor(gc?: GarbageCollector<any>) {
 		super();
@@ -36,24 +36,18 @@ class ProactiveExpirationPolicy<
 		});
 	}
 
-	/**
-	 * Get the number of tracked for expiration keys.
-	 */
+	/** Get the number of tracked for expiration keys. */
 	public get size(): number {
 		return this.gc.size;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override onHit(): EntryValidity {
 		// here we should find and remove item from heap, but it would be to expensive to do on each get
 		return EntryValidity.VALID;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override onSet(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || ProactiveExpirationPolicy.isNonExpirable(options)) {
 			return;
@@ -63,9 +57,7 @@ class ProactiveExpirationPolicy<
 		this.gc.manage(entry);
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override onUpdate(entry: ExpirableCacheEntry<Key, Value>, options?: ArgumentsBundle): void {
 		if (options == null || options.expiresAfter == null) {
 			return undefined;
@@ -101,24 +93,18 @@ class ProactiveExpirationPolicy<
 		return undefined; // item had infinite ttl, and the new tll is also infinite
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override onDelete(entry: ExpirableCacheEntry<Key, Value>): void {
 		this.gc.leave(entry); // do not track it anymore for expiration
 		super.onDelete(entry); // it has attached metadata only if it was part of the heap (i.e. tracked by this policy)
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public override onClear(): void {
 		this.gc.clear();
 	}
 
-	/**
-	 * **Method used for unit testing purposes!**
-	 */
+	/** **Method used for unit testing purposes!** */
 	public isIdle(): boolean {
 		return this.gc.idle;
 	}

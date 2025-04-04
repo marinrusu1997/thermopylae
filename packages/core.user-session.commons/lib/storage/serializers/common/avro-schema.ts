@@ -1,8 +1,6 @@
 import type { Schema } from 'avsc';
 
-/**
- * @private
- */
+/** @private */
 const AVRO_SCHEMA: Schema = {
 	type: 'record',
 	name: 'user_session_meta_data',

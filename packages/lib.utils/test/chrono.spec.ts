@@ -1,10 +1,5 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { fromUnixTime, minutesToSeconds, unixTime, sleep, tomorrow, firstDayOfNextMonth, executionTime, executionTimeAsync } from '../lib/chrono';
-
-const { expect } = chai;
-const assert = chai.assert as (expr: boolean, msg?: string) => void;
+import { assert, describe, expect, it } from 'vitest';
+import { executionTime, executionTimeAsync, firstDayOfNextMonth, fromUnixTime, minutesToSeconds, sleep, tomorrow, unixTime } from '../lib/chrono.js';
 
 describe('chrono spec', () => {
 	describe('measured execution time spec', () => {
@@ -55,15 +50,11 @@ describe('chrono spec', () => {
 		assert(fromUnixTime(now + seconds).getTime() - fromUnixTime(now).getTime() === 300000, 'needs to be 300000 ms');
 	});
 
-	it('sleeps for specified amount of milliseconds', (done) => {
+	it('sleeps for specified amount of milliseconds', async () => {
 		const SLEEP_DURATION = 1000;
 		const whenSleepBegan = unixTime();
-		sleep(SLEEP_DURATION)
-			.then(() => {
-				assert(unixTime() - SLEEP_DURATION / 1000 === whenSleepBegan);
-				done();
-			})
-			.catch((error) => done(error));
+		await sleep(SLEEP_DURATION);
+		assert(unixTime() - SLEEP_DURATION / 1000 === whenSleepBegan);
 	});
 
 	it('computes correctly tomorrow', () => {

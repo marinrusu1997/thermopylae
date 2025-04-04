@@ -1,13 +1,11 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, before, describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import type { HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap, HTTPRequestLocation } from '@thermopylae/core.declarations';
+import cookie from '@fastify/cookie';
+import type { HTTPRequestLocation, HttpDevice, HttpHeaderValue, HttpRequestHeader, ObjMap } from '@thermopylae/core.declarations';
 import { HttpStatusCode, MimeExt, MimeType } from '@thermopylae/core.declarations';
-import fetch from 'node-fetch';
 import { serialize } from 'cookie';
-import cookie from 'fastify-cookie';
 import fastify from 'fastify';
-import { FastifyResponseAdapter, LOCATION_SYM, FastifyRequestAdapter } from '../lib';
+import fetch from 'node-fetch';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '../lib/index.js';
 
 const PORT = 3572;
 
@@ -67,12 +65,8 @@ app.post('/:pp1/:pp2', (req, res) => {
 });
 
 describe(`Fastify adapter spec`, () => {
-	before((done) => {
-		app.listen(PORT, done);
-	});
-	after((done) => {
-		app.close(done);
-	});
+	beforeAll(() => app.listen({ port: PORT }));
+	afterAll(() => app.close());
 
 	it('should send a request and receive a response', async () => {
 		const location: HTTPRequestLocation = {
@@ -96,7 +90,7 @@ describe(`Fastify adapter spec`, () => {
 						secure: true,
 						path: '/',
 						sameSite: 'strict',
-						domain: `localhost:${PORT}`
+						domain: 'localhost'
 					}),
 					serialize('pref', 'bike,car', {
 						expires: new Date('01 Aug 2021 00:00:00 GMT'),
@@ -149,7 +143,7 @@ describe(`Fastify adapter spec`, () => {
 		});
 
 		expect(response.status).to.be.eq(HttpStatusCode.Ok);
-		expect(response.headers.raw()['set-cookie']).to.be.equalTo(['pref=programming,workout', 'sid=456']);
-		await expect(response.json()).to.eventually.be.deep.eq({ wave: 'to-you' });
+		expect(response.headers.raw()['set-cookie']).toStrictEqual(['pref=programming,workout', 'sid=456']);
+		await expect(response.json()).resolves.to.be.deep.eq({ wave: 'to-you' });
 	});
 });

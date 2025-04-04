@@ -1,21 +1,19 @@
-import { AuthenticationStepName } from '../../types/enums';
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../../types/contexts';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import { AuthenticationStepName } from '../../types/enums.js';
+import type { AccountModel } from '../../types/models.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
 /**
  * Validates that captcha provided by client is valid.
  *
- * @param authenticationContext		Current authentication context.
+ * @param   authenticationContext Current authentication context.
  *
- * @returns		Whether captcha is valid.
+ * @returns                       Whether captcha is valid.
  */
 type RecaptchaValidator = (authenticationContext: AuthenticationContext) => Promise<boolean>;
 
-/**
- * @private
- */
+/** @private */
 class RecaptchaStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly recaptchaValidator: RecaptchaValidator;
 
@@ -47,4 +45,5 @@ class RecaptchaStep<Account extends AccountModel> implements AuthenticationStep<
 	}
 }
 
-export { RecaptchaStep, RecaptchaValidator };
+export { RecaptchaStep };
+export type { RecaptchaValidator };

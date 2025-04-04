@@ -1,5 +1,5 @@
-import { Exception } from '@thermopylae/lib.exception';
 import { Library } from '@thermopylae/core.declarations';
+import { Exception } from '@thermopylae/lib.exception';
 
 const enum ErrorCodes {
 	INVALID_CACHE_MAX_CAPACITY = 'INVALID_CACHE_MAX_CAPACITY',
@@ -12,9 +12,7 @@ const enum ErrorCodes {
 	DEPENDENT_KEY_NOT_FOUND = 'DEPENDENT_KEY_NOT_FOUND'
 }
 
-/**
- * @private
- */
+/** @private */
 function createException(code: ErrorCodes, message: string, cause?: Record<string, unknown>): Exception {
 	return new Exception(Library.CACHE, code, message, cause);
 }

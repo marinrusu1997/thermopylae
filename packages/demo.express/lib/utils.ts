@@ -1,4 +1,4 @@
-import { BaseContext } from '@thermopylae/lib.authentication';
+import type { BaseContext } from '@thermopylae/lib.authentication';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 

@@ -1,11 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { chai } from '@thermopylae/dev.unit-test';
+import type { Comparator, Undefinable } from '@thermopylae/core.declarations';
 import { number, string } from '@thermopylae/lib.utils';
-import { Comparator, Undefinable } from '@thermopylae/core.declarations';
-import { Heap } from '../lib';
-
-const { expect } = chai;
+import { describe, expect, it } from 'vitest';
+import { Heap } from '../lib/index.js';
 
 type ArrayComparator<T> = (a: Undefinable<T>, b: Undefinable<T>) => number;
 
@@ -16,7 +12,7 @@ describe(`${Heap.name} spec`, () => {
 			sorted.push(heap.pop());
 		}
 
-		expect(sorted.slice().sort(comparator as ArrayComparator<T>)).to.be.equalTo(sorted);
+		expect(sorted.slice().sort(comparator as ArrayComparator<T>)).toStrictEqual(sorted);
 	}
 
 	describe(`${Heap.prototype.push.name} & ${Heap.prototype.pop.name} spec`, () => {
@@ -96,7 +92,7 @@ describe(`${Heap.name} spec`, () => {
 				sorted.push(heap.pop());
 			}
 
-			expect(sorted.slice().sort().reverse()).to.be.equalTo(sorted);
+			expect(sorted.slice().sort().reverse()).toStrictEqual(sorted);
 		});
 	});
 
@@ -110,7 +106,7 @@ describe(`${Heap.name} spec`, () => {
 
 			expect(heap.replaceRootWith(3)).to.be.eq(1);
 
-			expect(heap.toArray().sort()).to.be.equalTo([2, 3, 3, 4, 5]);
+			expect(heap.toArray().sort()).toStrictEqual([2, 3, 3, 4, 5]);
 		});
 	});
 
@@ -160,7 +156,7 @@ describe(`${Heap.name} spec`, () => {
 			original.push(c);
 
 			const clone = original.clone();
-			expect(original.toArray()).to.be.equalTo(clone.toArray());
+			expect(original.toArray()).toStrictEqual(clone.toArray());
 
 			assertHeapSortedOrder(original, comparator);
 			assertHeapSortedOrder(clone, comparator);
@@ -325,7 +321,7 @@ describe(`${Heap.name} spec`, () => {
 				expectedSorted.push(heap.pop());
 			}
 
-			expect(expectedSorted).to.be.equalTo([1, 2, 3, 4, 5]);
+			expect(expectedSorted).toStrictEqual([1, 2, 3, 4, 5]);
 			expect(heap.size).to.be.eq(0);
 		});
 	});

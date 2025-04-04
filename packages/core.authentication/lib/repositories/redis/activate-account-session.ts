@@ -1,7 +1,7 @@
-import { Seconds } from '@thermopylae/core.declarations';
+import type { Seconds } from '@thermopylae/core.declarations';
 import { RedisClientInstance } from '@thermopylae/core.redis';
 import type { AccountWithTotpSecret, ActivateAccountSessionRepository } from '@thermopylae/lib.authentication';
-import { createException, ErrorCodes } from '../../error';
+import { ErrorCodes, createException } from '../../error.js';
 
 class ActivateAccountSessionRedisRepository implements ActivateAccountSessionRepository<AccountWithTotpSecret> {
 	private readonly prefix: string;

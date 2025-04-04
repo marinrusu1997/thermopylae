@@ -1,14 +1,12 @@
-import type { AuthenticationStep, AuthenticationStepOutput } from '../step';
-import type { AccountModel } from '../../types/models';
-import type { SuccessfulAuthenticationsRepository, FailedAuthAttemptSessionRepository } from '../../types/repositories';
-import type { AuthenticationContext } from '../../types/contexts';
-import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder';
-import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks';
-import { getCurrentTimestamp } from '../../utils';
+import type { AuthenticationSessionRepositoryHolder } from '../../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../../types/contexts.js';
+import type { OnAuthenticationFromDifferentContextHook } from '../../types/hooks.js';
+import type { AccountModel } from '../../types/models.js';
+import type { FailedAuthAttemptSessionRepository, SuccessfulAuthenticationsRepository } from '../../types/repositories.js';
+import { getCurrentTimestamp } from '../../utils.js';
+import type { AuthenticationStep, AuthenticationStepOutput } from '../step.js';
 
-/**
- * @private
- */
+/** @private */
 class AuthenticatedStep<Account extends AccountModel> implements AuthenticationStep<Account> {
 	private readonly onAuthFromDifferentContextHook: OnAuthenticationFromDifferentContextHook<Account>;
 

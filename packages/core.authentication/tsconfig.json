@@ -1,12 +1,38 @@
 {
-    "extends": "../../node_modules/@thermopylae/dev.environment/lib/configs/tsconfig.json",
-    "compilerOptions": {
-        "rootDir": ".",
-        "tsBuildInfoFile": "build/tsbuildinfo",
-        "outDir": "dist"
-    },
-    "include": [
-        "lib/**/*.ts",
-        "test/**/*.ts"
-    ]
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "lib",
+		"tsBuildInfoFile": "build/tsbuildinfo",
+		"outDir": "dist"
+	},
+	"include": ["lib/**/*.ts"],
+	"references": [
+		{
+			"path": "../core.declarations"
+		},
+		{
+			"path": "../core.mysql"
+		},
+		{
+			"path": "../core.redis"
+		},
+		{
+			"path": "../lib.exception"
+		},
+		{
+			"path": "../core.logger"
+		},
+		{
+			"path": "../dev.environment"
+		},
+		{
+			"path": "../dev.unit-test"
+		},
+		{
+			"path": "../lib.authentication"
+		},
+		{
+			"path": "../lib.utils"
+		}
+	]
 }

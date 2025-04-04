@@ -1,9 +1,9 @@
-import type { FailedAuthenticationAttemptsRepository, FailedAuthenticationModel } from '@thermopylae/lib.authentication';
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
-import { MySqlClientInstance, QueryType, ResultSetHeader, RowDataPacket } from '@thermopylae/core.mysql';
-import stringify from 'fast-json-stable-stringify';
+import { MySqlClientInstance, QueryType, type ResultSetHeader, type RowDataPacket } from '@thermopylae/core.mysql';
+import type { FailedAuthenticationAttemptsRepository, FailedAuthenticationModel } from '@thermopylae/lib.authentication';
 import farmhash from 'farmhash';
-import { TableNames } from '../constants';
+import stringify from 'fast-json-stable-stringify';
+import { TableNames } from '../constants.js';
 
 class FailedAuthenticationsMysqlRepository implements FailedAuthenticationAttemptsRepository {
 	public async insert(authentication: FailedAuthenticationModel): Promise<void> {
@@ -14,7 +14,7 @@ class FailedAuthenticationsMysqlRepository implements FailedAuthenticationAttemp
 
 			if (authentication.device) {
 				const deviceJsonString = stringify(authentication.device);
-				deviceHash = farmhash.hash64(deviceJsonString);
+				deviceHash = farmhash.hash64(deviceJsonString).toString();
 
 				await connection.query(
 					`INSERT INTO ${TableNames.Device} (id, json) VALUES ('${deviceHash}', '${deviceJsonString}')  ON DUPLICATE KEY UPDATE json='${deviceJsonString}';`

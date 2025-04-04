@@ -1,8 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
+import { describe, expect, it } from 'vitest';
 
 describe('module without tests', () => {
 	it('has no tests', () => {
-		return undefined;
+		expect(1).toBe(1);
 	});
 });

@@ -1,3 +1,3 @@
-export * from './collection';
-export * from './typings';
-export { ErrorCodes } from './error';
+export * from './collection.js';
+export * from './typings.js';
+export { ErrorCodes } from './error.js';

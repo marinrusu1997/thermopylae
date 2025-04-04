@@ -1,11 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import colors from 'colors';
+import { buildPromiseHolder } from '@thermopylae/lib.async';
 import { array, number, string } from '@thermopylae/lib.utils';
-import { expect } from '@thermopylae/dev.unit-test';
-import { ExpirableSlidingCacheEntry, SlidingProactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding';
-import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants';
-import { EntryValidity, GarbageCollector, HeapGarbageCollector, BucketGarbageCollector } from '../../../lib';
+import colors from 'colors';
+import { describe, expect, it } from 'vitest';
+import { EXPIRES_AT_SYM, INFINITE_EXPIRATION } from '../../../lib/constants.js';
+import { BucketGarbageCollector, EntryValidity, type GarbageCollector, HeapGarbageCollector } from '../../../lib/index.js';
+import { type ExpirableSlidingCacheEntry, SlidingProactiveExpirationPolicy, TIME_SPAN_SYM } from '../../../lib/policies/expiration/sliding.js';
 
 function generateEntry(key: string): ExpirableSlidingCacheEntry<string, any> {
 	return {
@@ -25,7 +24,7 @@ function gcFactory(): GarbageCollector<any> {
 
 describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => {
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onHit.name.magenta} spec`, () => {
-		it('validates entries that have no time span expiration', (done) => {
+		it('validates entries that have no time span expiration', async () => {
 			const ENTRIES = new Map<string, ExpirableSlidingCacheEntry<string, any>>([
 				['1', generateEntry('1')],
 				['2', generateEntry('2')],
@@ -58,19 +57,21 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			}
 			expect(policy.idle).to.be.eq(true);
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS.size).to.be.eq(0);
 					expect(policy.idle).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 50);
+			await deferred.promise;
 		});
 
-		it('refreshes expiration with the time span on each entry hit', (done) => {
+		it('refreshes expiration with the time span on each entry hit', { timeout: 3500 }, async () => {
 			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -86,6 +87,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			const ENTRY = generateEntry('key');
 			policy.onSet(ENTRY, { timeSpan: 2 });
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS.size).to.be.eq(0);
@@ -94,7 +96,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 				} catch (e) {
 					clearTimeout(entrySlicedTimeout);
 					clearTimeout(entryEvictedTimeout);
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1000);
 
@@ -105,7 +107,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(policy.idle).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(entryEvictedTimeout);
-					done(e);
+					deferred.reject(e);
 				}
 			}, 2100);
 
@@ -115,16 +117,18 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.has('key')).to.be.eq(true);
 					expect(policy.idle).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 3200);
-		}).timeout(3500);
+
+			await deferred.promise;
+		});
 	});
 
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onUpdate.name.magenta} spec`, () => {
-		it('sets entry expiration, then removes it, then sets it back (gc should restart)', (done) => {
+		it('sets entry expiration, then removes it, then sets it back (gc should restart)', { timeout: 2500 }, async () => {
 			const KEY = 'key';
 			const ENTRY = generateEntry(KEY);
 			const EVICTED_KEYS = new Set<string>();
@@ -149,6 +153,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			expect(ENTRY[EXPIRES_AT_SYM]).to.be.eq(undefined);
 			expect(ENTRY[TIME_SPAN_SYM]).to.be.eq(undefined);
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(EVICTED_KEYS.size).to.be.eq(0); // didn't evict nothing
@@ -158,7 +163,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(policy.idle).to.be.eq(false);
 				} catch (e) {
 					clearTimeout(entryEvictedTimeout);
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1100);
 
@@ -168,14 +173,16 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.has(KEY)).to.be.eq(true);
 					expect(policy.idle).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 2200);
-		}).timeout(2500);
 
-		it('does nothing if new time span is equal to the previous one', (done) => {
+			await deferred.promise;
+		});
+
+		it('does nothing if new time span is equal to the previous one', { timeout: 2500 }, async () => {
 			const KEY = 'key';
 			const ENTRY = generateEntry(KEY);
 			const EVICTED_KEYS = new Set<string>();
@@ -192,6 +199,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 
 			policy.onUpdate(ENTRY, { timeSpan: 2 });
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(policy.idle).to.be.eq(false);
@@ -203,7 +211,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.size).to.be.eq(0);
 				} catch (e) {
 					clearTimeout(entryEvictedTimeout);
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1000);
 
@@ -213,14 +221,16 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.has(KEY)).to.be.eq(true);
 					expect(policy.idle).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 2100);
-		}).timeout(2500);
 
-		it('updates time span and resets entry expiration', (done) => {
+			await deferred.promise;
+		});
+
+		it('updates time span and resets entry expiration', { timeout: 2500 }, async () => {
 			const KEY = 'key';
 			const ENTRY = generateEntry(KEY);
 			const EVICTED_KEYS = new Set<string>();
@@ -233,6 +243,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			policy.onUpdate(ENTRY, { timeSpan: 1 });
 			policy.onUpdate(ENTRY, { timeSpan: 2 });
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					// wasn't evicted after 1 sec
@@ -240,7 +251,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.size).to.be.eq(0);
 				} catch (e) {
 					clearTimeout(entryEvictedTimeout);
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1100);
 
@@ -250,14 +261,16 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 					expect(EVICTED_KEYS.has(KEY)).to.be.eq(true);
 					expect(policy.idle).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 2100);
-		}).timeout(2500);
 
-		it('simulation of real usage', (done) => {
+			await deferred.promise;
+		});
+
+		it('simulation of real usage', { timeout: 8500 }, async () => {
 			const KEYS = array.filledWith(100, () => string.random(), { noDuplicates: true });
 			const REFRESH_ON_GET_KEYS = new Set(array.filledWith(number.randomInt(1, 70), () => array.randomElement(KEYS), { noDuplicates: true }));
 			const KEY_TO_ENTRY = new Map<string, ExpirableSlidingCacheEntry<string, any>>();
@@ -306,18 +319,23 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			]);
 
 			for (let extensionAttempts = 0; extensionAttempts < MAX_TIME_POINTS; extensionAttempts++) {
-				setTimeout(() => {
-					for (const key of KEYS_PER_INSERT_TIME_POINT.get(extensionAttempts)!) {
-						if (REFRESH_ON_GET_KEYS.has(key)) {
-							policy.onHit(KEY_TO_ENTRY.get(key)!);
-							KEYS_EXPIRED_AT.get(extensionAttempts + 3)!.push(key);
-						} else {
-							policy.onUpdate(KEY_TO_ENTRY.get(key)!, { timeSpan: 3 });
-							KEYS_EXPIRED_AT.get(extensionAttempts + 4)!.push(key);
+				setTimeout(
+					() => {
+						for (const key of KEYS_PER_INSERT_TIME_POINT.get(extensionAttempts)!) {
+							if (REFRESH_ON_GET_KEYS.has(key)) {
+								policy.onHit(KEY_TO_ENTRY.get(key)!);
+								KEYS_EXPIRED_AT.get(extensionAttempts + 3)!.push(key);
+							} else {
+								policy.onUpdate(KEY_TO_ENTRY.get(key)!, { timeSpan: 3 });
+								KEYS_EXPIRED_AT.get(extensionAttempts + 4)!.push(key);
+							}
 						}
-					}
-				}, extensionAttempts * 1000 + 1000);
+					},
+					extensionAttempts * 1000 + 1000
+				);
 			}
+
+			const deferred = buildPromiseHolder<void>();
 
 			let checkTimePoint = 3;
 			function checkEvictedKeys(): void {
@@ -328,17 +346,19 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 
 					if (++checkTimePoint === 8) {
 						expect(policy.idle).to.be.eq(true);
-						done();
+						deferred.resolve();
 						return;
 					}
 
 					setTimeout(checkEvictedKeys, 1100);
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}
 			setTimeout(checkEvictedKeys, checkTimePoint * 1000 + 100);
-		}).timeout(8500);
+
+			await deferred.promise;
+		});
 	});
 
 	describe(`${SlidingProactiveExpirationPolicy.prototype.onDelete.name.magenta} spec`, () => {
@@ -378,7 +398,7 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			expect(policy.idle).to.be.eq(true);
 		});
 
-		it('restarts gc after clear', (done) => {
+		it('restarts gc after clear', async () => {
 			const policy = new SlidingProactiveExpirationPolicy<string, any>(gcFactory());
 			const EVICTED_KEYS = new Set<string>();
 			policy.setDeleter((evictedEntry) => {
@@ -395,17 +415,19 @@ describe(`${colors.magenta(SlidingProactiveExpirationPolicy.name)} spec`, () => 
 			expect(policy.idle).to.be.eq(false);
 			expect(EVICTED_KEYS.size).to.be.eq(0);
 
+			const deferred = buildPromiseHolder<void>();
 			setTimeout(() => {
 				try {
 					expect(policy.idle).to.be.eq(true);
 					expect(EVICTED_KEYS.size).to.be.eq(1);
 					expect(EVICTED_KEYS.has('key2')).to.be.eq(true);
 
-					done();
+					deferred.resolve();
 				} catch (e) {
-					done(e);
+					deferred.reject(e);
 				}
 			}, 1100);
+			await deferred.promise;
 		});
 	});
 });

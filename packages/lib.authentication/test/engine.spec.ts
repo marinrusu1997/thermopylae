@@ -1,10 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
 import { object } from '@thermopylae/lib.utils';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { AuthenticationEngine, ErrorCodes } from '../lib';
+import { describe, expect, it } from 'vitest';
+import { AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
 
 describe('AuthEngine spec', function suite() {
 	it('validates password similarity coefficient', () => {
@@ -14,7 +12,6 @@ describe('AuthEngine spec', function suite() {
 
 		let err;
 		try {
-			// eslint-disable-next-line no-new
 			new AuthenticationEngine(options);
 		} catch (e) {
 			err = e;
@@ -27,7 +24,6 @@ describe('AuthEngine spec', function suite() {
 
 		err = null;
 		try {
-			// eslint-disable-next-line no-new
 			new AuthenticationEngine(options);
 		} catch (e) {
 			err = e;
@@ -43,7 +39,6 @@ describe('AuthEngine spec', function suite() {
 
 		let err;
 		try {
-			// eslint-disable-next-line no-new
 			new AuthenticationEngine(options);
 		} catch (e) {
 			err = e;

@@ -1,8 +1,8 @@
-import { number } from '@thermopylae/lib.utils';
 import type { Container, Port } from 'dockerode';
-import type { ConnectionDetails } from './index';
-import { serviceAvailability, getDockerodeInstance, pullMissingImage, retrievePreviouslyCreatedContainer } from './index';
-import { logger } from '../logger';
+import { randomInt } from 'node:crypto';
+import { logger } from '../logger.js';
+import type { ConnectionDetails } from './index.js';
+import { getDockerodeInstance, pullMissingImage, retrievePreviouslyCreatedContainer, serviceAvailability } from './index.js';
 
 const PRIVATE_PORT = 6379;
 const CONTAINER_NAME = 'redis_test';
@@ -10,7 +10,7 @@ const IMAGE_NAME = 'bitnami/redis:latest';
 
 const CONNECTION_DETAILS: ConnectionDetails = {
 	host: '127.0.0.1',
-	port: number.randomInt(5000, 6000),
+	port: randomInt(5000, 6000),
 	password: 'thermopylae'
 };
 

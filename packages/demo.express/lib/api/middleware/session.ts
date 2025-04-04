@@ -1,15 +1,15 @@
-import { CoreModule, HttpStatusCode, ObjMap, Library } from '@thermopylae/core.declarations';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { ErrorCodes as CoreUserSessionCommonsErrorCodes } from '@thermopylae/core.user-session.commons';
-import { JsonWebTokenError, TokenExpiredError, ErrorCodes as LibraryJwtSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
+import { CoreModule, HttpStatusCode, Library, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as CoreJwtSessionErrorCodes } from '@thermopylae/core.jwt-session';
+import { ErrorCodes as CoreUserSessionCommonsErrorCodes } from '@thermopylae/core.user-session.commons';
 import { Exception } from '@thermopylae/lib.exception';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import unless, { Options } from 'express-unless';
+import { JsonWebTokenError, ErrorCodes as LibraryJwtSessionErrorCodes, TokenExpiredError } from '@thermopylae/lib.jwt-user-session';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import handler from 'express-async-handler';
-import { REQUEST_USER_SESSION_SYM } from '../../constants';
-import { logger } from '../../logger';
-import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons';
+import { type Params, unless } from 'express-unless';
+import { JWT_USER_SESSION_MIDDLEWARE } from '../../app/singletons.js';
+import { REQUEST_USER_SESSION_SYM } from '../../constants.js';
+import { logger } from '../../logger.js';
 
 const enum ErrorCodes {
 	INVALID_SESSION = 'INVALID_SESSION',
@@ -27,7 +27,7 @@ interface ResponseBody {
 	};
 }
 
-function requiresAuthentication(unlessOptions: Options): RequestHandler {
+function requiresAuthentication(unlessOptions: Params): RequestHandler {
 	return unless(
 		handler(async (req: Request<ObjMap, ResponseBody>, res: Response<ResponseBody>, next: NextFunction) => {
 			try {

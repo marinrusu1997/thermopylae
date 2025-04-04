@@ -1,9 +1,8 @@
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/cookie/avro.js';
 import { UserSessionManager } from '@thermopylae/lib.user-session';
-import type { CookieUserSessionMiddlewareOptions } from '../../lib';
-import { logger } from '../../lib/logger';
-import { CookieUserSessionMiddleware, UserSessionRedisStorage } from '../../lib';
+import type { CookieUserSessionMiddlewareOptions } from '../../lib/index.js';
+import { CookieUserSessionMiddleware, UserSessionRedisStorage } from '../../lib/index.js';
+import { logger } from '../../lib/logger.js';
 
 const options: CookieUserSessionMiddlewareOptions = {
 	sessionManager: {

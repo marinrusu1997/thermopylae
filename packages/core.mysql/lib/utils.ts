@@ -1,10 +1,7 @@
-// eslint-disable-next-line import/extensions
-import { Connection, Field, QueryError } from 'mysql2/promise';
-import { logger } from './logger';
+import type { Connection, Field, QueryError } from 'mysql2/promise.js';
+import { logger } from './logger.js';
 
-/**
- * @private
- */
+/** @private */
 function mysqlErrorHandler(error: QueryError): void {
 	logger.error(`Connection Error: ${formatMySqlError(error)}`, error);
 }
@@ -14,9 +11,9 @@ function mysqlErrorHandler(error: QueryError): void {
  *
  * @private
  *
- * @param connection 	MySQL connection.
+ * @param   connection MySQL connection.
  *
- * @returns		Formatted string.
+ * @returns            Formatted string.
  */
 function formatConnectionDetails(connection: Connection): string {
 	return `Connection: Id ${connection.threadId}; Host ${connection.config.host || connection.config.socketPath}; Port ${connection.config.port}; User ${
@@ -27,21 +24,21 @@ function formatConnectionDetails(connection: Connection): string {
 /**
  * Format MySQL error.
  *
- * @param error		MySQL error.
+ * @param   error MySQL error.
  *
- * @returns		Formatted string.
+ * @returns       Formatted string.
  */
 function formatMySqlError(error: QueryError): string {
 	return `Code: ${error.code}; Errno: ${error.errno}; Message: ${error.message}; Sql state marker: ${error.sqlStateMarker}; Sql state: ${error.sqlState}; Field count: ${error.fieldCount}; Fatal: ${error.fatal}.`;
 }
 
 /**
- * Casts fields of type *TINY* to boolean.
+ * Casts fields of type _TINY_ to boolean.
  *
- * @param field		Field.
- * @param next		Next processor.
+ * @param   field Field.
+ * @param   next  Next processor.
  *
- * @returns		Boolean value.
+ * @returns       Boolean value.
  */
 function typeCastBooleans(field: Field, next: () => boolean): boolean {
 	if (field.type === 'TINY' && field.length === 1) {

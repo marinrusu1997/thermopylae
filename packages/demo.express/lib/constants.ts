@@ -1,4 +1,4 @@
-import { RouterOptions } from 'express';
+import type { RouterOptions } from 'express';
 
 const enum ServiceMethod {
 	AUTHENTICATE = 'AUTHENTICATE',

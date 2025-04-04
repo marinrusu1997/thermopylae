@@ -1,13 +1,9 @@
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { afterEach, describe, it } from 'mocha';
 import fs from 'fs';
 import process from 'process';
-import { FormattingManager, OutputFormat } from '../lib/formatting-manager';
-import { FileLogsManager } from '../lib/transports/file';
-import { expectToLogIntoFile, formatCurrentDate, log, unlinkAsync } from './utils';
-
-const { expect } = chai;
+import { afterEach, describe, expect, it } from 'vitest';
+import { FormattingManager, OutputFormat } from '../lib/formatting-manager.js';
+import { FileLogsManager } from '../lib/transports/file.js';
+import { expectToLogIntoFile, formatCurrentDate, log, unlinkAsync } from './utils.js';
 
 describe(`${FileLogsManager.name} spec`, () => {
 	const config = {

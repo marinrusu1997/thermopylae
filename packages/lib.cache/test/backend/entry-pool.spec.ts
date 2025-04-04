@@ -1,9 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import colors from 'colors';
-import { EntryPoolCacheBackend } from '../../lib';
-import { CacheEntry } from '../../lib/contracts/commons';
+import { describe, expect, it } from 'vitest';
+import type { CacheEntry } from '../../lib/contracts/commons.js';
+import { EntryPoolCacheBackend } from '../../lib/index.js';
 
 describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 	it('should manage cache entries', () => {
@@ -64,8 +62,8 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		/* DELETE */
 		backend.del(backend.get('a')!); // deleted entry
 		expect(backend.size).to.be.eq(1); // size decreased
-		expect(Array.from(backend)).to.be.ofSize(1); // iterates correctly
-		expect(Array.from(backend.values())).to.be.ofSize(1); // iterates correctly
+		expect(Array.from(backend)).to.have.length(1); // iterates correctly
+		expect(Array.from(backend.values())).to.have.length(1); // iterates correctly
 		expect(firstEntry.value).to.be.eq(undefined); // detaches metadata
 		expect(firstEntry.key).to.be.eq(undefined); // detaches metadata
 
@@ -78,9 +76,9 @@ describe(`${colors.magenta(EntryPoolCacheBackend.name)} spec`, () => {
 		/* CLEAR */
 		backend.clear();
 		expect(backend.size).to.be.eq(0);
-		expect(Array.from(backend)).to.be.ofSize(0); // iterates correctly
-		expect(Array.from(backend.keys())).to.be.ofSize(0); // iterates correctly
-		expect(Array.from(backend.values())).to.be.ofSize(0); // iterates correctly
+		expect(Array.from(backend)).to.have.length(0); // iterates correctly
+		expect(Array.from(backend.keys())).to.have.length(0); // iterates correctly
+		expect(Array.from(backend.values())).to.have.length(0); // iterates correctly
 		expect(backend.has('c')).to.be.eq(false);
 		expect(backend.has('b')).to.be.eq(false);
 

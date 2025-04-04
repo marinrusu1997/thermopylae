@@ -10,10 +10,9 @@
 </a>
 </p>
 
-> __MODULE_DESCRIPTION_PLACEHOLDER__
+> **MODULE_DESCRIPTION_PLACEHOLDER**
 
 ### 🏠 [Homepage](__HOMEPAGE_URL_PLACEHOLDER__)
-
 
 ## Install
 
@@ -31,8 +30,8 @@ npm run test
 
 👤 **Rusu Marin**
 
-* GitHub: [@marinrusu1997](__AUTHOR_GITHUB_URL_PLACEHOLDER__)
-* LinkedIn: [@marinrusu1997](__AUTHOR_LINKEDIN_URL_PLACEHOLDER__)
+- GitHub: [@marinrusu1997](__AUTHOR_GITHUB_URL_PLACEHOLDER__)
+- LinkedIn: [@marinrusu1997](__AUTHOR_LINKEDIN_URL_PLACEHOLDER__)
 
 ## 📝 License
 

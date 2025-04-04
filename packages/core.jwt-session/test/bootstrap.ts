@@ -1,37 +1,25 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { after, before, beforeEach } from 'mocha';
-import { bootRedisContainer, ConnectionDetails, DockerContainer, initLogger as initUnitTestLogger, logger } from '@thermopylae/dev.unit-test';
-import { ConnectionType, initLogger as initRedisClientLogger, RedisClientInstance, RedisConnectionOptions } from '@thermopylae/core.redis';
+import { ClientModule, CoreModule, DevModule, type MutableSome } from '@thermopylae/core.declarations';
 import { DefaultFormatters, LoggerManagerInstance, OutputFormat } from '@thermopylae/core.logger';
-import { ClientModule, DevModule, CoreModule, MutableSome } from '@thermopylae/core.declarations';
-import { config as dotEnvConfig } from 'dotenv';
-import pickRandom from 'pick-random';
+import { ConnectionType, RedisClientInstance, type RedisConnectionOptions, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
 import { initLogger as initUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
-// eslint-disable-next-line import/extensions
-import { FAST_JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/fast-json';
-// eslint-disable-next-line import/extensions
-import { JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/json';
 import type { UserSessionRedisStorageOptions } from '@thermopylae/core.user-session.commons';
-import { options, refreshTokenStorageOptions, server } from './server';
-import { initLogger as initCoreJwtSessionLogger } from '../lib/logger';
-import { InvalidAccessTokensMemCache } from '../lib';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro.js';
+import { FAST_JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/fast-json.js';
+import { JSON_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/json.js';
+import { logger } from '@thermopylae/dev.unit-test';
+import pickRandom from 'pick-random';
+import { RedisMemoryServer } from 'redis-memory-server';
+import { afterAll, beforeAll, beforeEach } from 'vitest';
+import { InvalidAccessTokensMemCache } from '../lib/index.js';
+import { initLogger as initCoreJwtSessionLogger } from '../lib/logger.js';
+import { options, refreshTokenStorageOptions, server } from './server.js';
 
 const SERVER_PORT = 7569;
 
-// eslint-disable-next-line import/no-mutable-exports
 let serverAddress: string;
-let redisContainer: DockerContainer;
+let redisMemoryServer: RedisMemoryServer;
 
-before(async function boot() {
-	this.timeout(120_000);
-
-	const dotEnv = dotEnvConfig();
-	if (dotEnv.error) {
-		throw dotEnv.error;
-	}
-
+beforeAll(async function boot() {
 	LoggerManagerInstance.formatting.setDefaultFormattingOrder(OutputFormat.PRINTF, {
 		colorize: true,
 		skippedFormatters: new Set([DefaultFormatters.TIMESTAMP]),
@@ -42,18 +30,20 @@ before(async function boot() {
 			[ClientModule.REDIS]: 'info'
 		}
 	});
-	LoggerManagerInstance.console.createTransport({ level: process.env['LOG_LEVEL'] || 'debug' });
+	LoggerManagerInstance.console.createTransport({ level: 'debug' });
 
-	initUnitTestLogger();
 	initRedisClientLogger();
 	initCoreJwtSessionLogger();
 	initUserSessionCommonsLogger();
 
-	let connectDetails: ConnectionDetails;
-	[redisContainer, connectDetails] = await bootRedisContainer();
+	redisMemoryServer = new RedisMemoryServer();
+	if (!(await redisMemoryServer.start())) {
+		throw new Error('Failed to start redis memory server');
+	}
 
 	const redisClientOptions: RedisConnectionOptions = {
-		...connectDetails,
+		host: await redisMemoryServer.getHost(),
+		port: await redisMemoryServer.getPort(),
 		connect_timeout: 10_000,
 		max_attempts: 10,
 		retry_max_delay: 5_000,
@@ -70,11 +60,11 @@ before(async function boot() {
 
 	await RedisClientInstance.client.config('SET', 'notify-keyspace-events', 'Kgxe');
 
-	serverAddress = await server.listen(SERVER_PORT);
+	serverAddress = await server.listen({ port: SERVER_PORT });
 	logger.debug(`Fastify server listening on ${serverAddress}`);
 
-	logger.crit('Refresh token storage has serialization schemas to user session metadata, which needs to be updated from time to time.');
-});
+	logger.error('Refresh token storage has serialization schemas to user session metadata, which needs to be updated from time to time.');
+}, 120_000);
 
 beforeEach(async () => {
 	await RedisClientInstance.client.flushall(); // flush storage
@@ -86,29 +76,20 @@ beforeEach(async () => {
 	);
 });
 
-after(async function testEnvCleaner(): Promise<void> {
-	this.timeout(10_000);
-
+afterAll(async function testEnvCleaner(): Promise<void> {
 	if (serverAddress) {
 		await server.close();
 		logger.debug('Fastify server closed');
 	}
 
-	const proceed = [undefined, 1, '1', true, 'true', 'yes', 'y'];
-	if (redisContainer) {
-		if (proceed.includes(process.env['STOP_REDIS_CONTAINER_AFTER_TESTS'])) {
-			logger.info(`Stopping redis container with id ${redisContainer.id}`);
-			await redisContainer.stop();
-		}
-		if (proceed.includes(process.env['REMOVE_REDIS_CONTAINER_AFTER_TESTS'])) {
-			logger.info(`Removing redis container with id ${redisContainer.id}`);
-			await redisContainer.remove();
-		}
+	if (redisMemoryServer) {
+		logger.info(`Stopping redis memory sever`);
+		await redisMemoryServer.stop();
 	} else {
 		logger.debug(`Redis container was not created by 'before' hook. Therefore, cleanup is not needed.`);
 	}
 
 	await RedisClientInstance.disconnect(false);
-});
+}, 10_000);
 
 export { serverAddress };

@@ -1,13 +1,11 @@
-import { createException, ErrorCodes } from '../error';
-import { AuthenticationStepName } from '../types/enums';
-import type { AuthenticationStatus, AuthenticationStep, AuthenticationStepOutput } from './step';
-import type { AccountModel } from '../types/models';
-import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder';
-import type { AuthenticationContext } from '../types/contexts';
+import { ErrorCodes, createException } from '../error.js';
+import type { AuthenticationSessionRepositoryHolder } from '../helpers/authentication-session-repository-holder.js';
+import type { AuthenticationContext } from '../types/contexts.js';
+import { AuthenticationStepName } from '../types/enums.js';
+import type { AccountModel } from '../types/models.js';
+import type { AuthenticationStatus, AuthenticationStep, AuthenticationStepOutput } from './step.js';
 
-/**
- * @private
- */
+/** @private */
 class AuthenticationOrchestrator<Account extends AccountModel> {
 	private readonly startStepName: AuthenticationStepName;
 
@@ -31,7 +29,6 @@ class AuthenticationOrchestrator<Account extends AccountModel> {
 		let currentStep: AuthenticationStep<Account> = this.steps.get(currentStepName)!;
 		let prevStepName = AuthenticationStepName.UNKNOWN;
 
-		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			const output: AuthenticationStepOutput<Account> = await currentStep.process(
 				account,

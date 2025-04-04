@@ -1,8 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
-import { PolicyBasedCache, EsMapCacheBackend, EntryValidity, CacheEvent } from '../../lib';
-import { PolicyMock } from './mocks/policy';
+import { describe, expect, it } from 'vitest';
+import { CacheEvent, EntryValidity, EsMapCacheBackend, PolicyBasedCache } from '../../lib/index.js';
+import { PolicyMock } from './mocks/policy.js';
 
 describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 	describe(`${PolicyBasedCache.prototype.get.name.magenta} spec`, () => {
@@ -58,11 +56,11 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			const p1OnMiss = policy1.methodBehaviours.get('onMiss')!;
 			expect(p1OnMiss.calls).to.be.eq(1);
-			expect(p1OnMiss.arguments).to.be.equalTo(['key']);
+			expect(p1OnMiss.arguments).toStrictEqual(['key']);
 
 			const p2OnMiss = policy2.methodBehaviours.get('onMiss')!;
 			expect(p2OnMiss.calls).to.be.eq(1);
-			expect(p2OnMiss.arguments).to.be.equalTo(['key']);
+			expect(p2OnMiss.arguments).toStrictEqual(['key']);
 		});
 	});
 
@@ -165,7 +163,7 @@ describe(`${PolicyBasedCache.name.magenta} spec`, () => {
 
 			expect(() => cache.set('key', 'value')).to.throw('TEST');
 			expect(backend.get('key')).to.be.eq(undefined);
-			expect(cache.keys()).to.be.equalTo([]);
+			expect(cache.keys()).toStrictEqual([]);
 
 			expect(evictionPolicyOnSetBehaviour.calls).to.be.eq(1);
 			expect(expirationPolicyOnSetBehaviour.calls).to.be.eq(1);

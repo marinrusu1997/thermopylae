@@ -1,8 +1,6 @@
 import type { UnixTimestamp } from '@thermopylae/core.declarations';
 
-/**
- * @private
- */
+/** @private */
 function getCurrentTimestamp(): UnixTimestamp {
 	return Math.floor(new Date().getTime() / 1000);
 }

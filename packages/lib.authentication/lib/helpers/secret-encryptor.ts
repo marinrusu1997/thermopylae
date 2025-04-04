@@ -1,33 +1,24 @@
 import { createCipheriv, createDecipheriv } from 'crypto';
-import type { CipherCCMTypes, CipherGCMTypes, CipherKey, BinaryLike, CipherCCMOptions, CipherGCMOptions } from 'crypto';
+import type { BinaryLike, CipherCCMOptions, CipherCCMTypes, CipherGCMOptions, CipherGCMTypes, CipherKey } from 'crypto';
 import type { TransformOptions } from 'stream';
 
 /**
- * Options used for secrets encryption (e.g. password hash, totp secret etc.). <br/>
- * Detailed explanation can be found [here](https://nodejs.org/api/crypto.html#crypto_crypto_createcipheriv_algorithm_key_iv_options).
+ * Options used for secrets encryption (e.g. password hash, totp secret etc.). <br/> Detailed
+ * explanation can be found
+ * [here](https://nodejs.org/api/crypto.html#crypto_crypto_createcipheriv_algorithm_key_iv_options).
  */
 interface SecretEncryptionOptions {
-	/**
-	 * Encryption algorithm.
-	 */
+	/** Encryption algorithm. */
 	algorithm: CipherCCMTypes | CipherGCMTypes | string;
-	/**
-	 * Cipher key secret.
-	 */
+	/** Cipher key secret. */
 	secret: CipherKey;
-	/**
-	 * Initialization vector.
-	 */
+	/** Initialization vector. */
 	iv: BinaryLike | null;
-	/**
-	 * Encryption options.
-	 */
+	/** Encryption options. */
 	options?: CipherCCMOptions | CipherGCMOptions | TransformOptions;
 }
 
-/**
- * @private
- */
+/** @private */
 class SecretEncryptor {
 	private readonly options: SecretEncryptionOptions | false;
 

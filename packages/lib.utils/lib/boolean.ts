@@ -1,4 +1,4 @@
-import { createException } from './exception';
+import { createException } from './exception.js';
 
 const enum ErrorCodes {
 	BOOLEAN_TYPE_CASTING_FAILED = 'BOOLEAN_TYPE_CASTING_FAILED'
@@ -7,10 +7,10 @@ const enum ErrorCodes {
 /**
  * Convert given `value` to boolean equivalent.
  *
- * @param value				Boolean like value.
- * @param strictNullables	Whether to throw when given value is `null`.
+ * @param   value           Boolean like value.
+ * @param   strictNullables Whether to throw when given value is `null`.
  *
- * @returns		Boolean equivalent.
+ * @returns                 Boolean equivalent.
  */
 function convertFrom(value: null | undefined | string | number | boolean, strictNullables?: boolean): boolean {
 	const valueType = typeof value;

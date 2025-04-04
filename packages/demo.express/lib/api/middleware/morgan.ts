@@ -1,5 +1,5 @@
-import morgan, { FormatFn } from 'morgan';
-import { logger } from '../../logger';
+import morgan, { type FormatFn } from 'morgan';
+import { logger } from '../../logger.js';
 
 morgan.token('id', (req) => {
 	return (req as any).id as string;
@@ -13,19 +13,18 @@ const morganFormat: FormatFn = (tokens, req, res): string => {
 		status! >= 500
 			? 31 // red
 			: status! >= 400
-			? 33 // yellow
-			: status! >= 300
-			? 36 // cyan
-			: status! >= 200
-			? 32 // green
-			: 0; // no color
+				? 33 // yellow
+				: status! >= 300
+					? 36 // cyan
+					: status! >= 200
+						? 32 // green
+						: 0; // no color
 
 	// @ts-ignore We embed colors in morgan object
 	let fn = morganFormat[color];
 
 	if (!fn) {
 		// @ts-ignore We embed colors in morgan object
-		// eslint-disable-next-line no-multi-assign
 		fn = morganFormat[color] = morgan.compile(`:id \x1b[0m:method :url \x1b[${color}m:status\x1b[0m :response-time ms - :res[content-length]\x1b[0m`);
 	}
 

@@ -1,5 +1,5 @@
 /**
- * Generates random token of specified length
+ * Generates random token of specified length.
  *
  * @param length
  */

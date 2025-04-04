@@ -1,12 +1,11 @@
+import cookie from '@fastify/cookie';
 import { FastifyRequestAdapter, FastifyResponseAdapter, LOCATION_SYM } from '@thermopylae/core.adapter.fastify';
-import cookie from 'fastify-cookie';
-import fastify, { FastifyInstance } from 'fastify';
-import { HttpStatusCode, HttpVerb } from '@thermopylae/core.declarations';
-import { UserSessionRedisStorage, UserSessionRedisStorageOptions } from '@thermopylae/core.user-session.commons';
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
+import { HttpStatusCode, type HttpVerb } from '@thermopylae/core.declarations';
+import { UserSessionRedisStorage, type UserSessionRedisStorageOptions } from '@thermopylae/core.user-session.commons';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro.js';
 import { logger } from '@thermopylae/dev.unit-test';
-import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions } from '../lib';
+import fastify, { type FastifyInstance } from 'fastify';
+import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, type JwtUserSessionMiddlewareOptions } from '../lib/index.js';
 
 const server = fastify({
 	logger: {
@@ -135,7 +134,7 @@ server[routes.get_resource.method](routes.get_resource.path, async (req, res) =>
 		const jwtPayload = await middleware.verify(request, response);
 		response.status(HttpStatusCode.Ok).send({ rest: 'resource', role: jwtPayload.role });
 	} catch (e) {
-		logger.warning(`${routes.get_resource.path}`, e);
+		logger.warn(`${routes.get_resource.path}`, e);
 		response.status(HttpStatusCode.Forbidden).send({ message: e.message });
 	}
 });
@@ -155,7 +154,7 @@ server[routes.renew_session.method](routes.renew_session.path, async (req, res) 
 		await middleware.refresh(request, response, { role: 'user' }, { subject: request.query('uid')! });
 		response.status(HttpStatusCode.Ok).send();
 	} catch (e) {
-		logger.warning(`${routes.renew_session.path}`, e);
+		logger.warn(`${routes.renew_session.path}`, e);
 		response.status(HttpStatusCode.NotFound).send();
 	}
 });

@@ -1,27 +1,20 @@
-/* eslint max-classes-per-file: 0 */ // --> OFF
-import { Nullable } from '@thermopylae/core.declarations';
-import { LinkedList } from './interface';
+/* eslint max-classes-per-file: 0 */
+// --> OFF
+import type { Nullable } from '@thermopylae/core.declarations';
+import type { LinkedList } from './interface.js';
 
-/**
- * @private
- */
+/** @private */
 const PREV_SYM = Symbol.for('PREV_SYM_DLL');
-/**
- * @private
- */
+/** @private */
 const NEXT_SYM = Symbol.for('NEXT_SYM_DLL');
 
-/**
- * @private
- */
+/** @private */
 interface DoublyLinkedListNode<Node> {
 	[PREV_SYM]: Nullable<Node>;
 	[NEXT_SYM]: Nullable<Node>;
 }
 
-/**
- * @private
- */
+/** @private */
 class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implements Iterator<Node, Node> {
 	private node: Nullable<Node>;
 
@@ -41,9 +34,7 @@ class DoublyLinkedListIterator<Node extends DoublyLinkedListNode<Node>> implemen
 	}
 }
 
-/**
- * @private
- */
+/** @private */
 class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements LinkedList<DoublyLinkedListNode<Node>> {
 	public head: Nullable<Node>;
 
@@ -149,4 +140,4 @@ class DoublyLinkedList<Node extends DoublyLinkedListNode<Node>> implements Linke
 	}
 }
 
-export { DoublyLinkedList, DoublyLinkedListNode, DoublyLinkedListIterator, NEXT_SYM, PREV_SYM };
+export { DoublyLinkedList, type DoublyLinkedListNode, DoublyLinkedListIterator, NEXT_SYM, PREV_SYM };

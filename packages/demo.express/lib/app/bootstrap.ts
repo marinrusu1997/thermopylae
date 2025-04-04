@@ -1,52 +1,63 @@
-import { ApiValidator } from '@thermopylae/lib.api-validator';
-import { GeoIpLocator, GeoIpLiteRepository, IpLocateRepository, IpstackRepository } from '@thermopylae/lib.geoip';
-import {
-	AccountWithTotpSecret,
-	AuthenticationEngine,
-	TotpTwoFactorAuthStrategy,
-	Argon2PasswordHashingAlgorithm,
-	PasswordLengthValidator,
-	PasswordStrengthValidator,
-	PwnedPasswordValidator
-} from '@thermopylae/lib.authentication';
-import { SmsClient } from '@thermopylae/lib.sms';
-import { EmailClient } from '@thermopylae/lib.email';
-import { JwtUserSessionMiddleware, InvalidAccessTokensMemCache, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
-import { UserSessionRedisStorage, initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
-// eslint-disable-next-line import/extensions
-import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro';
 import {
 	AccountMySqlRepository,
-	FailedAuthenticationsMysqlRepository,
-	SuccessfulAuthenticationsMysqlRepository,
 	ActivateAccountSessionRedisRepository,
 	AuthenticationSessionRedisRepository,
 	FailedAuthenticationAttemptsSessionRedisRepository,
-	ForgotPasswordSessionRedisRepository
+	FailedAuthenticationsMysqlRepository,
+	ForgotPasswordSessionRedisRepository,
+	SuccessfulAuthenticationsMysqlRepository
 } from '@thermopylae/core.authentication';
-import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
+import type { ObjMap } from '@thermopylae/core.declarations';
+import { InvalidAccessTokensMemCache, JwtUserSessionMiddleware, initLogger as initCoreJwtUserSessionLogger } from '@thermopylae/core.jwt-session';
+import { type GraylogEndpoint, type GraylogLoggingChannel, LoggerManagerInstance } from '@thermopylae/core.logger';
 import { MySqlClientInstance, initLogger as initMysqlClientLogger } from '@thermopylae/core.mysql';
-import { LoggerManagerInstance } from '@thermopylae/core.logger';
-import { publicEncrypt, constants } from 'crypto';
-import express, { Router } from 'express';
+import { RedisClientInstance, initLogger as initRedisClientLogger } from '@thermopylae/core.redis';
+import { UserSessionRedisStorage, initLogger as initCoreUserSessionCommonsLogger } from '@thermopylae/core.user-session.commons';
+import { AVRO_SERIALIZER } from '@thermopylae/core.user-session.commons/dist/storage/serializers/jwt/avro.js';
+import { ApiValidator } from '@thermopylae/lib.api-validator';
+import {
+	type AccountWithTotpSecret,
+	Argon2PasswordHashingAlgorithm,
+	AuthenticationEngine,
+	PasswordLengthValidator,
+	PasswordStrengthValidator,
+	PwnedPasswordValidator,
+	TotpTwoFactorAuthStrategy
+} from '@thermopylae/lib.authentication';
+import { EmailClient } from '@thermopylae/lib.email';
+import { GeoIpLiteRepository, GeoIpLocator, IpLocateRepository, IpstackRepository } from '@thermopylae/lib.geoip';
+import { type IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
+import { SmsClient } from '@thermopylae/lib.sms';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
+import { constants, publicEncrypt } from 'crypto';
+import express, { Router } from 'express';
+// @ts-ignore
 import addRequestId from 'express-request-id';
 import helmet from 'helmet';
 import fetch from 'node-fetch';
-import process from 'process';
 import path from 'path';
-import { IssuedJwtPayload, JwtUserSessionManagerEvent } from '@thermopylae/lib.jwt-user-session';
-import { ObjMap } from '@thermopylae/core.declarations';
-import { Config } from '../config';
-import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from '../constants';
-import { createException, ErrorCodes } from '../error';
-import { initLoggers, logger } from '../logger';
-import { authenticationRouter } from '../api/routes/authentication/router';
-import { morganMiddleware } from '../api/middleware/morgan';
+import process from 'process';
+import { morganMiddleware } from '../api/middleware/morgan.js';
+import { serverError } from '../api/middleware/server-error.js';
+import { requiresAuthentication } from '../api/middleware/session.js';
+import { authenticationRouter } from '../api/routes/authentication/router.js';
+import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema.js';
+import { userSessionRouter } from '../api/routes/session/router.js';
+import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema.js';
+import { KafkaClient, type KafkaMessage } from '../clients/kafka.js';
+import { Config } from '../config/index.js';
+import { APP_NODE_ID, EnvironmentVariables, ROUTER_OPTIONS } from '../constants.js';
+import { ErrorCodes, createException } from '../error.js';
+import { initLoggers, logger } from '../logger.js';
+import { __dirname, stringifyOperationContext } from '../utils.js';
 import {
 	API_VALIDATOR,
 	EMAIL_CLIENT,
+	JWT_USER_SESSION_MIDDLEWARE,
+	KAFKA_CLIENT,
+	SERVER,
+	SMS_CLIENT,
 	initApiServer,
 	initApiValidator,
 	initAuthenticationEngine,
@@ -54,19 +65,8 @@ import {
 	initGeoipLocator,
 	initJwtUserSessionMiddleware,
 	initKafkaClient,
-	initSmsClient,
-	JWT_USER_SESSION_MIDDLEWARE,
-	KAFKA_CLIENT,
-	SERVER,
-	SMS_CLIENT
-} from './singletons';
-import { serverError } from '../api/middleware/server-error';
-import { requiresAuthentication } from '../api/middleware/session';
-import { __dirname, stringifyOperationContext } from '../utils';
-import { API_SCHEMA as AUTHENTICATION_API_SCHEMA } from '../api/routes/authentication/schema';
-import { API_SCHEMA as SESSION_API_SCHEMA } from '../api/routes/session/schema';
-import { userSessionRouter } from '../api/routes/session/router';
-import { KafkaClient, KafkaMessage } from '../clients/kafka';
+	initSmsClient
+} from './singletons.js';
 
 let bootstrapPerformed = false;
 
@@ -107,10 +107,10 @@ async function bootstrap() {
 	}
 	if (loggingConfig.transports.GRAYLOG2 != null) {
 		for (const [input, endpoint] of Object.entries(loggingConfig.transports.GRAYLOG2.endpoints)) {
-			LoggerManagerInstance.graylog2.register(input, endpoint);
+			LoggerManagerInstance.graylog2.register(input, endpoint as GraylogEndpoint);
 		}
 		for (const [module, channel] of Object.entries(loggingConfig.transports.GRAYLOG2.channels)) {
-			LoggerManagerInstance.graylog2.setChannel(module, channel);
+			LoggerManagerInstance.graylog2.setChannel(module, channel as GraylogLoggingChannel);
 		}
 	}
 
@@ -270,14 +270,14 @@ async function bootstrap() {
 			validators: {
 				recaptcha: async (authenticationContext) => {
 					try {
-						const googleResponse = await (
+						const googleResponse = (await (
 							await fetch(
 								`https://www.google.com/recaptcha/api/siteverify?secret=${authEngineConfig.recaptcha.secretKey}&response=${authenticationContext.recaptcha}`,
 								{
 									method: 'POST'
 								}
 							)
-						).json();
+						).json()) as ObjMap;
 
 						if (googleResponse.success !== true) {
 							logger.warning("Google recaptcha wasn't solved.");
@@ -529,7 +529,6 @@ async function bootstrap() {
 	process.on('unhandledRejection', async (reason) => {
 		logger.crit(`Caught unhandled rejection. Shutting down.`, reason);
 		await shutdown();
-		// eslint-disable-next-line no-process-exit
 		process.exit(1);
 	});
 	process.on('warning', (warning) => {

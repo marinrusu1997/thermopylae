@@ -1,22 +1,18 @@
-import { PolicyBasedCache, EntryPoolCacheBackend, ProactiveExpirationPolicy, HeapGarbageCollector } from '@thermopylae/lib.cache';
-import type { InvalidAccessTokensCache } from '@thermopylae/lib.jwt-user-session';
-import type { Cache, AbsoluteExpirationPolicyArgumentsBundle } from '@thermopylae/lib.cache';
 import type { Nullable, UnixTimestamp } from '@thermopylae/core.declarations';
+import { EntryPoolCacheBackend, HeapGarbageCollector, PolicyBasedCache, ProactiveExpirationPolicy } from '@thermopylae/lib.cache';
+import type { AbsoluteExpirationPolicyArgumentsBundle, Cache } from '@thermopylae/lib.cache';
+import type { InvalidAccessTokensCache } from '@thermopylae/lib.jwt-user-session';
 
-/**
- * Memory cache which holds invalidated access tokens. <br/>
- * Uses *lib.cache* under the hood.
- */
+/** Memory cache which holds invalidated access tokens. <br/> Uses _lib.cache_ under the hood. */
 class InvalidAccessTokensMemCache<CacheArgsBundle extends AbsoluteExpirationPolicyArgumentsBundle = AbsoluteExpirationPolicyArgumentsBundle>
 	implements InvalidAccessTokensCache
 {
 	private readonly cache: Cache<string, Nullable<UnixTimestamp>, CacheArgsBundle>;
 
 	/**
-	 * @param cache		Cache instance. <br/>
-	 * 					Defaults to a new {@link PolicyBasedCache} instance created
-	 * 					with {@link EntryPoolCacheBackend}
-	 * 					and {@link ProactiveExpirationPolicy} with {@link HeapGarbageCollector}.
+	 * @param cache Cache instance. <br/> Defaults to a new {@link PolicyBasedCache} instance created
+	 *   with {@link EntryPoolCacheBackend} and {@link ProactiveExpirationPolicy} with
+	 *   {@link HeapGarbageCollector}.
 	 */
 	public constructor(cache?: Cache<string, Nullable<UnixTimestamp>, CacheArgsBundle>) {
 		if (cache != null) {

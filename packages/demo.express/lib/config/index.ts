@@ -1,12 +1,12 @@
-import { ConnectionType, DebuggableEventType, RedisConnectionOptions } from '@thermopylae/core.redis';
-import { MySQLClientOptions } from '@thermopylae/core.mysql';
+import type { MySQLClientOptions } from '@thermopylae/core.mysql';
+import { ConnectionType, type DebuggableEventType, type RedisConnectionOptions } from '@thermopylae/core.redis';
 import { ApiValidator, ValidationError } from '@thermopylae/lib.api-validator';
-import { SmsClientOptions } from '@thermopylae/lib.sms';
+import type { SmsClientOptions } from '@thermopylae/lib.sms';
 import { readFile } from 'jsonfile';
 import path from 'path';
-import { AppConfig, AuthenticationEngineConfig, EmailConfig, GeoIpConfig, JwtUserSessionMiddlewareConfig, LoggerConfig } from './typings';
-import { createException, ErrorCodes } from '../error';
-import { KafkaClientOptions } from '../clients/kafka';
+import type { KafkaClientOptions } from '../clients/kafka.js';
+import { ErrorCodes, createException } from '../error.js';
+import type { AppConfig, AuthenticationEngineConfig, EmailConfig, GeoIpConfig, JwtUserSessionMiddlewareConfig, LoggerConfig } from './typings.js';
 
 const enum ConfigName {
 	REDIS = 'REDIS',
@@ -42,6 +42,7 @@ class Config {
 				await readFile(path.join(this.basePath, 'redis', 'regular.json'))
 			)) as RedisConnectionOptions;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(
 					ErrorCodes.INVALID_CONFIG,
@@ -58,6 +59,7 @@ class Config {
 				await readFile(path.join(this.basePath, 'redis', 'subscriber.json'))
 			)) as RedisConnectionOptions;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(
 					ErrorCodes.INVALID_CONFIG,
@@ -67,25 +69,23 @@ class Config {
 			throw e;
 		}
 
-		const config = {
-			[ConnectionType.REGULAR]: regularOptions,
-			[ConnectionType.SUBSCRIBER]: subscriberOptions
+		return {
+			[ConnectionType.REGULAR]: {
+				...regularOptions,
+				attachDebugListeners: new Set(regularOptions.attachDebugListeners as unknown as DebuggableEventType[])
+			},
+			[ConnectionType.SUBSCRIBER]: {
+				...subscriberOptions,
+				attachDebugListeners: new Set(subscriberOptions.attachDebugListeners as unknown as DebuggableEventType[])
+			}
 		};
-
-		// @ts-ignore The typings are not correct
-		config[ConnectionType.REGULAR].attachDebugListeners = new Set(config[ConnectionType.REGULAR].attachDebugListeners as unknown as DebuggableEventType[]);
-		// @ts-ignore The typings are not correct
-		config[ConnectionType.SUBSCRIBER].attachDebugListeners = new Set(
-			config[ConnectionType.SUBSCRIBER].attachDebugListeners as unknown as DebuggableEventType[]
-		);
-
-		return config;
 	}
 
 	public async getMysqlConfig(): Promise<MySQLClientOptions> {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.MYSQL, await readFile(path.join(this.basePath, 'mysql.json')))) as MySQLClientOptions;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Mysql config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -97,6 +97,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.KAFKA, await readFile(path.join(this.basePath, 'kafka.json')))) as KafkaClientOptions;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Kafka config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -108,6 +109,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.GEOIP, await readFile(path.join(this.basePath, 'geoip.json')))) as GeoIpConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `GeoIP config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -119,6 +121,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.EMAIL, await readFile(path.join(this.basePath, 'email.json')))) as EmailConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Email config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -130,6 +133,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.SMS, await readFile(path.join(this.basePath, 'sms.json')))) as SmsClientOptions;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Sms config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -141,6 +145,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.LOGGER, await readFile(path.join(this.basePath, 'logger.json')))) as LoggerConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Logging config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -156,6 +161,7 @@ class Config {
 				await readFile(path.join(this.basePath, 'jwt.json'))
 			)) as JwtUserSessionMiddlewareConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(
 					ErrorCodes.INVALID_CONFIG,
@@ -170,6 +176,7 @@ class Config {
 		try {
 			return (await this.validator.validate('CONFIG', ConfigName.APP, await readFile(path.join(this.basePath, 'app.json')))) as AppConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `App config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}
@@ -185,6 +192,7 @@ class Config {
 				await readFile(path.join(this.basePath, 'authentication.json'))
 			)) as AuthenticationEngineConfig;
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				throw createException(ErrorCodes.INVALID_CONFIG, `Authentication engine config is not valid. ${this.validator.joinErrors(e.errors, 'text')}`);
 			}

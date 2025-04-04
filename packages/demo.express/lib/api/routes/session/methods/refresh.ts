@@ -1,13 +1,13 @@
-import handler from 'express-async-handler';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from '@thermopylae/core.adapter.express';
-import { HttpStatusCode, ObjMap, CoreModule, Library } from '@thermopylae/core.declarations';
+import { CoreModule, HttpStatusCode, Library, type ObjMap } from '@thermopylae/core.declarations';
 import { ErrorCodes as CoreJwtUserSessionErrorCodes } from '@thermopylae/core.jwt-session';
-import { ErrorCodes as LibraryJwtUserSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
-import { Exception } from '@thermopylae/lib.exception';
 import { ValidationError } from '@thermopylae/lib.api-validator';
-import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons';
-import { ApplicationServices, ServiceMethod } from '../../../../constants';
+import { Exception } from '@thermopylae/lib.exception';
+import { ErrorCodes as LibraryJwtUserSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import handler from 'express-async-handler';
+import { API_VALIDATOR, JWT_USER_SESSION_MIDDLEWARE } from '../../../../app/singletons.js';
+import { ApplicationServices, ServiceMethod } from '../../../../constants.js';
 
 const enum ErrorCodes {
 	AUTHENTICATION_DEVICE_MISMATCH = 'AUTHENTICATION_DEVICE_MISMATCH',
@@ -34,6 +34,7 @@ const validateRequestBody: RequestHandler = handler(
 			await API_VALIDATOR.validate(ApplicationServices.AUTHENTICATION, ServiceMethod.REFRESH_USER_SESSION, req.body);
 			next();
 		} catch (e) {
+			// @ts-ignore
 			if (e instanceof ValidationError) {
 				res.status(HttpStatusCode.BadRequest).send({
 					error: {

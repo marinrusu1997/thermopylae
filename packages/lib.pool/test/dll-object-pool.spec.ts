@@ -1,13 +1,9 @@
-import { number, string, array } from '@thermopylae/lib.utils';
-import { chai } from '@thermopylae/dev.unit-test';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { Library, Nullable, Undefinable } from '@thermopylae/core.declarations';
+import { Library, type Nullable, type Undefinable } from '@thermopylae/core.declarations';
 import { Exception } from '@thermopylae/lib.exception';
-import { DLLObjectPool, ObjectConstructor, ObjectDestructor, ObjectInitializer, DLLObjectPoolStats, DLLObjectPoolHandle } from '../lib/pools/dll-object-pool';
-import { ErrorCodes } from '../lib';
-
-const { expect } = chai;
+import { array, number, string } from '@thermopylae/lib.utils';
+import { describe, expect, it } from 'vitest';
+import { DLLObjectPool, ErrorCodes } from '../lib/index.js';
+import type { DLLObjectPoolHandle, DLLObjectPoolStats, ObjectConstructor, ObjectDestructor, ObjectInitializer } from '../lib/pools/dll-object-pool.js';
 
 interface ObjectShape {
 	a: number;
@@ -77,7 +73,6 @@ function clearedShape(): Undefinable<ObjectShape> {
 	return undefined;
 }
 
-// eslint-disable-next-line mocha/no-setup-in-describe
 describe(`${DLLObjectPool.name} spec`, () => {
 	it('constructs pool with initial values, acquires, then releases them all', () => {
 		const shapesNo = 10;

@@ -1,9 +1,11 @@
-import type { Port, Container } from 'dockerode';
-import { number } from '@thermopylae/lib.utils';
-import { Connection, createConnection, MysqlError } from 'mysql';
-import { getDockerodeInstance, pullMissingImage, retrievePreviouslyCreatedContainer } from './index';
-import { logger } from '../logger';
-import { MySQLCommandLineClient, MySqlConnectionDetails } from '../clients/MySQLCommandLineClient';
+import type { Container, Port } from 'dockerode';
+import { createConnection } from 'mysql';
+import type { Connection, MysqlError } from 'mysql';
+import { randomInt } from 'node:crypto';
+import { MySQLCommandLineClient } from '../clients/MySQLCommandLineClient.js';
+import type { MySqlConnectionDetails } from '../clients/MySQLCommandLineClient.js';
+import { logger } from '../logger.js';
+import { getDockerodeInstance, pullMissingImage, retrievePreviouslyCreatedContainer } from './index.js';
 
 interface BootOptions {
 	schemaScriptLocation: string;
@@ -15,7 +17,7 @@ const IMAGE_NAME = 'mysql:latest';
 
 const CONNECTION_DETAILS: MySqlConnectionDetails = {
 	host: '127.0.0.1',
-	port: number.randomInt(3000, 4000),
+	port: randomInt(3000, 4000),
 	user: 'root',
 	password: 'thermopylae',
 	database: 'thermopylae'
@@ -106,7 +108,7 @@ async function waitMySqlServerToBoot(schemaScriptLocation: string, exponentialRe
 			reconnectingAfter = RECONNECT_PARAMS.absoluteTimeout;
 		}
 
-		logger.warning(
+		logger.warn(
 			`Reconnecting to MySQL ${CONNECTION_DETAILS.host}:${CONNECTION_DETAILS.port} in ${reconnectingAfter} ms. Remaining attempts ${remainingAttempts}.`
 		);
 		setTimeout(connectToMySqlServer, reconnectingAfter);
@@ -138,7 +140,6 @@ async function waitMySqlServerToBoot(schemaScriptLocation: string, exponentialRe
 				return setUpMySqlContainer();
 			}
 
-			// eslint-disable-next-line no-plusplus
 			if (--remainingAttempts <= 0) {
 				return done(connectErr);
 			}
@@ -154,4 +155,5 @@ async function waitMySqlServerToBoot(schemaScriptLocation: string, exponentialRe
 	return promise;
 }
 
-export { bootMySqlContainer, MYSQL_COMMAND_LINE_CLIENT, MySqlConnectionDetails };
+export { bootMySqlContainer, MYSQL_COMMAND_LINE_CLIENT };
+export type { MySqlConnectionDetails };

@@ -1,201 +1,207 @@
-import type { JwtPayload, JwtUserSessionManagerOptions, JwtSignOptions, JwtVerifyOptions, IssuedJwtPayload } from '@thermopylae/lib.jwt-user-session';
-import { JsonWebTokenError, JwtUserSessionManager, TokenExpiredError, ErrorCodes as JwtUserSessionErrorCodes } from '@thermopylae/lib.jwt-user-session';
-import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
-import type { UserSessionDevice, AuthorizationTokenExtractor } from '@thermopylae/core.user-session.commons';
 import type {
 	ClientType,
+	HTTPRequestLocation,
 	HttpHeaderValue,
 	HttpRequest,
 	HttpRequestHeader,
-	HTTPRequestLocation,
 	HttpResponse,
 	HttpResponseHeader,
 	MutableSome,
 	RequireAtLeastOne,
 	RequireSome
 } from '@thermopylae/core.declarations';
+import { UserSessionUtils } from '@thermopylae/core.user-session.commons';
+import type { AuthorizationTokenExtractor, UserSessionDevice } from '@thermopylae/core.user-session.commons';
 import { Exception } from '@thermopylae/lib.exception';
+import type { IssuedJwtPayload, JwtPayload, JwtSignOptions, JwtUserSessionManagerOptions, JwtVerifyOptions } from '@thermopylae/lib.jwt-user-session';
+import { JsonWebTokenError, ErrorCodes as JwtUserSessionErrorCodes, JwtUserSessionManager, TokenExpiredError } from '@thermopylae/lib.jwt-user-session';
 import { serialize } from 'cookie';
-import type { CookieSerializeOptions } from 'cookie';
-import { createException, ErrorCodes } from './error';
+import type { SerializeOptions } from 'cookie';
+import { ErrorCodes, createException } from './error.js';
 
 interface UserSessionCookiesOptions {
-	/**
-	 * Cookie names.
-	 */
+	/** Cookie names. */
 	readonly name: {
 		/**
-		 * Name of the cookie where JWT signature part is stored. <br/>
-		 * Name needs to be un lowercase.
+		 * Name of the cookie where JWT signature part is stored. <br/> Name needs to be un
+		 * lowercase.
 		 */
 		readonly signature: string;
 		/**
-		 * Name of the cookie where JWT header.payload part is stored. <br/>
-		 * Name needs to be un lowercase.
+		 * Name of the cookie where JWT header.payload part is stored. <br/> Name needs to be un
+		 * lowercase.
 		 */
 		readonly payload: string;
-		/**
-		 * Name of the cookie where Refresh Token is stored. <br/>
-		 * Name needs to be un lowercase.
-		 */
+		/** Name of the cookie where Refresh Token is stored. <br/> Name needs to be un lowercase. */
 		readonly refresh: string;
 	};
-	/**
-	 * Cookie *Path* attribute value.
-	 */
+	/** Cookie _Path_ attribute value. */
 	readonly path: {
 		/**
-		 * *Path* for {@link UserSessionCookiesOptions.name.signature} cookie. <br/>
-		 * Defaults to *Path* attribute not being set.
+		 * _Path_ for {@link UserSessionCookiesOptions.name.signature} cookie. <br/> Defaults to
+		 * _Path_ attribute not being set.
 		 */
 		readonly 'access-signature'?: string;
 		/**
-		 * *Path* for {@link UserSessionCookiesOptions.name.payload} cookie. <br/>
-		 * Defaults to *Path* attribute not being set.
+		 * _Path_ for {@link UserSessionCookiesOptions.name.payload} cookie. <br/> Defaults to _Path_
+		 * attribute not being set.
 		 */
 		readonly 'access-payload'?: string;
 		/**
-		 * *Path* for {@link UserSessionCookiesOptions.name.refresh} cookie. <br/>
-		 * Refresh tokens are used for session refresh and delete, therefore it needs to contain a very restrictive path,
-		 * which covers only these two operations, in order to minimize token exposure. <br/>
+		 * _Path_ for {@link UserSessionCookiesOptions.name.refresh} cookie. <br/> Refresh tokens are
+		 * used for session refresh and delete, therefore it needs to contain a very restrictive
+		 * path, which covers only these two operations, in order to minimize token exposure. <br/>
 		 *
 		 * @example
-		 * /session path with *PUT* and *DELETE* verbs.
+		 * 	/session path with *PUT* and *DELETE* verbs.
 		 */
 		readonly refresh: string;
 	};
 	/**
-	 * [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite) attribute value
-	 * used for all user session cookies.
+	 * [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite)
+	 * attribute value used for all user session cookies.
 	 */
 	readonly sameSite: true | false | 'lax' | 'strict' | 'none';
 	/**
-	 * [Domain](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#creating_cookies) attribute value
-	 * used for all user session cookies. <br/>
-	 * Defaults to *Domain* attribute not being set.
+	 * [Domain](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#creating_cookies)
+	 * attribute value used for all user session cookies. <br/> Defaults to _Domain_ attribute not
+	 * being set.
 	 */
 	readonly domain?: string;
 	/**
-	 * Whether access token cookie(s) need to be [persisted in browser](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_the_lifetime_of_a_cookie). <br/>
-	 * When set to: <br/>
-	 * 	- *true* - sets *Max-Age* attribute which makes the browser to persist that cookie for specified amount of time <br/>
-	 * 	- *false* - doesn't set *Max-Age*, nor *Expires* attribute which makes the browser to not persist that cookie
+	 * Whether access token cookie(s) need to be [persisted in
+	 * browser](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#define_the_lifetime_of_a_cookie).
+	 * <br/> When set to: <br/> - _true_ - sets _Max-Age_ attribute which makes the browser to
+	 * persist that cookie for specified amount of time <br/> - _false_ - doesn't set _Max-Age_, nor
+	 * _Expires_ attribute which makes the browser to not persist that cookie.
 	 */
 	readonly persistentAccessToken: boolean;
 }
 
 interface UserSessionOptions {
 	/**
-	 * User session cookies options. <br/>
-	 * These options will be used for requests coming from browser devices.
+	 * User session cookies options. <br/> These options will be used for requests coming from
+	 * browser devices.
 	 */
 	readonly cookies: UserSessionCookiesOptions;
 	/**
-	 * HTTP headers used for passing Access & Refresh tokens. <br/>
-	 * This option will be used for requests coming from non-browser devices.
+	 * HTTP headers used for passing Access & Refresh tokens. <br/> This option will be used for
+	 * requests coming from non-browser devices.
 	 */
 	readonly headers: {
 		/**
-		 * Lowercase name of header in the HTTP response which will contain Access Token. <br/>
-		 * This header name will be used in the following situations: <br/>
-		 * 	- when sending Access Token after creating session <br/>
-		 * 	- when sending Access Token after renewing session <br/>
-		 * 	- when sending JWT `payload` to browser clients which won't send CSRF header, as they usually store `payload` in localStorage.
+		 * Lowercase name of header in the HTTP response which will contain Access Token. <br/> This
+		 * header name will be used in the following situations: <br/> - when sending Access Token
+		 * after creating session <br/> - when sending Access Token after renewing session <br/> -
+		 * when sending JWT `payload` to browser clients which won't send CSRF header, as they
+		 * usually store `payload` in localStorage.
 		 *
 		 * **Notice** that on further subsequent requests, not matter of the situations above,
-		 * Access Token (or it's payload part) will need to be included in the *Authorization* header.
+		 * Access Token (or it's payload part) will need to be included in the _Authorization_
+		 * header.
 		 *
-		 * @example <br/> *x-access-token*
+		 * @example
+		 * 	<br/> *x-access-token*
 		 */
 		readonly access: HttpResponseHeader | string;
 		/**
 		 * Lowercase name header in the HTTP response which will contain Refresh Token. <br/>
-		 * **Notice** that renew and delete session HTTP requests will need to include
-		 * header with this name containing Refresh Token.
+		 * **Notice** that renew and delete session HTTP requests will need to include header with
+		 * this name containing Refresh Token.
 		 *
-		 * @example <br/> *x-refresh-token*
+		 * @example
+		 * 	<br/> *x-refresh-token*
 		 */
 		readonly refresh: HttpResponseHeader | string;
 	};
 	/**
-	 * This option kicks in only when requests are made from browser devices. <br/>
-	 * Depending on the provided value, the following behaviours will happen:
-	 * - *true* - this will cause JWT `header.payload` to be sent via {@link UserSessionCookiesOptions.name.payload} cookie. <br/>
-	 * 	After that, all subsequent requests will need to include {@link UserSessionOptions.csrfHeader.name} header with value
-	 * 	{@link UserSessionOptions.csrfHeader.value}. <br/>
-	 * 	This is needed for [CSRF mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html). <br/>
-	 * - *false* - this will cause JWT `header.payload` to be sent to client via {@link UserSessionOptions.headers.access} header. <br/>
-	 * 	After that, all subsequent requests will need to include *Authorization* header with `Bearer ${header.payload}` value.
+	 * This option kicks in only when requests are made from browser devices. <br/> Depending on the
+	 * provided value, the following behaviours will happen:
 	 *
-	 * **Notice** that on requests made from browsers, JWT signature will always be sent via {@link UserSessionCookiesOptions.name.signature} cookie,
-	 * no matter of the value for this option.
+	 * - _true_ - this will cause JWT `header.payload` to be sent via
+	 *   {@link UserSessionCookiesOptions.name.payload} cookie. <br/> After that, all subsequent
+	 *   requests will need to include {@link UserSessionOptions.csrfHeader.name} header with value
+	 *   {@link UserSessionOptions.csrfHeader.value}. <br/> This is needed for [CSRF
+	 *   mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html).
+	 *   <br/>
+	 * - _false_ - this will cause JWT `header.payload` to be sent to client via
+	 *   {@link UserSessionOptions.headers.access} header. <br/> After that, all subsequent requests
+	 *   will need to include _Authorization_ header with `Bearer ${header.payload}` value.
+	 *
+	 * **Notice** that on requests made from browsers, JWT signature will always be sent via
+	 * {@link UserSessionCookiesOptions.name.signature} cookie, no matter of the value for this
+	 * option.
 	 */
 	readonly deliveryOfJwtPayloadViaCookie: boolean;
 	/**
-	 * CSRF header options. <br/>
-	 * CSRF will be validated when {@link UserSessionOptions.deliveryOfJwtPayloadViaCookie} has value *true* or when refresh token is sent to server. <br/>
-	 * This option is available only for requests coming from browser.
+	 * CSRF header options. <br/> CSRF will be validated when
+	 * {@link UserSessionOptions.deliveryOfJwtPayloadViaCookie} has value _true_ or when refresh
+	 * token is sent to server. <br/> This option is available only for requests coming from
+	 * browser.
 	 */
 	readonly csrfHeader: {
 		/**
 		 * Lowercase name of the CSRF header.
 		 *
-		 * @example <br/> *x-requested-with*
+		 * @example
+		 * 	<br/> *x-requested-with*
 		 */
 		readonly name: HttpRequestHeader | string;
 		/**
-		 * Value of the the CSRF header. <br/>
-		 * This value will be used for comparison with the one from HTTP request.
-		 * In case they not match, an error is thrown and request will be aborted.
+		 * Value of the the CSRF header. <br/> This value will be used for comparison with the one
+		 * from HTTP request. In case they not match, an error is thrown and request will be
+		 * aborted.
 		 *
-		 * @example <br/> *XmlHttpRequest*
+		 * @example
+		 * 	<br/> *XmlHttpRequest*
 		 */
 		readonly value: HttpHeaderValue | string;
 	};
 	/**
-	 * Whether to set *Cache-Control: no-cache="Set-Cookie, Set-Cookie2"* response header for the
-	 * requests that deliver access and refresh tokens to client
-	 * (i.e. {@link JwtUserSessionMiddleware.create} and {@link JwtUserSessionMiddleware.refresh} operations). <br/>
-	 * This option is available only for requests coming from browser.
+	 * Whether to set _Cache-Control: no-cache="Set-Cookie, Set-Cookie2"_ response header for the
+	 * requests that deliver access and refresh tokens to client (i.e.
+	 * {@link JwtUserSessionMiddleware.create} and {@link JwtUserSessionMiddleware.refresh}
+	 * operations). <br/> This option is available only for requests coming from browser.
 	 */
 	readonly 'cache-control': boolean;
 }
 
 interface JwtUserSessionMiddlewareOptions {
-	/**
-	 * Options for {@link JwtUserSessionManager}.
-	 */
+	/** Options for {@link JwtUserSessionManager}. */
 	readonly jwt: JwtUserSessionManagerOptions<UserSessionDevice, HTTPRequestLocation>;
-	/**
-	 * User session options.
-	 */
+	/** User session options. */
 	readonly session: UserSessionOptions;
 	/**
-	 * Function which extracts Access Token from *Authorization* header. <br/>
-	 * **Defaults** to extractor which expects *Authorization* header with value in the format: `Bearer ${token}`.
+	 * Function which extracts Access Token from _Authorization_ header. <br/> **Defaults** to
+	 * extractor which expects _Authorization_ header with value in the format: `Bearer ${token}`.
 	 */
 	readonly accessTokenExtractor?: AuthorizationTokenExtractor;
 }
 
 /**
- * JWT User Session middleware which uses *lib.jwt-user-session* for session management and HTTP protocol as transport of user session tokens. <br/>
- * Notice that all function members that operate on HTTP response, will set/unset only it's headers,
- * while other parts, like status code, payload etc are left untouched.
- * Also it doesn't send response back to clients, this is the caller job to call `send` on response. <br/>
- * Implementation is based on the following articles: <br/>
- * 	- [JWT split in two cookies](https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3) <br/>
- * 	- [JWT split in signature cookie and Authorization header](https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3) <br/>
- * 	- [JWT refresh and revoke with Refresh Token](https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#silent_refresh) <br/>
- * 	- [CSRF mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html) <br/>
+ * JWT User Session middleware which uses _lib.jwt-user-session_ for session management and HTTP
+ * protocol as transport of user session tokens. <br/> Notice that all function members that operate
+ * on HTTP response, will set/unset only it's headers, while other parts, like status code, payload
+ * etc are left untouched. Also it doesn't send response back to clients, this is the caller job to
+ * call `send` on response. <br/> Implementation is based on the following articles: <br/> - [JWT
+ * split in two
+ * cookies](https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3)
+ * <br/> - [JWT split in signature cookie and Authorization
+ * header](https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3)
+ * <br/> - [JWT refresh and revoke with Refresh
+ * Token](https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/#silent_refresh) <br/> -
+ * [CSRF
+ * mitigation](https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html)
+ * <br/>
  */
 class JwtUserSessionMiddleware {
 	private readonly options: RequireSome<JwtUserSessionMiddlewareOptions, 'accessTokenExtractor'>;
 
 	private readonly jwtSessionManager: JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation>;
 
-	private readonly refreshTokenCookieOptions: CookieSerializeOptions;
+	private readonly refreshTokenCookieOptions: SerializeOptions;
 
-	private readonly accessTokenCookieOptions: CookieSerializeOptions;
+	private readonly accessTokenCookieOptions: SerializeOptions;
 
 	private readonly invalidationCookies: Readonly<Record<'signature' | 'payload' | 'refresh', string>>;
 
@@ -203,7 +209,7 @@ class JwtUserSessionMiddleware {
 		this.options = JwtUserSessionMiddleware.fillWithDefaults(options);
 		this.jwtSessionManager = new JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation>(options.jwt);
 
-		const refreshTokenCookieOptions: CookieSerializeOptions = {
+		const refreshTokenCookieOptions: SerializeOptions = {
 			path: this.options.session.cookies.path.refresh,
 			secure: true,
 			httpOnly: true,
@@ -249,22 +255,20 @@ class JwtUserSessionMiddleware {
 		});
 	}
 
-	/**
-	 * Get {@link JwtUserSessionManager} instance.
-	 */
+	/** Get {@link JwtUserSessionManager} instance. */
 	public get sessionManager(): JwtUserSessionManager<UserSessionDevice, HTTPRequestLocation> {
 		return this.jwtSessionManager;
 	}
 
 	/**
-	 * Create user session. <br/>
-	 * After session creation, sets Access and Refresh tokens in the response
-	 * cookies and/or headers, according to {@link UserSessionOptions}.
+	 * Create user session. <br/> After session creation, sets Access and Refresh tokens in the
+	 * response cookies and/or headers, according to {@link UserSessionOptions}.
 	 *
-	 * @param req			Incoming HTTP request.
-	 * @param res			Outgoing HTTP response.
-	 * @param jwtPayload	Payload of the JWT token.
-	 * @param signOptions	Sign options. Needs to contain at least subject for whom session is created.
+	 * @param req         Incoming HTTP request.
+	 * @param res         Outgoing HTTP response.
+	 * @param jwtPayload  Payload of the JWT token.
+	 * @param signOptions Sign options. Needs to contain at least subject for whom session is
+	 *   created.
 	 */
 	public async create(req: HttpRequest, res: HttpResponse, jwtPayload: JwtPayload, signOptions: RequireAtLeastOne<JwtSignOptions, 'subject'>): Promise<void> {
 		const context = UserSessionUtils.buildUserSessionContext(req);
@@ -288,15 +292,16 @@ class JwtUserSessionMiddleware {
 	}
 
 	/**
-	 * Verify user session. <br/>
-	 * Access token will be extracted from request according to {@link UserSessionOptions}.
+	 * Verify user session. <br/> Access token will be extracted from request according to
+	 * {@link UserSessionOptions}.
 	 *
-	 * @param req						Incoming HTTP request.
-	 * @param res						Outgoing HTTP response.
-	 * @param verifyOptions				Verify JWT access token options.
-	 * @param unsetSessionCookies		Whether to unset session cookies in the `res` in case JWT is expired, malformed or invalidated. <br/>
-	 * 									This is valid only for requests made from browser devices. <br/>
-	 * 									More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 * @param req                 Incoming HTTP request.
+	 * @param res                 Outgoing HTTP response.
+	 * @param verifyOptions       Verify JWT access token options.
+	 * @param unsetSessionCookies Whether to unset session cookies in the `res` in case JWT is
+	 *   expired, malformed or invalidated. <br/> This is valid only for requests made from browser
+	 *   devices. <br/> More information about cookie invalidation can be found
+	 *   [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 */
 	public async verify(req: HttpRequest, res: HttpResponse, verifyOptions?: JwtVerifyOptions, unsetSessionCookies = true): Promise<IssuedJwtPayload> {
 		let accessToken: string;
@@ -337,14 +342,15 @@ class JwtUserSessionMiddleware {
 	}
 
 	/**
-	 * Refresh Access Token. <br/>
-	 * Refresh Token will be extracted from request according to {@link UserSessionOptions}. <br/>
-	 * Access Token will be included in response depending on client type and according to {@link UserSessionOptions}.
+	 * Refresh Access Token. <br/> Refresh Token will be extracted from request according to
+	 * {@link UserSessionOptions}. <br/> Access Token will be included in response depending on
+	 * client type and according to {@link UserSessionOptions}.
 	 *
-	 * @param req				Incoming HTTP request.
-	 * @param res				Outgoing HTTP response.
-	 * @param jwtPayload		Payload of the refreshed JWT.
-	 * @param signOptions		Sign options. Needs to contain at least subject for whom session is created.
+	 * @param req         Incoming HTTP request.
+	 * @param res         Outgoing HTTP response.
+	 * @param jwtPayload  Payload of the refreshed JWT.
+	 * @param signOptions Sign options. Needs to contain at least subject for whom session is
+	 *   created.
 	 */
 	public async refresh(
 		req: HttpRequest,
@@ -365,17 +371,18 @@ class JwtUserSessionMiddleware {
 	}
 
 	/**
-	 * Delete user session. <br/>
-	 * Refresh Token will be extracted from request according to {@link UserSessionOptions}.
+	 * Delete user session. <br/> Refresh Token will be extracted from request according to
+	 * {@link UserSessionOptions}.
 	 *
-	 * @param req					Incoming HTTP request.
-	 * @param res					Outgoing HTTP response.
-	 * @param subject				Subject which has the session that needs to be deleted.
-	 * @param payload				JWT Access Token payload. <br/>
-	 * 								This parameter is optional and can be omitted when deletion is made by admin who doesn't have access token of the user.
-	 * @param unsetSessionCookies	Whether to unset session cookies in the `res` after session deletion. <br/>
-	 * 								This is valid only for requests made from browser devices. <br/>
-	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 * @param req                 Incoming HTTP request.
+	 * @param res                 Outgoing HTTP response.
+	 * @param subject             Subject which has the session that needs to be deleted.
+	 * @param payload             JWT Access Token payload. <br/> This parameter is optional and can
+	 *   be omitted when deletion is made by admin who doesn't have access token of the user.
+	 * @param unsetSessionCookies Whether to unset session cookies in the `res` after session
+	 *   deletion. <br/> This is valid only for requests made from browser devices. <br/> More
+	 *   information about cookie invalidation can be found
+	 *   [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 */
 	public async delete(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<void> {
 		const [refreshToken, clientType] = this.getRefreshTokenFromRequest(req);
@@ -389,16 +396,17 @@ class JwtUserSessionMiddleware {
 	/**
 	 * Delete all user sessions.
 	 *
-	 * @param req					Incoming HTTP request.
-	 * @param res					Outgoing HTTP response.
-	 * @param subject				Subject, sessions of which needs to be deleted.
-	 * @param payload				JWT Access Token payload. <br/>
-	 * 								This parameter is optional and can be omitted when deletion is made by admin who doesn't have access token of the user.
-	 * @param unsetSessionCookies	Whether to unset session cookies in the `res` after session deletion. <br/>
-	 * 								This is valid only for requests made from browser devices. <br/>
-	 * 								More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 * @param   req                 Incoming HTTP request.
+	 * @param   res                 Outgoing HTTP response.
+	 * @param   subject             Subject, sessions of which needs to be deleted.
+	 * @param   payload             JWT Access Token payload. <br/> This parameter is optional and
+	 *   can be omitted when deletion is made by admin who doesn't have access token of the user.
+	 * @param   unsetSessionCookies Whether to unset session cookies in the `res` after session
+	 *   deletion. <br/> This is valid only for requests made from browser devices. <br/> More
+	 *   information about cookie invalidation can be found
+	 *   [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 *
-	 * @returns						Number of deleted sessions.
+	 * @returns                     Number of deleted sessions.
 	 */
 	public async deleteAll(req: HttpRequest, res: HttpResponse, subject: string, payload?: IssuedJwtPayload, unsetSessionCookies = true): Promise<number> {
 		const numberOfDeletedSessions = await this.jwtSessionManager.deleteAll(subject, payload);
@@ -409,12 +417,12 @@ class JwtUserSessionMiddleware {
 	}
 
 	/**
-	 * Unsets session cookies in the `res`.<br/>
-	 * This is valid only for requests made from browser devices. <br/>
-	 * More information about cookie invalidation can be found [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
+	 * Unsets session cookies in the `res`.<br/> This is valid only for requests made from browser
+	 * devices. <br/> More information about cookie invalidation can be found
+	 * [here](https://stackoverflow.com/questions/5285940/correct-way-to-delete-cookies-server-side).
 	 *
-	 * @param req	Incoming HTTP request.
-	 * @param res	Outgoing HTTP response.
+	 * @param req Incoming HTTP request.
+	 * @param res Outgoing HTTP response.
 	 */
 	public unsetSessionCookies(req: HttpRequest, res: HttpResponse): void {
 		if (req.device && req.device.client && req.device.client.type === 'browser') {
@@ -542,4 +550,4 @@ class JwtUserSessionMiddleware {
 	}
 }
 
-export { JwtUserSessionMiddleware, JwtUserSessionMiddlewareOptions, UserSessionOptions, UserSessionCookiesOptions };
+export { JwtUserSessionMiddleware, type JwtUserSessionMiddlewareOptions, type UserSessionOptions, type UserSessionCookiesOptions };

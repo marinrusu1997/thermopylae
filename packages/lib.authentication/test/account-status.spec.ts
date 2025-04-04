@@ -1,17 +1,15 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it } from 'mocha';
-import { expect } from '@thermopylae/dev.unit-test';
 import { Exception } from '@thermopylae/lib.exception';
-import { AccountStatus, AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib';
-import { AuthenticationEngineDefaultOptions } from './fixtures';
-import { buildAccountToBeRegistered } from './utils';
-import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account';
-import { OnAccountDisabledHookMock } from './fixtures/hooks';
-import { EmailSenderInstance } from './fixtures/senders/email';
+import { json } from '@thermopylae/lib.utils';
+import crypto from 'node:crypto';
+import { describe, expect, it } from 'vitest';
+import { AccountStatus, type AccountWithTotpSecret, AuthenticationEngine, ErrorCodes } from '../lib/index.js';
+import { OnAccountDisabledHookMock } from './fixtures/hooks.js';
+import { AuthenticationEngineDefaultOptions } from './fixtures/index.js';
+import { AccountRepositoryMongo } from './fixtures/repositories/mongo/account.js';
+import { EmailSenderInstance } from './fixtures/senders/email.js';
+import { buildAccountToBeRegistered } from './utils.js';
 
-describe('Account Status spec', function suite() {
-	this.timeout(10_000); // @fixme remove when having proper net
-
+describe('Account Status spec', { timeout: 10_000 }, function suite() {
 	const AuthEngineInstance = new AuthenticationEngine(AuthenticationEngineDefaultOptions);
 
 	it('disables user account', async () => {
@@ -25,16 +23,16 @@ describe('Account Status spec', function suite() {
 
 		expect((await AccountRepositoryMongo.readById(account.id))!.disabledUntil).to.be.eq(AccountStatus.DISABLED_UNTIL_ACTIVATION);
 
-		expect(OnAccountDisabledHookMock.calls).to.be.ofSize(1);
+		expect(OnAccountDisabledHookMock.calls).to.have.length(1);
 		expect((JSON.parse(OnAccountDisabledHookMock.calls[0]) as AccountWithTotpSecret).disabledUntil).to.be.eq(AccountStatus.DISABLED_UNTIL_ACTIVATION);
 
-		const userNotification: { account: AccountWithTotpSecret; cause: string } = JSON.parse(
+		const userNotification: { account: AccountWithTotpSecret; cause: string } = json.TypedJson.parse(
 			EmailSenderInstance.client.outboxFor(account.email, 'notifyAccountDisabled')[0]
 		);
 		expect(userNotification.account.disabledUntil).to.be.eq(AccountStatus.DISABLED_UNTIL_ACTIVATION);
 		expect(userNotification.cause).to.be.eq(cause);
 
-		const adminNotification: { account: AccountWithTotpSecret; cause: string } = JSON.parse(
+		const adminNotification: { account: AccountWithTotpSecret; cause: string } = json.TypedJson.parse(
 			EmailSenderInstance.client.outboxFor(AuthenticationEngineDefaultOptions.email.admin, 'notifyAdminAboutAccountDisabling')[0]
 		);
 		expect(adminNotification.account.disabledUntil).to.be.eq(AccountStatus.DISABLED_UNTIL_ACTIVATION);
@@ -78,7 +76,7 @@ describe('Account Status spec', function suite() {
 	it("fails to disable account if it wasn't found", async () => {
 		let accountNotFoundErr;
 
-		const accountId = 'ajf980a7ut09';
+		const accountId = crypto.randomBytes(12).toString('hex');
 
 		try {
 			await AuthEngineInstance.disableAccount(accountId, AccountStatus.DISABLED_UNTIL_ACTIVATION, 'does not matter');

@@ -1,45 +1,37 @@
+import type { ObjMap } from '@thermopylae/core.declarations';
 import { chrono } from '@thermopylae/lib.utils';
 import fetch from 'node-fetch';
-import type { IpLocation, IpLocationsRepository } from './index';
+import type { IpLocation, IpLocationsRepository } from './index.js';
 
-/**
- * @private
- */
+/** @private */
 const AVAILABLE_NOW = -1;
 
-/**
- * [API Guide](https://www.iplocate.com/en/developer/api-guide)
- */
+/** [API Guide](https://www.iplocate.com/en/developer/api-guide) */
 interface IpLocateRepositoryOptions {
-	/**
-	 * API key provided for registered application.
-	 */
+	/** API key provided for registered application. */
 	readonly apiKey?: string;
-	/**
-	 * Weight of the repo.
-	 */
+	/** Weight of the repo. */
 	readonly weight: number;
-	/**
-	 * Hooks.
-	 */
+	/** Hooks. */
 	readonly hooks: {
 		/**
 		 * Hook called when ip retrieval fails with an error.
 		 *
-		 * @param err	Error that was thrown.
+		 * @param err Error that was thrown.
 		 */
 		onIpRetrievalError: (err: Error) => void;
 		/**
 		 * Hook called when rate limit was reached.
 		 *
-		 * @param rateLimitReset	Date-time when rate limit will be reset.
+		 * @param rateLimitReset Date-time when rate limit will be reset.
 		 */
 		onRateLimitExceeded: (rateLimitReset: Date) => void;
 	};
 }
 
 /**
- * Repository which fetches ip locations from [iplocate](https://www.iplocate.com/en/developer/api-guide).
+ * Repository which fetches ip locations from
+ * [iplocate](https://www.iplocate.com/en/developer/api-guide).
  */
 class IpLocateRepository implements IpLocationsRepository {
 	private readonly options: IpLocateRepositoryOptions;
@@ -56,30 +48,22 @@ class IpLocateRepository implements IpLocationsRepository {
 		this.availableAt = AVAILABLE_NOW;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get id(): string {
 		return 'iplocate';
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get weight(): number {
 		return this.options.weight;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public get available(): boolean {
 		return this.availableAt === AVAILABLE_NOW || /* c8 ignore next */ this.availableAt < chrono.unixTime();
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** @inheritDoc */
 	public async lookup(ip: string): Promise<IpLocation | null> {
 		let location = null;
 
@@ -88,14 +72,14 @@ class IpLocateRepository implements IpLocationsRepository {
 				location = await this.retrieve(ip);
 				/* c8 ignore start */
 			} catch (e) {
-				this.options.hooks.onIpRetrievalError(e);
+				this.options.hooks.onIpRetrievalError(e as Error);
 			}
 		} else if (this.availableAt < chrono.unixTime()) {
 			try {
 				location = await this.retrieve(ip);
 				this.availableAt = AVAILABLE_NOW;
 			} catch (e) {
-				this.options.hooks.onIpRetrievalError(e);
+				this.options.hooks.onIpRetrievalError(e as Error);
 			}
 		}
 		/* c8 ignore stop */
@@ -119,7 +103,7 @@ class IpLocateRepository implements IpLocationsRepository {
 		}
 		/* c8 ignore stop */
 
-		const location = await response.json();
+		const location = (await response.json()) as ObjMap;
 
 		return {
 			REPOSITORY_ID: this.id,
@@ -133,4 +117,4 @@ class IpLocateRepository implements IpLocationsRepository {
 	}
 }
 
-export { IpLocateRepository, IpLocateRepositoryOptions };
+export { IpLocateRepository, type IpLocateRepositoryOptions };
