@@ -1,42 +1,17 @@
 {
-  "name": "@thermopylae/monorepo",
-  "version": "0.0.0",
+  "name": "thermopylae",
   "private": true,
   "workspaces": [
-    "packages/core.adapter.express",
-    "packages/core.adapter.fastify",
-    "packages/core.authentication",
-    "packages/core.cookie-session",
-    "packages/core.declarations",
-    "packages/core.jwt-session",
-    "packages/core.logger",
-    "packages/core.mysql",
-    "packages/core.redis",
-    "packages/core.user-session.commons",
-    "packages/demo.express",
-    "packages/dev.environment",
-    "packages/dev.unit-test",
-    "packages/lib.api-validator",
-    "packages/lib.async",
-    "packages/lib.authentication",
-    "packages/lib.cache",
-    "packages/lib.collection",
-    "packages/lib.email",
-    "packages/lib.exception",
-    "packages/lib.geoip",
-    "packages/lib.heap",
-    "packages/lib.indexed-store",
-    "packages/lib.jwt-user-session",
-    "packages/lib.pool",
-    "packages/lib.sms",
-    "packages/lib.user-session",
-    "packages/lib.user-session.commons",
-    "packages/lib.utils"
+    "packages/*"
   ],
-  "dependencies": {
-    "dependency-graph": "0",
-    "execa": "5",
-    "ts-node": "10"
+  "devDependencies": {
+    "dependency-graph": "1.0.0",
+    "execa": "9.5.2",
+    "lerna": "8.2.1",
+    "ts-node": "10.9.2"
+  },
+  "scripts": {
+    "bootstrap": "lerna bootstrap"
   },
   "license": "MIT"
 }

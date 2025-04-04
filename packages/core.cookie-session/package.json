@@ -38,29 +38,29 @@
         "@thermopylae/core.user-session.commons": "1",
         "@thermopylae/lib.exception": "1",
         "@thermopylae/lib.user-session": "1",
-        "cookie": "0"
+        "cookie": "1.0.2"
     },
     "devDependencies": {
         "@thermopylae/core.adapter.express": "1",
         "@thermopylae/dev.unit-test": "1",
         "@thermopylae/dev.environment": "1",
-        "@types/capitalize": "2",
-        "@types/cookie": "0",
-        "@types/cookie-parser": "1",
-        "@types/express": "4",
-        "@types/express-request-id": "1",
-        "@types/morgan": "1",
-        "@types/node-fetch": "2",
-        "body-parser": "1",
-        "capitalize": "2",
-        "cookie-parser": "1",
-        "dotenv": "10",
-        "express": "4",
-        "express-async-handler": "1",
-        "express-request-id": "1",
-        "morgan": "1",
-        "node-fetch": "2",
-        "unix-timestamp": "0"
+        "@types/capitalize": "2.0.2",
+        "@types/cookie": "1.0.0",
+        "@types/cookie-parser": "1.4.8",
+        "@types/express": "5.0.1",
+        "@types/express-request-id": "3.0.2",
+        "@types/morgan": "1.9.9",
+        "@types/node-fetch": "2.6.12",
+        "body-parser": "2.2.0",
+        "capitalize": "2.0.4",
+        "cookie-parser": "1.4.7",
+        "dotenv": "16.4.7",
+        "express": "5.1.0",
+        "express-async-handler": "1.2.0",
+        "express-request-id": "3.0.0",
+        "morgan": "1.10.0",
+        "node-fetch": "3.3.2",
+        "unix-timestamp": "1.1.0"
     },
     "lint-staged": {
         "*.ts": [
@@ -68,7 +68,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

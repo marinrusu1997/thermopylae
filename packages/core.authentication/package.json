@@ -35,8 +35,8 @@
         "@thermopylae/core.mysql": "1",
         "@thermopylae/core.redis": "1",
         "@thermopylae/lib.exception": "1",
-        "farmhash": "3",
-        "fast-json-stable-stringify": "2"
+        "farmhash": "4.0.1",
+        "fast-json-stable-stringify": "2.1.0"
     },
     "devDependencies": {
         "@thermopylae/dev.unit-test": "1",
@@ -44,9 +44,9 @@
         "@thermopylae/dev.environment": "1",
         "@thermopylae/lib.authentication": "1",
         "@thermopylae/core.logger": "1",
-        "@types/faker": "5",
-        "dotenv": "10",
-        "faker": "5"
+        "@types/faker": "6.6.11",
+        "dotenv": "16.4.7",
+        "faker": "6.6.6"
     },
     "lint-staged": {
         "*.ts": [
@@ -54,7 +54,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

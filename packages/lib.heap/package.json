@@ -31,13 +31,13 @@
     },
     "dependencies": {
         "@thermopylae/core.declarations": "1",
-        "lodash.isfunction": "3"
+        "lodash.isfunction": "3.0.9"
     },
     "devDependencies": {
         "@thermopylae/dev.environment": "1",
         "@thermopylae/dev.unit-test": "1",
         "@thermopylae/lib.utils": "1",
-        "@types/lodash.isfunction": "3"
+        "@types/lodash.isfunction": "3.0.9"
     },
     "lint-staged": {
         "*.ts": [
@@ -45,7 +45,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

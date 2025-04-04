@@ -34,16 +34,16 @@
     "dependencies": {
         "@thermopylae/core.declarations": "1",
         "@thermopylae/lib.exception": "1",
-        "jsonwebtoken": "8",
-        "uid-safe": "2"
+        "jsonwebtoken": "9.0.2",
+        "uid-safe": "2.1.5"
     },
     "devDependencies": {
         "@thermopylae/lib.cache": "1",
         "@thermopylae/dev.unit-test": "1",
         "@thermopylae/lib.user-session.commons": "1",
         "@thermopylae/dev.environment": "1",
-        "@types/jsonwebtoken": "8",
-        "@types/uid-safe": "2"
+        "@types/jsonwebtoken": "9.0.9",
+        "@types/uid-safe": "2.1.5"
     },
     "lint-staged": {
         "*.ts": [
@@ -51,7 +51,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

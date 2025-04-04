@@ -35,12 +35,12 @@
         "@thermopylae/core.logger": "1",
         "@thermopylae/lib.exception": "1",
         "@thermopylae/lib.utils": "1",
-        "handy-redis": "2",
-        "redis": "3"
+        "handy-redis": "2.3.1",
+        "redis": "4.7.0"
     },
     "devDependencies": {
         "@thermopylae/dev.environment": "1",
-        "@types/redis": "2"
+        "@types/redis": "4.0.11"
     },
     "lint-staged": {
         "*.ts": [
@@ -48,7 +48,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

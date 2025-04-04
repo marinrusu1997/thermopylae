@@ -31,21 +31,21 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "device-detector-js": "2"
+        "device-detector-js": "3.0.3"
     },
     "devDependencies": {
         "@thermopylae/core.declarations": "1",
         "@thermopylae/dev.unit-test": "1",
         "@thermopylae/dev.environment": "1",
-        "@types/cookie": "0",
-        "@types/cookie-parser": "1",
-        "@types/express": "4",
-        "@types/node-fetch": "2",
-        "body-parser": "1",
-        "cookie": "0",
-        "cookie-parser": "1",
-        "express": "4",
-        "node-fetch": "2"
+        "@types/cookie": "1.0.0",
+        "@types/cookie-parser": "1.4.8",
+        "@types/express": "5.0.1",
+        "@types/node-fetch": "2.6.12",
+        "body-parser": "2.2.0",
+        "cookie": "1.0.2",
+        "cookie-parser": "1.4.7",
+        "express": "5.1.0",
+        "node-fetch": "3.3.2"
     },
     "lint-staged": {
         "*.ts": [
@@ -53,7 +53,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

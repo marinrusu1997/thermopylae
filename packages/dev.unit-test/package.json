@@ -30,29 +30,29 @@
         "unpublish": "npm unpublish --force $npm_package_name"
     },
     "dependencies": {
-        "@rauschma/stringio": "1",
+        "@rauschma/stringio": "1.4.0",
         "@thermopylae/core.declarations": "1",
         "@thermopylae/core.logger": "1",
         "@thermopylae/lib.utils": "1",
-        "@types/chai-arrays": "2",
-        "@types/chai-as-promised": "7",
-        "chai-arrays": "2",
-        "chai-as-promised": "7",
-        "chai-asserttype": "1",
-        "chai-date-string": "0",
-        "deep-freeze": "0",
-        "dockerode": "3",
-        "json-schema-typed": "7",
-        "lookpath": "^1.2.2",
-        "mocker-data-generator": "2",
-        "mysql": "2",
-        "netmap": "1"
+        "@types/chai-arrays": "2.0.3",
+        "@types/chai-as-promised": "8.0.2",
+        "chai-arrays": "2.2.0",
+        "chai-as-promised": "8.0.1",
+        "chai-asserttype": "1.0.5",
+        "chai-date-string": "0.1.0",
+        "deep-freeze": "0.0.1",
+        "dockerode": "4.0.5",
+        "json-schema-typed": "8.0.1",
+        "lookpath": "1.2.3",
+        "mocker-data-generator": "3.0.3",
+        "mysql": "2.18.1",
+        "netmap": "1.0.6"
     },
     "devDependencies": {
         "@thermopylae/dev.environment": "1",
-        "@types/deep-freeze": "0",
-        "@types/dockerode": "3",
-        "@types/mysql": "2"
+        "@types/deep-freeze": "0.1.5",
+        "@types/dockerode": "3.3.37",
+        "@types/mysql": "2.15.27"
     },
     "lint-staged": {
         "*.ts": [
@@ -60,7 +60,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "ISC",
     "type": "module"

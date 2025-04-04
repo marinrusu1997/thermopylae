@@ -35,10 +35,10 @@
     "dependencies": {
         "@thermopylae/core.declarations": "1",
         "@thermopylae/lib.utils": "1",
-        "ajv": "8",
-        "ajv-formats": "2",
-        "ajv-i18n": "4",
-        "xss": "1"
+        "ajv": "8.17.1",
+        "ajv-formats": "3.0.1",
+        "ajv-i18n": "4.2.0",
+        "xss": "1.0.15"
     },
     "devDependencies": {
         "@thermopylae/dev.unit-test": "1",
@@ -50,7 +50,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

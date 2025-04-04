@@ -33,14 +33,14 @@
         "@thermopylae/core.declarations": "1",
         "@thermopylae/lib.exception": "1",
         "@thermopylae/lib.utils": "1",
-        "geoip-lite": "1",
-        "node-fetch": "2"
+        "geoip-lite": "1.4.10",
+        "node-fetch": "3.3.2"
     },
     "devDependencies": {
         "@thermopylae/dev.unit-test": "1",
         "@thermopylae/dev.environment": "1",
-        "@types/geoip-lite": "1",
-        "dotenv": "10"
+        "@types/geoip-lite": "1.4.4",
+        "dotenv": "16.4.7"
     },
     "lint-staged": {
         "*.ts": [
@@ -48,7 +48,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"

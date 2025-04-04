@@ -34,15 +34,15 @@
         "@thermopylae/core.redis": "1",
         "@thermopylae/lib.exception": "1",
         "@thermopylae/core.logger": "1",
-        "avsc": "5",
-        "fast-json-stringify": "2",
-        "lodash.clonedeep": "4"
+        "avsc": "5.7.7",
+        "fast-json-stringify": "6.0.1",
+        "lodash.clonedeep": "4.5.0"
     },
     "devDependencies": {
         "@thermopylae/lib.user-session": "1",
         "@thermopylae/lib.user-session.commons": "1",
         "@thermopylae/dev.environment": "1",
-        "@types/lodash.clonedeep": "4"
+        "@types/lodash.clonedeep": "4.5.9"
     },
     "lint-staged": {
         "*.ts": [
@@ -50,7 +50,7 @@
         ]
     },
     "engines": {
-        "node": ">= 16"
+        "node": ">=18"
     },
     "license": "MIT",
     "type": "module"
